@@ -1,0 +1,21 @@
+lockfileVersion: 5.3
+
+specifiers:
+  '@types/node': ^17.0.15
+  typescript: ^4.5.5
+
+devDependencies:
+  '@types/node': 17.0.15
+  typescript: 4.5.5
+
+packages:
+
+  /@types/node/17.0.15:
+    resolution: {integrity: sha512-zWt4SDDv1S9WRBNxLFxFRHxdD9tvH8f5/kg5/IaLFdnSNXsDY4eL3Q3XXN+VxUnWIhyVFDwcsmAprvwXoM/ClA==}
+    dev: true
+
+  /typescript/4.5.5:
+    resolution: {integrity: sha512-TCTIul70LyWe6IJWT8QSYeA54WQe8EjQFU4wY52Fasj5UKx88LNYKCgBEHcOMOrFF1rKGbD8v/xcNWVUq9SymA==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
