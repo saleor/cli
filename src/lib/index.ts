@@ -11,6 +11,7 @@ const BaseOptions = {
 export const GET = (path: string, options: any) => got(path, {...options, ...BaseOptions}).json();
 
 export const API = {
+  User: "user/",
   Organization: (organization_slug: string = '') => `organizations/${organization_slug}`,
   Environment: (organization_slug: string, environment_slug: string = '') => `organizations/${organization_slug}/environments/${environment_slug}`,
   Job: (organization_slug: string, environment_slug: string) => `organizations/${organization_slug}/environments/${environment_slug}/jobs`,
