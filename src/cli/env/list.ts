@@ -1,5 +1,7 @@
 import type { Arguments, CommandBuilder } from "yargs";
-import { getCurrentToken, API, GET } from "../../lib/index.js";
+import { cli } from 'cli-ux';
+
+import { API, GET } from "../../lib/index.js";
 import SaleorConfig from "../../lib/config.js"
 
 type Options = {
@@ -25,9 +27,11 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     },
   }) as any[];
 
-  for (let elem of result) {
-    console.log(elem.key, '\t', elem.name, '\t', elem.created)
-  }
+  cli.table(result, {
+    key: { minWidth: 2 },
+    name: { minWidth: 2 },
+    created: { minWidth: 2 }
+  });
 
   process.exit(0);
 };
