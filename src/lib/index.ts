@@ -10,6 +10,7 @@ const BaseOptions = {
 
 export const GET = (path: string, options: any) => got(path, {...options, ...BaseOptions}).json();
 export const POST = (path: string, options: any) => got.post(path, {...options, ...BaseOptions}).json();
+export const DELETE = (path: string, options: any) => got.delete(path, {...options, ...BaseOptions}).json();
 
 export const API = {
   User: "user/",
