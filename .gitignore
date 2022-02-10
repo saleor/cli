@@ -133,3 +133,5 @@ dist
 build/
 .vscode/
 binaries/
+.saleor
+token.txt
