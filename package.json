@@ -30,6 +30,7 @@
     "typescript": "beta"
   },
   "dependencies": {
+    "cli-ux": "^6.0.9",
     "yargs": "^17.3.1"
   },
   "engines": {

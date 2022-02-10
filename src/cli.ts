@@ -4,17 +4,14 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
 import env from './cli/env/index.js';
-
-import * as login from './cli/login.js';
-import * as init from './cli/init.js';
+import * as configure from './cli/configure.js';
 
 yargs(hideBin(process.argv))
   .scriptName("saleor")
   .version()
   .alias('V', 'version')
   .usage('Usage: $0 <command> [options]')
-  .command(login)
-  .command(init)
+  .command(configure)
   .command(['organization [command]', 'org'], '', env)
   .command(['environment [command]', 'env'], '', env)
   .command(['backup [command]'], '')
