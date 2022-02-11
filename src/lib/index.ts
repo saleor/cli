@@ -24,10 +24,7 @@ const handleAuthAndConfig = (func: Function) => async (path: OrganizationPath, o
     throw Error("No auth token")
   }
 
-  const pathA = path(organization_slug)
-  console.log(pathA);
-
-  return func(pathA, { 
+  return func(path(organization_slug), { 
     headers: {
       Authorization: `Token ${token}`,
     },
