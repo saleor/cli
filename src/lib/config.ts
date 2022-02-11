@@ -12,8 +12,8 @@ type ConfigProps = {
 const set = async (config: ConfigProps, configFile: string = DEFAULT_CONFIG_FILE) => {
   const configDir = path.dirname(configFile);
 
-  const consgiDirExists = await fs.pathExists(configDir);
-  if (!consgiDirExists) {
+  const configDirExists = await fs.pathExists(configDir);
+  if (!configDirExists) {
     await fs.mkdir(configDir);
   }
 
