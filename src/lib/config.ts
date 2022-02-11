@@ -1,18 +1,25 @@
-import fs from 'fs-extra'
+import os from "os";
+import fs from 'fs-extra';
 import path from "path";
 
-const DEFAULT_CONFIG_FILE = ".saleor/config.json"
+const DEFAULT_CONFIG_FILE = path.join(os.homedir(), ".config", "saleor.json");
 
-let configFile: string;
-
-const setToken = async (token: string) => {
-  await fs.mkdir(path.dirname(configFile));
-  await fs.writeFile(configFile, JSON.stringify({ token }));
+type ConfigProps = {
+  token?: string
 }
 
-const init = async (configFile?: string) => {
-  configFile = configFile || DEFAULT_CONFIG_FILE;
+const set = async (config: ConfigProps, configFile: string = DEFAULT_CONFIG_FILE) => {
+  const configDir = path.dirname(configFile);
 
+  const consgiDirExists = await fs.pathExists(configDir);
+  if (!consgiDirExists) {
+    await fs.mkdir(configDir);
+  }
+
+  await fs.writeFile(configFile, JSON.stringify(config));
+}
+
+const get = async (configFile: string = DEFAULT_CONFIG_FILE): Promise<ConfigProps> => {
   const r = await fs.pathExists(configFile);
 
   if (r) {
@@ -25,4 +32,4 @@ const init = async (configFile?: string) => {
   }
 }
 
-export const Config = { init, setToken }
+export const Config = { get, set }

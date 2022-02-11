@@ -21,16 +21,11 @@ export const handler = async (argv: Arguments<Options>) => {
   while (!token) token = await cli.prompt("Access Token", { type: "mask" });
 
   try {
-    const result = await GET(API.User(), {
-      headers: {
-        Authorization: `Token ${token}`,
-      },
-    }) as any;
+    const result = await GET(API.User(), { token }) as any;
 
     console.log(`Success! ${result.email}`);
 
-    await Config.init();
-    Config.setToken(token);
+    Config.set({ token });
   } catch (error) {
     // FIXME make it more explicit
     if (error instanceof HTTPError) {
