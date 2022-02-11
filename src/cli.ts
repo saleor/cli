@@ -32,7 +32,7 @@ yargs(hideBin(process.argv))
         attr: chalk.red
       }).value);
     } else {
-      console.error(error)
+      console.log(yargs.help())
     }
     process.exit(1)
   })
