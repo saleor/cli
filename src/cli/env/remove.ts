@@ -1,3 +1,4 @@
+import { HTTPError, Response } from "got";
 import type { Arguments, CommandBuilder } from "yargs";
 import { API, DELETE } from "../../lib/index.js";
 
@@ -20,7 +21,6 @@ export const handler = async (argv: Arguments<Options>) => {
   console.log(`Deleting environment: ${key}!`);
 
   const result = await DELETE(API.Environment("cli-dev", key)) as any;
-
   console.log(result)
 
   process.exit(0);

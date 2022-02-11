@@ -2,8 +2,8 @@ import * as show from "./show.js";
 import * as list from "./list.js";
 import * as create from "./create.js";
 import * as remove from "./remove.js";
-import * as cleardb from "./cleardb.js";
-import * as populatedb from "./populatedb.js";
+import * as cleardb from "./clear.js";
+import * as populatedb from "./populate.js";
 
 export default function (_: any) {
   _.command([
