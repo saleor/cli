@@ -1,7 +1,9 @@
 import type { Arguments, CommandBuilder } from "yargs";
 import { API, DELETE } from "../../lib/index.js";
-import SaleorConfig from "../../lib/config.js";
 
+interface Options {
+  key: string
+}
 
 export const command = "delete <key>";
 export const desc = "Delete environmet";
@@ -13,22 +15,11 @@ export const builder: CommandBuilder = (_) =>
     desc: 'key of the environment'
   });
 
-export const handler = async (argv: Arguments) => {
-  const config = new SaleorConfig();
-  if (!config.token) {
-    console.error("Missing saleor token: Please create token and run `saleor configure`");
-    process.exit(1);
-  }
-
+export const handler = async (argv: Arguments<Options>) => {
   const { key } = argv;
-  const message = `Deleting environment: ${key}!`;
-  console.log(message);
+  console.log(`Deleting environment: ${key}!`);
 
-  const result = await DELETE(API.Environment("cli-dev", key as string), {
-    headers: {
-      Authorization: `Token ${config.token}`,
-    }
-  }) as any;
+  const result = await DELETE(API.Environment("cli-dev", key)) as any;
 
   console.log(result)
 

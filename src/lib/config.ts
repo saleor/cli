@@ -1,53 +1,28 @@
-import * as fs from 'fs'
-import * as path from "path";
+import fs from 'fs-extra'
+import path from "path";
 
 const DEFAULT_CONFIG_FILE = ".saleor/config.json"
 
-interface SaleorConfigProps {
-  token: string | null;
+let configFile: string;
+
+const setToken = async (token: string) => {
+  await fs.mkdir(path.dirname(configFile));
+  await fs.writeFile(configFile, JSON.stringify({ token }));
 }
 
-class SaleorConfig {
-  configFile: string;
-  token: string | null;
+const init = async (configFile?: string) => {
+  configFile = configFile || DEFAULT_CONFIG_FILE;
 
-  constructor(configFile?: string) {
-    this.configFile = configFile || DEFAULT_CONFIG_FILE;
-    this.token = null;
+  const r = await fs.pathExists(configFile);
 
-    if (this.exists()) {
-      this.read();
-    }
-  }
+  if (r) {
+    const content = await fs.readFile(configFile, "utf-8");
+    const { token } = JSON.parse(content);
 
-  exists(): boolean {
-    return fs.existsSync(this.configFile);
-  }
-
-  read() {
-    const content = fs.readFileSync(this.configFile, 'utf-8');
-    this.load(JSON.parse(content));
-  }
-
-  write() {
-    fs.mkdirSync(path.dirname(this.configFile));
-    fs.writeFileSync(this.configFile, JSON.stringify(this.dump()));
-  }
-
-  load(dump: SaleorConfigProps) {
-    this.token = dump.token || null;
-  }
-
-  dump(): SaleorConfigProps {
-    return {
-      token: this.token,
-    };
-  }
-
-  setToken(token: string) {
-    this.token = token;
-    this.write();
+    return { token }
+  } else {
+    return {}
   }
 }
 
-export default SaleorConfig;
+export const Config = { init, setToken }

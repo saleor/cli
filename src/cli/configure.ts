@@ -4,7 +4,7 @@ import { cli } from "cli-ux";
 import { HTTPError } from "got";
 
 import { API, GET } from "../lib/index.js";
-import SaleorConfig from "../lib/config.js"
+import { Config } from "../lib/config.js"
 
 type Options = {
   token?: string;
@@ -21,7 +21,7 @@ export const handler = async (argv: Arguments<Options>) => {
   while (!token) token = await cli.prompt("Access Token", { type: "mask" });
 
   try {
-    const result = await GET(API.User, {
+    const result = await GET(API.User(), {
       headers: {
         Authorization: `Token ${token}`,
       },
@@ -29,8 +29,8 @@ export const handler = async (argv: Arguments<Options>) => {
 
     console.log(`Success! ${result.email}`);
 
-    const config = new SaleorConfig();
-    config.setToken(token);
+    await Config.init();
+    Config.setToken(token);
   } catch (error) {
     // FIXME make it more explicit
     if (error instanceof HTTPError) {
