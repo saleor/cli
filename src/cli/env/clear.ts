@@ -5,7 +5,7 @@ interface Options {
   key: string
 }
 
-export const command = "cleardb <key>";
+export const command = "clear <key>";
 export const desc = "Clear database for environment";
 
 export const builder: CommandBuilder = (_) =>
