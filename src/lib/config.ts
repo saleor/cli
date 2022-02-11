@@ -5,7 +5,8 @@ import path from "path";
 const DEFAULT_CONFIG_FILE = path.join(os.homedir(), ".config", "saleor.json");
 
 type ConfigProps = {
-  token?: string
+  token?: string;
+  organization?: string;
 }
 
 const set = async (config: ConfigProps, configFile: string = DEFAULT_CONFIG_FILE) => {
