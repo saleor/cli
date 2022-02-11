@@ -20,9 +20,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const message = `Clearing database: ${key}!`;
   console.log(message);
 
-  const path = `${API.ClearDatabase("cli-dev", key)}`
-
-  const result = await GET(path) as any;
+  const result = await GET(API.ClearDatabase(key)) as any;
 
   console.log(result)
 

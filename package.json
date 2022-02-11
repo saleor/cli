@@ -24,6 +24,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/fs-extra": "^9.0.13",
+    "@types/inquirer": "^8.2.0",
     "@types/node": "^17.0.17",
     "@types/prompt": "^1.1.2",
     "@types/yargs": "^17.0.8",
@@ -37,6 +38,7 @@
     "cli-ux": "^6.0.9",
     "emphasize": "^5.0.0",
     "fs-extra": "^10.0.0",
+    "inquirer": "^8.2.0",
     "prompt": "^1.2.1",
     "yaml": "^1.10.2",
     "yargs": "^17.3.1"

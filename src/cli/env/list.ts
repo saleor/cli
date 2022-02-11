@@ -6,7 +6,7 @@ export const command = "list";
 export const desc = "List environments";
 
 export const handler = async () => {
-  const result = await GET(API.Environment("cli-dev")) as any[]; 
+  const result = await GET(API.Environment()) as any[]; 
 
   cli.table(result, {
     key: { minWidth: 2 },
