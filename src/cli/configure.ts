@@ -16,16 +16,16 @@ export const desc = "Configure Saleor CLI";
 export const builder: CommandBuilder<{}, Options> = (_) =>
   _.positional("token", { type: "string", demandOption: false });
 
-  
+
 export const handler = async (argv: Arguments<Options>) => {
   let { token } = argv;
   while (!token) token = await cli.prompt("Access Token", { type: "mask" });
 
   try {
     await validateToken(token);
-    const organization = await chooseOrganization(token);
+    const organization_slug = await chooseOrganization(token);
 
-    Config.set({ token, organization });
+    Config.set({ token, organization_slug });
   } catch (error) {
     // FIXME make it more explicit
     if (error instanceof HTTPError) {
@@ -45,14 +45,14 @@ const chooseOrganization = async (token: string) => {
   const orgs = (await GET(API.Organization(), { token })) as any[];
   if (!orgs.length) return;
 
-  const { defaultOrg } = await inquirer.prompt([
+  const { organization_slug } = await inquirer.prompt([
     {
       type: "list",
-      name: "defaultOrg",
+      name: "organization_slug",
       message: "Choose organization:",
       choices: orgs.map((org) => ({name: org.name, value: org.slug})),
     },
   ]);
 
-  return defaultOrg;
+  return organization_slug;
 };

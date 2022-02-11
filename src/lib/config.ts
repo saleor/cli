@@ -6,7 +6,7 @@ const DEFAULT_CONFIG_FILE = path.join(os.homedir(), ".config", "saleor.json");
 
 type ConfigProps = {
   token?: string;
-  organization?: string;
+  organization_slug?: string;
 }
 
 const set = async (config: ConfigProps, configFile: string = DEFAULT_CONFIG_FILE) => {
@@ -25,9 +25,7 @@ const get = async (configFile: string = DEFAULT_CONFIG_FILE): Promise<ConfigProp
 
   if (r) {
     const content = await fs.readFile(configFile, "utf-8");
-    const { token } = JSON.parse(content);
-
-    return { token }
+    return JSON.parse(content);
   } else {
     return {}
   }

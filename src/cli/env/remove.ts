@@ -20,7 +20,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const { key } = argv;
   console.log(`Deleting environment: ${key}!`);
 
-  const result = await DELETE(API.Environment("cli-dev", key)) as any;
+  const result = await DELETE(API.Environment(key)) as any;
   console.log(result)
 
   process.exit(0);

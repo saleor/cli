@@ -17,7 +17,7 @@ export const builder: CommandBuilder = (_) => _
 export const handler = async (argv: Arguments<Options>) => {
   const { key } = argv;
 
-  const result = await GET(API.Environment("cli-dev", key)) as any; 
+  const result = await GET(API.Environment(key)) as any; 
 
   console.log("---")
   console.log(emphasize.highlight("yaml", yaml.stringify(result), {
