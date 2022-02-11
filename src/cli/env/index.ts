@@ -2,8 +2,8 @@ import * as show from "./show.js";
 import * as list from "./list.js";
 import * as create from "./create.js";
 import * as remove from "./remove.js";
-import * as clearDb from "./clearDb.js";
-import * as populateDb from "./populateDb.js";
+import * as cleardb from "./cleardb.js";
+import * as populatedb from "./populatedb.js";
 
 export default function (_: any) {
   _.command([
@@ -11,7 +11,7 @@ export default function (_: any) {
     list,
     create,
     remove,
-    clearDb,
-    populateDb
+    cleardb,
+    populatedb
   ]).demandCommand(1, "You need at least one command before moving on");
 }

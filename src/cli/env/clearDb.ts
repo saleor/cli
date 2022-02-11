@@ -1,9 +1,11 @@
 import type { Arguments, CommandBuilder } from "yargs";
 import { API,  GET } from "../../lib/index.js";
-import SaleorConfig from "../../lib/config.js";
 
+interface Options {
+  key: string
+}
 
-export const command = "clear <key>";
+export const command = "cleardb <key>";
 export const desc = "Clear database for environment";
 
 export const builder: CommandBuilder = (_) =>
@@ -13,24 +15,14 @@ export const builder: CommandBuilder = (_) =>
     desc: 'key of the environment'
   });
 
-export const handler = async (argv: Arguments) => {
-  const config = new SaleorConfig();
-  if (!config.token) {
-    console.error("Missing saleor token: Please create token and run `saleor configure`");
-    process.exit(1);
-  }
-
+export const handler = async (argv: Arguments<Options>) => {
   const { key } = argv;
   const message = `Clearing database: ${key}!`;
   console.log(message);
 
-  const path = `${API.Environment("cli-dev", key as string)}/clear-database/`
+  const path = `${API.ClearDatabase("cli-dev", key)}`
 
-  const result = await GET(path, {
-    headers: {
-      Authorization: `Token ${config.token}`,
-    }
-  }) as any;
+  const result = await GET(path) as any;
 
   console.log(result)
 
