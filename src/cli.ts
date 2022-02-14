@@ -7,7 +7,8 @@ import yaml from "yaml";
 import { emphasize } from 'emphasize';
 import chalk from 'chalk';
 
-import env from './cli/env/index.js';
+import environment from './cli/env/index.js';
+import backup from './cli/backup/index.js';
 import * as configure from './cli/configure.js';
 
 yargs(hideBin(process.argv))
@@ -16,9 +17,9 @@ yargs(hideBin(process.argv))
   .alias('V', 'version')
   .usage('Usage: $0 <command> [options]')
   .command(configure)
-  .command(['organization [command]', 'org'], '', env)
-  .command(['environment [command]', 'env'], '', env)
-  .command(['backup [command]'], '')
+  .command(['organization [command]', 'org'], '', environment)
+  .command(['environment [command]', 'env'], '', environment)
+  .command(['backup [command]'], '', backup)
   .command(['job [command]'], '')
   .command(['project [command]'], '')
   .strictCommands()
