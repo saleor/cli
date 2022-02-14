@@ -30,9 +30,10 @@
     "@types/yargs": "^17.0.8",
     "got": "^12.0.1",
     "pkg": "^5.5.2",
-    "typescript": "beta"
+    "typescript": "4.6.1-rc"
   },
   "dependencies": {
+    "@mobily/ts-belt": "^3.9.0",
     "chalk": "^5.0.0",
     "cli-highlight": "^2.1.11",
     "cli-ux": "^6.0.9",
