@@ -31,9 +31,19 @@ yargs(hideBin(process.argv))
   .fail(function (msg, error, yargs) {
     if (error instanceof HTTPError) {
       const { body } = error.response as Response<any>;
-      console.log(emphasize.highlight("yaml", yaml.stringify({ Errors: JSON.parse(body) }), {
-        attr: chalk.red
-      }).value);
+
+      try {
+        const errors = JSON.parse(body)
+        console.error(emphasize.highlight("yaml", yaml.stringify({ errors }), {
+          attr: chalk.red
+        }).value);
+      } catch (error: any) {
+        console.log('Ouput is not JSON')
+        console.log(error.message)
+        console.error('---')
+        console.error(body)
+      }
+
     } else {
       console.log(yargs.help())
     }
