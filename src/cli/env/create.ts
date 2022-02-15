@@ -19,7 +19,7 @@ export const handler = async (argv: Arguments) => {
   const message = `Creating: ${suffixed}!`;
   console.log(message);
 
-  const result = await POST(API.Environment(), {
+  const result = await POST(API.Environment, {
     json: {
       "name": suffixed,
       "domain_label": suffixed,
