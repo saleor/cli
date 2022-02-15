@@ -23,9 +23,14 @@ export const handler = async (argv: Arguments<Options>) => {
 
   try {
     await validateToken(token);
-    const organization_slug = await chooseOrganization(token);
+    Config.reset();
+    Config.set("token", token);
 
-    Config.set({ token, organization_slug });
+    const organization_slug = await chooseOrganization(token);
+    Config.set("organization_slug", organization_slug);
+
+    const environment_id = await chooseDefaultEnvironment(token, organization_slug);
+    Config.set("environment_id", environment_id);
   } catch (error) {
     // FIXME make it more explicit
     if (error instanceof HTTPError) {

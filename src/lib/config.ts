@@ -2,33 +2,32 @@ import os from "os";
 import fs from 'fs-extra';
 import path from "path";
 
-const DEFAULT_CONFIG_FILE = path.join(os.homedir(), ".config", "saleor.json");
+const DefaultConfigFile = path.join(os.homedir(), ".config", "saleor.json");
 
-type ConfigProps = {
-  token?: string;
-  organization_slug?: string;
+type ConfigField = 'token' | 'organization_slug' | 'environment_id';
+type ConfigProps = Record<ConfigField, string>;
+
+const isEmpty = (object: any) => Object.keys(object).length === 0;
+
+const set = async (field: ConfigField, value: string) => {
+  await fs.ensureFile(DefaultConfigFile);
+  const content = await fs.readJSON(DefaultConfigFile, { throws: false })
+
+  const new_content = { ...content, [field]: value } 
+  await fs.outputJSON(DefaultConfigFile, new_content);
+
+  return new_content
 }
 
-const set = async (config: ConfigProps, configFile: string = DEFAULT_CONFIG_FILE) => {
-  const configDir = path.dirname(configFile);
-
-  const configDirExists = await fs.pathExists(configDir);
-  if (!configDirExists) {
-    await fs.mkdir(configDir);
-  }
-
-  await fs.writeFile(configFile, JSON.stringify(config));
+const get = async (): Promise<ConfigProps> => {
+  await fs.ensureFile(DefaultConfigFile);
+  const content = await fs.readJSON(DefaultConfigFile, { throws: false })
+  return content || {};
 }
 
-const get = async (configFile: string = DEFAULT_CONFIG_FILE): Promise<ConfigProps> => {
-  const r = await fs.pathExists(configFile);
-
-  if (r) {
-    const content = await fs.readFile(configFile, "utf-8");
-    return JSON.parse(content);
-  } else {
-    return {}
-  }
+const reset = async (): Promise<void> => {
+  await fs.outputJSON(DefaultConfigFile, {})
 }
 
-export const Config = { get, set }
+
+export const Config = { get, set, reset }
