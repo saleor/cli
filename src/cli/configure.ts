@@ -37,12 +37,12 @@ export const handler = async (argv: Arguments<Options>) => {
 };
 
 const validateToken = async (token: string) => {
-  const user = (await GET(API.User(), { token })) as any;
+  const user = (await GET(API.User, { token })) as any;
   console.log(`Logged as ${user.email}`);
 };
 
 const chooseOrganization = async (token: string) => {
-  const orgs = (await GET(API.Organization(), { token })) as any[];
+  const orgs = (await GET(API.Organization, { token })) as any[];
   if (!orgs.length) return;
 
   const { organization_slug } = await inquirer.prompt([

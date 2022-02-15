@@ -17,12 +17,11 @@ export const builder: CommandBuilder = (_) =>
 
 export const handler = async (argv: Arguments<Options>) => {
   const { key } = argv;
-  const message = `Clearing database: ${key}!`;
-  console.log(message);
+  console.log(`Clearing database: ${key}!`);
 
-  const result = await GET(API.ClearDatabase(key)) as any;
+  const result = await GET(API.ClearDatabase, { environment_id: key }) as any;
 
-  console.log(result)
+  console.log(result.task_id)
 
   process.exit(0);
 };

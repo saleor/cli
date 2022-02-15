@@ -6,8 +6,8 @@ interface Options {
   key: string
 }
 
-export const command = "delete <key>";
-export const desc = "Delete environmet";
+export const command = "remove <key>";
+export const desc = "Remove an environmet";
 
 export const builder: CommandBuilder = (_) =>
   _.positional("key", { 
@@ -20,8 +20,8 @@ export const handler = async (argv: Arguments<Options>) => {
   const { key } = argv;
   console.log(`Deleting environment: ${key}!`);
 
-  const result = await DELETE(API.Environment(key)) as any;
-  console.log(result)
+  const result = await DELETE(API.Environment, { environment_id: key }) as any;
+  console.log(result.task_id)
 
   process.exit(0);
 };

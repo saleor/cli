@@ -20,7 +20,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const message = `Populating database: ${key}!`;
   console.log(message);
 
-  const result = await GET(API.PopulateDatabase(key)) as any;
+  const result = await GET(API.PopulateDatabase, { environment_id :key }) as any;
 
   console.log(result)
 

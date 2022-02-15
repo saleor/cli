@@ -6,7 +6,7 @@ export const command = "list";
 export const desc = "List backups";
 
 export const handler = async () => {
-  const result = await GET(API.Environment()) as any[]; 
+  const result = await GET(API.Backup) as any[]; 
 
   cli.table(result, {
     key: { minWidth: 2 },
