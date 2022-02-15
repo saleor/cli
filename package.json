@@ -1,16 +1,18 @@
 {
   "name": "saleor-cli",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "type": "module",
   "bin": {
     "saleor": "./build/cli.js"
   },
   "scripts": {
+    "prepublishOnly": "tsc",
     "compile": "tsc",
     "watch": "tsc -w",
     "package": "pkg ."
   },
+  "files": ["build"],
   "pkg": {
     "scripts": "build/**/*.js",
     "targets": [
@@ -20,7 +22,7 @@
     ],
     "outputPath": "release"
   },
-  "author": "",
+  "author": "Saleor",
   "license": "ISC",
   "devDependencies": {
     "@types/debug": "^4.1.7",
