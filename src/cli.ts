@@ -10,6 +10,8 @@ import chalk from 'chalk';
 import environment from './cli/env/index.js';
 import backup from './cli/backup/index.js';
 import storefront from './cli/storefront/index.js';
+import project from './cli/project/index.js';
+
 import * as configure from './cli/configure.js';
 
 yargs(hideBin(process.argv))
@@ -22,7 +24,7 @@ yargs(hideBin(process.argv))
   .command(['environment [command]', 'env'], '', environment)
   .command(['backup [command]'], '', backup)
   .command(['job [command]'], '')
-  .command(['project [command]'], '')
+  .command(['project [command]'], '', project)
   .command(['storefront [command]'], '', storefront)
   .strictCommands()
   .demandCommand(1, 'You need at least one command before moving on')
@@ -45,6 +47,7 @@ yargs(hideBin(process.argv))
       }
 
     } else {
+      console.log(error)
       console.log(yargs.help())
     }
     process.exit(1)
