@@ -47,15 +47,18 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
 
 const doGETRequest = (path: string, options?: any) => got(path, {...options, ...BaseOptions}).json();
 const doPOSTRequest = (path: string, options?: any) => got.post(path, {...options, ...BaseOptions}).json()
-const doDELETERequst = (path: string, options: any) => got.delete(path, {...options, ...BaseOptions}).json();
+const doDELETERequest = (path: string, options: any) => got.delete(path, {...options, ...BaseOptions}).json();
+const doPUTRequest = (path: string, options: any) => got.put(path, {...options, ...BaseOptions}).json();
 
 export const GET = handleAuthAndConfig(doGETRequest);
 export const POST =  handleAuthAndConfig(doPOSTRequest);
-export const DELETE = handleAuthAndConfig(doDELETERequst);
+export const PUT =  handleAuthAndConfig(doPUTRequest);
+export const DELETE = handleAuthAndConfig(doDELETERequest);
 
 export const API: Record<string, DefaultURLPath> = {
   User: _ => "user",
   Organization: _ => `organizations/${_.organization_slug}`,
+  UpgradeEnvironment: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/upgrade`,
   Environment: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}`,
   PopulateDatabase: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/populate-database`,
   ClearDatabase: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/clear-database`,

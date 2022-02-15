@@ -11,6 +11,7 @@ import environment from './cli/env/index.js';
 import backup from './cli/backup/index.js';
 import storefront from './cli/storefront/index.js';
 import project from './cli/project/index.js';
+import job from './cli/job/index.js';
 
 import * as configure from './cli/configure.js';
 
@@ -23,7 +24,7 @@ yargs(hideBin(process.argv))
   .command(['organization [command]', 'org'], '', environment)
   .command(['environment [command]', 'env'], '', environment)
   .command(['backup [command]'], '', backup)
-  .command(['job [command]'], '')
+  .command(['job [command]'], '', job)
   .command(['project [command]'], '', project)
   .command(['storefront [command]'], '', storefront)
   .strictCommands()

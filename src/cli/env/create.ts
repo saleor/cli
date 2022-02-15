@@ -20,6 +20,7 @@ export const handler = async (argv: Arguments) => {
   console.log(message);
 
   const result = await POST(API.Environment, {
+    environment_id: '',
     json: {
       "name": suffixed,
       "domain_label": suffixed,
