@@ -1,6 +1,9 @@
 import type { CancelableRequest } from "got";
 import got from "got";
 
+import Debug from 'debug';
+const debug = Debug('lib:index'); // esl
+
 import { Config } from "./config.js";
 
 const CloudURL = `https://staging-cloud.saleor.io/api`;
@@ -31,7 +34,8 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
     throw Error("No auth token")
   }
 
-  const path = pathFunc({ environment_id, organization_slug });
+  const path = pathFunc({ environment_id, organization_slug, project_slug: options.project_slug || '' });
+  debug(path)
 
   return func(path, { 
     headers: {

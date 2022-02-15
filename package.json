@@ -23,6 +23,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/debug": "^4.1.7",
     "@types/fs-extra": "^9.0.13",
     "@types/inquirer": "^8.2.0",
     "@types/node": "^17.0.18",
@@ -37,6 +38,7 @@
     "chalk": "^5.0.0",
     "cli-highlight": "^2.1.11",
     "cli-ux": "^6.0.9",
+    "debug": "^4.3.3",
     "emphasize": "^5.0.0",
     "fs-extra": "^10.0.0",
     "inquirer": "^8.2.0",
