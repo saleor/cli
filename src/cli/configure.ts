@@ -61,3 +61,19 @@ const chooseOrganization = async (token: string) => {
 
   return organization_slug;
 };
+
+const chooseDefaultEnvironment = async (token: string, organization_slug: string) => {
+  const envs = (await GET(API.Environment, { organization_slug, token })) as any[];
+  if (!envs.length) return;
+
+  const { environment_id } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "environment_id",
+      message: "Choose the default environment:",
+      choices: envs.map(_ => ({name: _.name, value: _.key})),
+    },
+  ]);
+
+  return environment_id;
+};
