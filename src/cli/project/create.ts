@@ -5,7 +5,7 @@ import type { Arguments, CommandBuilder } from "yargs";
 import { API, POST } from "../../lib/index.js";
 
 export const command = "create <name>";
-export const desc = "Create a new backup";
+export const desc = "Create a new project";
 
 export const builder: CommandBuilder = (_) =>
   _.positional("name", { 
@@ -16,7 +16,7 @@ export const builder: CommandBuilder = (_) =>
 
 export const handler = async (argv: Arguments) => {
   const { name } = argv;
-  const message = `Creating backup: ${name}!`;
+  const message = `Creating project: ${name}!`;
 
   const result = await POST(API.Backup, {
     json: {

@@ -12,6 +12,7 @@ export const handler = async () => {
     slug: { minWidth: 2 },
     name: { minWidth: 2 },
     billing_period: { minWidth: 2, get: _ => _.billing_period.start },
+    region: { minWidth: 2 },
   });
 
   process.exit(0);
