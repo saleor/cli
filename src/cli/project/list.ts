@@ -13,6 +13,7 @@ export const handler = async () => {
     name: { minWidth: 2 },
     billing_period: { minWidth: 2, get: _ => _.billing_period.start },
     region: { minWidth: 2 },
+    sandboxes: { minWidth: 5, header: '#', get: _ => _.sandboxes.count },
   });
 
   process.exit(0);

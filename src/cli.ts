@@ -46,9 +46,9 @@ yargs(hideBin(process.argv))
         console.error('---')
         console.error(body)
       }
-
-    } else {
+    } else if (error) {
       console.log(error)
+    } else {
       console.log(yargs.help())
     }
     process.exit(1)
