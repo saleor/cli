@@ -11,6 +11,7 @@ specifiers:
   chalk: ^5.0.0
   cli-highlight: ^2.1.11
   cli-ux: ^6.0.9
+  date-fns: ^2.28.0
   debug: ^4.3.3
   emphasize: ^5.0.0
   fs-extra: ^10.0.0
@@ -18,6 +19,7 @@ specifiers:
   inquirer: ^8.2.0
   pkg: ^5.5.2
   prompt: ^1.2.1
+  slugify: ^1.6.5
   typescript: 4.6.1-rc
   yaml: ^1.10.2
   yargs: ^17.3.1
@@ -27,12 +29,14 @@ dependencies:
   chalk: 5.0.0
   cli-highlight: 2.1.11
   cli-ux: 6.0.9
+  date-fns: 2.28.0
   debug: 4.3.3
   emphasize: 5.0.0
   fs-extra: 10.0.0
   got: 12.0.1
   inquirer: 8.2.0
   prompt: 1.2.1
+  slugify: 1.6.5
   yaml: 1.10.2
   yargs: 17.3.1
 
@@ -565,6 +569,11 @@ packages:
   /cycle/1.0.3:
     resolution: {integrity: sha1-IegLK+hYD5i0aPN5QwZisEbDStI=}
     engines: {node: '>=0.4.0'}
+    dev: false
+
+  /date-fns/2.28.0:
+    resolution: {integrity: sha512-8d35hViGYx/QH0icHYCeLmsLmMUheMmTyV9Fcm6gvNwdw31yXXH+O85sOBJ+OLnLQMKZowvpKb6FgMIQjcpvQw==}
+    engines: {node: '>=0.11'}
     dev: false
 
   /debug/4.3.3:
@@ -1640,6 +1649,11 @@ packages:
   /slash/3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
+
+  /slugify/1.6.5:
+    resolution: {integrity: sha512-8mo9bslnBO3tr5PEVFzMPIWwWnipGS0xVbYf65zxDqfNwmzYn1LpiKNrR6DlClusuvo+hDHd1zKpmfAe83NQSQ==}
+    engines: {node: '>=8.0.0'}
+    dev: false
 
   /source-map/0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
