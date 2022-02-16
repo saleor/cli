@@ -21,11 +21,12 @@ type DefaultURLPath = (_: PathArgs) => string;
 
 const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath, options: any = {}) => {
   const config = await Config.get();
-  
+
   const {
     token = config.token,
     organization_slug = config.organization_slug || '',
     environment_id = config.environment_id || '',
+    project_slug = '',
     ...httpOptions
   } = { ...options }
 
@@ -34,8 +35,10 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
     throw Error("No auth token")
   }
 
-  const path = pathFunc({ environment_id, organization_slug, project_slug: options.project_slug || '' });
+  const path = pathFunc({ environment_id, organization_slug, project_slug });
   debug(path)
+  debug('cli options', { environment_id, organization_slug, project_slug })
+  debug('`got` options', httpOptions)
 
   return func(path, { 
     headers: {

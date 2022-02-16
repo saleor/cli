@@ -1,6 +1,13 @@
-import type { Arguments, CommandBuilder } from "yargs";
-import { API, GET, POST } from "../../lib/index.js";
-import { Config } from "../../lib/config.js";
+import { Arguments, CommandBuilder, demandCommand, demandOption } from "yargs";
+import { API, POST } from "../../lib/index.js";
+import slugify from 'slugify';
+
+interface Options {
+  name: string
+  project: string
+  saleor: string
+  database: string
+}
 
 export const command = "create <name>";
 export const desc = "Create a new environmet";
@@ -10,28 +17,52 @@ export const builder: CommandBuilder = (_) =>
     type: "string", 
     demandOption: false,
     desc: 'name for the new environment'
-  });
+  })
+  .option("project", { 
+    type: 'string',
+    demandOption: true,
+    desc: 'create this environment in this project',
+  })
+  .option("database", { 
+    type: 'string',
+    desc: 'specify how to populate the database',
+    default: 'sample'
+  })
+  .option("saleor", { 
+    type: 'string',
+    desc: 'specify the Saleor version',
+    default: '3.0.0'
+  })
 
-export const handler = async (argv: Arguments) => {
-  const { name } = argv;
-  const r = (Math.random() + 1).toString(36).substring(7);
-  const suffixed = `${name}-${r}`
-  const message = `Creating: ${suffixed}!`;
+const hash = (name: string) => `${name}-${(Math.random() + 1).toString(36).substring(7)}`;
+
+const SaleorVersionMapper: Record<string, string> = {
+  '3.0.0': 'saleor-stable-staging',
+  '3.1.0': 'saleor-latest-staging'
+}
+
+export const handler = async (argv: Arguments<Options>) => {
+  const { name: base, project, saleor, database } = argv;
+
+  const name = hash(base);
+  const message = `Creating: ${name} in the '${project} project`;
   console.log(message);
 
   const result = await POST(API.Environment, {
     environment_id: '',
     json: {
-      "name": suffixed,
-      "domain_label": suffixed,
-      "admin_email": `${suffixed}@gmail.com`,
-      "login": "",
-      "password": "",
-      "project": "cli-test",
-      "database_population": "sample",
-      "service": "saleor-latest-staging"
+      name,
+      domain_label: slugify(name),
+      admin_email: `${name}@gmail.com`,
+      login: "",
+      password: "",
+      project,
+      database_population: database,
+      service: SaleorVersionMapper[saleor] 
     }
   }) as any;
+
+  console.log(result)
 
   process.exit(0);
 };
