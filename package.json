@@ -1,6 +1,6 @@
 {
   "name": "saleor-cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "type": "module",
   "bin": {
@@ -12,7 +12,9 @@
     "watch": "tsc -w",
     "package": "pkg ."
   },
-  "files": ["build"],
+  "files": [
+    "build"
+  ],
   "pkg": {
     "scripts": "build/**/*.js",
     "targets": [
