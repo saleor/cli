@@ -1,5 +1,15 @@
 # Saleor CLI
 
+## Install
+
+```
+npm i -g saleor-cli
+```
+
+If you're using `nvm`, make sure that the `NVM_BIN` path is added to `PATH`
+
+## Usage
+
 ```
 Usage: saleor <command> [options]
 
