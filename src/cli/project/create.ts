@@ -12,16 +12,25 @@ export const builder: CommandBuilder = (_) =>
     type: "string", 
     demandOption: false,
     desc: 'name for the new backup'
-  });
+  })
+  .option("plan", { 
+    type: 'string',
+    desc: 'specify the plan',
+    default: 'dev'
+  })
+  .option("region", { 
+    type: 'string',
+    desc: 'specify the region',
+    default: 'us-east-1'
+  })
 
 export const handler = async (argv: Arguments) => {
-  const { name } = argv;
+  const { name, plan, region } = argv;
   const message = `Creating project: ${name}!`;
 
-  const result = await POST(API.Backup, {
-    json: {
-      name: name,
-    }
+  console.log(message);
+  const result = await POST(API.Project, {
+    json: { name, plan, region }
   }) as any;
 
   console.log("---")

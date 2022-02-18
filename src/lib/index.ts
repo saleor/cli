@@ -69,3 +69,7 @@ export const API: Record<string, DefaultURLPath> = {
   Backup: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/backups`,
   Project: _ => `organizations/${_.organization_slug}/projects/${_.project_slug}`,
 }
+
+
+export type Region = 'us-east-1'
+export type Plan = 'startup' | 'pro' | 'dev' | 'enterprise' | 'staging'
