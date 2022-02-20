@@ -1,6 +1,8 @@
-import { cli } from "cli-ux";
+import { CliUx } from "@oclif/core";
 
 import type { Arguments, CommandBuilder } from "yargs";
+
+const { ux: cli } = CliUx;
 
 type Options = {
   name: string;
