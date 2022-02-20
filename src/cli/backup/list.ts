@@ -1,7 +1,9 @@
-import { cli } from 'cli-ux';
+import { CliUx } from '@oclif/core';
 import { Arguments } from 'yargs';
 
 import { API, GET } from "../../lib/index.js";
+
+const { ux: cli } = CliUx;
 
 export const command = "list";
 export const desc = "List backups";

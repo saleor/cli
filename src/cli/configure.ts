@@ -1,10 +1,12 @@
 import type { Arguments, CommandBuilder } from "yargs";
-import { cli } from "cli-ux";
+import { CliUx } from "@oclif/core";
 import { HTTPError } from "got";
 
 import { API, GET } from "../lib/index.js";
 import { Config } from "../lib/config.js";
 import { chooseDefaultEnvironment, chooseOrganization } from "../lib/util.js";
+
+const { ux: cli } = CliUx;
 
 type Options = {
   token?: string;

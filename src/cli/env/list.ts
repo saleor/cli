@@ -1,7 +1,9 @@
-import { cli } from 'cli-ux';
+import { CliUx } from '@oclif/core';
 import { format } from 'date-fns';
 
 import { API, GET } from "../../lib/index.js";
+
+const { ux: cli } = CliUx;
 
 export const command = "list";
 export const desc = "List environments";
