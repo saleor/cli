@@ -13,6 +13,8 @@ const parseJobName = (name: string) => {
   return { type, env, id };
 }
 
+// TODO environment required in config or as param!!!!!!
+
 export const command = "list";
 export const desc = "List jobs";
 

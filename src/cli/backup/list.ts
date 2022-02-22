@@ -13,13 +13,14 @@ export const desc = "List backups";
 
 export const handler = async (argv: Arguments) => {
   const { env } = argv;
+  const options = { environment_id: env };
 
-  const options = env ? { environment_id : env } : {}
-  const result = await GET(API.Backup, options) as any[]; 
+  const result = await getBackups(options)
 
-  const { token, organization_slug } = await Config.get()
-  const environment_id = await chooseDefaultEnvironment(token, organization_slug);
-  console.log(`Showing backups for the environment: ${environment_id}`)
+  if (!result.length) {
+    console.warn(chalk.red("No backups found"))
+    process.exit(0);
+  };
 
   cli.table(result, {
     name: { 
@@ -41,3 +42,17 @@ export const handler = async (argv: Arguments) => {
 
   process.exit(0);
 };
+
+
+export const getBackups = async (options: { environment_id?: string | undefined}) => {
+  const config = await Config.get()
+
+  if (!options.environment_id && !config.environment_id) {
+    const environment_id = await chooseDefaultEnvironment(config.token, config.organization_slug);
+    options.environment_id = environment_id
+  }
+
+  const result = await GET(API.Backup, options) as any[];
+  return result
+
+}

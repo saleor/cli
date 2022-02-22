@@ -1,10 +1,13 @@
+import chalk from "chalk";
 import type { CancelableRequest } from "got";
 import got from "got";
+import Enquirer from 'enquirer';
 
 import Debug from 'debug';
 const debug = Debug('lib:index'); // esl
 
 import { Config } from "./config.js";
+import { configure } from "../cli/configure.js";
 
 const CloudURL = `https://staging-cloud.saleor.io/api`;
 
@@ -17,11 +20,30 @@ interface PathArgs {
   environment_id?: string
   project_slug?: string
   backup_id?: string
+  region_name?: string
 }
 type DefaultURLPath = (_: PathArgs) => string;
 
 const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath, options: any = {}) => {
-  const config = await Config.get();
+  let config = await Config.get();
+
+  if (!('token' in config) && !('token' in options)) {
+    console.error(chalk.red("Auth token missing"));
+    console.error("Please create token and run " + chalk.green("saleor configure"))
+
+    const { runConfig } = await Enquirer.prompt({
+      type: 'confirm',
+      name: 'runConfig',
+      message: 'Would you like to run `saleor configure` now ?'
+    }) as { runConfig: boolean}
+
+    if (runConfig) {
+      await configure(undefined)
+      config = await Config.get();
+    } else {
+      process.exit(0);
+    }
+  }
 
   const {
     token = config.token,
@@ -29,17 +51,13 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
     environment_id = config.environment_id || '',
     project_slug = '',
     backup_id = '',
+    region_name = '',
     ...httpOptions
   } = { ...options }
 
-  if (!token) {
-    console.error("Missing the auth token: Please create token and run `saleor configure`");
-    throw Error("No auth token")
-  }
-
-  const path = pathFunc({ environment_id, organization_slug, project_slug, backup_id });
+  const path = pathFunc({ environment_id, organization_slug, project_slug, backup_id, region_name });
   debug(path)
-  debug('cli options', { environment_id, organization_slug, project_slug, backup_id })
+  debug('cli options', { environment_id, organization_slug, project_slug, backup_id, region_name })
   debug('`got` options', httpOptions)
 
   return func(path, { 
@@ -71,8 +89,10 @@ export const API: Record<string, DefaultURLPath> = {
   Job: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/jobs`,
   Backup: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/backups/${_.backup_id || ''}`,
   Project: _ => `organizations/${_.organization_slug}/projects/${_.project_slug}`,
+  Regions: _ =>  "regions",
+  Services: _ => `regions/${_.region_name}/services`
 }
 
 
-export type Region = 'us-east-1'
+export const Region = 'us-east-1'
 export type Plan = 'startup' | 'pro' | 'dev' | 'enterprise' | 'staging'

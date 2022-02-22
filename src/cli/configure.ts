@@ -20,6 +20,16 @@ export const builder: CommandBuilder<{}, Options> = (_) =>
 
 export const handler = async (argv: Arguments<Options>) => {
   let { token } = argv;
+  await configure(token)
+};
+
+const validateToken = async (token: string) => {
+  const user = (await GET(API.User, { token })) as any;
+  console.log(`Logged as ${user.email}`);
+};
+
+
+export const configure = async (token: string | undefined) => {
   while (!token) token = await cli.prompt("Access Token", { type: "mask" });
 
   try {
@@ -40,9 +50,4 @@ export const handler = async (argv: Arguments<Options>) => {
       console.log(error);
     }
   }
-};
-
-const validateToken = async (token: string) => {
-  const user = (await GET(API.User, { token })) as any;
-  console.log(`Logged as ${user.email}`);
-};
+}
