@@ -11,7 +11,7 @@ export const chooseDefaultEnvironment = async (token: string, organization_slug:
     {
       type: "list",
       name: "environment_id",
-      message: "Choose the default environment:",
+      message: "Select the environment:",
       choices: envs.map(_ => ({name: _.name, value: _.key})),
     },
   ]);
