@@ -1,9 +1,10 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import { Arguments } from 'yargs';
+import { Config } from '../../lib/config.js';
 
 import { API, GET } from "../../lib/index.js";
-import { formatDateTime } from '../../lib/util.js';
+import { chooseDefaultEnvironment, formatDateTime } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
@@ -15,6 +16,10 @@ export const handler = async (argv: Arguments) => {
 
   const options = env ? { environment_id : env } : {}
   const result = await GET(API.Backup, options) as any[]; 
+
+  const { token, organization_slug } = await Config.get()
+  const environment_id = await chooseDefaultEnvironment(token, organization_slug);
+  console.log(`Showing backups for the environment: ${environment_id}`)
 
   cli.table(result, {
     name: { 
