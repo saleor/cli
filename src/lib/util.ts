@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { API, GET } from "../lib/index.js";
 import chalk from "chalk";
 
-export const chooseDefaultEnvironment = async (token: string, organization_slug: string) => {
+export const promptEnvironment = async (token: string, organization_slug: string) => {
   const envs = (await GET(API.Environment, { organization_slug, token, environment_id: '' })) as any[];
   if (!envs.length) {
     console.warn(chalk.red("No environments found"))

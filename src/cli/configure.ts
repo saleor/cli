@@ -4,7 +4,7 @@ import { HTTPError } from "got";
 
 import { API, GET } from "../lib/index.js";
 import { Config } from "../lib/config.js";
-import { chooseDefaultEnvironment, chooseOrganization } from "../lib/util.js";
+import { promptEnvironment, chooseOrganization } from "../lib/util.js";
 
 const { ux: cli } = CliUx;
 
@@ -40,7 +40,7 @@ export const configure = async (token: string | undefined) => {
     const organization_slug = await chooseOrganization(token);
     Config.set("organization_slug", organization_slug);
 
-    const environment_id = await chooseDefaultEnvironment(token, organization_slug);
+    const environment_id = await promptEnvironment(token, organization_slug);
     Config.set("environment_id", environment_id);
   } catch (error) {
     // FIXME make it more explicit

@@ -1,7 +1,7 @@
 import type { Arguments, CommandBuilder } from "yargs";
 
 import { Config } from "../../lib/config.js";
-import { chooseDefaultEnvironment } from "../../lib/util.js";
+import { promptEnvironment } from "../../lib/util.js";
 
 type Options = {
   key: string;
@@ -18,7 +18,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const { token, organization_slug } = await Config.get()
 
-  const environment_id = await chooseDefaultEnvironment(token, organization_slug);
+  const environment_id = await promptEnvironment(token, organization_slug);
   await Config.set("environment_id", environment_id);
 
   process.exit(0);
