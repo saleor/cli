@@ -2,9 +2,7 @@ import * as show from "./show.js";
 import * as list from "./list.js";
 import * as create from "./create.js";
 import * as remove from "./remove.js";
-import * as permissions from "./permissions";
-
-
+import * as permissions from "./permissions.js";
 
 export default function (_: any) {
   _.command([

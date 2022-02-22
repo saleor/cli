@@ -1,4 +1,5 @@
 import inquirer from "inquirer";
+import { format } from 'date-fns';
 
 import { API, GET } from "../lib/index.js";
 
@@ -33,3 +34,5 @@ export const chooseOrganization = async (token: string) => {
 
   return organization_slug;
 };
+
+export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")

@@ -16,6 +16,7 @@ interface PathArgs {
   organization_slug: string
   environment_id?: string
   project_slug?: string
+  backup_id?: string
 }
 type DefaultURLPath = (_: PathArgs) => string;
 
@@ -27,6 +28,7 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
     organization_slug = config.organization_slug || '',
     environment_id = config.environment_id || '',
     project_slug = '',
+    backup_id = '',
     ...httpOptions
   } = { ...options }
 
@@ -35,9 +37,9 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
     throw Error("No auth token")
   }
 
-  const path = pathFunc({ environment_id, organization_slug, project_slug });
+  const path = pathFunc({ environment_id, organization_slug, project_slug, backup_id });
   debug(path)
-  debug('cli options', { environment_id, organization_slug, project_slug })
+  debug('cli options', { environment_id, organization_slug, project_slug, backup_id })
   debug('`got` options', httpOptions)
 
   return func(path, { 
@@ -67,7 +69,7 @@ export const API: Record<string, DefaultURLPath> = {
   PopulateDatabase: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/populate-database`,
   ClearDatabase: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/clear-database`,
   Job: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/jobs`,
-  Backup: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/backups`,
+  Backup: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/backups/${_.backup_id || ''}`,
   Project: _ => `organizations/${_.organization_slug}/projects/${_.project_slug}`,
 }
 
