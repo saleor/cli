@@ -61,6 +61,7 @@ export const DELETE = handleAuthAndConfig(doDELETERequest);
 export const API: Record<string, DefaultURLPath> = {
   User: _ => "user",
   Organization: _ => `organizations/${_.organization_slug}`,
+  OrganizationPermissions: _ => `organizations/${_.organization_slug}/permissions`,
   UpgradeEnvironment: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/upgrade`,
   Environment: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}`,
   PopulateDatabase: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/populate-database`,

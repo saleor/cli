@@ -7,6 +7,7 @@ import yaml from "yaml";
 import { emphasize } from 'emphasize';
 import chalk from 'chalk';
 
+import organization from './cli/organization/index.js';
 import environment from './cli/env/index.js';
 import backup from './cli/backup/index.js';
 import storefront from './cli/storefront/index.js';
@@ -21,7 +22,7 @@ yargs(hideBin(process.argv))
   .alias('V', 'version')
   .usage('Usage: $0 <command> [options]')
   .command(configure)
-  .command(['organization [command]', 'org'], '', environment)
+  .command(['organization [command]', 'org'], '', organization)
   .command(['environment [command]', 'env'], '', environment)
   .command(['backup [command]'], '', backup)
   .command(['job [command]'], '', job)
