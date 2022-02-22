@@ -1,22 +1,24 @@
 import { CliUx } from '@oclif/core';
-import { format } from 'date-fns';
+import chalk from 'chalk';
 
 import { API, GET } from "../../lib/index.js";
+import { formatDateTime } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
 export const command = "list";
 export const desc = "List environments";
 
+
 export const handler = async () => {
   const result = await GET(API.Environment, { environment_id: '' }) as any[]; 
 
   cli.table(result, {
-    key: { minWidth: 2 },
-    name: { minWidth: 2 },
-    created: { minWidth: 2, get: _ => format(new Date(_.created), "yyyy-MM-dd HH:mm") },
+    name: { minWidth: 2, get: ({ name }) => chalk.cyan(name) },
+    created: { minWidth: 2, get: ({ created }) => chalk.gray(formatDateTime(created)) },
     project: { minWidth: 2, get: _ => _.project.name },
-    service: { minWidth: 2, header: 'Ver.', get: _ => _.service.version },
+    service: { minWidth: 2, header: 'Ver.', get: _ => chalk.yellow(_.service.version) },
+    key: { minWidth: 2 },
   });
 
   process.exit(0);
