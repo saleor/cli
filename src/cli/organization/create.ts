@@ -1,49 +1,40 @@
 import chalk from "chalk";
-import { emphasize } from "emphasize";
-import yaml from "yaml";
-import { CliUx } from "@oclif/core";
+import { Arguments, CommandBuilder } from "yargs";
 
 import { API, POST } from "../../lib/index.js";
 import { Options } from "../../types.js";
-import { Arguments } from "yargs";
 import Enquirer from "enquirer";
 import { Config } from "../../lib/config.js";
 
-export const command = "create";
+export const command = "create [name]";
 export const desc = "Create a new organization";
 
-export const handler = async (argv: Arguments<Options>) => {
-  console.log(`Creating organization`);
+export const builder: CommandBuilder = (_) =>
+  _.positional("name", {
+    type: "string",
+    demandOption: false,
+    desc: 'name for the new organization'
+  })
 
-  const name = await CliUx.ux.prompt("What is the organization name? *");
-  const company_name = await CliUx.ux.prompt("What is the company name?", {
-    required: false,
-  });
-  const email = await CliUx.ux.prompt("What is the organization name?", {
-    required: false,
-  });
-  const phone = await CliUx.ux.prompt("What is the organization phone?", {
-    required: false,
-  });
-  const address_1 = await CliUx.ux.prompt("What is the company address 1?", {
-    required: false,
-  });
-  const address_2 = await CliUx.ux.prompt("What is the company address 2?", {
-    required: false,
-  });
-  const city = await CliUx.ux.prompt("What is the company city?", {
-    required: false,
-  });
-  const country = await CliUx.ux.prompt("What is the company country?", {
-    required: false,
-  });
-  const postal_code = await CliUx.ux.prompt(
-    "What is the company postal_code?",
-    { required: false }
-  );
-  const region = await CliUx.ux.prompt("What is the company region?", {
-    required: false,
-  });
+export const handler = async (argv: Arguments<Options>) => {
+  const { name } = argv;
+  const form =  new (Enquirer as any).Form({
+    name: 'Create a new organization',
+    choices: [
+      { name: "name", message: "What is the organization name? *", initial: name },
+      { name: "company_name", message: "What is the company name?" },
+      { name: "email", message: "What is the organization email?" },
+      { name: "phone", message: "What is the organization phone?" },
+      { name: "address_1", message: "What is the company address 1?" },
+      { name: "address_2", message: "What is the company address 2?" },
+      { name: "city", message: "What is the company city?" },
+      { name: "country", message: "What is the company country?" },
+      { name: "postal_code", message: "What is the company postal_code?" },
+      { name: "region", message: "What is the company region?" }
+    ]}
+  )
+
+  const json = await form.run()
 
   const { proceed } = await Enquirer.prompt({
     type: 'confirm',
@@ -56,19 +47,7 @@ export const handler = async (argv: Arguments<Options>) => {
       API.Organization,
       { ...argv, organization: "" },
       {
-        json: {
-          name,
-          address_1,
-          address_2,
-          city,
-          billing_email: "",
-          company_name,
-          country,
-          email,
-          phone,
-          postal_code,
-          region,
-        },
+        json
       }
     )) as any;
 
