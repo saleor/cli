@@ -11,12 +11,12 @@ const debug = Debug('middleware');
 type Handler = (opts: Options) => (Options | Promise<Options>)
 
 export const useDefault = async ({ token, organization, environment }: Options) => {
-  let opts = {};
+  let opts: any = {};
 
   if (!token || !organization || !environment) {
     const config = await Config.get()
     debug('useDefault', config)
-    const { token ,organization_slug, environment_id } = config;
+    let { token ,organization_slug, environment_id } = config;
     opts = config;
 
     if (token) {
@@ -33,6 +33,8 @@ export const useDefault = async ({ token, organization, environment }: Options) 
 
       if (runConfig) {
         await configure(undefined)
+        opts = await Config.get()
+        organization_slug = opts.organization_slug
       } else {
         process.exit(0);
       }
