@@ -2,7 +2,7 @@ import chalk from "chalk";
 import type { Arguments, CommandBuilder } from "yargs";
 
 import { Config } from "../../lib/config.js";
-import { chooseOrganization, chooseDefaultEnvironment } from "../../lib/util.js";
+import { chooseOrganization, promptEnvironment } from "../../lib/util.js";
 
 type Options = {
   key: string;
@@ -22,7 +22,7 @@ export const handler = async (argv: Arguments<Options>) => {
 //   TODO creation
   await Config.set("organization_slug", organization_slug);
 
-  const environment_id = await chooseDefaultEnvironment(token, organization_slug);
+  const environment_id = await promptEnvironment(token, organization_slug);
 //   TODO creation
   if (environment_id) {
     await Config.set("environment_id", environment_id);

@@ -3,24 +3,33 @@ import { format } from 'date-fns';
 
 import { API, GET } from "../lib/index.js";
 import chalk from "chalk";
+import Enquirer from "enquirer";
 
 export const promptEnvironment = async (token: string, organization_slug: string) => {
   const envs = (await GET(API.Environment, { organization_slug, token, environment_id: '' })) as any[];
-  if (!envs.length) {
-    console.warn(chalk.red("No environments found"))
-    return
-  };
+  // if (!envs.length) {
+  //   console.warn(chalk.red("No environments found"))
+  //   return
+  // };
 
-  const { environment_id } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "environment_id",
-      message: "Select the environment:",
-      choices: envs.map(_ => ({name: _.name, value: _.key})),
-    },
-  ]);
+  const choices = envs.map(_ => ({name: _.name, value: _.key}));
+  const { environment } = await Enquirer.prompt({
+    type: 'select',
+    name: 'environment',
+    choices,
+    initial: 0,
+    message: 'Select Environment',
+  }) as { environment: string }
 
-  return environment_id;
+  // FIXME `enquirer` mutates the object (sic!)
+  const result = choices.find(choice => choice.name === environment)
+
+  if (!result) {
+    throw Error('something went wrong with prompt')
+  }
+
+  const { name, value } = result;
+  return { name, value }
 };
 
 export const chooseOrganization = async (token: string) => {
