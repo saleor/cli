@@ -31,11 +31,10 @@ export const configure = async (token: string | undefined) => {
   try {
     await validateToken(token);
     Config.reset();
-    Config.set("token", token);
+    await Config.set("token", token);
 
     const organization_slug = await chooseOrganization({ token });
-    Config.set("organization_slug", organization_slug.value);
-
+    await Config.set("organization_slug", organization_slug.value);
   } catch (error) {
     // FIXME make it more explicit
     if (error instanceof HTTPError) {

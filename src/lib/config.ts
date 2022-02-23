@@ -1,7 +1,6 @@
 import os from "os";
 import fs from 'fs-extra';
 import path from "path";
-import debug from "debug";
 
 const DefaultConfigFile = path.join(os.homedir(), ".config", "saleor.json");
 
