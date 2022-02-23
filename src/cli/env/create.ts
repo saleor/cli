@@ -1,9 +1,8 @@
-import { Arguments, CommandBuilder, demandCommand, demandOption } from "yargs";
-import { API, GET, POST, Region } from "../../lib/index.js";
+import { Arguments, CommandBuilder } from "yargs";
 import slugify from 'slugify';
-import Enquirer from "enquirer";
-import chalk from "chalk";
-import { getBackups } from "../backup/list.js";
+
+import { API, POST } from "../../lib/index.js";
+import { interactiveDatabaseTemplate, interactiveProject, interactiveSaleorVersion } from "../../middleware/index.js";
 
 interface Options {
   name: string
@@ -31,40 +30,21 @@ export const builder: CommandBuilder = (_) =>
   .option("database", { 
     type: 'string',
     desc: 'specify how to populate the database',
-    default: 'sample'
   })
   .option("saleor", { 
     type: 'string',
     desc: 'specify the Saleor version',
-    default: '3.0.0'
   })
 
 const hash = (name: string) => `${name}-${(Math.random() + 1).toString(36).substring(7)}`;
 
-const SaleorVersionMapper: Record<string, string> = {
-  '3.0.0': 'saleor-stable-staging',
-  '3.1.0': 'saleor-latest-staging'
-}
-
 export const handler = async (argv: Arguments<Options>) => {
   const { name: base, project, saleor, database } = argv;
-
-  const result = await createEnv(base, project, saleor, database);
-
-  console.log(result)
-
-  process.exit(0);
-};
-
-export const createEnv = async (base: string, project: string, saleor: string, database: string) => {
-  const pickedProject = await chooseProject(project);
-  const pickedDatabase = await chooseDatabase(database);
-  const pickedVersion = await chooseVersion(saleor);
 
   // TODO check for backup
 
   const name = hash(base);
-  const message = `Creating: ${name} in the '${pickedProject} project`;
+  const message = `Creating: ${name} in the '${project} project`;
   console.log(message);
   const json = {
     name,
@@ -72,90 +52,35 @@ export const createEnv = async (base: string, project: string, saleor: string, d
     admin_email: `${name}@gmail.com`,
     login: "",
     password: "",
-    project: pickedProject,
-    database_population: pickedDatabase,
-    service: pickedVersion
+    project,
+    database_population: database,
+    service: saleor 
   }
 
   console.log(json)
-
-  const result = await POST(API.Environment, {
-    environment_id: '',
-    json
-  }) as any;
+  // const result = await POST(API.Environment, { ...argv, environment: '' }, json) as any;
 
   // store as default ENV!!!!
+};
 
 
-  return result
-}
+// const chooseSnapshot = async () => {
+//   // BACKUPS!!!!
+//   const backups = await getBackups({})
+//   const choices = backups.map(b => b.name);
 
-const chooseVersion = async (version: string) => {
-  // const regions = await GET(API.Regions) as any[];
-  const snapshots = await GET(API.Services, { region_name: Region }) as any[];
-  const choices = snapshots.map(s => s.name);
-  const initial = snapshots.indexOf(version);
+//   const { pickBackup } = await Enquirer.prompt({
+//     type: 'select',
+//     name: 'pickSnapshot',
+//     choices,
+//     message: 'Pick snapshot'
+//   }) as { pickBackup: boolean}
 
-  const { pickSnapshot } = await Enquirer.prompt({
-    type: 'select',
-    name: 'pickSnapshot',
-    choices,
-    initial: initial,
-    message: 'Pick version'
-  }) as { pickSnapshot: boolean}
+//   return pickBackup;
+// }
 
-  return pickSnapshot;
-}
-
-const chooseDatabase = async (database: string) => {
-  const choices = ['sample', 'blank', 'snapshot'];
-  const initial = choices.indexOf(database);
-
-  const { pickDatabase } = await Enquirer.prompt({
-    type: 'select',
-    name: 'pickDatabase',
-    choices,
-    initial: initial,
-    message: 'Pick a database population'
-  }) as { pickDatabase: boolean}
-
-  return pickDatabase;
-}
-
-const chooseSnapshot = async () => {
-  // BACKUPS!!!!
-  const backups = await getBackups({})
-  const choices = backups.map(b => b.name);
-
-  const { pickBackup } = await Enquirer.prompt({
-    type: 'select',
-    name: 'pickSnapshot',
-    choices,
-    message: 'Pick snapshot'
-  }) as { pickBackup: boolean}
-
-  return pickBackup;
-}
-
-const chooseProject = async (project: string) => {
-  const projects = await GET(API.Project) as any[];
-  const slugs = projects.map(p => p.slug);
-
-  const initial = slugs.indexOf(project)
-
-  if (!projects.length) {
-    console.warn(chalk.red("No projects found"))
-    // TODO ask to create project
-    return
-  };
-
-  const { pickProject } = await Enquirer.prompt({
-    type: 'select',
-    name: 'pickProject',
-    choices: projects.map(p => p.slug),
-    initial: initial,
-    message: 'Pick a project'
-  }) as { pickProject: boolean}
-
-  return pickProject;
-}
+export const middlewares = [
+  interactiveProject,
+  interactiveDatabaseTemplate,
+  interactiveSaleorVersion,
+]

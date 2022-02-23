@@ -14,13 +14,11 @@ export const builder: CommandBuilder = (_) =>
     desc: 'name for the new backup'
   });
 
-export const handler = async (argv: Arguments) => {
+export const handler = async (argv: Arguments<any>) => {
   const { name, env } = argv;
   console.log(`Creating backup '${name}' for the ${env ? env : 'current'} environment`);
 
-  const options = env ? { environment_id : env } : {}
-  const result = await POST(API.Backup, {
-    ...options,
+  const result = await POST(API.Backup, argv, {
     json: {
       name: name,
     }

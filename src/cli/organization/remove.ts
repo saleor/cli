@@ -1,12 +1,9 @@
 import type { Arguments, CommandBuilder } from "yargs";
 import { API, DELETE } from "../../lib/index.js";
 import {CliUx} from '@oclif/core'
+import { Options } from "../../types.js";
 
-interface Options {
-  slug: string
-}
-
-export const command = "remove <slug>";
+export const command = "remove <organization>";
 export const desc = "Remove the organization";
 
 export const builder: CommandBuilder = (_) =>
@@ -17,12 +14,11 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { slug } = argv;
-  console.log(`You are going to delete organization: ${slug}!`);
+  console.log(`You are going to delete organization: ${argv.organization}!`);
   const proceed = await CliUx.ux.confirm('Continue? Type yes/no')
 
   if (proceed) {
-    const result = await DELETE(API.Organization, { organization_slug: slug }) as any;
+    const result = await DELETE(API.Organization, argv) as any;
     console.log(result)
   }
 

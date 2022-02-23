@@ -1,58 +1,83 @@
-import inquirer from "inquirer";
 import { format } from 'date-fns';
-
-import { API, GET } from "../lib/index.js";
 import chalk from "chalk";
 import Enquirer from "enquirer";
 
-export const promptEnvironment = async (token: string, organization_slug: string) => {
-  const envs = (await GET(API.Environment, { organization_slug, token, environment_id: '' })) as any[];
-  // if (!envs.length) {
-  //   console.warn(chalk.red("No environments found"))
-  //   return
-  // };
+import { API, GET, Region } from "../lib/index.js";
 
-  const choices = envs.map(_ => ({name: _.name, value: _.key}));
-  const { environment } = await Enquirer.prompt({
+// Higher-Order Creator for Prompts
+const createPrompt = async (name: string, message: string, fetcher: any, extractor: any) => {
+  const collection = await fetcher();
+
+  if (!collection.length) {
+    console.warn(chalk.red(`No ${name}s found`))
+    process.exit(0) 
+  };
+
+  const choices = collection.map(extractor);
+
+  const { [name]: ret } = await Enquirer.prompt({
     type: 'select',
-    name: 'environment',
+    name,
     choices,
-    initial: 0,
-    message: 'Select Environment',
-  }) as { environment: string }
+    message,
+  }) as any; 
 
   // FIXME `enquirer` mutates the object (sic!)
-  const result = choices.find(choice => choice.name === environment)
+  const result = choices.find((choice: any) => choice.name === ret)
 
   if (!result) {
     throw Error('something went wrong with prompt')
   }
 
-  const { name, value } = result;
-  return { name, value }
-};
+  return { name: result.name, value: result.value }
+}
 
-export const chooseOrganization = async (token: string) => {
-  const orgs = (await GET(API.Organization, { token })) as any[];
-  if (!orgs.length) {
-    console.warn(chalk.red("No organizations found"))
-    return
-  };
 
-  const { organization_slug } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "organization_slug",
-      message: "Choose organization:",
-      choices: orgs.map((org) => ({name: org.name, value: org.slug})),
-    },
-  ]);
+const SaleorVersionMapper: Record<string, string> = {
+  '3.0.0': 'saleor-stable-staging',
+  '3.1.0': 'saleor-latest-staging'
+}
 
-  return organization_slug;
-};
+//
+// P U B L I C 
+//
+
+export const promptVersion = async (argv: any) => createPrompt(
+  'snapshot',
+  'Select a Saleor version',
+  async () => await GET(API.Services, { ...argv, region: Region }), 
+  (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name}`, value: _.name })
+)
+
+export const promptDatabaseTemplate = async (argv: any) => createPrompt(
+  'database',
+  'Select the database template',
+  () => (['sample', 'blank', 'snapshot']),
+  (_: any) => ({ name: _, value: _ })
+)
+
+export const promptProject = (argv: any) => createPrompt(
+  'project',
+  'Select Project',
+  async () => await GET(API.Project, argv),
+  (_: any) => ({ name: _.name, value: _.slug })
+) 
+
+export const promptEnvironment = async (argv: any) => createPrompt(
+  'environment',
+  'Select Environment',
+  async () => await GET(API.Environment, {...argv, environment: ''}), 
+  (_: any) => ({ name: _.name, value: _.key })
+);
+
+export const chooseOrganization = async (argv: any) => createPrompt(
+  'organization',
+  'Select Organization',
+  async () => await GET(API.Organization, argv), 
+  (_: any) => ({ name: _.name, value: _.slug})
+)
 
 export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")
-
 
 // TODO check environment presence fn!!!
 // TODO check organization presence fn!!!

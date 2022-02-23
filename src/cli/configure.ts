@@ -4,13 +4,10 @@ import { HTTPError } from "got";
 
 import { API, GET } from "../lib/index.js";
 import { Config } from "../lib/config.js";
-import { promptEnvironment, chooseOrganization } from "../lib/util.js";
+import { chooseOrganization } from "../lib/util.js";
+import { Options } from "../types.js";
 
 const { ux: cli } = CliUx;
-
-type Options = {
-  token?: string;
-};
 
 export const command = "configure [token]";
 export const desc = "Configure Saleor CLI";
@@ -28,7 +25,6 @@ const validateToken = async (token: string) => {
   console.log(`Logged as ${user.email}`);
 };
 
-
 export const configure = async (token: string | undefined) => {
   while (!token) token = await cli.prompt("Access Token", { type: "mask" });
 
@@ -37,11 +33,9 @@ export const configure = async (token: string | undefined) => {
     Config.reset();
     Config.set("token", token);
 
-    const organization_slug = await chooseOrganization(token);
-    Config.set("organization_slug", organization_slug);
+    const organization_slug = await chooseOrganization({ token });
+    Config.set("organization_slug", organization_slug.value);
 
-    const environment_id = await promptEnvironment(token, organization_slug);
-    Config.set("environment_id", environment_id);
   } catch (error) {
     // FIXME make it more explicit
     if (error instanceof HTTPError) {

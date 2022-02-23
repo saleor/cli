@@ -6,6 +6,7 @@ import * as remove from "./remove.js";
 import * as cleardb from "./clear.js";
 import * as upgrade from "./upgrade.js";
 import * as populatedb from "./populate.js";
+import { useDefault } from "../../middleware/index.js";
 
 export default function (_: any) {
   _.command([
@@ -17,5 +18,7 @@ export default function (_: any) {
     upgrade,
     cleardb,
     populatedb
-  ]).demandCommand(1, "You need at least one command before moving on");
+  ])
+  .middleware(useDefault)
+  .demandCommand(1, "You need at least one command before moving on");
 }

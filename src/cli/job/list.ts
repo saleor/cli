@@ -4,6 +4,7 @@ import chalk from 'chalk';
 
 import { API, GET } from "../../lib/index.js";
 import { formatDateTime } from '../../lib/util.js';
+import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
@@ -21,11 +22,8 @@ export const desc = "List jobs";
 export const builder: CommandBuilder = (_) =>
   _.option("env", { type: 'string' })
 
-export const handler = async (argv: Arguments) => {
-  const { env } = argv;
-
-  const options = env ? { environment_id : env } : {}
-  const result = await GET(API.Job, options) as any[]; 
+export const handler = async (argv: Arguments<Options>) => {
+  const result = await GET(API.Job, argv) as any[]; 
 
   cli.table(result, {
     type: { 
