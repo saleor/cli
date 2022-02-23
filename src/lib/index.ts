@@ -28,10 +28,11 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
   debug(path)
   debug('cli options', argv)
 
-  options = { ...options,  
+  options = { 
+    ...options,
     headers: {
       Authorization: `Token ${argv.token}`,
-    }
+    },
   }
   debug('`got` options', options)
 
@@ -39,7 +40,7 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
 }
 
 const doGETRequest = (path: string, options?: any) => got(path, {...options, ...BaseOptions}).json();
-const doPOSTRequest = (path: string, options?: any) => got.post(path, {...options, ...BaseOptions}).json()
+const doPOSTRequest = (path: string, options?: any) => got.post(path, { ...options, ...BaseOptions}).json()
 const doDELETERequest = (path: string, options: any) => got.delete(path, {...options, ...BaseOptions}).json();
 const doPUTRequest = (path: string, options: any) => got.put(path, {...options, ...BaseOptions}).json();
 
