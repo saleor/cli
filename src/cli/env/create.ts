@@ -1,8 +1,11 @@
 import { Arguments, CommandBuilder } from "yargs";
 import slugify from 'slugify';
+import ora from 'ora';
 
-import { API, POST } from "../../lib/index.js";
 import { interactiveDatabaseTemplate, interactiveProject, interactiveSaleorVersion } from "../../middleware/index.js";
+import { API, POST } from "../../lib/index.js";
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 interface Options {
   name: string
@@ -57,8 +60,20 @@ export const handler = async (argv: Arguments<Options>) => {
     service: saleor 
   }
 
-  console.log(json)
-  // const result = await POST(API.Environment, { ...argv, environment: '' }, json) as any;
+  // console.log(json)
+  const result = await POST(API.Environment, { ...argv, environment: '' }, json) as any;
+
+  // delay(5000);
+
+  const spinner = ora('Creating a new environment...').start();
+  setTimeout(() => {
+    spinner.color = 'yellow';
+    spinner.text = 'Your environment is almost ready...';
+  }, 7000);
+  setTimeout(() => {
+    spinner.succeed('Yay! A new environment is now ready!')
+  }, 10000);
+
 
   // store as default ENV!!!!
 };
