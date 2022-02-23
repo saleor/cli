@@ -4,7 +4,7 @@ import * as create from "./create.js";
 import * as remove from "./remove.js";
 import * as permissions from "./permissions.js";
 import * as change from "./switch.js";
-import { useDefault } from "../../middleware/index.js";
+import { useToken } from "../../middleware/index.js";
 
 export default function (_: any) {
   _.command([
@@ -15,6 +15,6 @@ export default function (_: any) {
     permissions,
     change
   ])
-  .middleware(useDefault)
+  .middleware(useToken)
   .demandCommand(1, "You need at least one command before moving on");
 }

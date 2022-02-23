@@ -6,6 +6,8 @@ import { CliUx } from "@oclif/core";
 import { API, POST } from "../../lib/index.js";
 import { Options } from "../../types.js";
 import { Arguments } from "yargs";
+import Enquirer from "enquirer";
+import { Config } from "../../lib/config.js";
 
 export const command = "create";
 export const desc = "Create a new organization";
@@ -43,9 +45,11 @@ export const handler = async (argv: Arguments<Options>) => {
     required: false,
   });
 
-  console.log(`You are going to crate organization ${name}`);
-  const proceed = await CliUx.ux.confirm("Continue? Type yes/no");
-  console.log(proceed);
+  const { proceed } = await Enquirer.prompt({
+    type: 'confirm',
+    name: 'proceed',
+    message: `You are going to crate organization ${name}. Continue`,
+  }) as { proceed: boolean };
 
   if (proceed) {
     const result = (await POST(
@@ -68,12 +72,21 @@ export const handler = async (argv: Arguments<Options>) => {
       }
     )) as any;
 
-    console.log("---");
-    console.log(
-      emphasize.highlight("yaml", yaml.stringify(result), {
-        attr: chalk.blue,
-      }).value
-    );
+    console.log(chalk.green("✔"), chalk.bold("Organization has been successfuly created"));
+
+    const message = chalk.green("Would you like to set the", chalk.bold(name), "as default ?");
+
+    const { setDefault } = await Enquirer.prompt({
+      type: 'confirm',
+      name: 'setDefault',
+      message,
+    }) as { setDefault: boolean };
+
+    if (setDefault) {
+      await Config.set("organization_slug", result.slug);
+      await Config.remove("environment_id");
+    }
+
   }
 
   process.exit(0);

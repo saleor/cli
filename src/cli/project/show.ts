@@ -5,6 +5,7 @@ import chalk from "chalk";
 
 import { API, GET } from "../../lib/index.js";
 import { Options } from "../../types.js";
+import { interactiveProject } from "../../middleware/index.js";
 
 export const command = "show [project]";
 export const desc = "Show a specific project";
@@ -27,3 +28,8 @@ export const handler = async (argv: Arguments<Options>) => {
     console.log(error.message);
   }
 };
+
+
+export const middlewares = [
+  interactiveProject
+]

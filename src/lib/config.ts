@@ -19,6 +19,16 @@ const set = async (field: ConfigField, value: string) => {
   return new_content
 }
 
+const remove = async (field: ConfigField) => {
+  await fs.ensureFile(DefaultConfigFile);
+  const content = await fs.readJSON(DefaultConfigFile, { throws: false })
+
+  delete content[field];
+  await fs.outputJSON(DefaultConfigFile, content);
+
+  return content
+}
+
 const get = async (): Promise<ConfigProps> => {
   await fs.ensureFile(DefaultConfigFile);
   const content = await fs.readJSON(DefaultConfigFile, { throws: false })
@@ -30,4 +40,4 @@ const reset = async (): Promise<void> => {
 }
 
 
-export const Config = { get, set, reset }
+export const Config = { get, set, reset, remove }

@@ -70,10 +70,24 @@ export const promptEnvironment = async (argv: any) => createPrompt(
   (_: any) => ({ name: _.name, value: _.key })
 );
 
-export const chooseOrganization = async (argv: any) => createPrompt(
+export const promptOrganization = async (argv: any) => createPrompt(
   'organization',
   'Select Organization',
   async () => await GET(API.Organization, argv), 
+  (_: any) => ({ name: _.name, value: _.slug})
+)
+
+export const promptPlan = async (argv: any) => createPrompt(
+  'plan',
+  'Select Plan',
+  async () => await GET(API.Plan, argv),
+  (_: any) => ({ name: _.name, value: _.slug})
+)
+
+export const promptRegion = async (argv: any) => createPrompt(
+  'region',
+  'Select Region',
+  async () => await GET(API.Region, argv),
   (_: any) => ({ name: _.name, value: _.slug})
 )
 
