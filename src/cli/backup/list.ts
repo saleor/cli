@@ -4,21 +4,28 @@ import { Arguments } from 'yargs';
 import { Config } from '../../lib/config.js';
 
 import { API, GET } from "../../lib/index.js";
-import { chooseDefaultEnvironment, formatDateTime } from '../../lib/util.js';
+import { promptEnvironment, formatDateTime } from '../../lib/util.js';
+import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
 export const command = "list";
 export const desc = "List backups";
 
-export const handler = async (argv: Arguments) => {
-  const { env } = argv;
-  const options = { environment_id: env };
+// const setup: void = (handler) => {
 
-  const result = await getBackups(options)
+//   handler()
+// } 
+
+
+export const handler = async (argv: Arguments<Options>) => {
+  const { environment } = argv;
+
+  console.log(`\n ${chalk.bgGray(' CONTEXT ')} ${chalk.gray('Environment')} ${chalk.underline(environment)} • ${chalk.gray('Organization')} ${'something'} \n`)
+  const result = await GET(API.Backup, argv) as any[];
 
   if (!result.length) {
-    console.warn(chalk.red("No backups found"))
+    console.warn(chalk.red(" No backups found for this environment"))
     process.exit(0);
   };
 
@@ -42,17 +49,3 @@ export const handler = async (argv: Arguments) => {
 
   process.exit(0);
 };
-
-
-export const getBackups = async (options: { environment_id?: string | undefined}) => {
-  const config = await Config.get()
-
-  if (!options.environment_id && !config.environment_id) {
-    const environment_id = await chooseDefaultEnvironment(config.token, config.organization_slug);
-    options.environment_id = environment_id
-  }
-
-  const result = await GET(API.Backup, options) as any[];
-  return result
-
-}

@@ -1,12 +1,8 @@
-import { HTTPError, Response } from "got";
 import type { Arguments, CommandBuilder } from "yargs";
 import { API, DELETE } from "../../lib/index.js";
+import { Options } from "../../types.js";
 
-interface Options {
-  key: string
-}
-
-export const command = "remove <key>";
+export const command = "remove <environment>";
 export const desc = "Remove an environmet";
 
 export const builder: CommandBuilder = (_) =>
@@ -17,10 +13,9 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { key } = argv;
-  console.log(`Deleting environment: ${key}!`);
+  console.log(`Deleting environment: ${argv.environment}!`);
 
-  const result = await DELETE(API.Environment, { environment_id: key }) as any;
+  const result = await DELETE(API.Environment, argv) as any;
   console.log(result.task_id)
 
   process.exit(0);

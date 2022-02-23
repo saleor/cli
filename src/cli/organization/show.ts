@@ -4,20 +4,15 @@ import { emphasize } from 'emphasize';
 import chalk from 'chalk';
 
 import { API, GET } from "../../lib/index.js";
+import { Options } from "../../types.js";
 
-type Options = {
-  slug: string;
-};
-
-export const command = "show [slug]";
+export const command = "show [organization]";
 export const desc = "Show a specific organization";
 
 export const builder: CommandBuilder = (_) => _
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { slug } = argv;
-
-  const result = await GET(API.Organization, { organization_slug: slug }) as any; 
+  const result = await GET(API.Organization, argv) as any; 
 
   console.log("---")
   console.log(emphasize.highlight("yaml", yaml.stringify(result), {

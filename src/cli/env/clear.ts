@@ -1,11 +1,8 @@
 import type { Arguments, CommandBuilder } from "yargs";
 import { API,  GET } from "../../lib/index.js";
+import { Options } from "../../types.js";
 
-interface Options {
-  key: string
-}
-
-export const command = "clear <key>";
+export const command = "clear <environment>";
 export const desc = "Clear database for environment";
 
 export const builder: CommandBuilder = (_) =>
@@ -16,10 +13,9 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { key } = argv;
-  console.log(`Clearing database: ${key}!`);
+  console.log(`Clearing database: ${argv.environment}!`);
 
-  const result = await GET(API.ClearDatabase, { environment_id: key }) as any;
+  const result = await GET(API.ClearDatabase, argv) as any;
 
   console.log(result.task_id)
 

@@ -1,13 +1,10 @@
-import chalk from "chalk";
 import type { CancelableRequest } from "got";
 import got from "got";
-import Enquirer from 'enquirer';
 
 import Debug from 'debug';
 const debug = Debug('lib:index'); // esl
 
-import { Config } from "./config.js";
-import { configure } from "../cli/configure.js";
+import { Options } from '../types.js';
 
 const CloudURL = `https://staging-cloud.saleor.io/api`;
 
@@ -16,56 +13,29 @@ const BaseOptions = {
 };
 
 interface PathArgs {
+  token: string
   organization_slug: string
   environment_id?: string
   project_slug?: string
   backup_id?: string
   region_name?: string
 }
-type DefaultURLPath = (_: PathArgs) => string;
+type DefaultURLPath = (_: Options) => string;
 
-const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath, options: any = {}) => {
-  let config = await Config.get();
+const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath, argv: Options, options: any = {}) => {
+  const path = pathFunc(argv);
 
-  if (!('token' in config) && !('token' in options)) {
-    console.error(chalk.red("Auth token missing"));
-    console.error("Please create token and run " + chalk.green("saleor configure"))
+  debug(path)
+  debug('cli options', argv)
 
-    const { runConfig } = await Enquirer.prompt({
-      type: 'confirm',
-      name: 'runConfig',
-      message: 'Would you like to run `saleor configure` now ?'
-    }) as { runConfig: boolean}
-
-    if (runConfig) {
-      await configure(undefined)
-      config = await Config.get();
-    } else {
-      process.exit(0);
+  options = { ...options,  
+    headers: {
+      Authorization: `Token ${argv.token}`,
     }
   }
+  debug('`got` options', options)
 
-  const {
-    token = config.token,
-    organization_slug = config.organization_slug || '',
-    environment_id = config.environment_id || '',
-    project_slug = '',
-    backup_id = '',
-    region_name = '',
-    ...httpOptions
-  } = { ...options }
-
-  const path = pathFunc({ environment_id, organization_slug, project_slug, backup_id, region_name });
-  debug(path)
-  debug('cli options', { environment_id, organization_slug, project_slug, backup_id, region_name })
-  debug('`got` options', httpOptions)
-
-  return func(path, { 
-    headers: {
-      Authorization: `Token ${token}`,
-    },
-    ...httpOptions
-  }) as CancelableRequest;
+  return func(path, options) as CancelableRequest;
 }
 
 const doGETRequest = (path: string, options?: any) => got(path, {...options, ...BaseOptions}).json();
@@ -80,17 +50,17 @@ export const DELETE = handleAuthAndConfig(doDELETERequest);
 
 export const API: Record<string, DefaultURLPath> = {
   User: _ => "user",
-  Organization: _ => `organizations/${_.organization_slug}`,
-  OrganizationPermissions: _ => `organizations/${_.organization_slug}/permissions`,
-  UpgradeEnvironment: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/upgrade`,
-  Environment: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}`,
-  PopulateDatabase: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/populate-database`,
-  ClearDatabase: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/clear-database`,
-  Job: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/jobs`,
-  Backup: _ => `organizations/${_.organization_slug}/environments/${_.environment_id}/backups/${_.backup_id || ''}`,
-  Project: _ => `organizations/${_.organization_slug}/projects/${_.project_slug}`,
+  Organization: _ => `organizations/${_.organization || ''}`,
+  OrganizationPermissions: _ => `organizations/${_.organization}/permissions`,
+  UpgradeEnvironment: _ => `organizations/${_.organization}/environments/${_.environment}/upgrade`,
+  Environment: _ => `organizations/${_.organization}/environments/${_.environment || ''}`,
+  PopulateDatabase: _ => `organizations/${_.organization}/environments/${_.environment}/populate-database`,
+  ClearDatabase: _ => `organizations/${_.organization}/environments/${_.environment}/clear-database`,
+  Job: _ => `organizations/${_.organization}/environments/${_.environment}/jobs`,
+  Backup: _ => `organizations/${_.organization}/environments/${_.environment}/backups/${_.backup || ''}`,
+  Project: _ => `organizations/${_.organization}/projects/${_.project || ''}`,
   Regions: _ =>  "regions",
-  Services: _ => `regions/${_.region_name}/services`
+  Services: _ => `regions/${_.region}/services`
 }
 
 

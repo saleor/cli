@@ -1,14 +1,16 @@
 import { CliUx } from '@oclif/core';
+import { Arguments } from 'yargs';
 
 import { API, GET } from "../../lib/index.js";
+import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
 export const command = "list";
 export const desc = "List projects";
 
-export const handler = async () => {
-  const result = await GET(API.Project) as any[]; 
+export const handler = async (argv: Arguments<Options>) => {
+  const result = await GET(API.Project, argv) as any[]; 
 
   cli.table(result, {
     slug: { minWidth: 2 },

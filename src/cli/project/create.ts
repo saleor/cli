@@ -3,6 +3,7 @@ import { emphasize } from "emphasize";
 import yaml from "yaml";
 import type { Arguments, CommandBuilder } from "yargs";
 import { API, POST } from "../../lib/index.js";
+import { Options } from "../../types.js";
 
 export const command = "create <name>";
 export const desc = "Create a new project";
@@ -24,12 +25,12 @@ export const builder: CommandBuilder = (_) =>
     default: 'us-east-1'
   })
 
-export const handler = async (argv: Arguments) => {
+export const handler = async (argv: Arguments<Options>) => {
   const { name, plan, region } = argv;
   const message = `Creating project: ${name}!`;
 
   console.log(message);
-  const result = await POST(API.Project, {
+  const result = await POST(API.Project, argv, {
     json: { name, plan, region }
   }) as any;
 

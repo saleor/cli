@@ -1,5 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import { Arguments } from 'yargs';
 
 import { API, GET } from "../../lib/index.js";
 import { formatDateTime } from '../../lib/util.js';
@@ -9,9 +10,8 @@ const { ux: cli } = CliUx;
 export const command = "list";
 export const desc = "List environments";
 
-
-export const handler = async () => {
-  const result = await GET(API.Environment, { environment_id: '' }) as any[]; 
+export const handler = async (argv: Arguments) => {
+  const result = await GET(API.Environment, { ...argv, environment: '' }) as any[]; 
 
   cli.table(result, {
     name: { minWidth: 2, get: ({ name }) => chalk.cyan(name) },

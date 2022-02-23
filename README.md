@@ -52,3 +52,25 @@ for more information, find the documentation at https://saleor.io
 ### `project`
 
 ### `storefront`
+
+## Development
+
+### Install dependencies
+
+This project uses [pnpm](https://pnpm.io) for managing dependencies
+
+```
+pnpm install
+```
+
+### Run Watch Mode
+
+```
+pnpm watch
+```
+
+### Run CLI
+
+```
+node build/cli.js ...
+```
