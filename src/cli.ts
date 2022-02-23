@@ -19,6 +19,9 @@ import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
 import { header } from './lib/images.js';
 
+// JEEZ, unable to handle `package.json` after build
+const version = '0.0.8'
+
 yargs(hideBin(process.argv))
   .scriptName("saleor")
   .version()
@@ -54,7 +57,7 @@ yargs(hideBin(process.argv))
     } else if (error) {
       console.log(error)
     } else {
-      const { version } = JSON.parse(await fs.readFile('package.json', 'utf-8'));
+      // const { version } = JSON.parse(await fs.readFile('../package.json', 'utf-8'));
       header(version);
       console.log(yargs.help())
     }
