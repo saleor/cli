@@ -60,8 +60,7 @@ export const handler = async (argv: Arguments<Options>) => {
     service: saleor 
   }
 
-  // console.log(json)
-  const result = await POST(API.Environment, { ...argv, environment: '' }, json) as any;
+  const result = await POST(API.Environment, { ...argv, environment: '' }, { json }) as any;
 
   // delay(5000);
 
