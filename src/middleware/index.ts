@@ -84,7 +84,7 @@ export const useEnvironment = async ({ token, organization, environment }: Optio
 
 export const useDefault = async ({ token, organization, environment }: Options) => {
   let opts: any = {};
-
+  
   if (!token || !organization || !environment) {
     const config = await Config.get()
     debug('useDefault', config)

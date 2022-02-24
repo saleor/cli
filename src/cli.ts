@@ -6,7 +6,8 @@ import { HTTPError, Response } from 'got';
 import yaml from "yaml";
 import { emphasize } from 'emphasize';
 import chalk from 'chalk';
-import fs from 'fs-extra';
+import { createRequire } from "module";
+import updateNotifier from 'update-notifier';
 
 import organization from './cli/organization/index.js';
 import environment from './cli/env/index.js';
@@ -19,12 +20,17 @@ import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
 import { header } from './lib/images.js';
 
-// JEEZ, unable to handle `package.json` after build
-const version = '0.0.8'
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json");
+
+// console.log(boxen('Update available\nsomething', { padding: 1, margin: 1, float: 'center', borderColor: 'yellow' }));
+
+const notifier = updateNotifier({ pkg });
+notifier.notify();
 
 yargs(hideBin(process.argv))
   .scriptName("saleor")
-  .version()
+  .version(pkg.version)
   .alias('V', 'version')
   .usage('Usage: $0 <command> [options]')
   .command(info)
@@ -57,9 +63,9 @@ yargs(hideBin(process.argv))
     } else if (error) {
       console.log(error)
     } else {
-      // const { version } = JSON.parse(await fs.readFile('../package.json', 'utf-8'));
-      header(version);
+      header(pkg.version);
       console.log(yargs.help())
+      console.log(import.meta.url)
     }
     process.exit(1)
   })
