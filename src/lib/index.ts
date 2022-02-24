@@ -12,14 +12,6 @@ const BaseOptions = {
   prefixUrl: CloudURL,
 };
 
-interface PathArgs {
-  token: string
-  organization_slug: string
-  environment_id?: string
-  project_slug?: string
-  backup_id?: string
-  region_name?: string
-}
 type DefaultURLPath = (_: Options) => string;
 
 const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath, argv: Options, options: any = {}) => {
@@ -60,8 +52,10 @@ export const API: Record<string, DefaultURLPath> = {
   Job: _ => `organizations/${_.organization}/environments/${_.environment}/jobs`,
   Backup: _ => `organizations/${_.organization}/environments/${_.environment}/backups/${_.backup || ''}`,
   Project: _ => `organizations/${_.organization}/projects/${_.project || ''}`,
-  Regions: _ =>  "regions",
-  Services: _ => `regions/${_.region}/services`
+  PaymentMethod: _ => `organizations/${_.organization}/payment-methods/${_.paymentMethod || ''}`,
+  Region: _ =>  `regions/${_.region || ''}`,
+  Services: _ => `regions/${_.region}/services`,
+  Plan: _ => `plans/${_.plan || ''}`
 }
 
 

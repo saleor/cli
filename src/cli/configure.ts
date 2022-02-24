@@ -4,7 +4,6 @@ import { HTTPError } from "got";
 
 import { API, GET } from "../lib/index.js";
 import { Config } from "../lib/config.js";
-import { chooseOrganization } from "../lib/util.js";
 import { Options } from "../types.js";
 
 const { ux: cli } = CliUx;
@@ -32,9 +31,7 @@ export const configure = async (token: string | undefined) => {
     await validateToken(token);
     Config.reset();
     await Config.set("token", token);
-
-    const organization_slug = await chooseOrganization({ token });
-    await Config.set("organization_slug", organization_slug.value);
+    return token
   } catch (error) {
     // FIXME make it more explicit
     if (error instanceof HTTPError) {

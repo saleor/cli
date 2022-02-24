@@ -2,7 +2,7 @@ import chalk from "chalk";
 import type { Arguments, CommandBuilder } from "yargs";
 
 import { Config } from "../../lib/config.js";
-import { chooseOrganization, promptEnvironment } from "../../lib/util.js";
+import { promptOrganization, promptEnvironment } from "../../lib/util.js";
 import { Options } from "../../types.js";
 
 export const command = "switch";
@@ -11,7 +11,7 @@ export const desc = "Make the provided organization the default one";
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
-  const organization_slug = await chooseOrganization(argv);
+  const organization_slug = await promptOrganization(argv);
   //   TODO creation
   await Config.set("organization_slug", organization_slug.value);
 

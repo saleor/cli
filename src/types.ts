@@ -8,4 +8,6 @@ export interface Options {
   region?: string
   database?: string
   saleor?: string
+  plan?: string
+  paymentMethod? : string
 }
