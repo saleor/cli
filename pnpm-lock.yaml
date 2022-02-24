@@ -27,7 +27,7 @@ specifiers:
   typescript: 4.6.1-rc
   update-notifier: ^5.1.0
   yaml: ^1.10.2
-  yargs: github:jopemachine/yargs#fix-pkg-notfound-issue-on-esm
+  yargs: ^17.3.1
 
 dependencies:
   '@mobily/ts-belt': 3.9.0
@@ -46,7 +46,7 @@ dependencies:
   slugify: 1.6.5
   update-notifier: 5.1.0
   yaml: 1.10.2
-  yargs: github.com/jopemachine/yargs/147ec1f1d2be9676d9cf978899eac931aa5755dc
+  yargs: 17.3.1
 
 devDependencies:
   '@types/debug': 4.1.7
@@ -2423,13 +2423,9 @@ packages:
       y18n: 5.0.8
       yargs-parser: 20.2.9
 
-  github.com/jopemachine/yargs/147ec1f1d2be9676d9cf978899eac931aa5755dc:
-    resolution: {tarball: https://codeload.github.com/jopemachine/yargs/tar.gz/147ec1f1d2be9676d9cf978899eac931aa5755dc}
-    name: yargs
-    version: 17.3.1
+  /yargs/17.3.1:
+    resolution: {integrity: sha512-WUANQeVgjLbNsEmGk20f+nlHgOqzRFpiGWVaBrYGYIGANIIu3lWjoyi0fNlFmJkvfhCZ6BXINe7/W2O2bV4iaA==}
     engines: {node: '>=12'}
-    prepare: true
-    requiresBuild: true
     dependencies:
       cliui: 7.0.4
       escalade: 3.1.1
