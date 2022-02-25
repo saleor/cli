@@ -82,55 +82,6 @@ export const useEnvironment = async ({ token, organization, environment }: Optio
   return opts; 
 }
 
-export const useDefault = async ({ token, organization, environment }: Options) => {
-  let opts: any = {};
-  
-  if (!token || !organization || !environment) {
-    const config = await Config.get()
-    debug('useDefault', config)
-    let { token ,organization_slug, environment_id } = config;
-    opts = config;
-
-    if (token) {
-      debug('token read from file')
-    } else {
-      console.error(chalk.red("Auth token missing"));
-      console.error("Please create token and run " + chalk.green("saleor configure"))
-
-      const { runConfig } = await Enquirer.prompt({
-        type: 'confirm',
-        name: 'runConfig',
-        message: 'Would you like to run `saleor configure` now ?'
-      }) as { runConfig: boolean }
-
-      if (runConfig) {
-        await configure(undefined)
-        opts = await Config.get()
-        organization_slug = opts.organization_slug
-      } else {
-        process.exit(0);
-      }
-    }
-
-    if (organization_slug) {
-      debug('org read from file')
-      opts = { ...opts, organization: organization_slug }
-    } else {
-    }
-
-    if (environment_id) {
-      debug('env read from file')
-      opts = { ...opts, environment: environment_id }
-    } else {
-      const environment = await promptEnvironment(opts);
-      opts = { ...opts, environment: environment.value }
-    }
-
-    return opts; 
-  }
-  return opts; 
-}
-
 export const interactiveProject = async (argv: Options) => {
   if (!argv.project) {
     const project = await promptProject(argv);
