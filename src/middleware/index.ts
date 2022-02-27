@@ -1,6 +1,8 @@
 import chalk from "chalk";
 import Debug from "debug"
 import Enquirer from "enquirer";
+import got from "got";
+import { Arguments } from "yargs";
 import { configure } from "../cli/configure.js";
 import { Config } from "../lib/config.js"
 import { promptDatabaseTemplate, promptEnvironment, promptOrganization, promptProject, promptVersion } from "../lib/util.js";
@@ -105,6 +107,17 @@ export const interactiveSaleorVersion = async (argv: Options) => {
     const snapshot = await promptVersion(argv);
     return { saleor: snapshot.value }
   }
+
+  return {}
+}
+
+export const useTelemetry = async (argv: Arguments) => {
+  debug('telemetry', argv._);
+  const command = argv._.join(" ")
+
+  got.post("https://saleor-cli.deno.dev", {
+    json: { command },
+  });
 
   return {}
 }
