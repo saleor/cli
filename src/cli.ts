@@ -19,6 +19,7 @@ import job from './cli/job/index.js';
 import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
 import { header } from './lib/images.js';
+import { useTelemetry } from './middleware/index.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json");
@@ -42,6 +43,7 @@ yargs(hideBin(process.argv))
   .command(['project [command]'], '', project)
   .command(['storefront [command]'], '', storefront)
   .strictCommands()
+  .middleware(useTelemetry)
   .demandCommand(1, 'You need at least one command before moving on')
   .alias('h', 'help')
   .epilogue('for more information, find the documentation at https://saleor.io')
