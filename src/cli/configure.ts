@@ -27,6 +27,12 @@ export const handler = async (argv: Arguments<Options>) => {
     message: 'Are you OK with leaving telemetry enabled?'
   }) as { telemetry: boolean }
 
+  console.log(`
+Saleor Telemetry is ${_.underline('completely anonymous and optional')} information about general usage. 
+You may opt-out at any time (check 'saleor telemetry').
+Learn more: ${_.gray('https://saleor.io/')}${_.blueBright('telemetry')}
+  `)
+
   if (!telemetry) {
     Config.set('telemetry', 'false')
   }
