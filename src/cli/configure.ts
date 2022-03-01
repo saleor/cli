@@ -5,6 +5,8 @@ import { HTTPError } from "got";
 import { API, GET } from "../lib/index.js";
 import { Config } from "../lib/config.js";
 import { Options } from "../types.js";
+import Enquirer from "enquirer";
+import _ from "chalk";
 
 const { ux: cli } = CliUx;
 
@@ -17,11 +19,22 @@ export const builder: CommandBuilder<{}, Options> = (_) =>
 export const handler = async (argv: Arguments<Options>) => {
   let { token } = argv;
   await configure(token)
+
+  const { telemetry } = await Enquirer.prompt({
+    type: 'confirm',
+    name: 'telemetry',
+    initial: 'yes',
+    message: 'Are you OK with leaving telemetry enabled?'
+  }) as { telemetry: boolean }
+
+  if (!telemetry) {
+    Config.set('telemetry', 'false')
+  }
 };
 
 const validateToken = async (token: string) => {
   const user = (await GET(API.User, { token })) as any;
-  console.log(`Logged as ${user.email}`);
+  console.log(`${_.green('Success')}. Logged as ${user.email}\n`);
 };
 
 export const configure = async (token: string | undefined) => {
