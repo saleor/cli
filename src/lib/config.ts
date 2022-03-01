@@ -21,7 +21,7 @@ const set = async (field: ConfigField, value: string) => {
 
 const remove = async (field: ConfigField) => {
   await fs.ensureFile(DefaultConfigFile);
-  const content = await fs.readJSON(DefaultConfigFile, { throws: false })
+  const content = await fs.readJSON(DefaultConfigFile, { throws: false }) || {};
 
   delete content[field];
   await fs.outputJSON(DefaultConfigFile, content);
