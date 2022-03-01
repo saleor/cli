@@ -15,6 +15,7 @@ import backup from './cli/backup/index.js';
 import storefront from './cli/storefront/index.js';
 import project from './cli/project/index.js';
 import job from './cli/job/index.js';
+import telemetry from './cli/telemetry/index.js';
 
 import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
@@ -42,6 +43,7 @@ yargs(hideBin(process.argv))
   .command(['job [command]'], '', job)
   .command(['project [command]'], '', project)
   .command(['storefront [command]'], '', storefront)
+  .command(['telemetry [command]', 'tele'], '', telemetry)
   .strictCommands()
   .middleware(useTelemetry)
   .demandCommand(1, 'You need at least one command before moving on')

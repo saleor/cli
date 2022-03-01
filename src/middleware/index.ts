@@ -112,12 +112,19 @@ export const interactiveSaleorVersion = async (argv: Options) => {
 }
 
 export const useTelemetry = async (argv: Arguments) => {
-  debug('telemetry', argv._);
   const command = argv._.join(" ")
 
-  got.post("https://saleor-cli.deno.dev", {
-    json: { command },
-  });
+  const { telemetry } = await Config.get()
+  const isTelemetryEnabled = telemetry === undefined
+
+  debug('is telemetry enabled', isTelemetryEnabled);
+
+  if (isTelemetryEnabled) {
+    debug('telemetry', argv._);
+    got.post("https://saleor-cli.deno.dev", {
+      json: { command },
+    });
+  }
 
   return {}
 }

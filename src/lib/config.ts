@@ -4,7 +4,7 @@ import path from "path";
 
 const DefaultConfigFile = path.join(os.homedir(), ".config", "saleor.json");
 
-type ConfigField = 'token' | 'organization_slug' | 'environment_id';
+type ConfigField = 'token' | 'organization_slug' | 'environment_id' | "telemetry";
 type ConfigProps = Record<ConfigField, string>;
 
 const isEmpty = (object: any) => Object.keys(object).length === 0;
