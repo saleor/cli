@@ -1,25 +1,15 @@
-import chalk from 'chalk'
 import type { Arguments, CommandBuilder } from "yargs";
-​
-const primaryColor = chalk.blue;
-const secondaryColor = chalk.blue;
+import { createRequire } from "module";
 
+import { header } from '../lib/images.js';
+
+const require = createRequire(import.meta.url);
+const pkg = require("../../package.json");
+​
 export const command = "info";
 export const desc = "Hello from Saleor";
 
 export const builder: CommandBuilder = (_) => _
 export const handler = (argv: Arguments): void => {
-
-console.log(`
-                                               ${primaryColor(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░`)}
-                                            ${primaryColor(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░`)} 
-                ${secondaryColor(`▄█████████████████████████████████████████▀`)}${primaryColor(`░░░░░░░░░░░░░░░░`)}
-             ${secondaryColor(`▄███▀`)}                 ${primaryColor(`░░░░░░░░░░░░░░░`)} ${secondaryColor(`▄███▀`)}${primaryColor(`░░░░░░░░░░░░░░░`)}
-          ${secondaryColor(`▄███▀`)}                ${primaryColor(`░░░░░░░░░░░░░░░░░`)}${secondaryColor(`▄███▀`)}${primaryColor(`░░░░░░░░░░░░░░`)}
-       ${secondaryColor(`▄███▀`)}               ${primaryColor(`░░░░░░░░░░░░░░░░░░`)}${secondaryColor(`▄███▀`)}${primaryColor(`░░░░░░░░░░░░`)}
-    ${secondaryColor(`▄███▀`)}                                 ${secondaryColor(`▄███▀`)}
- ${secondaryColor(`▄█████████████████████████████████████████▀`)}         Saleor Commerce CLI v. 0.6.6 
-`);
+   header(pkg.version)
 };
-
-​

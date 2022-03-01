@@ -93,5 +93,11 @@ export const promptRegion = async (argv: any) => createPrompt(
 
 export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")
 
-// TODO check environment presence fn!!!
-// TODO check organization presence fn!!!
+export const printContext = (organization?: string, environment?: string) => {
+  let message = `\n ${chalk.bgGray(' CONTEXT ')} `
+
+  if (organization) message += `/ ${chalk.gray('Organization:')} ${organization} `
+  if (environment) message += `/ ${chalk.gray('Environment')} ${chalk.underline(environment)}`
+
+  console.log(message + '\n')
+}
