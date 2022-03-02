@@ -11,3 +11,8 @@ export interface Options {
   plan?: string
   paymentMethod? : string
 }
+
+export interface CreatePromptResult {
+  name: string
+  value: string | number
+}

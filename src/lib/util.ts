@@ -18,13 +18,11 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
   const { [name]: ret } = await Enquirer.prompt({
     type: 'select',
     name,
-    choices,
+    choices: JSON.parse(JSON.stringify(choices)),
     message,
   }) as any; 
 
-  // FIXME `enquirer` mutates the object (sic!)
   const result = choices.find((choice: any) => choice.name === ret)
-
   if (!result) {
     throw Error('something went wrong with prompt')
   }
@@ -52,8 +50,10 @@ export const promptVersion = async (argv: any) => createPrompt(
 export const promptDatabaseTemplate = async (argv: any) => createPrompt(
   'database',
   'Select the database template',
-  () => (['sample', 'blank', 'snapshot']),
-  (_: any) => ({ name: _, value: _ })
+  () => ([{name: 'sample', value: 'sample'},
+          {name: 'blank', value: null},
+          {name: 'snapshot', value: null}]),
+  (_: any) => ({ name: _.name, value: _.value })
 )
 
 export const promptProject = (argv: any) => createPrompt(
@@ -89,6 +89,13 @@ export const promptRegion = async (argv: any) => createPrompt(
   'Select Region',
   async () => await GET(API.Region, argv),
   (_: any) => ({ name: _.name, value: _.slug})
+)
+
+export const promptOrganizationBackup = async (argv: any) => createPrompt(
+  'backup',
+  'Select Snapshot',
+  async () => await GET(API.OrganizationBackups, argv),
+  (_: any) => ({ name: chalk(chalk.bold(_.project.name), chalk(",","ver:", _.saleor_version, ", created on", formatDateTime(_.created), "-"), chalk.bold(_.name)), value: _.key})
 )
 
 export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")

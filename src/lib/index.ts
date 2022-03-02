@@ -45,6 +45,7 @@ export const API: Record<string, DefaultURLPath> = {
   User: _ => "user",
   Organization: _ => `organizations/${_.organization || ''}`,
   OrganizationPermissions: _ => `organizations/${_.organization}/permissions`,
+  OrganizationBackups: _ => `organizations/${_.organization}/backups`,
   UpgradeEnvironment: _ => `organizations/${_.organization}/environments/${_.environment}/upgrade`,
   Environment: _ => `organizations/${_.organization}/environments/${_.environment || ''}`,
   PopulateDatabase: _ => `organizations/${_.organization}/environments/${_.environment}/populate-database`,
