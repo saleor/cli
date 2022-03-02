@@ -5,8 +5,8 @@ import got from "got";
 import { Arguments } from "yargs";
 import { configure } from "../cli/configure.js";
 import { Config } from "../lib/config.js"
-import { promptDatabaseTemplate, promptEnvironment, promptOrganization, promptProject, promptVersion } from "../lib/util.js";
-import { Options } from "../types.js";
+import { promptDatabaseTemplate, promptEnvironment, promptOrganization, promptOrganizationBackup, promptProject, promptVersion } from "../lib/util.js";
+import { CreatePromptResult, Options } from "../types.js";
 
 const debug = Debug('middleware'); 
 
@@ -99,8 +99,9 @@ export const interactiveProject = async (argv: Options) => {
 
 export const interactiveDatabaseTemplate = async (argv: Options) => {
   if (!argv.database) {
-    const database = await promptDatabaseTemplate(argv);
-    return { database: database.value }
+    const db = await promptDatabaseTemplate(argv);
+    const backup = await checkBackup(argv, db);
+    return { database: db.value, ...backup };
   }
 
   return {}
@@ -128,6 +129,17 @@ export const useTelemetry = async (argv: Arguments) => {
     got.post("https://saleor-cli.deno.dev", {
       json: { command },
     });
+  }
+
+  return {}
+}
+
+const checkBackup = async (argv: Options, chosenBackup: CreatePromptResult) => {
+  const { name } = chosenBackup;
+
+  if (name === 'snapshot') {
+    const backup = await promptOrganizationBackup(argv);
+    return { restore_from: backup.value }
   }
 
   return {}

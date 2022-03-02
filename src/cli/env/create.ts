@@ -4,6 +4,7 @@ import ora from 'ora';
 
 import { interactiveDatabaseTemplate, interactiveProject, interactiveSaleorVersion } from "../../middleware/index.js";
 import { API, POST } from "../../lib/index.js";
+import Enquirer from "enquirer";
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -14,7 +15,7 @@ interface Options {
   database: string
 }
 
-export const command = "create <name>";
+export const command = "create [name]";
 export const desc = "Create a new environmet";
 
 // TODO environment requires PROJECT !!!!!
@@ -39,20 +40,21 @@ export const builder: CommandBuilder = (_) =>
     desc: 'specify the Saleor version',
   })
 
-const hash = (name: string) => `${name}-${(Math.random() + 1).toString(36).substring(7)}`;
-
 export const handler = async (argv: Arguments<Options>) => {
   const { name: base, project, saleor, database } = argv;
+  const form =  new (Enquirer as any).Form({
+    name: 'Type organization details',
+    choices: [
+      { name: "name", message: "Environment name", initial: base },
+      { name: "domain_label", message: "Environment domain", initial: base },
+      { name: "admin_email", message: "Superadmin email" },
+    ]}
+  );
 
-  // TODO check for backup
+  const formData = await form.run();
 
-  const name = hash(base);
-  const message = `Creating: ${name} in the '${project} project`;
-  console.log(message);
   const json = {
-    name,
-    domain_label: slugify(name),
-    admin_email: `${name}@gmail.com`,
+    ...formData,
     login: "",
     password: "",
     project,
@@ -72,26 +74,7 @@ export const handler = async (argv: Arguments<Options>) => {
   setTimeout(() => {
     spinner.succeed('Yay! A new environment is now ready!')
   }, 10000);
-
-
-  // store as default ENV!!!!
 };
-
-
-// const chooseSnapshot = async () => {
-//   // BACKUPS!!!!
-//   const backups = await getBackups({})
-//   const choices = backups.map(b => b.name);
-
-//   const { pickBackup } = await Enquirer.prompt({
-//     type: 'select',
-//     name: 'pickSnapshot',
-//     choices,
-//     message: 'Pick snapshot'
-//   }) as { pickBackup: boolean}
-
-//   return pickBackup;
-// }
 
 export const middlewares = [
   interactiveProject,
