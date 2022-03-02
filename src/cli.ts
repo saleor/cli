@@ -17,6 +17,7 @@ import project from './cli/project/index.js';
 import job from './cli/job/index.js';
 import telemetry from './cli/telemetry/index.js';
 
+import * as login from './cli/login.js';
 import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
 import { header } from './lib/images.js';
@@ -36,6 +37,7 @@ yargs(hideBin(process.argv))
   .alias('V', 'version')
   .usage('Usage: $0 <command> [options]')
   .command(info)
+  .command(login)
   .command(configure)
   .command(['organization [command]', 'org'], '', organization)
   .command(['environment [command]', 'env'], '', environment)
