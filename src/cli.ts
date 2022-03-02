@@ -28,7 +28,10 @@ const pkg = require("../package.json");
 
 // console.log(boxen('Update available\nsomething', { padding: 1, margin: 1, float: 'center', borderColor: 'yellow' }));
 
-const notifier = updateNotifier({ pkg });
+const notifier = updateNotifier({ 
+  pkg, 
+  updateCheckInterval: 1000 * 60 * 60  // one hour
+});
 notifier.notify();
 
 yargs(hideBin(process.argv))
