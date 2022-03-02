@@ -5,6 +5,7 @@ import chalk from 'chalk';
 
 import { API, GET } from "../../lib/index.js";
 import { Options } from "../../types.js";
+import { useEnvironment } from "../../middleware/index.js";
 
 export const command = "show [environment]";
 export const desc = "Show a specific environmet";
@@ -21,3 +22,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   process.exit(0);
 };
+
+export const middlewares = [
+  useEnvironment
+]

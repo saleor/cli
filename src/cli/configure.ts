@@ -59,8 +59,6 @@ const chooseOrganization = async (token: string | undefined) => {
 
     if (orgSetup) {
       const organization = await promptOrganization({token});
-      await Config.set("organization_slug", organization.value);
-
       await chooseEnv(token, organization.value)
     }
   }
