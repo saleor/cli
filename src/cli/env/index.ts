@@ -19,6 +19,6 @@ export default function (_: any) {
     cleardb,
     populatedb
   ])
-  .middleware([useToken, useOrganization, useEnvironment])
+  .middleware([useToken, useOrganization])
   .demandCommand(1, "You need at least one command before moving on");
 }

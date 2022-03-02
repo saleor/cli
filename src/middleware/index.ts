@@ -45,7 +45,7 @@ export const useToken = async ({ token }: Options) => {
 }
 
 export const useOrganization = async ({ token, organization }: Options) => {
-  let opts = { token };
+  let opts = { token, organization };
 
   if (!organization) {
     const config = await Config.get()
@@ -57,9 +57,13 @@ export const useOrganization = async ({ token, organization }: Options) => {
       opts = { ...opts, ...{ organization: organization_slug } }
     } else {
       const organization = await promptOrganization(opts);
+      await Config.set("organization_slug", organization.value);
+      await Config.set("organization_name", organization.name);
       opts = { ...opts, ...{ organization: organization.value }}
     }
   }
+
+  console.log(chalk.green("✔"), chalk.bold("Organization ·"), chalk.cyan(opts.organization));
 
   return opts;
 }
