@@ -47,10 +47,10 @@ export const promptVersion = async (argv: any) => createPrompt(
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
-export const promptVersionToPromote = async (argv: any) => createPrompt(
+export const promptCompatibleVersion = async (argv: any, service: string = "SANDBOX" ) => createPrompt(
   'production service',
   'Select a Saleor service',
-  async () =>  (await GET(API.Services, { region: Region, ...argv }) as any).filter(({service_type}: any) => service_type === "PRODUCTION"),
+  async () =>  (await GET(API.Services, { region: Region, ...argv }) as any).filter(({service_type}: any) => service_type === service),
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
