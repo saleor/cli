@@ -9,7 +9,8 @@ export interface Options {
   database?: string
   saleor?: string
   plan?: string
-  paymentMethod? : string
+  paymentMethod?: string
+  serviceName?: string
 }
 
 export interface CreatePromptResult {

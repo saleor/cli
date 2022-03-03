@@ -69,7 +69,7 @@ export const useOrganization = async ({ token, organization }: Options) => {
 }
 
 export const useEnvironment = async ({ token, organization, environment }: Options) => {
-  let opts = { token, organization };
+  let opts = { token, organization, environment };
 
   if (!environment) {
     const config = await Config.get();
@@ -84,6 +84,8 @@ export const useEnvironment = async ({ token, organization, environment }: Optio
       opts = { ...opts, ...{environment: environment.value} }
     }
   }
+
+  console.log(chalk.green("✔"), chalk.bold("Environment ·"), chalk.cyan(opts.environment));
 
   return opts; 
 }
