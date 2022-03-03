@@ -95,7 +95,7 @@ export const promptRegion = async (argv: any) => createPrompt(
   'region',
   'Select Region',
   async () => await GET(API.Region, argv),
-  (_: any) => ({ name: _.name, value: _.slug})
+  (_: any) => ({ name: _.name, value: _.name})
 )
 
 export const promptOrganizationBackup = async (argv: any) => createPrompt(
