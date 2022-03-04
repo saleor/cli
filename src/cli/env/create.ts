@@ -3,8 +3,6 @@ import { Arguments, CommandBuilder } from "yargs";
 import { interactiveDatabaseTemplate, interactiveProject, interactiveSaleorVersion } from "../../middleware/index.js";
 import { createEnvironment } from "../../lib/util.js";
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 interface Options {
   name: string
   project: string

@@ -56,7 +56,7 @@ yargs(hideBin(process.argv))
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, yargs) => {
     if (error instanceof HTTPError) {
-      const { body } = error.response as Response<any>;
+      const { statusCode, body } = error.response as Response<any>;
 
       try {
         const errors = JSON.parse(body)
