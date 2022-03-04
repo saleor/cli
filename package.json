@@ -29,6 +29,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/debug": "^4.1.7",
+    "@types/figlet": "^1.5.4",
     "@types/fs-extra": "^9.0.13",
     "@types/inquirer": "^8.2.0",
     "@types/node": "^17.0.21",
@@ -41,7 +42,7 @@
   },
   "dependencies": {
     "@mobily/ts-belt": "^3.9.0",
-    "@oclif/core": "^1.5.0",
+    "@oclif/core": "^1.5.1",
     "chalk": "^5.0.0",
     "cli-highlight": "^2.1.11",
     "date-fns": "^2.28.0",

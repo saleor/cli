@@ -6,6 +6,8 @@ import ora from 'ora';
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options } from "../types.js";
 
+export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Higher-Order Creator for Prompts
 const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation: boolean = false) => {
   const collection = await fetcher();
@@ -154,7 +156,7 @@ export const createProject = async (argv: Options) => {
 }
 
 export const createEnvironment = async (argv: Options) => {
-  const { name: base, project, saleor, database } = argv;
+  const { environment: base, project, saleor, database } = argv;
   const form =  new (Enquirer as any).Form({
     name: 'Type environment details',
     choices: [
@@ -176,8 +178,6 @@ export const createEnvironment = async (argv: Options) => {
   }
 
   const result = await POST(API.Environment, { ...argv, environment: '' }, { json }) as any;
-
-  // delay(5000);
 
   const spinner = ora('Creating a new environment...').start();
   setTimeout(() => {
