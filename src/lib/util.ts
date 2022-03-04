@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import chalk from "chalk";
+import _ from "chalk";
 import Enquirer from "enquirer";
 import ora from 'ora';
 import boxen from 'boxen';
@@ -18,7 +18,7 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
   const collection = await fetcher();
 
   if (!collection.length && !allowCreation) {
-    console.warn(chalk.red(`No ${name}s found`))
+    console.warn(_.red(`No ${name}s found`))
     process.exit(0) 
   };
 
@@ -114,16 +114,16 @@ export const promptOrganizationBackup = async (argv: any) => createPrompt(
   'backup',
   'Select Snapshot',
   async () => await GET(API.OrganizationBackups, argv),
-  (_: any) => ({ name: chalk(chalk.bold(_.project.name), chalk(",","ver:", _.saleor_version, ", created on", formatDateTime(_.created), "-"), chalk.bold(_.name)), value: _.key})
+  (_: any) => ({ name: _(_.bold(_.project.name), _(",","ver:", _.saleor_version, ", created on", formatDateTime(_.created), "-"), _.bold(_.name)), value: _.key})
 )
 
 export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")
 
 export const printContext = (organization?: string, environment?: string) => {
-  let message = `\n ${chalk.bgGray(' CONTEXT ')} `
+  let message = `\n ${_.bgGray(' CONTEXT ')} `
 
-  if (organization) message += `/ ${chalk.gray('Organization:')} ${organization} `
-  if (environment) message += `/ ${chalk.gray('Environment')} ${chalk.underline(environment)}`
+  if (organization) message += `/ ${_.gray('Organization:')} ${organization} `
+  if (environment) message += `/ ${_.gray('Environment')} ${_.underline(environment)}`
 
   console.log(message + '\n')
 }
@@ -152,7 +152,7 @@ export const createProject = async (argv: Options) => {
         region: choosenRegion.value }
     }) as any;
 
-    console.log(chalk.green("✔"), chalk.bold("Project has been successfuly created")); 
+    console.log(_.green("✔"), _.bold("Project has been successfuly created")); 
 
     return { name: project.slug, value: project.slug }
   }
@@ -163,7 +163,6 @@ export const createProject = async (argv: Options) => {
 export const createEnvironment = async (argv: Options) => {
   const { environment: base, project, saleor, database } = argv;
   const user = (await GET(API.User, argv)) as any;
-
 
   const { name } = await Enquirer.prompt({
     type: 'input',
@@ -198,7 +197,7 @@ export const createEnvironment = async (argv: Options) => {
       validate: (value) => {
         const re = /\S+@\S+\.\S+/;
         if (!re.test(value)) {
-          return chalk.red(`Please provide valid email`)
+          return _.red(`Please provide valid email`)
         }
         
         return true;
@@ -240,7 +239,7 @@ export const createEnvironment = async (argv: Options) => {
       required: true,
       validate: (value) => {
         if (value !== passwordPrompt) {
-          return chalk.red(`Passwords must match`)
+          return _.red(`Passwords must match`)
         }
         return true
       }
@@ -292,7 +291,7 @@ ${messages[currentMsg]}`;
 Please check your email - ${email} - to setup your dashboaard access.`;
   const baseUrl = `https://${result.domain}`;
 
-  console.log(boxen(chalk.blue(`Dashboard - ${baseUrl}/dashboard
+  console.log(boxen(_.blue(`Dashboard - ${baseUrl}/dashboard
 
 
 GraphQL Playgroud - ${baseUrl}/graphql/ ${access ? accessMsg : ''}`), {padding: 1}));
@@ -308,14 +307,14 @@ GraphQL Playgroud - ${baseUrl}/graphql/ ${access ? accessMsg : ''}`), {padding: 
   }) as { deployPrompt: boolean };
 
   if (deployPrompt) {
-    await deploy(name)
+    await deploy({ name, url: baseUrl })
   }
 
   return { name, value: name }
 }
 
 
-export const deploy = async (name: string) => {
+export const deploy = async ({ name, url }: { name: string, url: string }) => {
   const params = {
     'repository-url': 'https://github.com/saleor/react-storefront',
     'project-name': name || 'my-react-storefront',
@@ -327,12 +326,13 @@ export const deploy = async (name: string) => {
 
   const queryParams = new URLSearchParams(params)
 
+  console.log('');
   console.log(`You will be redirected to Vercel's deployment page to finish the process`);
-  console.log(`Use the following ${chalk.underline('Environment Variables')} for configuration:`);
+  console.log(`Use the following ${_.underline('Environment Variables')} for configuration:`);
 
   console.log(`
-${chalk.gray('NEXT_PUBLIC_API_URI')}=https://vercel.saleor.cloud/graphql/
-${chalk.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=default-channel
+${_.gray('NEXT_PUBLIC_API_URI')}=${_.yellow(url)}
+${_.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=${_.yellow('default-channel')}
   `)
 
   const { proceed } = (await Enquirer.prompt({

@@ -74,7 +74,6 @@ yargs(hideBin(process.argv))
     } else {
       header(pkg.version);
       console.log(yargs.help())
-      console.log(import.meta.url)
     }
     process.exit(1)
   })
