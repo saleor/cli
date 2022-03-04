@@ -43,6 +43,7 @@
   "dependencies": {
     "@mobily/ts-belt": "^3.9.0",
     "@oclif/core": "^1.5.1",
+    "boxen": "^6.2.1",
     "chalk": "^5.0.0",
     "cli-highlight": "^2.1.11",
     "date-fns": "^2.28.0",
