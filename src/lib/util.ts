@@ -1,19 +1,22 @@
 import { format } from 'date-fns';
 import chalk from "chalk";
 import Enquirer from "enquirer";
+import ora from 'ora';
 
-import { API, GET, Region } from "../lib/index.js";
+import { API, GET, POST, Region } from "../lib/index.js";
+import { Options } from "../types.js";
 
 // Higher-Order Creator for Prompts
-const createPrompt = async (name: string, message: string, fetcher: any, extractor: any) => {
+const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation: boolean = false) => {
   const collection = await fetcher();
 
-  if (!collection.length) {
+  if (!collection.length && !allowCreation) {
     console.warn(chalk.red(`No ${name}s found`))
     process.exit(0) 
   };
 
-  const choices = collection.map(extractor);
+  const creation = allowCreation ? [{name: "Create new"}] : []
+  const choices = [...creation, ...collection.map(extractor)];
 
   const { [name]: ret } = await Enquirer.prompt({
     type: 'select',
@@ -67,14 +70,16 @@ export const promptProject = (argv: any) => createPrompt(
   'project',
   'Select Project',
   async () => await GET(API.Project, argv),
-  (_: any) => ({ name: _.name, value: _.slug })
+  (_: any) => ({ name: _.name, value: _.slug }),
+  true
 ) 
 
 export const promptEnvironment = async (argv: any) => createPrompt(
   'environment',
   'Select Environment',
   async () => await GET(API.Environment, {...argv, environment: ''}), 
-  (_: any) => ({ name: _.name, value: _.key })
+  (_: any) => ({ name: _.name, value: _.key }),
+  true
 );
 
 export const promptOrganization = async (argv: any) => createPrompt(
@@ -114,4 +119,74 @@ export const printContext = (organization?: string, environment?: string) => {
   if (environment) message += `/ ${chalk.gray('Environment')} ${chalk.underline(environment)}`
 
   console.log(message + '\n')
+}
+
+export const createProject = async (argv: Options) => {
+  const { promptName } = await Enquirer.prompt({
+    type: 'input',
+    name: 'promptName',
+    message: `Type name`,
+  }) as { promptName: string };
+
+  const choosenRegion = await promptRegion(argv);
+  const choosenPlan = await promptPlan(argv);
+
+  const { proceed } = await Enquirer.prompt({
+    type: 'confirm',
+    name: 'proceed',
+    message: `You are going to crate project ${promptName}. Continue`,
+  }) as { proceed: boolean };
+
+  if (proceed) {
+    const project = await POST(API.Project, argv, {
+      json: {
+        name: promptName,
+        plan: choosenPlan.value,
+        region: choosenRegion.value }
+    }) as any;
+
+    console.log(chalk.green("✔"), chalk.bold("Project has been successfuly created")); 
+
+    return { name: project.slug, value: project.slug }
+  }
+
+  process.exit(0)
+}
+
+export const createEnvironment = async (argv: Options) => {
+  const { name: base, project, saleor, database } = argv;
+  const form =  new (Enquirer as any).Form({
+    name: 'Type environment details',
+    choices: [
+      { name: "name", message: "Environment name", initial: base },
+      { name: "domain_label", message: "Environment domain", initial: base },
+      { name: "admin_email", message: "Superadmin email" },
+    ]}
+  );
+
+  const formData = await form.run();
+
+  const json = {
+    ...formData,
+    login: "",
+    password: "",
+    project,
+    database_population: database,
+    service: saleor
+  }
+
+  const result = await POST(API.Environment, { ...argv, environment: '' }, { json }) as any;
+
+  // delay(5000);
+
+  const spinner = ora('Creating a new environment...').start();
+  setTimeout(() => {
+    spinner.color = 'yellow';
+    spinner.text = 'Your environment is almost ready...';
+  }, 7000);
+  setTimeout(() => {
+    spinner.succeed('Yay! A new environment is now ready!')
+  }, 10000);
+
+  return { name: "", value: "" }
 }

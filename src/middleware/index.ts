@@ -5,7 +5,14 @@ import got from "got";
 import { Arguments } from "yargs";
 import { configure } from "../cli/configure.js";
 import { Config } from "../lib/config.js"
-import { promptDatabaseTemplate, promptEnvironment, promptOrganization, promptOrganizationBackup, promptProject, promptVersion } from "../lib/util.js";
+import { createEnvironment,
+         createProject,
+         promptDatabaseTemplate,
+         promptEnvironment,
+         promptOrganization,
+         promptOrganizationBackup,
+         promptProject,
+         promptVersion } from "../lib/util.js";
 import { CreatePromptResult, Options } from "../types.js";
 
 const debug = Debug('middleware'); 
@@ -93,7 +100,26 @@ export const useEnvironment = async ({ token, organization, environment }: Optio
 export const interactiveProject = async (argv: Options) => {
   if (!argv.project) {
     const project = await promptProject(argv);
+    if (project.value === undefined ) {
+      const project = await createProject(argv);
+      return { project: project.value }
+    }
     return { project: project.value }
+  }
+
+  return {}
+}
+
+export const interactiveEnvironment = async (argv: Options) => {
+  if (!argv.environment) {
+    const environment = await promptEnvironment(argv);
+    if (environment.value === undefined ) {
+      await interactiveDatabaseTemplate(argv);
+      await interactiveSaleorVersion(argv);
+      const environment = await createEnvironment(argv);
+      return { environment: environment.value }
+    }
+    return { environment: environment.value }
   }
 
   return {}
