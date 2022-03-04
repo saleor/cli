@@ -3,9 +3,13 @@ import chalk from "chalk";
 import Enquirer from "enquirer";
 import ora from 'ora';
 import boxen from 'boxen';
+import slugify from 'slugify';
+import { CliUx } from "@oclif/core";
 
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options } from "../types.js";
+
+const { ux: cli } = CliUx;
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -158,6 +162,7 @@ export const createProject = async (argv: Options) => {
 
 export const createEnvironment = async (argv: Options) => {
   const { environment: base, project, saleor, database } = argv;
+  const user = (await GET(API.User, argv)) as any;
 
 
   const { name } = await Enquirer.prompt({
@@ -171,6 +176,7 @@ export const createEnvironment = async (argv: Options) => {
     type: 'input',
     name: 'domain',
     message: `Environment domain`,
+    initial: slugify(name),
     required: true,
   }) as { domain: string };
 
@@ -184,8 +190,6 @@ export const createEnvironment = async (argv: Options) => {
   let email = null;
 
   if (access) {
-    const user = (await GET(API.User, argv)) as any;
-
     const { emailPrompt } = await Enquirer.prompt({
       type: 'input',
       name: 'emailPrompt',
@@ -207,7 +211,7 @@ export const createEnvironment = async (argv: Options) => {
   const { restrict } = await Enquirer.prompt({
     type: 'confirm',
     name: 'restrict',
-    message: `Would you like to restrict public access to dashboard`,
+    message: `You can restrict access to your env's API with Basic Auth. Do you want to set it up`,
   }) as { restrict: boolean };
 
   let login = null;
@@ -219,6 +223,7 @@ export const createEnvironment = async (argv: Options) => {
       name: 'loginPrompt',
       message: `Login`,
       required: true,
+      initial: user.email,
     }) as { loginPrompt: string };
 
     const { passwordPrompt } = await Enquirer.prompt({
@@ -260,14 +265,9 @@ export const createEnvironment = async (argv: Options) => {
 
   let currentMsg = 0;
   const messages = [
-    '1 - some message',
-    '2 - some message',
-    '3 - some message',
-    '4 - some message',
-    '5 - some message',
-    '6 - some message',
-    '7 - some message',
-    '8 - some message',
+    `🙌  If you see yourself working on tools like this one, Saleor is looking for great educators and DevRel engineers. Contact us directly at careers@saleor.io or DM on LinkedIn.`,
+    `✨ Take your first steps with Saleor's API by checking our tutorial at https://learn.saleor.io`,
+    `⚡ If you like React and Next.js, you may want to take a look at our storefront starter pack available at https://github.com/saleor/react-storefront`
   ]
 
   const spinner = ora('Creating a new environment...').start();
@@ -275,41 +275,75 @@ export const createEnvironment = async (argv: Options) => {
 
   while(!succeed) {
     await delay(5000)
-
-    if (currentMsg === (messages.length - 1)) {
-      currentMsg = 0
-    } else {
-      currentMsg++;
-    }
-
     spinner.text = `Creating a new environment...
 
 ${messages[currentMsg]}`;
 
+    (currentMsg === (messages.length - 1)) ? currentMsg = 0 : currentMsg++;
     succeed = await checkIfJobSucceeded(argv, result.key);
   }
 
   spinner.succeed(`Yay! A new environment is now ready!
-
 `);
 
+  const accessMsg = `
+
+
+Please check your email - ${email} - to setup your dashboaard access.`;
   const baseUrl = `https://${result.domain}`;
 
   console.log(boxen(chalk.blue(`Dashboard - ${baseUrl}/dashboard
 
 
-GraphQL Playgroud - ${baseUrl}/graphql/`), {padding: 1}));
+GraphQL Playgroud - ${baseUrl}/graphql/ ${access ? accessMsg : ''}`), {padding: 1}));
 
   if (access) {
-    console.log(`
-
-Please check your email - ${email} - to setup your dashboaard access.
-
-`);
     await GET(API.SetAdminAccount, { ...argv, environment: result.key }) as any;
   }
 
+  const { deployPrompt } = await Enquirer.prompt({
+    type: 'confirm',
+    name: 'deployPrompt',
+    message: `Deploy \`${name}'\ to Vercel`,
+  }) as { deployPrompt: boolean };
+
+  if (deployPrompt) {
+    await deploy(name)
+  }
+
   return { name, value: name }
+}
+
+
+export const deploy = async (name: string) => {
+  const params = {
+    'repository-url': 'https://github.com/saleor/react-storefront',
+    'project-name': name || 'my-react-storefront',
+    'repository-name': name || 'my-react-storefront',
+    'env': 'NEXT_PUBLIC_API_URI,NEXT_PUBLIC_DEFAULT_CHANNEL',
+    'envDescription': `'NEXT_PUBLIC_API_URI' is your GraphQL endpoint, while 'NEXT_PUBLIC_DEFAULT_CHANNEL' in most cases should be set to 'default-channel'`,
+    'envLink': 'https://github.com/saleor/react-storefront',
+  }
+
+  const queryParams = new URLSearchParams(params)
+
+  console.log(`You will be redirected to Vercel's deployment page to finish the process`);
+  console.log(`Use the following ${chalk.underline('Environment Variables')} for configuration:`);
+
+  console.log(`
+${chalk.gray('NEXT_PUBLIC_API_URI')}=https://vercel.saleor.cloud/graphql/
+${chalk.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=default-channel
+  `)
+
+  const { proceed } = (await Enquirer.prompt({
+    type: "confirm",
+    name: "proceed",
+    message: `Do you want to continue?`,
+  })) as { proceed: boolean };
+
+  if (proceed) {
+    await cli.open(`https://vercel.com/new/clone?${queryParams}`)
+  }
 }
 
 const checkIfJobSucceeded = async (argv: Options, key: string): Promise<boolean> => {
