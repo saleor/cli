@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import chalk from "chalk";
 import Enquirer from "enquirer";
 import ora from 'ora';
+import boxen from 'boxen';
 
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options } from "../types.js";
@@ -157,36 +158,163 @@ export const createProject = async (argv: Options) => {
 
 export const createEnvironment = async (argv: Options) => {
   const { environment: base, project, saleor, database } = argv;
-  const form =  new (Enquirer as any).Form({
-    name: 'Type environment details',
-    choices: [
-      { name: "name", message: "Environment name", initial: base },
-      { name: "domain_label", message: "Environment domain", initial: base },
-      { name: "admin_email", message: "Superadmin email" },
-    ]}
-  );
 
-  const formData = await form.run();
+
+  const { name } = await Enquirer.prompt({
+    type: 'input',
+    name: 'name',
+    message: `Environment name`,
+    required: true,
+  }) as { name: string };
+
+  const { domain } = await Enquirer.prompt({
+    type: 'input',
+    name: 'domain',
+    message: `Environment domain`,
+    required: true,
+  }) as { domain: string };
+
+  
+  const { access } = await Enquirer.prompt({
+    type: 'confirm',
+    name: 'access',
+    message: `Would you like to enable dashboard access `,
+  }) as { access: boolean };
+
+  let email = null;
+
+  if (access) {
+    const user = (await GET(API.User, argv)) as any;
+
+    const { emailPrompt } = await Enquirer.prompt({
+      type: 'input',
+      name: 'emailPrompt',
+      message: `Dashboard admin email`,
+      initial: user.email,
+      validate: (value) => {
+        const re = /\S+@\S+\.\S+/;
+        if (!re.test(value)) {
+          return chalk.red(`Please provide valid email`)
+        }
+        
+        return true;
+      }
+    }) as { emailPrompt: string };
+
+    email = emailPrompt;
+  }
+
+  const { restrict } = await Enquirer.prompt({
+    type: 'confirm',
+    name: 'restrict',
+    message: `Would you like to restrict public access to dashboard`,
+  }) as { restrict: boolean };
+
+  let login = null;
+  let password = null;
+ 
+  if (restrict) {
+    const { loginPrompt } = await Enquirer.prompt({
+      type: 'input',
+      name: 'loginPrompt',
+      message: `Login`,
+      required: true,
+    }) as { loginPrompt: string };
+
+    const { passwordPrompt } = await Enquirer.prompt({
+      type: 'password',
+      name: 'passwordPrompt',
+      message: `Password`,
+      required: true,
+    }) as { passwordPrompt: string };
+
+    await Enquirer.prompt({
+      type: 'password',
+      name: 'confirmation',
+      message: `Confirm password`,
+      required: true,
+      validate: (value) => {
+        if (value !== passwordPrompt) {
+          return chalk.red(`Passwords must match`)
+        }
+        return true
+      }
+    }) as { confirmation: string };
+
+    login = loginPrompt;
+    password = passwordPrompt;
+  }
 
   const json = {
-    ...formData,
-    login: "",
-    password: "",
+    name,
+    domain_label: domain,
+    email, 
     project,
     database_population: database,
-    service: saleor
+    service: saleor,
+    login,
+    password,
   }
 
   const result = await POST(API.Environment, { ...argv, environment: '' }, { json }) as any;
 
-  const spinner = ora('Creating a new environment...').start();
-  setTimeout(() => {
-    spinner.color = 'yellow';
-    spinner.text = 'Your environment is almost ready...';
-  }, 7000);
-  setTimeout(() => {
-    spinner.succeed('Yay! A new environment is now ready!')
-  }, 10000);
+  let currentMsg = 0;
+  const messages = [
+    '1 - some message',
+    '2 - some message',
+    '3 - some message',
+    '4 - some message',
+    '5 - some message',
+    '6 - some message',
+    '7 - some message',
+    '8 - some message',
+  ]
 
-  return { name: "", value: "" }
+  const spinner = ora('Creating a new environment...').start();
+  let succeed = await checkIfJobSucceeded(argv, result.key);
+
+  while(!succeed) {
+    await delay(5000)
+
+    if (currentMsg === (messages.length - 1)) {
+      currentMsg = 0
+    } else {
+      currentMsg++;
+    }
+
+    spinner.text = `Creating a new environment...
+
+${messages[currentMsg]}`;
+
+    succeed = await checkIfJobSucceeded(argv, result.key);
+  }
+
+  spinner.succeed(`Yay! A new environment is now ready!
+
+`);
+
+  const baseUrl = `https://${result.domain}`;
+
+  console.log(boxen(chalk.blue(`Dashboard - ${baseUrl}/dashboard
+
+
+GraphQL Playgroud - ${baseUrl}/graphql/`), {padding: 1}));
+
+  if (access) {
+    console.log(`
+
+Please check your email - ${email} - to setup your dashboaard access.
+
+`);
+    await GET(API.SetAdminAccount, { ...argv, environment: result.key }) as any;
+  }
+
+  return { name, value: name }
+}
+
+const checkIfJobSucceeded = async (argv: Options, key: string): Promise<boolean> => {
+  const jobs = await GET(API.Job, {...argv, environment: key}) as any[];
+  const filtered = jobs.filter(({job_name, status}) => job_name.startsWith('crt') && status === "SUCCEEDED");
+
+  return filtered.length > 0
 }

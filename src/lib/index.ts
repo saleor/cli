@@ -50,6 +50,7 @@ export const API: Record<string, DefaultURLPath> = {
   Environment: _ => `organizations/${_.organization}/environments/${_.environment || ''}`,
   PopulateDatabase: _ => `organizations/${_.organization}/environments/${_.environment}/populate-database`,
   ClearDatabase: _ => `organizations/${_.organization}/environments/${_.environment}/clear-database`,
+  SetAdminAccount:  _ => `organizations/${_.organization}/environments/${_.environment}/set-admin-account`,
   Job: _ => `organizations/${_.organization}/environments/${_.environment}/jobs`,
   Backup: _ => `organizations/${_.organization}/environments/${_.environment}/backups/${_.backup || ''}`,
   Project: _ => `organizations/${_.organization}/projects/${_.project || ''}`,
