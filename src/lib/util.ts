@@ -210,7 +210,7 @@ export const createEnvironment = async (argv: Options) => {
   const { restrict } = await Enquirer.prompt({
     type: 'confirm',
     name: 'restrict',
-    message: `You can restrict access to your env's API with Basic Auth. Do you want to set it up`,
+    message: `You can restrict access to your env API with Basic Auth. Do you want to set it up`,
   }) as { restrict: boolean };
 
   let login = null;
@@ -264,7 +264,8 @@ export const createEnvironment = async (argv: Options) => {
 
   let currentMsg = 0;
   const messages = [
-    `🙌  If you see yourself working on tools like this one, Saleor is looking for great educators and DevRel engineers. Contact us directly at careers@saleor.io or DM on LinkedIn.`,
+    `🙌  If you see yourself working on tools like this one, Saleor is looking for great educators and DevRel engineers.
+    Contact us directly at careers@saleor.io or DM on LinkedIn.`,
     `✨ Take your first steps with Saleor's API by checking our tutorial at https://learn.saleor.io`,
     `⚡ If you like React and Next.js, you may want to take a look at our storefront starter pack available at https://github.com/saleor/react-storefront`
   ]
@@ -273,28 +274,32 @@ export const createEnvironment = async (argv: Options) => {
   let succeed = await checkIfJobSucceeded(argv, result.key);
 
   while(!succeed) {
-    await delay(5000)
+    await delay(10000)
     spinner.text = `Creating a new environment...
 
 ${messages[currentMsg]}`;
 
-    (currentMsg === (messages.length - 1)) ? currentMsg = 0 : currentMsg++;
+    if (currentMsg === (messages.length - 1)) {
+      currentMsg = 0;
+    } else {
+      currentMsg++
+    }
+
     succeed = await checkIfJobSucceeded(argv, result.key);
   }
 
   spinner.succeed(`Yay! A new environment is now ready!
 `);
 
-  const accessMsg = `
-
-
-Please check your email - ${email} - to setup your dashboaard access.`;
   const baseUrl = `https://${result.domain}`;
+  const dashboaardMsg = _.blue(`Dashboard - ${baseUrl}/dashboard`);
+  const accessMsg = access ? `Please check your email - ${email} - to setup your dashboaard access.` : '';
+  const gqlMsg = _.blue(`GraphQL Playgroud - ${baseUrl}/graphql/`);
+  console.log(boxen(`${dashboaardMsg}
+${accessMsg}
 
-  console.log(boxen(_.blue(`Dashboard - ${baseUrl}/dashboard
 
-
-GraphQL Playgroud - ${baseUrl}/graphql/ ${access ? accessMsg : ''}`), {padding: 1}));
+${gqlMsg}`, {padding: 1}));
 
   if (access) {
     await GET(API.SetAdminAccount, { ...argv, environment: result.key }) as any;
@@ -303,7 +308,7 @@ GraphQL Playgroud - ${baseUrl}/graphql/ ${access ? accessMsg : ''}`), {padding: 
   const { deployPrompt } = await Enquirer.prompt({
     type: 'confirm',
     name: 'deployPrompt',
-    message: `Deploy \`${name}'\ to Vercel`,
+    message: `Deploy our react-storefront starter pack to Vercel`,
   }) as { deployPrompt: boolean };
 
   if (deployPrompt) {
@@ -335,15 +340,9 @@ ${_.gray('NEXT_PUBLIC_API_URI')}=${_.yellow(url)}
 ${_.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=${_.yellow('default-channel')}
   `)
 
-  const { proceed } = (await Enquirer.prompt({
-    type: "confirm",
-    name: "proceed",
-    message: `Do you want to continue?`,
-  })) as { proceed: boolean };
-
-  if (proceed) {
-    await cli.open(`https://vercel.com/new/clone?${queryParams}`)
-  }
+  console.log(`To complete the deployment, open the following link in your browser and continue there:`);
+  console.log(`
+https://vercel.com/new/clone?${queryParams}`);
 }
 
 const checkIfJobSucceeded = async (argv: Options, key: string): Promise<boolean> => {
