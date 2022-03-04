@@ -41,10 +41,17 @@ const SaleorVersionMapper: Record<string, string> = {
 //
 
 export const promptVersion = async (argv: any) => createPrompt(
-  'snapshot',
+  'service',
   'Select a Saleor version',
-  async () => await GET(API.Services, { ...argv, region: Region }), 
-  (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name}`, value: _.name })
+  async () => await GET(API.Services, { region: Region, ...argv }),
+  (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
+)
+
+export const promptCompatibleVersion = async (argv: any, service: string = "SANDBOX" ) => createPrompt(
+  'production service',
+  'Select a Saleor service',
+  async () =>  (await GET(API.Services, { region: Region, ...argv }) as any).filter(({service_type}: any) => service_type === service),
+  (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
 export const promptDatabaseTemplate = async (argv: any) => createPrompt(
@@ -88,7 +95,7 @@ export const promptRegion = async (argv: any) => createPrompt(
   'region',
   'Select Region',
   async () => await GET(API.Region, argv),
-  (_: any) => ({ name: _.name, value: _.slug})
+  (_: any) => ({ name: _.name, value: _.name})
 )
 
 export const promptOrganizationBackup = async (argv: any) => createPrompt(
