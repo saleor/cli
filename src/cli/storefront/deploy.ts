@@ -1,8 +1,8 @@
-import { CliUx } from "@oclif/core";
-import chalk from "chalk";
-import Enquirer from 'enquirer';
-
 import type { Arguments, CommandBuilder } from "yargs";
+
+import { CliUx } from "@oclif/core";
+import _ from "chalk";
+import Enquirer from "enquirer";
 
 const { ux: cli } = CliUx;
 
@@ -29,17 +29,18 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const queryParams = new URLSearchParams(params)
 
-  console.log(`Copy the following variables into the 'Environment Variables' section in Vercel`)
+  console.log(`You will be redirected to Vercel's deployment page to finish the process`); 
+  console.log(`Use the following ${_.underline('Environment Variables')} for configuration:`);
 
   console.log(`
-${chalk.gray('NEXT_PUBLIC_API_URI')}=https://vercel.saleor.cloud/graphql/
-${chalk.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=default-channel
+${_.gray('NEXT_PUBLIC_API_URI')}=https://vercel.saleor.cloud/graphql/
+${_.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=default-channel
   `)
 
   const { proceed } = (await Enquirer.prompt({
     type: "confirm",
     name: "proceed",
-    message: `Do you want to deploy '${name}' on Vercel?\n  (a browser window will open) - Continue`,
+    message: `Do you want to continue?`,
   })) as { proceed: boolean };
 
   if (proceed) {
