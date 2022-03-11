@@ -1,8 +1,8 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@mobily/ts-belt': ^3.9.0
-  '@oclif/core': ^1.5.1
+  '@mobily/ts-belt': ^3.9.1
+  '@oclif/core': ^1.5.3
   '@types/debug': ^4.1.7
   '@types/figlet': ^1.5.4
   '@types/fs-extra': ^9.0.13
@@ -12,7 +12,7 @@ specifiers:
   '@types/update-notifier': ^5.1.0
   '@types/yargs': ^17.0.9
   boxen: ^6.2.1
-  chalk: ^5.0.0
+  chalk: ^5.0.1
   clean-publish: ^4.0.0
   cli-highlight: ^2.1.11
   date-fns: ^2.28.0
@@ -22,7 +22,7 @@ specifiers:
   figlet: ^1.5.2
   fs-extra: ^10.0.1
   got: ^12.0.1
-  inquirer: ^8.2.0
+  inquirer: ^8.2.1
   ora: ^6.1.0
   pkg: ^5.5.2
   prompt: ^1.2.2
@@ -33,10 +33,10 @@ specifiers:
   yargs: ^17.3.1
 
 dependencies:
-  '@mobily/ts-belt': 3.9.0
-  '@oclif/core': 1.5.1
+  '@mobily/ts-belt': 3.9.1
+  '@oclif/core': 1.5.3
   boxen: 6.2.1
-  chalk: 5.0.0
+  chalk: 5.0.1
   cli-highlight: 2.1.11
   date-fns: 2.28.0
   debug: 4.3.3
@@ -45,7 +45,7 @@ dependencies:
   figlet: 1.5.2
   fs-extra: 10.0.1
   got: 12.0.1
-  inquirer: 8.2.0
+  inquirer: 8.2.1
   ora: 6.1.0
   prompt: 1.2.2
   slugify: 1.6.5
@@ -92,8 +92,8 @@ packages:
     engines: {node: '>=0.1.90'}
     dev: false
 
-  /@mobily/ts-belt/3.9.0:
-    resolution: {integrity: sha512-DaBYO7kjPEhJb0ceHcnO8v3IRR3lhI1akX01ajwXDZ9tarHYD4xHcl8U0Co96fh3PWuXmjeFg3XVM4QB3fzibA==}
+  /@mobily/ts-belt/3.9.1:
+    resolution: {integrity: sha512-GmidJypGred+MjAldgPvxZiNUZ2ctCG7KSR3TMYtS0HmkCXr32BXExyEH5orUtIyddKvWxrao9Xe11pFcSihXQ==}
     engines: {node: '>= 10.*'}
     dev: false
 
@@ -115,8 +115,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.13.0
 
-  /@oclif/core/1.5.1:
-    resolution: {integrity: sha512-dlJpww5UAHv46Z7p37ytQIKDkwOmA3uQY6ChPRY6Q9/YfDD4H0z3JfA+lfVfwHkZcIpiq9XsCkhCmBw7Uoh6Iw==}
+  /@oclif/core/1.5.3:
+    resolution: {integrity: sha512-m0I74bRXmNqMX1hscxdF5u/Lw0sB+vwoGnycFO2QzOq8jOphRQxYuUoVWPMQFNmVSjgVEShoqxMDxjgoCKsKoQ==}
     engines: {node: '>=12.0.0'}
     dependencies:
       '@oclif/linewrap': 1.0.0
@@ -226,7 +226,7 @@ packages:
     resolution: {integrity: sha512-BNoMetRf3gmkpAlV5we+kxyZTle7YibdOntIZbU5pyIfMdcwy784KfeZDAcuyMznkh5OLa17RVXZOGA5LTlkgQ==}
     dependencies:
       '@types/through': 0.0.30
-      rxjs: 7.5.4
+      rxjs: 7.5.5
     dev: true
 
   /@types/keyv/3.1.3:
@@ -553,8 +553,8 @@ packages:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
 
-  /chalk/5.0.0:
-    resolution: {integrity: sha512-/duVOqst+luxCQRKEo4bNxinsOQtMP80ZYm7mMqzuh5PociNL0PvmHFvREJ9ueYL2TxlHjBcmLCdmocx9Vg+IQ==}
+  /chalk/5.0.1:
+    resolution: {integrity: sha512-Fo07WOYGqMfCWHOzSXOt2CxDbC6skS/jO9ynEcmpANMoPrD+W1r1K6Vx7iNm+AQmETU1Xr2t+n8nzkV9t6xh3w==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
     dev: false
 
@@ -1246,9 +1246,9 @@ packages:
     engines: {node: '>=10'}
     dev: false
 
-  /inquirer/8.2.0:
-    resolution: {integrity: sha512-0crLweprevJ02tTuA6ThpoAERAGyVILC4sS74uib58Xf/zSr1/ZWtmm7D5CI+bSQEaA04f0K7idaHpQbSWgiVQ==}
-    engines: {node: '>=8.0.0'}
+  /inquirer/8.2.1:
+    resolution: {integrity: sha512-pxhBaw9cyTFMjwKtkjePWDhvwzvrNGAw7En4hottzlPvz80GZaMZthdDU35aA6/f5FRZf3uhE057q8w1DE3V2g==}
+    engines: {node: '>=12.0.0'}
     dependencies:
       ansi-escapes: 4.3.2
       chalk: 4.1.2
@@ -1260,7 +1260,7 @@ packages:
       mute-stream: 0.0.8
       ora: 5.4.1
       run-async: 2.4.1
-      rxjs: 7.5.4
+      rxjs: 7.5.5
       string-width: 4.2.3
       strip-ansi: 6.0.1
       through: 2.3.8
@@ -1468,7 +1468,7 @@ packages:
     resolution: {integrity: sha512-l0x2DvrW294C9uDCoQe1VSU4gf529FkSZ6leBl4TiqZH/e+0R7hSfHQBNut2mNygDgHwvYHfFLn6Oxb3VWj2rA==}
     engines: {node: '>=12'}
     dependencies:
-      chalk: 5.0.0
+      chalk: 5.0.1
       is-unicode-supported: 1.1.0
     dev: false
 
@@ -1681,7 +1681,7 @@ packages:
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     dependencies:
       bl: 5.0.0
-      chalk: 5.0.0
+      chalk: 5.0.1
       cli-cursor: 4.0.0
       cli-spinners: 2.6.1
       is-interactive: 2.0.0
@@ -2001,8 +2001,8 @@ packages:
     dependencies:
       queue-microtask: 1.2.3
 
-  /rxjs/7.5.4:
-    resolution: {integrity: sha512-h5M3Hk78r6wAheJF0a5YahB1yRQKCsZ4MsGdZ5O9ETbVtjPcScGfrMmoOq7EBsCRzd4BDkvDJ7ogP8Sz5tTFiQ==}
+  /rxjs/7.5.5:
+    resolution: {integrity: sha512-sy+H0pQofO95VDmFLzyaw9xNJU4KTRSwQIGM6+iG3SypAtCiLDzpeG8sJrNCWn2Up9km+KhkvTdbkrdy+yzZdw==}
     dependencies:
       tslib: 2.3.1
 
@@ -2400,7 +2400,7 @@ packages:
   /wide-align/1.1.5:
     resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}
     dependencies:
-      string-width: 4.2.3
+      string-width: 1.0.2
     dev: true
 
   /widest-line/3.1.0:
