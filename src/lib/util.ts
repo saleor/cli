@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import _ from "chalk";
+import chalk from "chalk";
 import Enquirer from "enquirer";
 import ora from 'ora';
 import boxen from 'boxen';
@@ -18,7 +18,7 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
   const collection = await fetcher();
 
   if (!collection.length && !allowCreation) {
-    console.warn(_.red(`No ${name}s found`))
+    console.warn(chalk.red(`No ${name}s found`))
     process.exit(0) 
   };
 
@@ -114,16 +114,16 @@ export const promptOrganizationBackup = async (argv: any) => createPrompt(
   'backup',
   'Select Snapshot',
   async () => await GET(API.OrganizationBackups, argv),
-  (_: any) => ({ name: _(_.bold(_.project.name), _(",","ver:", _.saleor_version, ", created on", formatDateTime(_.created), "-"), _.bold(_.name)), value: _.key})
+  (_: any) => ({ name: chalk(chalk.bold(_.project.name), chalk(",","ver:", _.saleor_version, ", created on", formatDateTime(_.created), "-"), chalk.bold(_.name)), value: _.key})
 )
 
 export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")
 
 export const printContext = (organization?: string, environment?: string) => {
-  let message = `\n ${_.bgGray(' CONTEXT ')} `
+  let message = `\n ${chalk.bgGray(' CONTEXT ')} `
 
-  if (organization) message += `/ ${_.gray('Organization:')} ${organization} `
-  if (environment) message += `/ ${_.gray('Environment')} ${_.underline(environment)}`
+  if (organization) message += `/ ${chalk.gray('Organization:')} ${organization} `
+  if (environment) message += `/ ${chalk.gray('Environment')} ${chalk.underline(environment)}`
 
   console.log(message + '\n')
 }
@@ -152,7 +152,7 @@ export const createProject = async (argv: Options) => {
         region: choosenRegion.value }
     }) as any;
 
-    console.log(_.green("✔"), _.bold("Project has been successfuly created")); 
+    console.log(chalk.green("✔"), chalk.bold("Project has been successfuly created"));
 
     return { name: project.slug, value: project.slug }
   }
@@ -197,7 +197,7 @@ export const createEnvironment = async (argv: Options) => {
       validate: (value) => {
         const re = /\S+@\S+\.\S+/;
         if (!re.test(value)) {
-          return _.red(`Please provide valid email`)
+          return chalk.red(`Please provide valid email`)
         }
         
         return true;
@@ -239,7 +239,7 @@ export const createEnvironment = async (argv: Options) => {
       required: true,
       validate: (value) => {
         if (value !== passwordPrompt) {
-          return _.red(`Passwords must match`)
+          return chalk.red(`Passwords must match`)
         }
         return true
       }
@@ -292,9 +292,9 @@ ${messages[currentMsg]}`;
 `);
 
   const baseUrl = `https://${result.domain}`;
-  const dashboaardMsg = _.blue(`Dashboard - ${baseUrl}/dashboard`);
+  const dashboaardMsg = chalk.blue(`Dashboard - ${baseUrl}/dashboard`);
   const accessMsg = access ? `Please check your email - ${email} - to setup your dashboaard access.` : '';
-  const gqlMsg = _.blue(`GraphQL Playgroud - ${baseUrl}/graphql/`);
+  const gqlMsg = chalk.blue(`GraphQL Playgroud - ${baseUrl}/graphql/`);
   console.log(boxen(`${dashboaardMsg}
 ${accessMsg}
 
@@ -333,11 +333,11 @@ export const deploy = async ({ name, url }: { name: string, url: string }) => {
 
   console.log('');
   console.log(`You will be redirected to Vercel's deployment page to finish the process`);
-  console.log(`Use the following ${_.underline('Environment Variables')} for configuration:`);
+  console.log(`Use the following ${chalk.underline('Environment Variables')} for configuration:`);
 
   console.log(`
-${_.gray('NEXT_PUBLIC_API_URI')}=${_.yellow(url)}
-${_.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=${_.yellow('default-channel')}
+${chalk.gray('NEXT_PUBLIC_API_URI')}=${chalk.yellow(url)}
+${chalk.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=${chalk.yellow('default-channel')}
   `)
 
   console.log(`To complete the deployment, open the following link in your browser and continue there:`);
