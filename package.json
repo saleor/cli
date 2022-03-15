@@ -57,6 +57,7 @@
     "inquirer": "^8.2.1",
     "ora": "^6.1.0",
     "prompt": "^1.2.2",
+    "retes": "^0.21.0",
     "slugify": "^1.6.5",
     "update-notifier": "^5.1.0",
     "yaml": "^1.10.2",
