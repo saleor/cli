@@ -2,7 +2,7 @@ lockfileVersion: 5.3
 
 specifiers:
   '@mobily/ts-belt': ^3.9.1
-  '@oclif/core': ^1.5.3
+  '@oclif/core': ^1.6.0
   '@types/debug': ^4.1.7
   '@types/figlet': ^1.5.4
   '@types/fs-extra': ^9.0.13
@@ -34,7 +34,7 @@ specifiers:
 
 dependencies:
   '@mobily/ts-belt': 3.9.1
-  '@oclif/core': 1.5.3
+  '@oclif/core': 1.6.0
   boxen: 6.2.1
   chalk: 5.0.1
   cli-highlight: 2.1.11
@@ -115,8 +115,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.13.0
 
-  /@oclif/core/1.5.3:
-    resolution: {integrity: sha512-m0I74bRXmNqMX1hscxdF5u/Lw0sB+vwoGnycFO2QzOq8jOphRQxYuUoVWPMQFNmVSjgVEShoqxMDxjgoCKsKoQ==}
+  /@oclif/core/1.6.0:
+    resolution: {integrity: sha512-JHerjgRd29EtUVpDIrzohq2XdxJfgmZVGHAFlf75QVhLGFaleopZAQNBXkHkxG//kGib0LhyVGW7azcFKzr1eQ==}
     engines: {node: '>=12.0.0'}
     dependencies:
       '@oclif/linewrap': 1.0.0

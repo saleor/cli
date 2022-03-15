@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@mobily/ts-belt": "^3.9.1",
-    "@oclif/core": "^1.5.3",
+    "@oclif/core": "^1.6.0",
     "boxen": "^6.2.1",
     "chalk": "^5.0.1",
     "cli-highlight": "^2.1.11",
