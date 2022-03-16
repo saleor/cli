@@ -23,6 +23,7 @@ import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
 import { header } from './lib/images.js';
 import { useTelemetry } from './middleware/index.js';
+import { AuthError } from './lib/util.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json");
@@ -71,6 +72,8 @@ yargs(hideBin(process.argv))
         console.error('---')
         console.error(body)
       }
+    } else if (error instanceof AuthError) {
+      console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
     } else if (error) {
       console.log(error)
     } else {

@@ -5,7 +5,7 @@ import { Arguments } from 'yargs';
 
 import { API, GET } from "../../lib/index.js";
 import { makeRequestRefreshToken, printContext } from '../../lib/util.js';
-import { interactiveSaleorApp } from '../../middleware/index.js';
+import { interactiveDashboardLogin, interactiveSaleorApp } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
@@ -23,7 +23,14 @@ query AppSingle($appID: ID!) {
     webhooks {
       id
       name
+      isActive
       targetUrl
+      syncEvents {
+        eventType
+      }
+      asyncEvents {
+        eventType
+      }
     }
   }
 }
@@ -37,7 +44,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const { domain } = await GET(API.Environment, argv) as any; 
 
-  const token = await makeRequestRefreshToken(domain);
+  const token = await makeRequestRefreshToken(domain, argv);
 
   // const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
   //   headers: {
@@ -65,11 +72,20 @@ export const handler = async (argv: Arguments<Options>) => {
     }
   }).json()
 
+  if (errors) {
+    throw Error("cannot auth")
+  }
+
   const { app: { name, webhooks } } = data;
 
   console.log(` App: ${name}\n`)
 
   cli.table(webhooks, {
+    id: { 
+      header: 'ID',
+      minWidth: 2,
+      get: ({ id }) => chalk.gray(id)
+    },
     name: { 
       header: 'Name', 
       minWidth: 2,
@@ -79,9 +95,20 @@ export const handler = async (argv: Arguments<Options>) => {
       header: 'URL', 
       get: ({ targetUrl }) => chalk.yellow(targetUrl)
     },
-    id: { 
-      header: 'ID',
-      minWidth: 2 
+    isActive: { 
+      header: 'Active?',
+      minWidth: 2,
+      get: ({ isActive }) => isActive ? chalk.green('Yes') : chalk.red('No'),
+    },
+    syncEvents: { 
+      header: 'Sync',
+      minWidth: 2,
+      get: ({ syncEvents }) => (syncEvents as string[]).length,
+    },
+    asyncEvents: { 
+      header: 'Async',
+      minWidth: 2,
+      get: ({ asyncEvents }) => (asyncEvents as string[]).length,
     },
   });
 
@@ -89,5 +116,6 @@ export const handler = async (argv: Arguments<Options>) => {
 };
 
 export const middlewares = [
+  interactiveDashboardLogin,
   interactiveSaleorApp,
 ]

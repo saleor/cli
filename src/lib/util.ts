@@ -14,6 +14,13 @@ const { ux: cli } = CliUx;
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+export class AuthError extends Error {
+  constructor(message: string) {
+    super(message); 
+    this.name = "AuthError"; 
+  }
+}
+
 // Higher-Order Creator for Prompts
 const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation: boolean = false) => {
   const collection = await fetcher();
@@ -50,31 +57,33 @@ const SaleorVersionMapper: Record<string, string> = {
   '3.1.0': 'saleor-latest-staging'
 }
 
-
-const csrfToken = `fiBIIDq0GHCBUaZPdbI53kRxzPlTPGv8RhPTGPXfAusGLjYz9Si0rPdIwh50Xv0G`;
-const refreshToken = `
-mutation refreshToken($csrfToken: String!) {
-  tokenRefresh(csrfToken: $csrfToken) {
+const doRefreshToken = `
+mutation refreshTokenWithUser($csrfToken: String!, $refreshToken: String!) {
+  tokenRefresh(csrfToken: $csrfToken, refreshToken: $refreshToken) {
     token
   }
 }
 `
 
-export const makeRequestRefreshToken = async (domain: string) => {
+export const makeRequestRefreshToken = async (domain: string, argv: any) => {
+  const { csrfToken, refreshToken } = argv;
+
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
-    headers: {
-      // required
-      'Cookie': 'refreshToken=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjEifQ.eyJpYXQiOjE2NDczNzI4NjIsIm93bmVyIjoic2FsZW9yIiwiZXhwIjoxNjQ5OTY0ODYyLCJ0b2tlbiI6Im1QNmtuZTJudDRRVSIsImVtYWlsIjoiamFrdWIubmVhbmRlckBzYWxlb3IuaW8iLCJ0eXBlIjoicmVmcmVzaCIsInVzZXJfaWQiOiJWWE5sY2pveU1nPT0iLCJpc19zdGFmZiI6dHJ1ZSwiY3NyZlRva2VuIjoiZmlCSUlEcTBHSENCVWFaUGRiSTUza1J4elBsVFBHdjhSaFBUR1BYZkF1c0dMall6OVNpMHJQZEl3aDUwWHYwRyIsImlzcyI6InNmLnN0YWdpbmcuc2FsZW9yLmNsb3VkIn0.MMZ8wCiIC9K9bdpvsiWCNIDbYNce7DsjEZb96LTrAsGKsu-4fmUTmKZ03kCPJzACVl2vNkweLaPeQLnQWOquUbhgOIJwdvNOEPW-aoJJ5i_494pJ0pZKji0EHw-6D92QP176kptjV0n1qPLmbWfl6Cf5OtBVn_5lU9a-OUWrRAdpwrWvhdLd9XXFVaXMdj1lfRWSDpkRosK6cqRMnjeb-2HRgvkIzh2RCPHd8LG9RP5aLaMdK7LhCa4xiwWiIIYztlTFscXfTZJlR6lOo5JljU_hAYmSZuNNqk4tmvnktZhpWtGzqSSBZkQBlTPBGORdIrAcMMZLY-dQajXjWsk5mA',
-    },
     json: { 
-      query: refreshToken, 
-      variables: {
-        csrfToken
-      }
+      query: doRefreshToken, 
+      variables: { csrfToken, refreshToken }
     }
   }).json()
 
+  if (errors) {
+    throw new AuthError("cannot refresh the token")
+  }
+
   const { tokenRefresh: { token } } = data;
+
+  if (!token) {
+    throw new AuthError("cannot auth")
+  }
 
   return token
 }
@@ -103,7 +112,7 @@ query AppsList {
 export const makeRequestAppList = async (argv: any) => {
   const { domain } = (await GET(API.Environment, argv)) as any;
 
-  const token = await makeRequestRefreshToken(domain);
+  const token = await makeRequestRefreshToken(domain, argv);
   const { data, errors }: any = await got
     .post(`https://${domain}/graphql`, {
       headers: {
@@ -113,6 +122,10 @@ export const makeRequestAppList = async (argv: any) => {
       json: { query: AppList },
     })
     .json();
+
+  if (errors) {
+    throw new AuthError("cannot auth")
+  }
 
   return data.apps.edges;
 };
@@ -202,10 +215,10 @@ export const promptOrganizationBackup = async (argv: any) => createPrompt(
 export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")
 
 export const printContext = (organization?: string, environment?: string) => {
-  let message = `\n ${chalk.bgGray(' CONTEXT ')} `
+  let message = `\n ${chalk.bgGray(' CONTEXT ')}\n`
 
-  if (organization) message += `/ ${chalk.gray('Organization:')} ${organization} `
-  if (environment) message += `/ ${chalk.gray('Environment')} ${chalk.underline(environment)}`
+  if (organization) message += ` ${chalk.gray('Organization')} ${organization} `
+  if (environment) message += `- ${chalk.gray('Environment')} ${chalk.underline(environment)}`
 
   console.log(message + '\n')
 }
