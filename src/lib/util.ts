@@ -8,10 +8,18 @@ import { CliUx } from "@oclif/core";
 
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options } from "../types.js";
+import got from 'got';
 
 const { ux: cli } = CliUx;
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export class AuthError extends Error {
+  constructor(message: string) {
+    super(message); 
+    this.name = "AuthError"; 
+  }
+}
 
 // Higher-Order Creator for Prompts
 const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation: boolean = false) => {
@@ -25,12 +33,15 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
   const creation = allowCreation ? [{name: "Create new"}] : []
   const choices = [...creation, ...collection.map(extractor)];
 
-  const { [name]: ret } = await Enquirer.prompt({
+  const r = await Enquirer.prompt({
     type: 'select',
     name,
     choices: JSON.parse(JSON.stringify(choices)),
     message,
   }) as any; 
+
+  const { [name]: ret } = r;
+
 
   const result = choices.find((choice: any) => choice.name === ret)
   if (!result) {
@@ -46,9 +57,93 @@ const SaleorVersionMapper: Record<string, string> = {
   '3.1.0': 'saleor-latest-staging'
 }
 
+const doRefreshToken = `
+mutation refreshTokenWithUser($csrfToken: String!, $refreshToken: String!) {
+  tokenRefresh(csrfToken: $csrfToken, refreshToken: $refreshToken) {
+    token
+  }
+}
+`
+
+export const makeRequestRefreshToken = async (domain: string, argv: any) => {
+  const { csrfToken, refreshToken } = argv;
+
+  const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
+    json: { 
+      query: doRefreshToken, 
+      variables: { csrfToken, refreshToken }
+    }
+  }).json()
+
+  if (errors) {
+    throw new AuthError("cannot refresh the token")
+  }
+
+  const { tokenRefresh: { token } } = data;
+
+  if (!token) {
+    throw new AuthError("cannot auth")
+  }
+
+  return token
+}
+
+const AppList = `
+query AppsList {
+  apps(first: 100) {
+    totalCount
+    edges {
+      node {
+        id
+        name
+        isActive
+        type
+        webhooks {
+          id
+          name
+          targetUrl
+        }
+      }
+    }
+  }
+}
+`
+
+export const makeRequestAppList = async (argv: any) => {
+  const { domain } = (await GET(API.Environment, argv)) as any;
+
+  const token = await makeRequestRefreshToken(domain, argv);
+  const { data, errors }: any = await got
+    .post(`https://${domain}/graphql`, {
+      headers: {
+        "authorization-bearer": token,
+        "content-type": "application/json",
+      },
+      json: { query: AppList },
+    })
+    .json();
+
+  if (errors) {
+    throw new AuthError("cannot auth")
+  }
+
+  return data.apps.edges;
+};
+
 //
 // P U B L I C 
 //
+
+export const promptSaleorApp = async (argv: any) => createPrompt(
+  'app',
+  'Select a Saleor App',
+  async () => {
+    const collection = await makeRequestAppList(argv);
+    return collection;
+  },
+  ({ node: { name, id } }: any) => ({ name, value: id })
+)
+
 
 export const promptVersion = async (argv: any) => createPrompt(
   'service',
@@ -120,10 +215,10 @@ export const promptOrganizationBackup = async (argv: any) => createPrompt(
 export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")
 
 export const printContext = (organization?: string, environment?: string) => {
-  let message = `\n ${chalk.bgGray(' CONTEXT ')} `
+  let message = `\n ${chalk.bgGray(' CONTEXT ')}\n`
 
-  if (organization) message += `/ ${chalk.gray('Organization:')} ${organization} `
-  if (environment) message += `/ ${chalk.gray('Environment')} ${chalk.underline(environment)}`
+  if (organization) message += ` ${chalk.gray('Organization')} ${organization} `
+  if (environment) message += `- ${chalk.gray('Environment')} ${chalk.underline(environment)}`
 
   console.log(message + '\n')
 }

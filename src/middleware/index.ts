@@ -1,17 +1,20 @@
 import chalk from "chalk";
 import Debug from "debug"
+import enquirer from "enquirer";
 import Enquirer from "enquirer";
 import got from "got";
 import { Arguments } from "yargs";
 import { configure } from "../cli/configure.js";
 import { Config } from "../lib/config.js"
-import { createEnvironment,
+import { API, GET } from "../lib/index.js";
+import { AuthError, createEnvironment,
          createProject,
          promptDatabaseTemplate,
          promptEnvironment,
          promptOrganization,
          promptOrganizationBackup,
          promptProject,
+         promptSaleorApp,
          promptVersion } from "../lib/util.js";
 import { CreatePromptResult, Options } from "../types.js";
 
@@ -143,6 +146,61 @@ export const interactiveSaleorVersion = async (argv: Options) => {
 
   return {}
 }
+
+const doLogin = `
+mutation login($email: String!, $password: String!) {
+  tokenCreate(email: $email, password: $password) {
+    csrfToken
+    token
+    refreshToken
+  }
+}
+`
+
+export const interactiveDashboardLogin = async (argv: Options) => {
+  if (!argv.email && !argv.password) {
+    const { email } = await enquirer.prompt<{ email: string }>({
+      type: "text", 
+      name: 'email',
+      message: 'Your Saleor Dashboard email?'
+    });
+    const { password } = await enquirer.prompt<{ password: string }>({
+      type: "password",
+      name: 'password',
+      message: 'Your password?'
+    });
+
+    const { domain } = (await GET(API.Environment, argv)) as any;
+
+    const { data, errors }: any = await got
+      .post(`https://${domain}/graphql`, {
+        json: { 
+          query: doLogin,
+          variables: { email, password }
+        },
+      })
+      .json();
+
+    if (errors) {
+      throw new AuthError("cannot login to dashboard");
+    }
+
+    const { tokenCreate: { csrfToken, refreshToken } } = data; 
+    return { csrfToken, refreshToken }
+  }
+
+  return {}
+}
+
+export const interactiveSaleorApp = async (argv: Options) => {
+  if (!argv.app) {
+    const app = await promptSaleorApp(argv);
+    return { app: app.value }
+  }
+
+  return {}
+}
+
 
 export const useTelemetry = async (argv: Arguments) => {
   const command = argv._.join(" ")

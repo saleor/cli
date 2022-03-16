@@ -1,7 +1,7 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@mobily/ts-belt': ^3.9.1
+  '@mobily/ts-belt': ^3.10.0
   '@oclif/core': ^1.6.0
   '@types/debug': ^4.1.7
   '@types/figlet': ^1.5.4
@@ -33,7 +33,7 @@ specifiers:
   yargs: ^17.3.1
 
 dependencies:
-  '@mobily/ts-belt': 3.9.1
+  '@mobily/ts-belt': 3.10.0
   '@oclif/core': 1.6.0
   boxen: 6.2.1
   chalk: 5.0.1
@@ -92,8 +92,8 @@ packages:
     engines: {node: '>=0.1.90'}
     dev: false
 
-  /@mobily/ts-belt/3.9.1:
-    resolution: {integrity: sha512-GmidJypGred+MjAldgPvxZiNUZ2ctCG7KSR3TMYtS0HmkCXr32BXExyEH5orUtIyddKvWxrao9Xe11pFcSihXQ==}
+  /@mobily/ts-belt/3.10.0:
+    resolution: {integrity: sha512-F3XLU3zMDzJOf9KlKgnNOz5rdAtMG/UBxEDU4UNA4ewKFRd5DsbIIJmeAifLudNwcXmoIgtZ39KwVjPaL/CjgA==}
     engines: {node: '>= 10.*'}
     dev: false
 
