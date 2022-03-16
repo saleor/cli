@@ -11,6 +11,7 @@ export interface Options {
   plan?: string
   paymentMethod?: string
   serviceName?: string
+  app?: string
 }
 
 export interface CreatePromptResult {

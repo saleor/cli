@@ -12,6 +12,7 @@ import { createEnvironment,
          promptOrganization,
          promptOrganizationBackup,
          promptProject,
+         promptSaleorApp,
          promptVersion } from "../lib/util.js";
 import { CreatePromptResult, Options } from "../types.js";
 
@@ -143,6 +144,16 @@ export const interactiveSaleorVersion = async (argv: Options) => {
 
   return {}
 }
+
+export const interactiveSaleorApp = async (argv: Options) => {
+  if (!argv.app) {
+    const app = await promptSaleorApp(argv);
+    return { app: app.value }
+  }
+
+  return {}
+}
+
 
 export const useTelemetry = async (argv: Arguments) => {
   const command = argv._.join(" ")

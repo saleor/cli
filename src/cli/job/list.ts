@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import { API, GET } from "../../lib/index.js";
 import { formatDateTime } from '../../lib/util.js';
 import { Options } from '../../types.js';
+import { interactiveSaleorApp } from '../../middleware/index.js';
 
 const { ux: cli } = CliUx;
 

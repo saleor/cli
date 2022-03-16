@@ -8,6 +8,7 @@ import { CliUx } from "@oclif/core";
 
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options } from "../types.js";
+import got from 'got';
 
 const { ux: cli } = CliUx;
 
@@ -25,12 +26,15 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
   const creation = allowCreation ? [{name: "Create new"}] : []
   const choices = [...creation, ...collection.map(extractor)];
 
-  const { [name]: ret } = await Enquirer.prompt({
+  const r = await Enquirer.prompt({
     type: 'select',
     name,
     choices: JSON.parse(JSON.stringify(choices)),
     message,
   }) as any; 
+
+  const { [name]: ret } = r;
+
 
   const result = choices.find((choice: any) => choice.name === ret)
   if (!result) {
@@ -46,9 +50,87 @@ const SaleorVersionMapper: Record<string, string> = {
   '3.1.0': 'saleor-latest-staging'
 }
 
+
+const csrfToken = `fiBIIDq0GHCBUaZPdbI53kRxzPlTPGv8RhPTGPXfAusGLjYz9Si0rPdIwh50Xv0G`;
+const refreshToken = `
+mutation refreshToken($csrfToken: String!) {
+  tokenRefresh(csrfToken: $csrfToken) {
+    token
+  }
+}
+`
+
+export const makeRequestRefreshToken = async (domain: string) => {
+  const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
+    headers: {
+      // required
+      'Cookie': 'refreshToken=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjEifQ.eyJpYXQiOjE2NDczNzI4NjIsIm93bmVyIjoic2FsZW9yIiwiZXhwIjoxNjQ5OTY0ODYyLCJ0b2tlbiI6Im1QNmtuZTJudDRRVSIsImVtYWlsIjoiamFrdWIubmVhbmRlckBzYWxlb3IuaW8iLCJ0eXBlIjoicmVmcmVzaCIsInVzZXJfaWQiOiJWWE5sY2pveU1nPT0iLCJpc19zdGFmZiI6dHJ1ZSwiY3NyZlRva2VuIjoiZmlCSUlEcTBHSENCVWFaUGRiSTUza1J4elBsVFBHdjhSaFBUR1BYZkF1c0dMall6OVNpMHJQZEl3aDUwWHYwRyIsImlzcyI6InNmLnN0YWdpbmcuc2FsZW9yLmNsb3VkIn0.MMZ8wCiIC9K9bdpvsiWCNIDbYNce7DsjEZb96LTrAsGKsu-4fmUTmKZ03kCPJzACVl2vNkweLaPeQLnQWOquUbhgOIJwdvNOEPW-aoJJ5i_494pJ0pZKji0EHw-6D92QP176kptjV0n1qPLmbWfl6Cf5OtBVn_5lU9a-OUWrRAdpwrWvhdLd9XXFVaXMdj1lfRWSDpkRosK6cqRMnjeb-2HRgvkIzh2RCPHd8LG9RP5aLaMdK7LhCa4xiwWiIIYztlTFscXfTZJlR6lOo5JljU_hAYmSZuNNqk4tmvnktZhpWtGzqSSBZkQBlTPBGORdIrAcMMZLY-dQajXjWsk5mA',
+    },
+    json: { 
+      query: refreshToken, 
+      variables: {
+        csrfToken
+      }
+    }
+  }).json()
+
+  const { tokenRefresh: { token } } = data;
+
+  return token
+}
+
+const AppList = `
+query AppsList {
+  apps(first: 100) {
+    totalCount
+    edges {
+      node {
+        id
+        name
+        isActive
+        type
+        webhooks {
+          id
+          name
+          targetUrl
+        }
+      }
+    }
+  }
+}
+`
+
+export const makeRequestAppList = async (argv: any) => {
+  const { domain } = (await GET(API.Environment, argv)) as any;
+
+  const token = await makeRequestRefreshToken(domain);
+  const { data, errors }: any = await got
+    .post(`https://${domain}/graphql`, {
+      headers: {
+        "authorization-bearer": token,
+        "content-type": "application/json",
+      },
+      json: { query: AppList },
+    })
+    .json();
+
+  return data.apps.edges;
+};
+
 //
 // P U B L I C 
 //
+
+export const promptSaleorApp = async (argv: any) => createPrompt(
+  'app',
+  'Select a Saleor App',
+  async () => {
+    const collection = await makeRequestAppList(argv);
+    return collection;
+  },
+  ({ node: { name, id } }: any) => ({ name, value: id })
+)
+
 
 export const promptVersion = async (argv: any) => createPrompt(
   'service',

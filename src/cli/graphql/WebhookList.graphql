@@ -1,0 +1,18 @@
+query WebhookList {
+  apps(first: 1) {
+    totalCount
+    edges {
+      node {
+        id
+        name
+        isActive
+        type
+        webhooks {
+          id
+          name
+          targetUrl
+        }
+      }
+    }
+  }
+}
