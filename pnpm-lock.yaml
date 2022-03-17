@@ -21,7 +21,7 @@ specifiers:
   enquirer: ^2.3.6
   figlet: ^1.5.2
   fs-extra: ^10.0.1
-  got: ^12.0.1
+  got: ^12.0.2
   inquirer: ^8.2.1
   ora: ^6.1.0
   pkg: ^5.5.2
@@ -44,7 +44,7 @@ dependencies:
   enquirer: 2.3.6
   figlet: 1.5.2
   fs-extra: 10.0.1
-  got: 12.0.1
+  got: 12.0.2
   inquirer: 8.2.1
   ora: 6.1.0
   prompt: 1.2.2
@@ -1106,8 +1106,8 @@ packages:
       merge2: 1.4.1
       slash: 3.0.0
 
-  /got/12.0.1:
-    resolution: {integrity: sha512-1Zhoh+lDej3t7Ks1BP/Jufn+rNqdiHQgUOcTxHzg2Dao1LQfp5S4Iq0T3iBxN4Zdo7QqCJL+WJUNzDX6rCP2Ew==}
+  /got/12.0.2:
+    resolution: {integrity: sha512-Zi4yHiqCgaorUbknr/RHFBsC3XqjSodaw0F3qxlqAqyj+OGYZl37/uy01R0qz++KANKQYdY5FHJ0okXZpEzwWQ==}
     engines: {node: '>=14.16'}
     dependencies:
       '@sindresorhus/is': 4.6.0
