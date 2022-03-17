@@ -1,5 +1,6 @@
+export const WebhookList = `
 query WebhookList {
-  apps(first: 1) {
+  apps(first: 100) {
     totalCount
     edges {
       node {
@@ -16,3 +17,4 @@ query WebhookList {
     }
   }
 }
+`

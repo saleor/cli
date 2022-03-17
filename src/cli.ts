@@ -17,6 +17,7 @@ import project from './cli/project/index.js';
 import job from './cli/job/index.js';
 import telemetry from './cli/telemetry/index.js';
 import webhook from './cli/webhook/index.js';
+import app from './cli/app/index.js';
 
 import * as login from './cli/login.js';
 import * as configure from './cli/configure.js';
@@ -52,6 +53,7 @@ yargs(hideBin(process.argv))
   .command(['storefront [command]'], '', storefront)
   .command(['telemetry [command]', 'tele'], '', telemetry)
   .command(['webhook [command]', 'hook'], '', webhook)
+  .command(['app [command]'], '', app)
   .strictCommands()
   .middleware(useTelemetry)
   .demandCommand(1, 'You need at least one command before moving on')

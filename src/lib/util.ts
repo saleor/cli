@@ -9,6 +9,8 @@ import { CliUx } from "@oclif/core";
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options } from "../types.js";
 import got from 'got';
+import { create } from 'domain';
+import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
 
 const { ux: cli } = CliUx;
 
@@ -133,6 +135,37 @@ export const makeRequestAppList = async (argv: any) => {
 //
 // P U B L I C 
 //
+
+export const promptWebhook = async (argv: any) => createPrompt(
+  'webhookID',
+  'Select a Webhook',
+  async () => {
+    const { domain } = (await GET(API.Environment, argv)) as any;
+    const token = await makeRequestRefreshToken(domain, argv);
+
+    const { app: appID } = argv;
+
+    const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
+      headers: {
+        'authorization-bearer': token,
+        'content-type': 'application/json',
+      },
+      json: { 
+        query: SaleorAppByID, 
+        variables: { appID }
+      }
+    }).json()
+
+    if (errors) {
+      throw Error("cannot auth")
+    }
+
+    const { app: { name, webhooks } } = data;
+
+    return webhooks;
+  },
+  ({ id, name, targetUrl }: any) => ({ name: `${name} (${targetUrl})`, value: id })
+)
 
 export const promptSaleorApp = async (argv: any) => createPrompt(
   'app',

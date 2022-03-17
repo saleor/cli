@@ -15,7 +15,8 @@ import { AuthError, createEnvironment,
          promptOrganizationBackup,
          promptProject,
          promptSaleorApp,
-         promptVersion } from "../lib/util.js";
+         promptVersion, 
+         promptWebhook} from "../lib/util.js";
 import { CreatePromptResult, Options } from "../types.js";
 
 const debug = Debug('middleware'); 
@@ -196,6 +197,15 @@ export const interactiveSaleorApp = async (argv: Options) => {
   if (!argv.app) {
     const app = await promptSaleorApp(argv);
     return { app: app.value }
+  }
+
+  return {}
+}
+
+export const interactiveWebhook = async (argv: Options) => {
+  if (!argv.webhookID) {
+    const webhookID = await promptWebhook(argv);
+    return { webhookID: webhookID.value }
   }
 
   return {}
