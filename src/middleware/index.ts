@@ -226,8 +226,6 @@ export const useTelemetry = async (argv: Arguments) => {
       json: { command },
     });
   }
-
-  return {}
 }
 
 const checkBackup = async (argv: Options, chosenBackup: CreatePromptResult) => {
