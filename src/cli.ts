@@ -18,6 +18,7 @@ import job from './cli/job/index.js';
 import telemetry from './cli/telemetry/index.js';
 import webhook from './cli/webhook/index.js';
 import app from './cli/app/index.js';
+import token from './cli/token/index.js';
 
 import * as login from './cli/login.js';
 import * as configure from './cli/configure.js';
@@ -54,12 +55,15 @@ yargs(hideBin(process.argv))
   .command(['telemetry [command]', 'tele'], '', telemetry)
   .command(['webhook [command]', 'hook'], '', webhook)
   .command(['app [command]'], '', app)
+  .command(['token [command]'], '', token)
   .strictCommands()
   .middleware(useTelemetry)
   .demandCommand(1, 'You need at least one command before moving on')
   .alias('h', 'help')
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, yargs) => {
+    console.log("\n");
+
     if (error instanceof HTTPError) {
       const { statusCode, body } = error.response as Response<any>;
 
@@ -76,6 +80,8 @@ yargs(hideBin(process.argv))
       }
     } else if (error instanceof AuthError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
+    } else if (error.name === "UserNotFoundException") {
+      console.log('ddd');
     } else if (error) {
       console.log(error)
     } else {
