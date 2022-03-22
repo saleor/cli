@@ -43,6 +43,7 @@
   "dependencies": {
     "@mobily/ts-belt": "^3.10.0",
     "@oclif/core": "^1.6.1",
+    "aws-amplify": "^4.3.16",
     "boxen": "^6.2.1",
     "chalk": "^5.0.1",
     "cli-highlight": "^2.1.11",

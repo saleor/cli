@@ -60,6 +60,8 @@ yargs(hideBin(process.argv))
   .alias('h', 'help')
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, yargs) => {
+    console.log("\n");
+
     if (error instanceof HTTPError) {
       const { statusCode, body } = error.response as Response<any>;
 
@@ -76,6 +78,8 @@ yargs(hideBin(process.argv))
       }
     } else if (error instanceof AuthError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
+    } else if (error.name === "UserNotFoundException") {
+      console.log('ddd');
     } else if (error) {
       console.log(error)
     } else {
