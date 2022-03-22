@@ -80,8 +80,6 @@ yargs(hideBin(process.argv))
       }
     } else if (error instanceof AuthError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
-    } else if (error.name === "UserNotFoundException") {
-      console.log('ddd');
     } else if (error) {
       console.log(error)
     } else {

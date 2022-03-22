@@ -42,6 +42,6 @@ export const handler = async (argv: Arguments<Options>) => {
 
   // error catch is centralized in `cli.ts`
   // below runs only if no error
-  await Config.set("token", token)
+  await Config.set("token", `Bearer ${token}`)
   spinner.succeed('Success! Access granted and credentials savely stored')
 };

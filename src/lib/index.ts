@@ -23,7 +23,7 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
   options = {
     ...options,
     headers: argv.token ? {
-      Authorization: `Bearer ${argv.token}`,
+      Authorization: `${argv.token}`,
     } : {},
   }
   debug('`got` options', options)

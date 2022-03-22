@@ -1,12 +1,13 @@
 import enquirer from "enquirer";
 import ora from "ora";
 import type { Arguments, CommandBuilder } from "yargs";
-import { API, GET, POST } from "../../lib/index.js";
-import { delay, deploy } from "../../lib/util.js"
+import { Config } from "../../lib/config.js";
+import { API, POST } from "../../lib/index.js";
+import { delay } from "../../lib/util.js"
 import { Options } from "../../types.js";
 
-export const command = "deploy [name]";
-export const desc = "Deploy `react-storefront` to Vercel";
+export const command = "create";
+export const desc = "Create an auth token";
 
 export const builder: CommandBuilder = (_) => _
 
@@ -30,5 +31,5 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
   }) as { token: string }
 
   spinner.succeed("Success! Here's your token: ");
-  console.log(token)
+  await Config.set("token", `Token ${token}`)
 };
