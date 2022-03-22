@@ -7,7 +7,7 @@ import { Arguments } from "yargs";
 import { configure } from "../cli/configure.js";
 import { Config } from "../lib/config.js"
 import { API, GET } from "../lib/index.js";
-import { AuthError, createEnvironment,
+import { AuthError,
          createProject,
          promptDatabaseTemplate,
          promptEnvironment,
@@ -19,7 +19,7 @@ import { AuthError, createEnvironment,
          promptWebhook} from "../lib/util.js";
 import { CreatePromptResult, Options } from "../types.js";
 
-const debug = Debug('middleware'); 
+const debug = Debug('middleware');
 
 type Handler = (opts: Options) => (Options | Promise<Options>)
 
@@ -98,7 +98,7 @@ export const useEnvironment = async ({ token, organization, environment }: Optio
 
   console.log(chalk.green("✔"), chalk.bold("Environment ·"), chalk.cyan(opts.environment));
 
-  return opts; 
+  return opts;
 }
 
 export const interactiveProject = async (argv: Options) => {
@@ -114,27 +114,15 @@ export const interactiveProject = async (argv: Options) => {
   return {}
 }
 
-export const interactiveEnvironment = async (argv: Options) => {
-  if (!argv.environment) {
-    const environment = await promptEnvironment(argv);
-    if (environment.value === undefined ) {
-      await interactiveDatabaseTemplate(argv);
-      await interactiveSaleorVersion(argv);
-      const environment = await createEnvironment(argv);
-      return { environment: environment.value }
-    }
-    return { environment: environment.value }
-  }
-
-  return {}
-}
-
 export const interactiveDatabaseTemplate = async (argv: Options) => {
   if (!argv.database) {
     const db = await promptDatabaseTemplate(argv);
     const backup = await checkBackup(argv, db);
     return { database: db.value, ...backup };
   }
+
+  if (argv.database === "blank") return { database: null }
+  if (argv.database === "snapshot") return { database: null, restore: true }
 
   return {}
 }
@@ -161,7 +149,7 @@ mutation login($email: String!, $password: String!) {
 export const interactiveDashboardLogin = async (argv: Options) => {
   if (!argv.email && !argv.password) {
     const { email } = await enquirer.prompt<{ email: string }>({
-      type: "text", 
+      type: "text",
       name: 'email',
       message: 'Your Saleor Dashboard email?'
     });
@@ -175,7 +163,7 @@ export const interactiveDashboardLogin = async (argv: Options) => {
 
     const { data, errors }: any = await got
       .post(`https://${domain}/graphql`, {
-        json: { 
+        json: {
           query: doLogin,
           variables: { email, password }
         },
@@ -186,7 +174,7 @@ export const interactiveDashboardLogin = async (argv: Options) => {
       throw new AuthError("cannot login to dashboard");
     }
 
-    const { tokenCreate: { csrfToken, refreshToken } } = data; 
+    const { tokenCreate: { csrfToken, refreshToken } } = data;
     return { csrfToken, refreshToken }
   }
 

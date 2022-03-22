@@ -20,11 +20,11 @@ const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath,
   debug(path)
   debug('cli options', argv)
 
-  options = { 
+  options = {
     ...options,
     headers: argv.token ? {
       Authorization: `Bearer ${argv.token}`,
-    } : {}, 
+    } : {},
   }
   debug('`got` options', options)
 
@@ -52,6 +52,7 @@ export const API: Record<string, DefaultURLPath> = {
   ClearDatabase: _ => `organizations/${_.organization}/environments/${_.environment}/clear-database`,
   SetAdminAccount:  _ => `organizations/${_.organization}/environments/${_.environment}/set-admin-account`,
   Job: _ => `organizations/${_.organization}/environments/${_.environment}/jobs`,
+  TaskStatus: _ => `service/task-status/${_.task}`,
   Backup: _ => `organizations/${_.organization}/environments/${_.environment}/backups/${_.backup || ''}`,
   Project: _ => `organizations/${_.organization}/projects/${_.project || ''}`,
   PaymentMethod: _ => `organizations/${_.organization}/payment-methods/${_.paymentMethod || ''}`,

@@ -17,6 +17,7 @@ export interface Options {
   csrfToken?: string
   refreshToken?: string
   webhookID?: string
+  task?: string
 }
 
 export interface CreatePromptResult {

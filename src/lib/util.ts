@@ -1,25 +1,21 @@
 import { format } from 'date-fns';
 import chalk from "chalk";
 import Enquirer from "enquirer";
+import got from 'got';
 import ora from 'ora';
-import boxen from 'boxen';
-import slugify from 'slugify';
-import { CliUx } from "@oclif/core";
+import { emphasize } from 'emphasize';
+import yaml from "yaml";
 
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options } from "../types.js";
-import got from 'got';
-import { create } from 'domain';
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
-
-const { ux: cli } = CliUx;
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export class AuthError extends Error {
   constructor(message: string) {
-    super(message); 
-    this.name = "AuthError"; 
+    super(message);
+    this.name = "AuthError";
   }
 }
 
@@ -29,7 +25,7 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
 
   if (!collection.length && !allowCreation) {
     console.warn(chalk.red(`No ${name}s found`))
-    process.exit(0) 
+    process.exit(0)
   };
 
   const creation = allowCreation ? [{name: "Create new"}] : []
@@ -40,7 +36,7 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
     name,
     choices: JSON.parse(JSON.stringify(choices)),
     message,
-  }) as any; 
+  }) as any;
 
   const { [name]: ret } = r;
 
@@ -71,8 +67,8 @@ export const makeRequestRefreshToken = async (domain: string, argv: any) => {
   const { csrfToken, refreshToken } = argv;
 
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
-    json: { 
-      query: doRefreshToken, 
+    json: {
+      query: doRefreshToken,
       variables: { csrfToken, refreshToken }
     }
   }).json()
@@ -133,7 +129,7 @@ export const makeRequestAppList = async (argv: any) => {
 };
 
 //
-// P U B L I C 
+// P U B L I C
 //
 
 export const promptWebhook = async (argv: any) => createPrompt(
@@ -150,8 +146,8 @@ export const promptWebhook = async (argv: any) => createPrompt(
         'authorization-bearer': token,
         'content-type': 'application/json',
       },
-      json: { 
-        query: SaleorAppByID, 
+      json: {
+        query: SaleorAppByID,
         variables: { appID }
       }
     }).json()
@@ -207,12 +203,12 @@ export const promptProject = (argv: any) => createPrompt(
   async () => await GET(API.Project, argv),
   (_: any) => ({ name: _.name, value: _.slug }),
   true
-) 
+)
 
 export const promptEnvironment = async (argv: any) => createPrompt(
   'environment',
   'Select Environment',
-  async () => await GET(API.Environment, {...argv, environment: ''}), 
+  async () => await GET(API.Environment, {...argv, environment: ''}),
   (_: any) => ({ name: _.name, value: _.key }),
   true
 );
@@ -220,7 +216,7 @@ export const promptEnvironment = async (argv: any) => createPrompt(
 export const promptOrganization = async (argv: any) => createPrompt(
   'organization',
   'Select Organization',
-  async () => await GET(API.Organization, argv), 
+  async () => await GET(API.Organization, argv),
   (_: any) => ({ name: _.name, value: _.slug})
 )
 
@@ -288,164 +284,13 @@ export const createProject = async (argv: Options) => {
   process.exit(0)
 }
 
-export const createEnvironment = async (argv: Options) => {
-  const { environment: base, project, saleor, database } = argv;
-  const user = (await GET(API.User, argv)) as any;
-
-  const { name } = await Enquirer.prompt({
-    type: 'input',
-    name: 'name',
-    message: `Environment name`,
-    required: true,
-  }) as { name: string };
-
-  const { domain } = await Enquirer.prompt({
-    type: 'input',
-    name: 'domain',
-    message: `Environment domain`,
-    initial: slugify(name),
-    required: true,
-  }) as { domain: string };
-
-  
-  const { access } = await Enquirer.prompt({
-    type: 'confirm',
-    name: 'access',
-    message: `Would you like to enable dashboard access `,
-  }) as { access: boolean };
-
-  let email = null;
-
-  if (access) {
-    const { emailPrompt } = await Enquirer.prompt({
-      type: 'input',
-      name: 'emailPrompt',
-      message: `Dashboard admin email`,
-      initial: user.email,
-      validate: (value) => {
-        const re = /\S+@\S+\.\S+/;
-        if (!re.test(value)) {
-          return chalk.red(`Please provide valid email`)
-        }
-        
-        return true;
-      }
-    }) as { emailPrompt: string };
-
-    email = emailPrompt;
+export const validateLength = (value: string, maxLength: number): boolean | string => {
+  if (value.length > maxLength) {
+    return chalk.red(`Please use ${maxLength} characters maximum`)
   }
 
-  const { restrict } = await Enquirer.prompt({
-    type: 'confirm',
-    name: 'restrict',
-    message: `You can restrict access to your env API with Basic Auth. Do you want to set it up`,
-  }) as { restrict: boolean };
-
-  let login = null;
-  let password = null;
- 
-  if (restrict) {
-    const { loginPrompt } = await Enquirer.prompt({
-      type: 'input',
-      name: 'loginPrompt',
-      message: `Login`,
-      required: true,
-      initial: user.email,
-    }) as { loginPrompt: string };
-
-    const { passwordPrompt } = await Enquirer.prompt({
-      type: 'password',
-      name: 'passwordPrompt',
-      message: `Password`,
-      required: true,
-    }) as { passwordPrompt: string };
-
-    await Enquirer.prompt({
-      type: 'password',
-      name: 'confirmation',
-      message: `Confirm password`,
-      required: true,
-      validate: (value) => {
-        if (value !== passwordPrompt) {
-          return chalk.red(`Passwords must match`)
-        }
-        return true
-      }
-    }) as { confirmation: string };
-
-    login = loginPrompt;
-    password = passwordPrompt;
-  }
-
-  const json = {
-    name,
-    domain_label: domain,
-    email, 
-    project,
-    database_population: database,
-    service: saleor,
-    login,
-    password,
-  }
-
-  const result = await POST(API.Environment, { ...argv, environment: '' }, { json }) as any;
-
-  let currentMsg = 0;
-  const messages = [
-    `🙌  If you see yourself working on tools like this one, Saleor is looking for great educators and DevRel engineers.
-    Contact us directly at careers@saleor.io or DM on LinkedIn.`,
-    `✨ Take your first steps with Saleor's API by checking our tutorial at https://learn.saleor.io`,
-    `⚡ If you like React and Next.js, you may want to take a look at our storefront starter pack available at https://github.com/saleor/react-storefront`
-  ]
-
-  const spinner = ora('Creating a new environment...').start();
-  let succeed = await checkIfJobSucceeded(argv, result.key);
-
-  while(!succeed) {
-    await delay(10000)
-    spinner.text = `Creating a new environment...
-
-${messages[currentMsg]}`;
-
-    if (currentMsg === (messages.length - 1)) {
-      currentMsg = 0;
-    } else {
-      currentMsg++
-    }
-
-    succeed = await checkIfJobSucceeded(argv, result.key);
-  }
-
-  spinner.succeed(`Yay! A new environment is now ready!
-`);
-
-  const baseUrl = `https://${result.domain}`;
-  const dashboaardMsg = chalk.blue(`Dashboard - ${baseUrl}/dashboard`);
-  const accessMsg = access ? `Please check your email - ${email} - to setup your dashboaard access.` : '';
-  const gqlMsg = chalk.blue(`GraphQL Playgroud - ${baseUrl}/graphql/`);
-  console.log(boxen(`${dashboaardMsg}
-${accessMsg}
-
-
-${gqlMsg}`, {padding: 1}));
-
-  if (access) {
-    await GET(API.SetAdminAccount, { ...argv, environment: result.key }) as any;
-  }
-
-  const { deployPrompt } = await Enquirer.prompt({
-    type: 'confirm',
-    name: 'deployPrompt',
-    message: `Deploy our react-storefront starter pack to Vercel`,
-  }) as { deployPrompt: boolean };
-
-  if (deployPrompt) {
-    await deploy({ name, url: baseUrl })
-  }
-
-  return { name, value: name }
+  return true;
 }
-
 
 export const deploy = async ({ name, url }: { name: string, url: string }) => {
   const params = {
@@ -473,9 +318,45 @@ ${chalk.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=${chalk.yellow('default-channel')}
 https://vercel.com/new/clone?${queryParams}`);
 }
 
-const checkIfJobSucceeded = async (argv: Options, key: string): Promise<boolean> => {
-  const jobs = await GET(API.Job, {...argv, environment: key}) as any[];
-  const filtered = jobs.filter(({job_name, status}) => job_name.startsWith('crt') && status === "SUCCEEDED");
+export const checkIfJobSucceeded = async (taskId: string): Promise<boolean> => {
+  const result = await GET(API.TaskStatus, {task: taskId}) as any;
+  return result.status === "SUCCEEDED";
+}
 
-  return filtered.length > 0
+export const waitForTask = async (argv: Options, taskId: string, spinnerText: string, spinnerSucceed: string) => {
+  let currentMsg = 0;
+  const messages = [
+    `🙌  If you see yourself working on tools like this one, Saleor is looking for great educators and DevRel engineers.
+      Contact us directly at careers@saleor.io or DM on LinkedIn.`,
+    `✨ Take your first steps with Saleor's API by checking our tutorial at https://learn.saleor.io`,
+    `⚡ If you like React and Next.js, you may want to take a look at our storefront starter pack available at https://github.com/saleor/react-storefront`
+  ]
+
+  const spinner = ora(`${spinnerText}...`).start();
+  let succeed = await checkIfJobSucceeded(taskId);
+
+  while (!succeed) {
+    await delay(10000)
+    spinner.text = `${spinnerText}...
+
+  ${messages[currentMsg]}`;
+
+    if (currentMsg === (messages.length - 1)) {
+      currentMsg = 0;
+    } else {
+      currentMsg++
+    }
+
+    succeed = await checkIfJobSucceeded(taskId);
+  }
+
+  spinner.succeed(`${spinnerSucceed}
+  `);
+}
+
+export const showResult = (result: {}) => {
+  console.log("---")
+  console.log(emphasize.highlight("yaml", yaml.stringify(result), {
+    'attr': chalk.blue
+  }).value);
 }
