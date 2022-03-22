@@ -23,22 +23,20 @@ export const handler = async (argv: Arguments<Options>) => {
   };
 
   cli.table(result, {
-    name: { 
-      header: 'Backup', 
+    name: {
+      header: 'Backup',
       minWidth: 2,
       get: ({ name }) => chalk.cyan(name)
     },
-    version: { 
-      header: 'Ver.', 
+    version: {
+      header: 'Ver.',
       minWidth: 2,
       get: ({ saleor_version: version }) => chalk.yellow(version)
     },
-    created: { 
-      minWidth: 2,  
+    created: {
+      minWidth: 2,
       get: ({ created }) => chalk.gray(formatDateTime(created))
     },
     key: { minWidth: 2 },
   });
-
-  process.exit(0);
 };
