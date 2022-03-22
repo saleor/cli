@@ -54,6 +54,7 @@ export const API: Record<string, DefaultURLPath> = {
   Job: _ => `organizations/${_.organization}/environments/${_.environment}/jobs`,
   TaskStatus: _ => `service/task-status/${_.task}`,
   Backup: _ => `organizations/${_.organization}/environments/${_.environment}/backups/${_.backup || ''}`,
+  Restore: _ => `organizations/${_.organization}/environments/${_.environment}/restore`,
   Project: _ => `organizations/${_.organization}/projects/${_.project || ''}`,
   PaymentMethod: _ => `organizations/${_.organization}/payment-methods/${_.paymentMethod || ''}`,
   Region: _ =>  `regions/${_.region || ''}`,
