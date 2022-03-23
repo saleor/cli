@@ -1,7 +1,7 @@
 import { Arguments, CommandBuilder } from "yargs";
 
 import { interactiveDatabaseTemplate, interactiveProject, interactiveSaleorVersion } from "../../middleware/index.js";
-import { deploy, validateLength, waitForTask } from "../../lib/util.js";
+import { deploy, validateEmail, validateLength, waitForTask } from "../../lib/util.js";
 import chalk from "chalk";
 import Enquirer from "enquirer";
 import slugify from "slugify";
@@ -84,22 +84,16 @@ export const handler = async (argv: Arguments<Options>) => {
     initial: argv.name,
     required: true,
     skip: !!argv.name,
-    validate: (value) => {
-      return validateLength(value, 255)
-    }
-  },
-  {
+    validate: (value) => validateLength(value, 255)
+  }, {
     type: 'input',
     name: 'domain',
     message: `Environment domain`,
     initial: slugify(argv.domain || argv.name || ''),
     required: true,
     skip: !!argv.domain,
-    validate: (value) => {
-      return validateLength(value, 40)
-    },
-  },
-  {
+    validate: (value) => validateLength(value, 40)
+  },{
     type: 'confirm',
     name: 'access',
     message: `Would you like to enable dashboard access `,
@@ -115,14 +109,7 @@ export const handler = async (argv: Arguments<Options>) => {
       name: 'emailPrompt',
       message: `Dashboard admin email`,
       initial: argv.email || user.email,
-      validate: (value) => {
-        const re = /\S+@\S+\.\S+/;
-        if (!re.test(value)) {
-          return chalk.red(`Please provide valid email`)
-        }
-
-        return true;
-      }
+      validate: (value) => validateEmail(value)
     }) as { emailPrompt: string };
 
     email = emailPrompt;
