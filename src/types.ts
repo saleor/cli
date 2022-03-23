@@ -1,8 +1,11 @@
 
-export interface Options {
+export interface BaseOptions {
   token?: string
   organization?: string;
   environment?: string
+}
+
+export interface Options extends BaseOptions {
   project?: string
   backup?: string
   region?: string
@@ -23,4 +26,18 @@ export interface Options {
 export interface CreatePromptResult {
   name: string
   value: string | number
+}
+
+export interface OrganizationCreate extends BaseOptions {
+  name?: string
+  company_name?: string
+  email?: string
+  phone?: string
+  address_1?: string
+  address_2?: string
+  city?: string
+  postal_code?: string
+  country?: string
+  region?: string
+
 }
