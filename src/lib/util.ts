@@ -7,7 +7,7 @@ import { emphasize } from 'emphasize';
 import yaml from "yaml";
 
 import { API, GET, POST, Region } from "../lib/index.js";
-import { Options } from "../types.js";
+import { Options, ProjectCreate } from "../types.js";
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -252,36 +252,30 @@ export const printContext = (organization?: string, environment?: string) => {
   console.log(message + '\n')
 }
 
-export const createProject = async (argv: Options) => {
+export const createProject = async (argv: ProjectCreate) => {
   const { promptName } = await Enquirer.prompt({
     type: 'input',
     name: 'promptName',
     message: `Type name`,
+    initial: argv.name,
+    skip: !!argv.name,
   }) as { promptName: string };
 
-  const choosenRegion = await promptRegion(argv);
-  const choosenPlan = await promptPlan(argv);
+  const choosenRegion = argv.region ? { value: argv.region } : await promptRegion(argv);
+  const choosenPlan = argv.plan ? { value: argv.plan } :  await promptPlan(argv);
 
-  const { proceed } = await Enquirer.prompt({
-    type: 'confirm',
-    name: 'proceed',
-    message: `You are going to crate project ${promptName}. Continue`,
-  }) as { proceed: boolean };
+  const spinner = ora(`Creating project ${promptName}...`).start();
 
-  if (proceed) {
-    const project = await POST(API.Project, argv, {
-      json: {
-        name: promptName,
-        plan: choosenPlan.value,
-        region: choosenRegion.value }
-    }) as any;
+  const project = await POST(API.Project, argv, {
+    json: {
+      name: promptName,
+      plan: choosenPlan.value,
+      region: choosenRegion.value }
+  }) as any;
 
-    console.log(chalk.green("✔"), chalk.bold("Project has been successfuly created"));
+  spinner.succeed(`Yay! Project ${promptName} created!`)
 
-    return { name: project.slug, value: project.slug }
-  }
-
-  process.exit(0)
+  return { name: project.slug, value: project.slug }
 }
 
 export const validateLength = ( value: string,
@@ -382,6 +376,18 @@ export const showResult = (result: {}) => {
   console.log(emphasize.highlight("yaml", yaml.stringify(result), {
     'attr': chalk.blue
   }).value);
+}
+
+export const confirmRemoval = async (argv: Options, name: string) => {
+  const { proceed } = await Enquirer.prompt({
+    type: 'confirm',
+    name: 'proceed',
+    initial: argv.force,
+    skip: !!argv.force,
+    message: `You are going to remove ${name}. Continue`,
+  }) as { proceed: boolean };
+
+  return proceed;
 }
 
 export const countries : { [key: string]: string} = {

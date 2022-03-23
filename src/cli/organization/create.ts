@@ -54,7 +54,6 @@ export const builder: CommandBuilder = (_) =>
     type: 'string',
     desc: 'specify the company region',
   })
-
   .option("default", {
     type: 'boolean',
     desc: 'set as default organization in CLI',

@@ -10,7 +10,7 @@ export const command = "list";
 export const desc = "List environments";
 
 export const handler = async (argv: Arguments<Options>) => {
-  const result = await GET(API.Organization, { ...argv, organization: '' }) as any[]; 
+  const result = await GET(API.Organization, { ...argv, organization: '' }) as any[];
 
   cli.table(result, {
     slug: { minWidth: 2 },
@@ -19,6 +19,4 @@ export const handler = async (argv: Arguments<Options>) => {
     company_name: { minWidth: 2 },
     owner_email: { minWidth: 2, get: _ => _.owner.email },
   });
-
-  process.exit(0);
 };
