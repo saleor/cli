@@ -1,31 +1,29 @@
 import type { Arguments, CommandBuilder } from "yargs";
 import { API, DELETE } from "../../lib/index.js";
 import { Options } from "../../types.js";
-import { promptOrganization } from "../../lib/util.js";
+import { confirmRemoval, promptOrganization } from "../../lib/util.js";
 import Enquirer from "enquirer";
 import { Config } from "../../lib/config.js";
 import chalk from "chalk";
 
-export const command = "remove";
+export const command = "remove [slug]";
 export const desc = "Remove the organization";
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("slug", { 
-    type: "string", 
+  _.positional("slug", {
+    type: "string",
     demandOption: false,
     desc: 'slug of the organization'
+  })
+  .option("force", {
+    type: 'boolean',
+    desc: 'skip confrimation prompt',
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  const organization = await promptOrganization(argv)
-
-  console.log(`You are going to delete organization: ${organization.name}!`);
-
-  const { proceed } = await Enquirer.prompt({
-    type: 'confirm',
-    name: 'proceed',
-    message: `You are going to remove organization ${organization.name}. Continue`,
-  }) as { proceed: boolean };
+  const organization = argv.slug ? { name: argv.slug, value: argv.slug } :
+                                    await promptOrganization(argv);
+  const proceed = await confirmRemoval(argv, `organization ${organization.name}`);
 
   if (proceed) {
     await DELETE(API.Organization, {...argv, organization: organization.value}) as any;
@@ -36,6 +34,4 @@ export const handler = async (argv: Arguments<Options>) => {
 
     console.log(chalk.green("✔"), chalk.bold("Organization has been successfuly removed"));
   }
-
-  process.exit(0);
 };

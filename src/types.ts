@@ -21,6 +21,8 @@ export interface Options extends BaseOptions {
   refreshToken?: string
   webhookID?: string
   task?: string
+  slug?: string
+  force?: boolean
 }
 
 export interface CreatePromptResult {
@@ -40,4 +42,9 @@ export interface OrganizationCreate extends BaseOptions {
   country?: string
   region?: string
 
+}
+export interface ProjectCreate extends BaseOptions {
+  name?: string
+  plan?: string
+  region?: string
 }
