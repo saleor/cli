@@ -132,7 +132,7 @@ export const interactiveProject = async (argv: Options) => {
 
 export const interactiveDatabaseTemplate = async (argv: Options) => {
   if (!argv.database) {
-    const db = await promptDatabaseTemplate(argv);
+    const db = await promptDatabaseTemplate();
     const backup = await checkBackup(argv, db);
     return { database: db.value, ...backup };
   }

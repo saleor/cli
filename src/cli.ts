@@ -1,4 +1,4 @@
-#!/usr/bin/env node 
+#!/usr/bin/env node
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -33,8 +33,8 @@ const pkg = require("../package.json");
 
 // console.log(boxen('Update available\nsomething', { padding: 1, margin: 1, float: 'center', borderColor: 'yellow' }));
 
-const notifier = updateNotifier({ 
-  pkg, 
+const notifier = updateNotifier({
+  pkg,
   updateCheckInterval: 1000 * 60 * 60  // one hour
 });
 notifier.notify();
@@ -67,7 +67,7 @@ yargs(hideBin(process.argv))
     console.log("\n");
 
     if (error instanceof HTTPError) {
-      const { statusCode, body } = error.response as Response<any>;
+      const { body } = error.response as Response<any>;
 
       try {
         const errors = JSON.parse(body)

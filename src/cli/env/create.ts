@@ -161,7 +161,7 @@ export const handler = async (argv: Arguments<Options>) => {
     password = passwordPrompt;
   }
 
-  let json = {
+  const json = {
     name,
     domain_label: domain,
     email,

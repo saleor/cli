@@ -14,7 +14,7 @@ const BaseOptions = {
 
 type DefaultURLPath = (_: Options) => string;
 
-const handleAuthAndConfig = (func: Function) => async (pathFunc: DefaultURLPath, argv: Options, options: any = {}) => {
+const handleAuthAndConfig = (func: (path: string, options?: any) => any) => async (pathFunc: DefaultURLPath, argv: Options, options: any = {}) => {
   const path = pathFunc(argv);
 
   debug(path)

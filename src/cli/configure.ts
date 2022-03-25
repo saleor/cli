@@ -14,15 +14,15 @@ const { ux: cli } = CliUx;
 export const command = "configure [token]";
 export const desc = "Configure Saleor CLI";
 
-export const builder: CommandBuilder<{}, Options> = (_) =>
+export const builder: CommandBuilder = (_) =>
   _.positional("token", { type: "string", demandOption: false });
 
 export const handler = async (argv: Arguments<Options>) => {
-  let { token } = argv;
+  const { token } = argv;
   const legitToken = await configure(token)
 
   console.log(`
-Saleor Telemetry is ${_.underline('completely anonymous and optional')} information about general usage. 
+Saleor Telemetry is ${_.underline('completely anonymous and optional')} information about general usage.
 You may opt-out at any time (check 'saleor telemetry').
 Learn more: ${_.gray('https://saleor.io/')}${_.blueBright('telemetry')}
   `)

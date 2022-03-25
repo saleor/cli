@@ -20,13 +20,13 @@ export class AuthError extends Error {
 }
 
 // Higher-Order Creator for Prompts
-const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation: boolean = false) => {
+const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation = false) => {
   const collection = await fetcher();
 
   if (!collection.length && !allowCreation) {
     console.warn(chalk.red(`No ${name}s found`))
     process.exit(0)
-  };
+  }
 
   const creation = allowCreation ? [{name: "Create new"}] : []
   const choices = [...creation, ...collection.map(extractor)];
@@ -47,12 +47,6 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
   }
 
   return { name: result.name, value: result.value }
-}
-
-
-const SaleorVersionMapper: Record<string, string> = {
-  '3.0.0': 'saleor-stable-staging',
-  '3.1.0': 'saleor-latest-staging'
 }
 
 const doRefreshToken = `
@@ -181,14 +175,14 @@ export const promptVersion = async (argv: any) => createPrompt(
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
-export const promptCompatibleVersion = async (argv: any, service: string = "SANDBOX" ) => createPrompt(
+export const promptCompatibleVersion = async (argv: any, service = "SANDBOX" ) => createPrompt(
   'production service',
   'Select a Saleor service',
   async () =>  (await GET(API.Services, { region: Region, ...argv }) as any).filter(({service_type}: any) => service_type === service),
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
-export const promptDatabaseTemplate = async (argv: any) => createPrompt(
+export const promptDatabaseTemplate = async () => createPrompt(
   'database',
   'Select the database template',
   () => ([{name: 'sample', value: 'sample'},
@@ -280,8 +274,8 @@ export const createProject = async (argv: ProjectCreate) => {
 
 export const validateLength = ( value: string,
                                 maxLength: number,
-                                name: string = '',
-                                required: boolean = false): boolean | string => {
+                                name = '',
+                                required = false): boolean | string => {
 
   if (required && value.length < 1) {
     return chalk.red(`please provide value`)
@@ -295,7 +289,7 @@ export const validateLength = ( value: string,
   return true;
 }
 
-export const validateEmail = (value: string, required: boolean = true): boolean | string => {
+export const validateEmail = (value: string, required = true): boolean | string => {
   if (!required && value.length < 1) {
     return true;
   }
@@ -371,7 +365,7 @@ export const waitForTask = async (argv: Options, taskId: string, spinnerText: st
   `);
 }
 
-export const showResult = (result: {}) => {
+export const showResult = (result: Record<string, unknown>) => {
   console.log("---")
   console.log(emphasize.highlight("yaml", yaml.stringify(result), {
     'attr': chalk.blue
