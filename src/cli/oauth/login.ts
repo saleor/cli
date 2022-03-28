@@ -25,7 +25,6 @@ export const desc = "Log in to the Saleor Cloud";
 
 export const builder: CommandBuilder = (_) => _
 
-
 export const handler = async (argv: Arguments<Options>) => {
   const generatedState = 'alamakota123';
 
