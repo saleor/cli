@@ -15,9 +15,8 @@ const { ux: cli } = CliUx;
 const { GET } = route;
 const { Redirect } = response;
 
-const ClientID = "5r1kk2fjnfdngoprj7ihlgihku";
-const ClientSecret = "1fh39iiahp0u22b0p9cqt92cd4hs8acc1mat3gv7hacucobc0ff0";
-const RedirectURI = "http://localhost:4000/";
+const ClientID = "2rb8kssv36nj9skfhdtm6uuevj";
+const RedirectURI = "http://localhost:3000/";
 
 const BaseURL = "https://saleor-cloud-staging-oauth.auth.us-east-1.amazoncognito.com";
 const Params = {
@@ -25,7 +24,7 @@ const Params = {
   client_id: ClientID,
   redirect_uri: RedirectURI,
   identity_provider: "COGNITO",
-  scope: "phone email profile aws.cognito.signin.user.admin",
+  scope: "phone email openid profile aws.cognito.signin.user.admin",
 }
 
 export const command = "login";
@@ -60,19 +59,14 @@ export const handler = async (argv: Arguments<Options>) => {
         redirect_uri: RedirectURI,
       }
 
-      const auth = Buffer.from(`${ClientID}:${ClientSecret}`).toString('base64');
-
       try {
         const data: any = await got.post(`${BaseURL}/oauth2/token`, {
           form: Params,
-          headers: {
-            Authorization: `Basic ${auth}`
-          }
         }).json();
 
-        const { access_token, refresh_token } = data;
+        const { id_token, refresh_token } = data;
 
-        await Config.set("token", `Bearer ${access_token}`);
+        await Config.set("token", `Bearer ${id_token}`);
         await Config.set("refresh_token", refresh_token);
 
       } catch (error: any) {
@@ -85,7 +79,7 @@ export const handler = async (argv: Arguments<Options>) => {
       return Redirect('https://saleor.io');
     })
   ])
-  await app.start(4000);
+  await app.start(3000);
 
   emitter.on('finish', async () => {
     await app.stop(); 
