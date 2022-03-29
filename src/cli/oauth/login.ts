@@ -8,9 +8,12 @@ import { delay } from "../../lib/util.js";
 import { Options } from "../../types.js";
 import got from "got";
 import { Config } from "../../lib/config.js";
+import { response } from "retes";
+import EventEmitter from 'events'
 
 const { ux: cli } = CliUx;
 const { GET } = route;
+const { Redirect } = response;
 
 const ClientID = "5r1kk2fjnfdngoprj7ihlgihku";
 const ClientSecret = "1fh39iiahp0u22b0p9cqt92cd4hs8acc1mat3gv7hacucobc0ff0";
@@ -32,9 +35,11 @@ export const builder: CommandBuilder = (_) => _
 
 export const handler = async (argv: Arguments<Options>) => {
   const generatedState = nanoid();
+  const emitter = new EventEmitter()
 
-  // const spinner = ora('\nLogging in...').start();
-  // await delay(1500);
+  const spinner = ora('\nLogging in...').start();
+  await delay(1500);
+  console.log("\n")
 
   const QueryParams = new URLSearchParams({...Params, state: generatedState });
   const url = `${BaseURL}/login?${QueryParams}`;
@@ -74,11 +79,15 @@ export const handler = async (argv: Arguments<Options>) => {
         console.log(error);
       }
 
-      await app.stop(); 
-      return "Check the CLI";
+      spinner.succeed('Success! Access granted and credentials savely stored')
+      emitter.emit('finish');
+
+      return Redirect('https://saleor.io');
     })
   ])
   await app.start(4000);
 
-  spinner.succeed('Success! Access granted and credentials savely stored')
+  emitter.on('finish', async () => {
+    await app.stop(); 
+  });
 };
