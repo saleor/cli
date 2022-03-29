@@ -22,6 +22,8 @@ From now on, you can start executing any CLI commands.
 Usage: saleor <command> [options]
 
 Commands:
+  saleor info                    Hello from Saleor
+  saleor login                   Log in to the Saleor Cloud
   saleor configure [token]       Configure Saleor CLI
   saleor organization [command]                                   [aliases: org]
   saleor environment [command]                                    [aliases: env]
@@ -29,6 +31,10 @@ Commands:
   saleor job [command]
   saleor project [command]
   saleor storefront [command]
+  saleor telemetry [command]                                     [aliases: tele]
+  saleor webhook [command]                                       [aliases: hook]
+  saleor app [command]
+  saleor token [command]
 
 Options:
   -V, --version  Show version number                                   [boolean]
@@ -38,6 +44,10 @@ for more information, find the documentation at https://saleor.io
 ```
 
 ## Available commands
+
+### `info`
+
+### `login`
 
 ### `configure`
 
@@ -52,6 +62,10 @@ for more information, find the documentation at https://saleor.io
 ### `project`
 
 ### `storefront`
+
+### `telemetry`
+
+
 
 ## Development
 
