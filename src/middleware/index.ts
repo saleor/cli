@@ -235,7 +235,7 @@ export const useTelemetry = async (argv: Arguments) => {
       });
     } catch (error) {
       if (error instanceof HTTPError) {
-        console.error('Telemetry is broken')
+        console.error(`${chalk.yellow('Warning')} Telemetry is down `)
       }
       // FIXME
     }
