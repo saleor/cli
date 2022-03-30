@@ -34,11 +34,11 @@ export const builder: CommandBuilder = (_) => _
 
 export const handler = async (argv: Arguments<Options>) => {
   const generatedState = nanoid();
-  const emitter = new EventEmitter()
+  const emitter = new EventEmitter();
 
   const spinner = ora('\nLogging in...').start();
   await delay(1500);
-  console.log("\n")
+  spinner.text = '\nLogging in...\n';
 
   const QueryParams = new URLSearchParams({...Params, state: generatedState });
   const url = `${BaseURL}/login?${QueryParams}`;
@@ -73,15 +73,15 @@ export const handler = async (argv: Arguments<Options>) => {
         console.log(error);
       }
 
-      spinner.succeed('Success! Access granted and credentials savely stored')
+      spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
       emitter.emit('finish');
 
-      return Redirect('https://saleor.io');
+      return Redirect('https://cloud.saleor.io');
     })
   ])
   await app.start(3000);
 
   emitter.on('finish', async () => {
-    await app.stop(); 
+    await app.stop();
   });
 };
