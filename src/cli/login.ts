@@ -23,7 +23,7 @@ export const builder: CommandBuilder = (_) => _
 
 export const handler = async (argv: Arguments<Options>) => {
   const { email } = await enquirer.prompt<{ email: string }>({
-    type: "text", 
+    type: "text",
     name: 'email',
     message: 'Your Saleor Cloud email?'
   });

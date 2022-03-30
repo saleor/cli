@@ -1,4 +1,4 @@
-import type { Arguments, CommandBuilder } from "yargs";
+import type { CommandBuilder } from "yargs";
 import { createRequire } from "module";
 import { CliUx } from "@oclif/core";
 import chalk from "chalk";
@@ -16,12 +16,12 @@ export const command = "info";
 export const desc = "Hello from Saleor";
 
 export const builder: CommandBuilder = (_) => _
-export const handler = async (argv: Arguments): Promise<void> => {
+export const handler = async (): Promise<void> => {
    header(pkg.version)
 
    console.log(`
-   
-   
+
+
    `)
    console.log(
       chalk.blue(

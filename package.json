@@ -11,7 +11,8 @@
     "compile": "tsc",
     "watch": "tsc -w",
     "package": "pkg .",
-    "publish": "clean-publish"
+    "publish": "clean-publish",
+    "eslint": "eslint src/**/*.ts"
   },
   "files": [
     "build"
@@ -36,7 +37,11 @@
     "@types/prompt": "^1.1.2",
     "@types/update-notifier": "^5.1.0",
     "@types/yargs": "^17.0.10",
+    "@typescript-eslint/eslint-plugin": "^5.16.0",
+    "@typescript-eslint/parser": "^5.16.0",
     "clean-publish": "^4.0.0",
+    "eslint": "^8.11.0",
+    "eslint-plugin-simple-import-sort": "^7.0.0",
     "pkg": "^5.5.2",
     "typescript": "4.6.3"
   },
