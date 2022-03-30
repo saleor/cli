@@ -2,7 +2,7 @@ import chalk from "chalk";
 import type { Arguments, CommandBuilder } from "yargs";
 
 import { Config } from "../../lib/config.js";
-import { promptOrganization, promptEnvironment } from "../../lib/util.js";
+import { promptOrganization } from "../../lib/util.js";
 import { Options } from "../../types.js";
 
 export const command = "switch [slug]";
@@ -20,5 +20,6 @@ export const handler = async (argv: Arguments<Options>) => {
                                     await promptOrganization(argv);
 
   await Config.set("organization_slug", organization.value);
+  await Config.remove("environment_id");
   console.log(chalk.green("✔"), chalk.bold("Organization ·"), chalk.cyan(organization.value));
 };
