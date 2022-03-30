@@ -23,6 +23,7 @@ export interface Options extends BaseOptions {
   task?: string
   slug?: string
   force?: boolean
+  key?: string
 }
 
 export interface CreatePromptResult {
