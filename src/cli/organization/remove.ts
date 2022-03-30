@@ -2,7 +2,6 @@ import type { Arguments, CommandBuilder } from "yargs";
 import { API, DELETE } from "../../lib/index.js";
 import { Options } from "../../types.js";
 import { confirmRemoval, promptOrganization } from "../../lib/util.js";
-import Enquirer from "enquirer";
 import { Config } from "../../lib/config.js";
 import chalk from "chalk";
 
@@ -29,7 +28,8 @@ export const handler = async (argv: Arguments<Options>) => {
     await DELETE(API.Organization, {...argv, organization: organization.value}) as any;
     const { organization_slug } = await Config.get();
     if (organization.value === organization_slug) {
-      Config.remove("organization_slug")
+      await Config.remove("organization_slug")
+      await Config.remove("environment_id")
     }
 
     console.log(chalk.green("✔"), chalk.bold("Organization has been successfuly removed"));
