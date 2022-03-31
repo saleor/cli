@@ -60,7 +60,6 @@ export const builder: CommandBuilder = (_) =>
     })
     .option("deploy", {
       type: 'boolean',
-      default: false,
       desc: 'specify Vercel deployment',
     })
     .option("restore_from", {
@@ -196,7 +195,7 @@ export const handler = async (argv: Arguments<Options>) => {
     name: 'deployPrompt',
     message: `Deploy our react-storefront starter pack to Vercel`,
     initial: argv.deploy,
-    skip: !argv.deploy
+    skip: !(argv.deploy === undefined)
   }) as { deployPrompt: boolean };
 
   if (deployPrompt) {
