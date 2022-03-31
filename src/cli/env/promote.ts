@@ -6,7 +6,7 @@ import { promptCompatibleVersion, showResult } from "../../lib/util.js";
 import { useEnvironment } from "../../middleware/index.js";
 
 export const command = "promote [environment]";
-export const desc = "Promote environment to produciton";
+export const desc = "Promote environment to production";
 
 export const builder: CommandBuilder = (_) => _
 
