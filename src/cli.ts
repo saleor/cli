@@ -20,6 +20,7 @@ import webhook from './cli/webhook/index.js';
 import app from './cli/app/index.js';
 import token from './cli/token/index.js';
 import oauth from './cli/oauth/index.js';
+import vercel from './cli/vercel/index.js';
 
 import * as login from './cli/login.js';
 import * as configure from './cli/configure.js';
@@ -58,6 +59,7 @@ yargs(hideBin(process.argv))
   .command(['app [command]'], '', app)
   .command(['token [command]'], '', token)
   .command(['oauth [command]', 'oa'], '', oauth)
+  .command(['vercel [command]'], '', vercel)
   .strictCommands()
   .middleware(useTelemetry)
   .demandCommand(1, 'You need at least one command before moving on')
