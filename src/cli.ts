@@ -87,7 +87,7 @@ yargs(hideBin(process.argv))
     } else if (error) {
       console.log(error)
     } else {
-      header(pkg.version);
+      if (!process.argv.slice(2).length) header(pkg.version);
       console.log(yargs.help())
     }
     process.exit(1)
