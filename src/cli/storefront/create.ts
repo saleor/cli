@@ -40,7 +40,7 @@ react-storefront project uses the pnpm package manager. To install it, run:`));
   const baseUrl = `https://${env.domain}/graphql/`;
   replace.sync({
     files: '.env',
-    from: `NEXT_PUBLIC_API_URI=https://vercel.saleor.cloud/graphql/`,
+    from: /NEXT_PUBLIC_API_URI=.*/g,
     to: `NEXT_PUBLIC_API_URI=${baseUrl}`});
 
   spinner.text = 'Installing dependencies...';
