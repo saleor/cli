@@ -2,7 +2,7 @@ lockfileVersion: 5.3
 
 specifiers:
   '@mobily/ts-belt': ^3.10.0
-  '@oclif/core': ^1.6.3
+  '@oclif/core': ^1.6.4
   '@types/debug': ^4.1.7
   '@types/figlet': ^1.5.4
   '@types/fs-extra': ^9.0.13
@@ -39,7 +39,7 @@ specifiers:
 
 dependencies:
   '@mobily/ts-belt': 3.10.0
-  '@oclif/core': 1.6.3
+  '@oclif/core': 1.6.4
   aws-amplify: 4.3.18_debug@4.3.4
   boxen: 6.2.1
   chalk: 5.0.1
@@ -2122,8 +2122,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.13.0
 
-  /@oclif/core/1.6.3:
-    resolution: {integrity: sha512-a3DrPNlOYemwnzxuJ3tINjqpMVIYe56Mg+XaQo0nGsqGSk69wF5Q/hD8plsWrtwdkeIxwxhgl7T699EJypAUwg==}
+  /@oclif/core/1.6.4:
+    resolution: {integrity: sha512-eUnh03MWxs3PHQUdZbo43ceLqmeOgGegsfimeqd6xfhcKwSv8dqarRyAoMCjg7P6Qm5qCjaNFZ6eS4ao349xvQ==}
     engines: {node: '>=12.0.0'}
     dependencies:
       '@oclif/linewrap': 1.0.0
@@ -2646,7 +2646,7 @@ packages:
       chalk: 4.1.2
       cli-boxes: 3.0.0
       string-width: 5.1.2
-      type-fest: 2.12.1
+      type-fest: 2.12.2
       widest-line: 4.0.1
       wrap-ansi: 8.0.1
     dev: false
@@ -3629,7 +3629,7 @@ packages:
       delay: 5.0.0
       p-wait-for: 3.2.0
       roarr: 7.11.0
-      type-fest: 2.12.1
+      type-fest: 2.12.2
     dev: false
 
   /http2-wrapper/2.1.10:
@@ -4896,8 +4896,8 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /type-fest/2.12.1:
-    resolution: {integrity: sha512-AiknQSEqKVGDDjtZqeKrUoTlcj7FKhupmnVUgz6KoOKtvMwRGE6hUNJ/nVear+h7fnUPO1q/htSkYKb1pyntkQ==}
+  /type-fest/2.12.2:
+    resolution: {integrity: sha512-qt6ylCGpLjZ7AaODxbpyBZSs9fCI9SkL3Z9q2oxMBQhs/uyY+VD8jHA8ULCGmWQJlBgqvO3EJeAngOHD8zQCrQ==}
     engines: {node: '>=12.20'}
     dev: false
 
