@@ -1,20 +1,42 @@
 # Saleor CLI
 
-## Install
+## Getting Started
+
+### Install 
+
+Use `npm` to install `saleor-cli`:
 
 ```
 npm i -g saleor-cli
 ```
 
+You can also use `npx` to execute the Saleor CLI commands on the spot without installing the package. 
+
+```
+npx saleor-cli environment list
+```
+
 > If you're using `nvm`, make sure that the `NVM_BIN` path is added to `PATH`
 
-The `saleor` binary requires the **Cloud API Token**. Once you obtain it from your Cloud instance administrator, run `saleor configure` to set it up
+### Login
+
+The `saleor` binary requires the **Cloud API Token**. You can obtain it via OAuth with the `login` command:
 
 ```
-saleor configure
+saleor login
 ```
 
-From now on, you can start executing any CLI commands.
+This command will open a browser and ask for your Saleor Cloud credentials. Once logged in, it will store your Cloud API Token locally for the CLI to use it.
+
+You can now start executing any of the available commands. 
+
+### Create a storefront
+
+Let's create a new React.js storefront that is automatically configured with your Saleor Cloud environment:
+
+```
+saleor store create my-brand-new-storefront
+```
 
 ## Usage
 
