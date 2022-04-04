@@ -6,8 +6,11 @@ import { existsSync } from 'fs';
 import { lookpath  } from "lookpath";
 import chalk from "chalk";
 import replace from "replace-in-file";
+import sanitize from "sanitize-filename";
+
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
+
 
 export const command = "create [name]";
 export const desc = "Boostrap example [name]";
@@ -32,7 +35,7 @@ react-storefront project uses the pnpm package manager. To install it, run:`));
   const file = await download(`saleor/react-storefront`)
 
   spinner.text = 'Extracting...'
-  const target = getFolderName(argv.name);
+  const target = getFolderName(sanitize(argv.name));
   await extract(file, target);
 
   process.chdir(target);
