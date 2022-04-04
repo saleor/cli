@@ -21,7 +21,6 @@ import app from './cli/app/index.js';
 import token from './cli/token/index.js';
 import oauth from './cli/oauth/index.js';
 import vercel from './cli/vercel/index.js';
-import store from './cli/store/index.js';
 
 import * as login from './cli/login.js';
 import * as configure from './cli/configure.js';
@@ -49,13 +48,12 @@ yargs(hideBin(process.argv))
   .command(info)
   .command(login)
   .command(configure)
-  .command(['store [command]', 'org'], '', store)
   .command(['organization [command]', 'org'], '', organization)
   .command(['environment [command]', 'env'], '', environment)
   .command(['backup [command]'], '', backup)
   .command(['job [command]'], '', job)
   .command(['project [command]'], '', project)
-  .command(['storefront [command]'], '', storefront)
+  .command(['storefront [command]', 'store'], '', storefront)
   .command(['telemetry [command]', 'tele'], '', telemetry)
   .command(['webhook [command]', 'hook'], '', webhook)
   .command(['app [command]'], '', app)
