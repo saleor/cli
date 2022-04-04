@@ -65,6 +65,7 @@
     "prompt": "^1.2.2",
     "replace-in-file": "^6.3.2",
     "retes": "^0.23.0",
+    "sanitize-filename": "^1.6.3",
     "slugify": "^1.6.5",
     "update-notifier": "^5.1.0",
     "yaml": "^1.10.2",
