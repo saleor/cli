@@ -204,7 +204,7 @@ export const promptEnvironment = async (argv: any) => createPrompt(
   'Select Environment',
   async () => await GET(API.Environment, {...argv, environment: ''}),
   (_: any) => ({ name: _.name, value: _.key }),
-  true
+  false
 );
 
 export const promptOrganization = async (argv: any) => createPrompt(
