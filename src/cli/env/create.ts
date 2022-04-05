@@ -184,7 +184,7 @@ export const handler = async (argv: Arguments<Options>) => {
   ${accessMsg}
 
 
-  ${gqlMsg}`, { padding: 1 }));
+${gqlMsg}`, { padding: 1 }));
 
   if (access) {
     await GET(API.SetAdminAccount, { ...argv, environment: result.key }) as any;
