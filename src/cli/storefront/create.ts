@@ -15,7 +15,7 @@ import { StoreCreate } from "../../types.js";
 export const command = "create [name]";
 export const desc = "Boostrap example [name]";
 
-export const builder: CommandBuilder<{}, StoreCreate> = (_) =>
+export const builder: CommandBuilder<Record<string, never>, StoreCreate> = (_) =>
   _.positional("name", { type: "string", demandOption: true, default: "saleor-react-storefront-app" })
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -24,10 +24,10 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   const pnpm = await lookpath('pnpm');
 
   if (!pnpm) {
-    console.log(chalk.red(`
-react-storefront project uses the pnpm package manager. To install it, run:`));
-  console.log(`
-  npm install -g pnpm`);
+    console.log(chalk.red(`✘ react-storefront project uses the pnpm package manager. To install it, run:`));
+    console.log(`
+  npm install -g pnpm
+`);
     process.exit(1);
   }
 
@@ -57,7 +57,7 @@ const runExec = async (cmd: string, log: boolean, result = false): Promise<strin
   const child = await exec(cmd);
   for await (const data of child.stdout || []) {
     if (log) console.log(data);
-  };
+  }
 }
 
 const getFolderName = (name: string): string => {
