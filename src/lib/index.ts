@@ -59,8 +59,7 @@ export const API: Record<string, DefaultURLPath> = {
   PaymentMethod: _ => `organizations/${_.organization}/payment-methods/${_.paymentMethod || ''}`,
   Region: _ =>  `regions/${_.region || ''}`,
   Services: _ => `regions/${_.region}/services/${_.serviceName || ''}`,
-  Plan: _ => `plans/${_.plan || ''}`,
-  Login: _ => `login`
+  Plan: _ => `plans/${_.plan || ''}`
 }
 
 
