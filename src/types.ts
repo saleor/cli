@@ -49,3 +49,7 @@ export interface ProjectCreate extends BaseOptions {
   plan?: string
   region?: string
 }
+
+export interface StoreCreate extends BaseOptions {
+  name: string
+}
