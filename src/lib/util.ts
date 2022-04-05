@@ -253,6 +253,7 @@ export const createProject = async (argv: ProjectCreate) => {
     message: `Type name`,
     initial: argv.name,
     skip: !!argv.name,
+    validate: (value) => validatePresence(value)
   }) as { promptName: string };
 
   const choosenRegion = argv.region ? { value: argv.region } : await promptRegion(argv);
@@ -301,6 +302,15 @@ export const validateEmail = (value: string, required = true): boolean | string 
   }
 
   return true;
+}
+
+export const validatePresence = (value: string): boolean => {
+  if (value.length < 1) {
+    console.log(chalk.red(`please provide value`))
+    return false
+  }
+
+  return true
 }
 
 export const deploy = async ({ name, url }: { name: string, url: string }) => {
