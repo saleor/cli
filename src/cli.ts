@@ -18,7 +18,6 @@ import job from './cli/job/index.js';
 import telemetry from './cli/telemetry/index.js';
 import webhook from './cli/webhook/index.js';
 import app from './cli/app/index.js';
-import oauth from './cli/oauth/index.js';
 import vercel from './cli/vercel/index.js';
 
 import * as login from './cli/login.js';
@@ -56,7 +55,6 @@ yargs(hideBin(process.argv))
   .command(['telemetry [command]', 'tele'], '', telemetry)
   .command(['webhook [command]', 'hook'], '', webhook)
   .command(['app [command]'], '', app)
-  .command(['oauth [command]', 'oa'], '', oauth)
   .command(['vercel [command]'], '', vercel)
   .strictCommands()
   .middleware(useTelemetry)
