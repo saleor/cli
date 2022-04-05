@@ -53,7 +53,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   await runExec(`pnpm run dev`, true);
 };
 
-const runExec = async (cmd: string, log: boolean, result = false): Promise<string | void> => {
+const runExec = async (cmd: string, log: boolean): Promise<string | void> => {
   const child = await exec(cmd);
   for await (const data of child.stdout || []) {
     if (log) console.log(data);
