@@ -10,9 +10,9 @@ specifiers:
   '@types/prompt': ^1.1.2
   '@types/update-notifier': ^5.1.0
   '@types/yargs': ^17.0.10
-  '@typescript-eslint/eslint-plugin': ^5.17.0
-  '@typescript-eslint/parser': ^5.17.0
-  aws-amplify: ^4.3.18
+  '@typescript-eslint/eslint-plugin': ^5.18.0
+  '@typescript-eslint/parser': ^5.18.0
+  aws-amplify: ^4.3.19
   boxen: ^6.2.1
   chalk: ^5.0.1
   clean-publish: ^4.0.0
@@ -44,7 +44,7 @@ specifiers:
 dependencies:
   '@mobily/ts-belt': 3.10.0
   '@oclif/core': 1.6.4
-  aws-amplify: 4.3.18_debug@4.3.4
+  aws-amplify: 4.3.19_debug@4.3.4
   boxen: 6.2.1
   chalk: 5.0.1
   cli-highlight: 2.1.11
@@ -76,8 +76,8 @@ devDependencies:
   '@types/prompt': 1.1.2
   '@types/update-notifier': 5.1.0
   '@types/yargs': 17.0.10
-  '@typescript-eslint/eslint-plugin': 5.17.0_689ff565753ecf7c3328c07fad067df5
-  '@typescript-eslint/parser': 5.17.0_eslint@8.12.0+typescript@4.6.3
+  '@typescript-eslint/eslint-plugin': 5.18.0_a07dca3bdfc4bfa60f4dda0c1f9e3287
+  '@typescript-eslint/parser': 5.18.0_eslint@8.12.0+typescript@4.6.3
   clean-publish: 4.0.0
   eslint: 8.12.0
   eslint-plugin-simple-import-sort: 7.0.0_eslint@8.12.0
@@ -86,11 +86,11 @@ devDependencies:
 
 packages:
 
-  /@aws-amplify/analytics/5.2.3:
-    resolution: {integrity: sha512-S4VBzGuz67MZwozK2nXp/9gcMqFAZxpT3zaBQXWSxQvXmhj9oE8mN40u5faMG6tgpoSFOxIS64ll4jtCzk/eBg==}
+  /@aws-amplify/analytics/5.2.4:
+    resolution: {integrity: sha512-4a30qxEeT3+fjt/fRLj9mQyfVO/nV2qOoxjR/F/isST6xGPL9y9+oEhPGvVuYSUuqWz4Fm7dT5zucbdjUx77NA==}
     dependencies:
-      '@aws-amplify/cache': 4.0.38
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/cache': 4.0.39
+      '@aws-amplify/core': 4.5.1
       '@aws-sdk/client-firehose': 3.6.1
       '@aws-sdk/client-kinesis': 3.6.1
       '@aws-sdk/client-personalize-events': 3.6.1
@@ -102,14 +102,14 @@ packages:
       - react-native
     dev: false
 
-  /@aws-amplify/api-graphql/2.3.0_debug@4.3.4:
-    resolution: {integrity: sha512-RJ0lE+oQNX3ugVN35tEngnDC3zkh1wd2XNMDaQKPjmL8RbyucPWZR2Qku3EH8evZa1XpwNbdp83Pskb4+3vwDQ==}
+  /@aws-amplify/api-graphql/2.3.1_debug@4.3.4:
+    resolution: {integrity: sha512-O2GtAhfi2uV85rUAl/CGSdc1T2SNr3VIzRmzRNUbE2hKxdgUM35iQgb3P7tEAQJT8FaC6uGIOWqRBe0xDupV+g==}
     dependencies:
-      '@aws-amplify/api-rest': 2.0.36_debug@4.3.4
-      '@aws-amplify/auth': 4.5.0
-      '@aws-amplify/cache': 4.0.38
-      '@aws-amplify/core': 4.5.0
-      '@aws-amplify/pubsub': 4.3.0
+      '@aws-amplify/api-rest': 2.0.37_debug@4.3.4
+      '@aws-amplify/auth': 4.5.1
+      '@aws-amplify/cache': 4.0.39
+      '@aws-amplify/core': 4.5.1
+      '@aws-amplify/pubsub': 4.3.1
       graphql: 15.8.0
       uuid: 3.4.0
       zen-observable-ts: 0.8.19
@@ -119,32 +119,32 @@ packages:
       - react-native
     dev: false
 
-  /@aws-amplify/api-rest/2.0.36_debug@4.3.4:
-    resolution: {integrity: sha512-Exd7LKUh0ztVC7PcU8xtvntpN4/nvJVK/zsc8OzuT2lprtXZ8Zhy4x8Fv3xF7rcbNO/cCTOK4pQ0zzDanfanZQ==}
+  /@aws-amplify/api-rest/2.0.37_debug@4.3.4:
+    resolution: {integrity: sha512-Hx5qnPsREtyt8Bja/951fj5rP2jUsH7AF+Lh0V447Bm43UcRQ0MrcgiKNLMflQt0/BBezInmnkXqfPR6YIES3g==}
     dependencies:
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/core': 4.5.1
       axios: 0.21.4_debug@4.3.4
     transitivePeerDependencies:
       - debug
       - react-native
     dev: false
 
-  /@aws-amplify/api/4.0.36_debug@4.3.4:
-    resolution: {integrity: sha512-Zi1QmxEtis+/4vhNUwBmD3jAJJARcNORJVqrB4qKK4al/EWSNFz8Zp3JKDkrg5s9yLrRDXw4ydYK8+zv8WqQRQ==}
+  /@aws-amplify/api/4.0.37_debug@4.3.4:
+    resolution: {integrity: sha512-8oPhX7NvzRo7QoeSZniebn2kgOxiXNegX45yEi5bDoxTxGNT2pMT37N0fDD3VxhP23+1ggPa+zHJh6hHZI+iXQ==}
     dependencies:
-      '@aws-amplify/api-graphql': 2.3.0_debug@4.3.4
-      '@aws-amplify/api-rest': 2.0.36_debug@4.3.4
+      '@aws-amplify/api-graphql': 2.3.1_debug@4.3.4
+      '@aws-amplify/api-rest': 2.0.37_debug@4.3.4
     transitivePeerDependencies:
       - debug
       - encoding
       - react-native
     dev: false
 
-  /@aws-amplify/auth/4.5.0:
-    resolution: {integrity: sha512-L8AgQPzseev7IdxwHG/qD1GCCCEGNvu4iSEnn1HZSsAHAr3G2Li/l+8/QzXGvavYyCx/ruJj5Whs9YPpZ/PEng==}
+  /@aws-amplify/auth/4.5.1:
+    resolution: {integrity: sha512-c95Np9usoclAywk4bKPGQB/8iQ8L9n9pX/QqSt2coDlm21Ys+a89WwzLhF/tSFUFnPNF2azw4F7I5RP6HzRbnQ==}
     dependencies:
-      '@aws-amplify/cache': 4.0.38
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/cache': 4.0.39
+      '@aws-amplify/core': 4.5.1
       amazon-cognito-identity-js: 5.2.8
       crypto-js: 4.1.1
     transitivePeerDependencies:
@@ -152,16 +152,16 @@ packages:
       - react-native
     dev: false
 
-  /@aws-amplify/cache/4.0.38:
-    resolution: {integrity: sha512-ZM9Z+D4HvCaL86DdlV7Iz2FwaYSXviDk6Bd1f/IU3KYWksqScGhz7/Lbxmi+O3qOayRDy6VToHaa3QEM/4F/bg==}
+  /@aws-amplify/cache/4.0.39:
+    resolution: {integrity: sha512-mM/to+aWxoZ/XwrF4SMuxN2huiS/h2KHyqssy7dDK0urGi4x2GsKpeXB5DwKm+5gs2mVydwtULHYd3UGoURqKw==}
     dependencies:
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/core': 4.5.1
     transitivePeerDependencies:
       - react-native
     dev: false
 
-  /@aws-amplify/core/4.5.0:
-    resolution: {integrity: sha512-V6x7n26flxPNpQI9nrXUotfuIlxw2ctFaLAXXnfsKaR9GnwZjGn7ML4czjhzNypq5qUMSofr/cDno8fp43/elw==}
+  /@aws-amplify/core/4.5.1:
+    resolution: {integrity: sha512-W7VKC6C7KlQ0RHGdPG0S8rcIb5mx9oBzd0LM4rqJVqY6AsE6K0pB0s7vXmr+A8S1h45mq6YMjQEmrpv98E4SXQ==}
     dependencies:
       '@aws-crypto/sha256-js': 1.0.0-alpha.0
       '@aws-sdk/client-cloudwatch-logs': 3.6.1
@@ -175,13 +175,13 @@ packages:
       - react-native
     dev: false
 
-  /@aws-amplify/datastore/3.8.0_debug@4.3.4:
-    resolution: {integrity: sha512-82aubfHvRoD0K39HgAf4RYRkqbCsLBVd3hWZFiOKtLge3BbeBmT1iVGEeEcZ/xUeLAGGZWACYuiPVajqgddYFw==}
+  /@aws-amplify/datastore/3.9.0_debug@4.3.4:
+    resolution: {integrity: sha512-x0spftjkDL5rXMr1wAvhUJZqhCWMeJRlRQH20LQ4IjMGl6muinC0s1e/ERqTtyynxS+hS6rL4f4nxbL5TqX7pA==}
     dependencies:
-      '@aws-amplify/api': 4.0.36_debug@4.3.4
-      '@aws-amplify/auth': 4.5.0
-      '@aws-amplify/core': 4.5.0
-      '@aws-amplify/pubsub': 4.3.0
+      '@aws-amplify/api': 4.0.37_debug@4.3.4
+      '@aws-amplify/auth': 4.5.1
+      '@aws-amplify/core': 4.5.1
+      '@aws-amplify/pubsub': 4.3.1
       amazon-cognito-identity-js: 5.2.8
       idb: 5.0.6
       immer: 9.0.6
@@ -195,30 +195,31 @@ packages:
       - react-native
     dev: false
 
-  /@aws-amplify/geo/1.2.4:
-    resolution: {integrity: sha512-GvSLAkUUUgAh5v4J7ZyE4dVri+DA88qgc1Mc5RP35lpYUuNQ7PYLJL6yF/lz8Ow7P+9IDthzVOtuJaUyEvACdQ==}
+  /@aws-amplify/geo/1.3.0:
+    resolution: {integrity: sha512-QfV3cjzFH6pW33DcvqPy0wapMtgxMzeeyRdvDGeLoTZzb9WXVmR/9bQ3NcixDA7QHE7KQIUnmHSfenGoJCEHzQ==}
     dependencies:
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/core': 4.5.1
       '@aws-sdk/client-location': 3.48.0
+      '@turf/boolean-clockwise': 6.5.0
       camelcase-keys: 6.2.2
     transitivePeerDependencies:
       - react-native
     dev: false
 
-  /@aws-amplify/interactions/4.0.36:
-    resolution: {integrity: sha512-qvfOsJmKZ2Rrr8gclLgTKjh8n09NR3npSYafJlOYfE2cJRWDWJFhq6JVkjcbV+iUCZcfgVqzRo47Q/5ygm0woQ==}
+  /@aws-amplify/interactions/4.0.37:
+    resolution: {integrity: sha512-KbkPxUQfirTkLs5b1S50xJCa39ATG9XmpERkpAx+j/u8T8J/N0ltYaIEhZ0IhQL40ljgAVGkozYaZ7D72wzYwg==}
     dependencies:
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/core': 4.5.1
       '@aws-sdk/client-lex-runtime-service': 3.6.1
     transitivePeerDependencies:
       - react-native
     dev: false
 
-  /@aws-amplify/predictions/4.0.36_debug@4.3.4:
-    resolution: {integrity: sha512-DPI3+OJMgCDbYO2UHCtTuIORuzYn4inR8uCg7L2ppPCuMouqkKd2MfoTutSohH99mbe49JEAdhpnqgNW4goD6Q==}
+  /@aws-amplify/predictions/4.0.37_debug@4.3.4:
+    resolution: {integrity: sha512-2vemsrshwu2+8lUp1GQIv4gkSKGpbzRESAP0dLwaJFMxrWeUAkL9h+lN4HxRF1Cjpho4b+b1opG5FHxn/0gAlw==}
     dependencies:
-      '@aws-amplify/core': 4.5.0
-      '@aws-amplify/storage': 4.4.19_debug@4.3.4
+      '@aws-amplify/core': 4.5.1
+      '@aws-amplify/storage': 4.4.20_debug@4.3.4
       '@aws-sdk/client-comprehend': 3.6.1
       '@aws-sdk/client-polly': 3.6.1
       '@aws-sdk/client-rekognition': 3.6.1
@@ -232,12 +233,12 @@ packages:
       - react-native
     dev: false
 
-  /@aws-amplify/pubsub/4.3.0:
-    resolution: {integrity: sha512-Bw3UtDSUFSUtBDAPLFGq1lxEjquWZCSncl8aD5IrXRqNLGqrEof555gx+2aHMWQFtf80TgsPMDgGqhLetUdbpA==}
+  /@aws-amplify/pubsub/4.3.1:
+    resolution: {integrity: sha512-cSUjS6IFgixFZBUSAktVxD6uR4Obskz0Zy5cqFOqMG7XRoEixWUL6LBMmyACKe/12t/UbMgGNuaUA3ZqjtNy/A==}
     dependencies:
-      '@aws-amplify/auth': 4.5.0
-      '@aws-amplify/cache': 4.0.38
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/auth': 4.5.1
+      '@aws-amplify/cache': 4.0.39
+      '@aws-amplify/core': 4.5.1
       graphql: 15.8.0
       paho-mqtt: 1.1.0
       uuid: 3.4.0
@@ -247,10 +248,10 @@ packages:
       - react-native
     dev: false
 
-  /@aws-amplify/storage/4.4.19_debug@4.3.4:
-    resolution: {integrity: sha512-RCVfxG/yEHY6TNbsFuvGL0FIYX0sJ7gWqY1HIwN+29SIl1c6d0lCtO5M9QrIHraUMY1mbkw2JK2Q3EqpYlcgDw==}
+  /@aws-amplify/storage/4.4.20_debug@4.3.4:
+    resolution: {integrity: sha512-qIvx6NcAdabXxCilWKWjIFDTFURdi7pnMQZLU3aqKk8X9qp9Zz/kXbc4YOuxheWU5nVRZKvMhTv0iCKH4pbKbg==}
     dependencies:
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/core': 4.5.1
       '@aws-sdk/client-s3': 3.6.1
       '@aws-sdk/s3-request-presigner': 3.6.1
       '@aws-sdk/util-create-request': 3.6.1
@@ -266,10 +267,10 @@ packages:
     resolution: {integrity: sha512-atoc/zIJRhgpoSDDKgRxbTSD7D9S4wbOzHUHMqRlcEPRKqRrQPGvd6zCUVSBS0jqdrrw6+UTJbWj7ttWCfE4pQ==}
     dev: false
 
-  /@aws-amplify/xr/3.0.36:
-    resolution: {integrity: sha512-aP7+qNJFoBcMBexL0yUZ9C7pDkqFGm4jqYMD80bbWqEu/40QTNkFPVYOod+cN3rHZQtmxadsDK3xcPNjfq6o3g==}
+  /@aws-amplify/xr/3.0.37:
+    resolution: {integrity: sha512-UJF3LJJN2LYDtUaXR0en22vvZxVz5jC0rntJQjZ3w9Y5LycmeHLHUwQ/hhch/pNX3R4nPbt+Yi5JC/J844rpBA==}
     dependencies:
-      '@aws-amplify/core': 4.5.0
+      '@aws-amplify/core': 4.5.1
     transitivePeerDependencies:
       - react-native
     dev: false
@@ -2198,6 +2199,23 @@ packages:
       defer-to-connect: 2.0.1
     dev: false
 
+  /@turf/boolean-clockwise/6.5.0:
+    resolution: {integrity: sha512-45+C7LC5RMbRWrxh3Z0Eihsc8db1VGBO5d9BLTOAwU4jR6SgsunTfRWR16X7JUwIDYlCVEmnjcXJNi/kIU3VIw==}
+    dependencies:
+      '@turf/helpers': 6.5.0
+      '@turf/invariant': 6.5.0
+    dev: false
+
+  /@turf/helpers/6.5.0:
+    resolution: {integrity: sha512-VbI1dV5bLFzohYYdgqwikdMVpe7pJ9X3E+dlr425wa2/sMJqYDhTO++ec38/pcPvPE6oD9WEEeU3Xu3gza+VPw==}
+    dev: false
+
+  /@turf/invariant/6.5.0:
+    resolution: {integrity: sha512-Wv8PRNCtPD31UVbdJE/KVAWKe7l6US+lJItRR/HOEW3eh+U/JwRCSUl/KZ7bmjM/C+zLNoreM2TU6OoLACs4eg==}
+    dependencies:
+      '@turf/helpers': 6.5.0
+    dev: false
+
   /@types/cacheable-request/6.0.2:
     resolution: {integrity: sha512-B3xVo+dlKM6nnKTcmm5ZtY/OL8bOAOd2Olee9M1zft65ox50OzjEHW91sDiU9j6cvW8Ejg1/Qkf4xd2kugApUA==}
     dependencies:
@@ -2239,6 +2257,10 @@ packages:
 
   /@types/http-cache-semantics/4.0.1:
     resolution: {integrity: sha512-SZs7ekbP8CN0txVG2xVRH6EgKmEm31BOxA07vkFaETzZz1xh+cbt8BcI0slpymvwhx5dlFnQG2rTlPVQn+iRPQ==}
+    dev: false
+
+  /@types/json-buffer/3.0.0:
+    resolution: {integrity: sha512-3YP80IxxFJB4b5tYC2SUPwkg0XQLiu0nWvhRgEatgjf+29IcWO9X1k8xRv5DGssJ/lCrjYTjQPcobJr2yWIVuQ==}
     dev: false
 
   /@types/json-schema/7.0.11:
@@ -2296,8 +2318,8 @@ packages:
       '@types/yargs-parser': 21.0.0
     dev: true
 
-  /@typescript-eslint/eslint-plugin/5.17.0_689ff565753ecf7c3328c07fad067df5:
-    resolution: {integrity: sha512-qVstvQilEd89HJk3qcbKt/zZrfBZ+9h2ynpAGlWjWiizA7m/MtLT9RoX6gjtpE500vfIg8jogAkDzdCxbsFASQ==}
+  /@typescript-eslint/eslint-plugin/5.18.0_a07dca3bdfc4bfa60f4dda0c1f9e3287:
+    resolution: {integrity: sha512-tzrmdGMJI/uii9/V6lurMo4/o+dMTKDH82LkNjhJ3adCW22YQydoRs5MwTiqxGF9CSYxPxQ7EYb4jLNlIs+E+A==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       '@typescript-eslint/parser': ^5.0.0
@@ -2307,10 +2329,10 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@typescript-eslint/parser': 5.17.0_eslint@8.12.0+typescript@4.6.3
-      '@typescript-eslint/scope-manager': 5.17.0
-      '@typescript-eslint/type-utils': 5.17.0_eslint@8.12.0+typescript@4.6.3
-      '@typescript-eslint/utils': 5.17.0_eslint@8.12.0+typescript@4.6.3
+      '@typescript-eslint/parser': 5.18.0_eslint@8.12.0+typescript@4.6.3
+      '@typescript-eslint/scope-manager': 5.18.0
+      '@typescript-eslint/type-utils': 5.18.0_eslint@8.12.0+typescript@4.6.3
+      '@typescript-eslint/utils': 5.18.0_eslint@8.12.0+typescript@4.6.3
       debug: 4.3.4
       eslint: 8.12.0
       functional-red-black-tree: 1.0.1
@@ -2323,8 +2345,8 @@ packages:
       - supports-color
     dev: true
 
-  /@typescript-eslint/parser/5.17.0_eslint@8.12.0+typescript@4.6.3:
-    resolution: {integrity: sha512-aRzW9Jg5Rlj2t2/crzhA2f23SIYFlF9mchGudyP0uiD6SenIxzKoLjwzHbafgHn39dNV/TV7xwQkLfFTZlJ4ig==}
+  /@typescript-eslint/parser/5.18.0_eslint@8.12.0+typescript@4.6.3:
+    resolution: {integrity: sha512-+08nYfurBzSSPndngnHvFw/fniWYJ5ymOrn/63oMIbgomVQOvIDhBoJmYZ9lwQOCnQV9xHGvf88ze3jFGUYooQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || ^8.0.0
@@ -2333,9 +2355,9 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@typescript-eslint/scope-manager': 5.17.0
-      '@typescript-eslint/types': 5.17.0
-      '@typescript-eslint/typescript-estree': 5.17.0_typescript@4.6.3
+      '@typescript-eslint/scope-manager': 5.18.0
+      '@typescript-eslint/types': 5.18.0
+      '@typescript-eslint/typescript-estree': 5.18.0_typescript@4.6.3
       debug: 4.3.4
       eslint: 8.12.0
       typescript: 4.6.3
@@ -2343,16 +2365,16 @@ packages:
       - supports-color
     dev: true
 
-  /@typescript-eslint/scope-manager/5.17.0:
-    resolution: {integrity: sha512-062iCYQF/doQ9T2WWfJohQKKN1zmmXVfAcS3xaiialiw8ZUGy05Em6QVNYJGO34/sU1a7a+90U3dUNfqUDHr3w==}
+  /@typescript-eslint/scope-manager/5.18.0:
+    resolution: {integrity: sha512-C0CZML6NyRDj+ZbMqh9FnPscg2PrzSaVQg3IpTmpe0NURMVBXlghGZgMYqBw07YW73i0MCqSDqv2SbywnCS8jQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dependencies:
-      '@typescript-eslint/types': 5.17.0
-      '@typescript-eslint/visitor-keys': 5.17.0
+      '@typescript-eslint/types': 5.18.0
+      '@typescript-eslint/visitor-keys': 5.18.0
     dev: true
 
-  /@typescript-eslint/type-utils/5.17.0_eslint@8.12.0+typescript@4.6.3:
-    resolution: {integrity: sha512-3hU0RynUIlEuqMJA7dragb0/75gZmwNwFf/QJokWzPehTZousP/MNifVSgjxNcDCkM5HI2K22TjQWUmmHUINSg==}
+  /@typescript-eslint/type-utils/5.18.0_eslint@8.12.0+typescript@4.6.3:
+    resolution: {integrity: sha512-vcn9/6J5D6jtHxpEJrgK8FhaM8r6J1/ZiNu70ZUJN554Y3D9t3iovi6u7JF8l/e7FcBIxeuTEidZDR70UuCIfA==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: '*'
@@ -2361,7 +2383,7 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@typescript-eslint/utils': 5.17.0_eslint@8.12.0+typescript@4.6.3
+      '@typescript-eslint/utils': 5.18.0_eslint@8.12.0+typescript@4.6.3
       debug: 4.3.4
       eslint: 8.12.0
       tsutils: 3.21.0_typescript@4.6.3
@@ -2370,13 +2392,13 @@ packages:
       - supports-color
     dev: true
 
-  /@typescript-eslint/types/5.17.0:
-    resolution: {integrity: sha512-AgQ4rWzmCxOZLioFEjlzOI3Ch8giDWx8aUDxyNw9iOeCvD3GEYAB7dxWGQy4T/rPVe8iPmu73jPHuaSqcjKvxw==}
+  /@typescript-eslint/types/5.18.0:
+    resolution: {integrity: sha512-bhV1+XjM+9bHMTmXi46p1Led5NP6iqQcsOxgx7fvk6gGiV48c6IynY0apQb7693twJDsXiVzNXTflhplmaiJaw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dev: true
 
-  /@typescript-eslint/typescript-estree/5.17.0_typescript@4.6.3:
-    resolution: {integrity: sha512-X1gtjEcmM7Je+qJRhq7ZAAaNXYhTgqMkR10euC4Si6PIjb+kwEQHSxGazXUQXFyqfEXdkGf6JijUu5R0uceQzg==}
+  /@typescript-eslint/typescript-estree/5.18.0_typescript@4.6.3:
+    resolution: {integrity: sha512-wa+2VAhOPpZs1bVij9e5gyVu60ReMi/KuOx4LKjGx2Y3XTNUDJgQ+5f77D49pHtqef/klglf+mibuHs9TrPxdQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       typescript: '*'
@@ -2384,8 +2406,8 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@typescript-eslint/types': 5.17.0
-      '@typescript-eslint/visitor-keys': 5.17.0
+      '@typescript-eslint/types': 5.18.0
+      '@typescript-eslint/visitor-keys': 5.18.0
       debug: 4.3.4
       globby: 11.1.0
       is-glob: 4.0.3
@@ -2396,16 +2418,16 @@ packages:
       - supports-color
     dev: true
 
-  /@typescript-eslint/utils/5.17.0_eslint@8.12.0+typescript@4.6.3:
-    resolution: {integrity: sha512-DVvndq1QoxQH+hFv+MUQHrrWZ7gQ5KcJzyjhzcqB1Y2Xes1UQQkTRPUfRpqhS8mhTWsSb2+iyvDW1Lef5DD7vA==}
+  /@typescript-eslint/utils/5.18.0_eslint@8.12.0+typescript@4.6.3:
+    resolution: {integrity: sha512-+hFGWUMMri7OFY26TsOlGa+zgjEy1ssEipxpLjtl4wSll8zy85x0GrUSju/FHdKfVorZPYJLkF3I4XPtnCTewA==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || ^8.0.0
     dependencies:
       '@types/json-schema': 7.0.11
-      '@typescript-eslint/scope-manager': 5.17.0
-      '@typescript-eslint/types': 5.17.0
-      '@typescript-eslint/typescript-estree': 5.17.0_typescript@4.6.3
+      '@typescript-eslint/scope-manager': 5.18.0
+      '@typescript-eslint/types': 5.18.0
+      '@typescript-eslint/typescript-estree': 5.18.0_typescript@4.6.3
       eslint: 8.12.0
       eslint-scope: 5.1.1
       eslint-utils: 3.0.0_eslint@8.12.0
@@ -2414,11 +2436,11 @@ packages:
       - typescript
     dev: true
 
-  /@typescript-eslint/visitor-keys/5.17.0:
-    resolution: {integrity: sha512-6K/zlc4OfCagUu7Am/BD5k8PSWQOgh34Nrv9Rxe2tBzlJ7uOeJ/h7ugCGDCeEZHT6k2CJBhbk9IsbkPI0uvUkA==}
+  /@typescript-eslint/visitor-keys/5.18.0:
+    resolution: {integrity: sha512-Hf+t+dJsjAKpKSkg3EHvbtEpFFb/1CiOHnvI8bjHgOD4/wAw3gKrA0i94LrbekypiZVanJu3McWJg7rWDMzRTg==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dependencies:
-      '@typescript-eslint/types': 5.17.0
+      '@typescript-eslint/types': 5.18.0
       eslint-visitor-keys: 3.3.0
     dev: true
 
@@ -2557,22 +2579,22 @@ packages:
     resolution: {integrity: sha512-+q/t7Ekv1EDY2l6Gda6LLiX14rU9TV20Wa3ofeQmwPFZbOMo9DXrLbOjFaaclkXKWidIaopwAObQDqwWtGUjqg==}
     engines: {node: '>= 4.0.0'}
 
-  /aws-amplify/4.3.18_debug@4.3.4:
-    resolution: {integrity: sha512-3mveKiXjD5blL6JjiLuzJcaMmUl1nsZzEqhkvBaQ+vYmps+JtTGdTYwjxQrisDz3B+y7MvT5ih17Z5wI3Y7sgw==}
+  /aws-amplify/4.3.19_debug@4.3.4:
+    resolution: {integrity: sha512-j/+st5jqjtxevmATjlCAg82IlY/eP8ar8JntyGgDsooSin+MPkuoHtZMY9gpClH2CeCC0FiMQkw4ZA4w2k96Xg==}
     dependencies:
-      '@aws-amplify/analytics': 5.2.3
-      '@aws-amplify/api': 4.0.36_debug@4.3.4
-      '@aws-amplify/auth': 4.5.0
-      '@aws-amplify/cache': 4.0.38
-      '@aws-amplify/core': 4.5.0
-      '@aws-amplify/datastore': 3.8.0_debug@4.3.4
-      '@aws-amplify/geo': 1.2.4
-      '@aws-amplify/interactions': 4.0.36
-      '@aws-amplify/predictions': 4.0.36_debug@4.3.4
-      '@aws-amplify/pubsub': 4.3.0
-      '@aws-amplify/storage': 4.4.19_debug@4.3.4
+      '@aws-amplify/analytics': 5.2.4
+      '@aws-amplify/api': 4.0.37_debug@4.3.4
+      '@aws-amplify/auth': 4.5.1
+      '@aws-amplify/cache': 4.0.39
+      '@aws-amplify/core': 4.5.1
+      '@aws-amplify/datastore': 3.9.0_debug@4.3.4
+      '@aws-amplify/geo': 1.3.0
+      '@aws-amplify/interactions': 4.0.37
+      '@aws-amplify/predictions': 4.0.37_debug@4.3.4
+      '@aws-amplify/pubsub': 4.3.1
+      '@aws-amplify/storage': 4.4.20_debug@4.3.4
       '@aws-amplify/ui': 2.0.5
-      '@aws-amplify/xr': 3.0.36
+      '@aws-amplify/xr': 3.0.37
     transitivePeerDependencies:
       - debug
       - encoding
@@ -2725,7 +2747,7 @@ packages:
       clone-response: 1.0.2
       get-stream: 5.2.0
       http-cache-semantics: 4.1.0
-      keyv: 4.1.1
+      keyv: 4.2.1
       lowercase-keys: 2.0.0
       normalize-url: 6.1.0
       responselike: 2.0.0
@@ -2890,6 +2912,14 @@ packages:
     engines: {node: '>=0.1.90'}
     dev: false
 
+  /compress-brotli/1.3.6:
+    resolution: {integrity: sha512-au99/GqZtUtiCBliqLFbWlhnCxn+XSYjwZ77q6mKN4La4qOXDoLVPZ50iXr0WmAyMxl8yqoq3Yq4OeQNPPkyeQ==}
+    engines: {node: '>= 12'}
+    dependencies:
+      '@types/json-buffer': 3.0.0
+      json-buffer: 3.0.1
+    dev: false
+
   /concat-map/0.0.1:
     resolution: {integrity: sha1-2Klr13/Wjfd5OnMDajug1UBdR3s=}
 
@@ -2898,7 +2928,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       dot-prop: 5.3.0
-      graceful-fs: 4.2.9
+      graceful-fs: 4.2.10
       make-dir: 3.1.0
       unique-string: 2.0.0
       write-file-atomic: 3.0.3
@@ -3431,7 +3461,7 @@ packages:
     resolution: {integrity: sha512-NbdoVMZso2Lsrn/QwLXOy6rm0ufY2zEOKCDzJR/0kBsb0E6qed0P3iYK+Ath3BfvXEeu4JhEtXLgILx5psUfag==}
     engines: {node: '>=12'}
     dependencies:
-      graceful-fs: 4.2.9
+      graceful-fs: 4.2.10
       jsonfile: 6.1.0
       universalify: 2.0.0
     dev: false
@@ -3441,7 +3471,7 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       at-least-node: 1.0.0
-      graceful-fs: 4.2.9
+      graceful-fs: 4.2.10
       jsonfile: 6.1.0
       universalify: 2.0.0
 
@@ -3608,8 +3638,8 @@ packages:
       url-parse-lax: 3.0.0
     dev: false
 
-  /graceful-fs/4.2.9:
-    resolution: {integrity: sha512-NtNxqUcXgpW2iMrfqSfR73Glt39K+BLwWsPs94yR63v45T0Wbej7eRmL5cWfwEgqXnmjQp3zaJTshdRW/qC2ZQ==}
+  /graceful-fs/4.2.10:
+    resolution: {integrity: sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==}
 
   /graphql/15.8.0:
     resolution: {integrity: sha512-5gghUc24tP9HRznNpV2+FIoq3xKkj5dTQqf4v0CpdPbFVwFkWoxOM+o+2OC9ZSvjEMTjfmG9QT+gcvggTwW1zw==}
@@ -3905,7 +3935,7 @@ packages:
     dependencies:
       universalify: 2.0.0
     optionalDependencies:
-      graceful-fs: 4.2.9
+      graceful-fs: 4.2.10
 
   /keyv/3.1.0:
     resolution: {integrity: sha512-9ykJ/46SN/9KPM/sichzQ7OvXyGDYKGTaDlKMGCAlg2UK8KRy4jb0d8sFc+0Tt0YYnThq8X2RZgCg74RPxgcVA==}
@@ -3913,9 +3943,10 @@ packages:
       json-buffer: 3.0.0
     dev: false
 
-  /keyv/4.1.1:
-    resolution: {integrity: sha512-tGv1yP6snQVDSM4X6yxrv2zzq/EvpW+oYiUz6aueW1u9CtS8RzUQYxxmFwgZlO2jSgCxQbchhxaqXXp2hnKGpQ==}
+  /keyv/4.2.1:
+    resolution: {integrity: sha512-cAJq5cTfxQdq1DHZEVNpnk4mEvhP+8UP8UQftLtTtJ98beKkRHf+62M0mIDM2u/IWXyP8bmGB375/6uGdSX2MA==}
     dependencies:
+      compress-brotli: 1.3.6
       json-buffer: 3.0.1
     dev: false
 
