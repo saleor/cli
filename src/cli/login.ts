@@ -9,6 +9,7 @@ import got from "got";
 import { Config } from "../lib/config.js";
 import { response } from "retes";
 import EventEmitter from 'events'
+import { API, POST } from "../lib/index.js";
 
 const { ux: cli } = CliUx;
 const { GET } = route;
@@ -59,15 +60,15 @@ export const handler = async () => {
       }
 
       try {
-        const data: any = await got.post(`${BaseURL}/oauth2/token`, {
+        const { id_token }: any = await got.post(`${BaseURL}/oauth2/token`, {
           form: Params,
         }).json();
+        const { token }: any  = await POST(
+          API.Token,
+          { token: `Bearer ${id_token}`}
+        );
 
-        const { id_token, refresh_token } = data;
-
-        await Config.set("token", `Bearer ${id_token}`);
-        await Config.set("refresh_token", refresh_token);
-
+        await Config.set("token", `Token ${token}`);
       } catch (error: any) {
         console.log(error);
       }
