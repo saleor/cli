@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-### Install 
+### Install
 
 Use `npm` to install `saleor-cli`:
 
@@ -10,7 +10,7 @@ Use `npm` to install `saleor-cli`:
 npm i -g saleor-cli
 ```
 
-You can also use `npx` to execute the Saleor CLI commands on the spot without installing the package. 
+You can also use `npx` to execute the Saleor CLI commands on the spot without installing the package.
 
 ```
 npx saleor-cli environment list
@@ -28,7 +28,7 @@ saleor login
 
 This command will open a browser and ask for your Saleor Cloud credentials. Once logged in, it will store your Cloud API Token locally for the CLI to use it.
 
-You can now start executing any of the available commands. 
+You can now start executing any of the available commands.
 
 ### Create a storefront
 
@@ -52,11 +52,11 @@ Commands:
   saleor backup [command]
   saleor job [command]
   saleor project [command]
-  saleor storefront [command]
+  saleor storefront [command]                                   [aliases: store]
   saleor telemetry [command]                                     [aliases: tele]
   saleor webhook [command]                                       [aliases: hook]
   saleor app [command]
-  saleor token [command]
+  saleor vercel [command]
 
 Options:
   -V, --version  Show version number                                   [boolean]
@@ -87,7 +87,11 @@ for more information, find the documentation at https://saleor.io
 
 ### `telemetry`
 
+### `webhook`
 
+### `app`
+
+### `vercel`
 
 ## Development
 
