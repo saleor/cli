@@ -1,7 +1,7 @@
 import type { Arguments, CommandBuilder } from "yargs";
 import { download, extract } from "gitly";
 import ora from "ora";
-import { exec } from 'child_process';
+import { spawnSync, spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { lookpath  } from "lookpath";
 import chalk from "chalk";
@@ -46,16 +46,12 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     to: `NEXT_PUBLIC_API_URI=${baseUrl}`});
 
   spinner.text = 'Installing dependencies...';
-  await runExec(`pnpm i`, false);
+  spawnSync('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
   spinner.succeed('Staring ...\`pnpm run dev\`');
 
-  await runExec(`pnpm run dev`, true);
-};
-
-const runExec = async (cmd: string, log: boolean): Promise<string | void> => {
-  const child = await exec(cmd);
+  const child = await spawn('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() });
   for await (const data of child.stdout || []) {
-    if (log) console.log(data);
+    console.log(data);
   }
 }
 
