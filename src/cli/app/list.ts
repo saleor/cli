@@ -2,12 +2,11 @@ import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import got from 'got';
 import { Arguments } from 'yargs';
-import { SaleorAppByID } from '../../graphql/SaleorAppByID.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
+import { Config } from '../../lib/config.js';
 
 import { API, GET } from "../../lib/index.js";
-import { formatDateTime, makeRequestRefreshToken, printContext } from '../../lib/util.js';
-import { interactiveDashboardLogin, interactiveSaleorApp } from '../../middleware/index.js';
+import { formatDateTime, printContext } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
@@ -21,12 +20,11 @@ export const handler = async (argv: Arguments<Options>) => {
   printContext(organization, environment)
 
   const { domain } = await GET(API.Environment, argv) as any; 
-
-  const token = await makeRequestRefreshToken(domain, argv);
+  const { token } = await Config.get();
 
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
     headers: {
-      'Authorization-Bearer': token,
+      'Authorization-Bearer': token.split(' ').slice(-1),
     },
     json: { 
       query: SaleorAppList, 
@@ -76,7 +74,3 @@ export const handler = async (argv: Arguments<Options>) => {
 
   process.exit(0);
 };
-
-export const middlewares = [
-  interactiveDashboardLogin,
-]

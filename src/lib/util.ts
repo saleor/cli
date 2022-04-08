@@ -9,6 +9,7 @@ import yaml from "yaml";
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options, ProjectCreate } from "../types.js";
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
+import { Config } from './config.js';
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -49,37 +50,6 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
   return { name: result.name, value: result.value }
 }
 
-const doRefreshToken = `
-mutation refreshTokenWithUser($csrfToken: String!, $refreshToken: String!) {
-  tokenRefresh(csrfToken: $csrfToken, refreshToken: $refreshToken) {
-    token
-  }
-}
-`
-
-export const makeRequestRefreshToken = async (domain: string, argv: any) => {
-  const { csrfToken, refreshToken } = argv;
-
-  const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
-    json: {
-      query: doRefreshToken,
-      variables: { csrfToken, refreshToken }
-    }
-  }).json()
-
-  if (errors) {
-    throw new AuthError("cannot refresh the token")
-  }
-
-  const { tokenRefresh: { token } } = data;
-
-  if (!token) {
-    throw new AuthError("cannot auth")
-  }
-
-  return token
-}
-
 const AppList = `
 query AppsList {
   apps(first: 100) {
@@ -103,12 +73,12 @@ query AppsList {
 
 export const makeRequestAppList = async (argv: any) => {
   const { domain } = (await GET(API.Environment, argv)) as any;
+  const { token } = await Config.get();
 
-  const token = await makeRequestRefreshToken(domain, argv);
   const { data, errors }: any = await got
     .post(`https://${domain}/graphql`, {
       headers: {
-        "authorization-bearer": token,
+        'Authorization-Bearer': token.split(' ').slice(-1),
         "content-type": "application/json",
       },
       json: { query: AppList },
@@ -131,14 +101,14 @@ export const promptWebhook = async (argv: any) => createPrompt(
   'Select a Webhook',
   async () => {
     const { domain } = (await GET(API.Environment, argv)) as any;
-    const token = await makeRequestRefreshToken(domain, argv);
-
+    const { token } = await Config.get();
+  
     const { app: appID } = argv;
 
     const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
       headers: {
-        'authorization-bearer': token,
-        'content-type': 'application/json',
+        'Authorization-Bearer': token.split(' ').slice(-1),
+        'Content-Type': 'application/json',
       },
       json: {
         query: SaleorAppByID,
