@@ -2,11 +2,11 @@ import type { Arguments, CommandBuilder } from "yargs";
 
 import Enquirer from "enquirer";
 import got from "got";
-import { API, GET, POST } from "../../lib/index.js";
-import { makeRequestRefreshToken } from "../../lib/util.js";
+import { API, GET } from "../../lib/index.js";
 import { Options } from "../../types.js";
-import { interactiveDashboardLogin, interactiveSaleorApp, interactiveWebhook } from "../../middleware/index.js";
+import { interactiveSaleorApp, interactiveWebhook } from "../../middleware/index.js";
 import { doWebhookUpdate } from "../../graphql/doWebhookUpdate.js";
+import { Config } from "../../lib/config.js";
 
 export const command = "edit";
 export const desc = "Edit a webhook";
@@ -15,6 +15,7 @@ export const builder: CommandBuilder = (_) => _
 
 export const handler = async (argv: Arguments<Options>) => {
   const { name, environment, webhookID } = argv;
+  const { token } = await Config.get();
 
   console.log(`Editing the webhook for the ${environment} environment`);
 
@@ -28,22 +29,22 @@ export const handler = async (argv: Arguments<Options>) => {
     ]
   });
 
-  const form = await prompt.run();
+  const result = await prompt.run();
+
+  const form = Object.fromEntries(Object.entries(result).filter(([_, v]) => v));
 
   const { domain } = await GET(API.Environment, argv) as any; 
 
-  const token = await makeRequestRefreshToken(domain, argv);
-
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
     headers: {
-      'Authorization-Bearer': token,
+      'Authorization-Bearer': token.split(' ').slice(-1),
     },
     json: { 
       query: doWebhookUpdate, 
       variables: {
         id: webhookID,
         input: {
-          ...form,
+          ...form
         }
       }
     }
@@ -55,7 +56,6 @@ export const handler = async (argv: Arguments<Options>) => {
 };
 
 export const middlewares = [
-  interactiveDashboardLogin,
   interactiveSaleorApp,
   interactiveWebhook,
 ]

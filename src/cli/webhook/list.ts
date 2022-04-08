@@ -48,6 +48,7 @@ query AppList {
 export const handler = async (argv: Arguments<Options>) => {
   const { domain } = await GET(API.Environment, argv) as any;
   const { token } = await Config.get();
+
   const url = `https://${domain}/graphql`;
 
   const { data, errors }: any = await got.post(url, {
@@ -72,7 +73,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const { apps: { edges: apps } } = data;
 
   for (const { node: { name, webhooks }} of apps) {
-    console.log(` App: ${name}\n`)
+    console.log(`\n App: ${name}\n`)
 
     cli.table(webhooks, {
       id: {
