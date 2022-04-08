@@ -1,14 +1,12 @@
 import type { Arguments, CommandBuilder } from "yargs";
 
-import chalk from "chalk";
-import { emphasize } from "emphasize";
 import Enquirer from "enquirer";
 import got from "got";
-import { API, GET, POST } from "../../lib/index.js";
-import { makeRequestRefreshToken } from "../../lib/util.js";
+import { API, GET } from "../../lib/index.js";
 import { Options } from "../../types.js";
 import { doWebhookCreate } from "../../graphql/doWebhookCreate.js";
-import { interactiveDashboardLogin, interactiveSaleorApp } from "../../middleware/index.js";
+import { interactiveSaleorApp } from "../../middleware/index.js";
+import { Config } from "../../lib/config.js";
 
 export const command = "create";
 export const desc = "Create a new backup";
@@ -34,11 +32,11 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const { domain } = await GET(API.Environment, argv) as any; 
 
-  const token = await makeRequestRefreshToken(domain, argv);
+  const { token } = await Config.get();
 
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
     headers: {
-      'Authorization-Bearer': token,
+      'Authorization-Bearer': token.split(' ').slice(-1),
     },
     json: { 
       query: doWebhookCreate, 
@@ -58,6 +56,5 @@ export const handler = async (argv: Arguments<Options>) => {
 };
 
 export const middlewares = [
-  interactiveDashboardLogin,
   interactiveSaleorApp,
 ]
