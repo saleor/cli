@@ -34,7 +34,7 @@ const pkg = require("../package.json");
 
 const notifier = updateNotifier({
   pkg,
-  updateCheckInterval: 1000 * 60 * 60  // one hour
+  updateCheckInterval: 1000 * 60 * 15 // 15 minutes 
 });
 notifier.notify();
 
