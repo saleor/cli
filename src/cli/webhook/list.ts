@@ -2,6 +2,7 @@ import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import got from 'got';
 import { Arguments } from 'yargs';
+import { WebhookList } from '../../graphql/WebhookList.js';
 import { Config } from '../../lib/config.js';
 
 import { API, GET } from "../../lib/index.js";
@@ -12,39 +13,6 @@ const { ux: cli } = CliUx;
 export const command = "list";
 export const desc = "List webhooks for an environment";
 
-const AppList = `
-query AppList {
-  apps (
-    first: 0
-    last:100
-  ) {
-    totalCount
-    edges {
-      node {
-        id
-        name
-        isActive
-        webhooks {
-          id
-          name
-          isActive
-          targetUrl
-          syncEvents {
-            eventType
-          }
-          asyncEvents {
-            eventType
-          }
-        }
-        __typename
-      }
-      __typename
-    }
-    __typename
-  }
-}
-`
-
 export const handler = async (argv: Arguments<Options>) => {
   const { domain } = await GET(API.Environment, argv) as any;
   const { token } = await Config.get();
@@ -53,11 +21,11 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const { data, errors }: any = await got.post(url, {
     headers: {
-      'authorization-bearer': token.split(' ').slice(-1),
-      'content-type': 'application/json',
+      'Authorization-Bearer': token.split(' ').slice(-1),
+      'Content-Type': 'application/json',
     },
     json: {
-      query: AppList
+      query: WebhookList
     }
   }).json()
 
