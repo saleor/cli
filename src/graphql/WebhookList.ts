@@ -11,7 +11,14 @@ query WebhookList {
         webhooks {
           id
           name
+          isActive
           targetUrl
+          syncEvents {
+            eventType
+          }
+          asyncEvents {
+            eventType
+          }
         }
       }
     }
