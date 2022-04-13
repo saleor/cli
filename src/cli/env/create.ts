@@ -7,6 +7,7 @@ import Enquirer from "enquirer";
 import slugify from "slugify";
 import boxen from "boxen";
 import { API, GET, POST } from "../../lib/index.js";
+import { updateWebhook } from "../webhook/update.js";
 interface Options {
   name: string
   project: string
@@ -188,6 +189,18 @@ ${gqlMsg}`, { padding: 1 }));
 
   if (access) {
     await GET(API.SetAdminAccount, { ...argv, environment: result.key }) as any;
+  }
+
+  if (!!argv.restore_from) {
+    const { update } = await Enquirer.prompt<{ update: string }>({
+      type: "confirm",
+      name: 'update',
+      message: 'Would you like to update webhooks targetUrl',
+    });
+
+    if (update) {
+      await updateWebhook(result.domain);
+    }
   }
 
   const { deployPrompt } = await Enquirer.prompt({
