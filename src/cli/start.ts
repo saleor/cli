@@ -19,6 +19,11 @@ export const desc = "Create Saleor account";
 export const builder: CommandBuilder = (_) => _
 
 export const handler = async () => {
+  if ("STAGING" in process.env) {
+    console.log(chalk.red('This command can be run only on production!'));
+    process.exit(1);
+  }
+
   const json = await Enquirer.prompt<{email: string,
                                       firstName: string,
                                       lastName: string,
