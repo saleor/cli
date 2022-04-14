@@ -74,6 +74,7 @@ export const handler = async () => {
           { token: `Bearer ${id_token}`}
         );
 
+        await Config.reset();
         await Config.set("token", `Token ${token}`);
       } catch (error: any) {
         console.log(error);
