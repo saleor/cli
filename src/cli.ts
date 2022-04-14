@@ -23,6 +23,7 @@ import vercel from './cli/vercel/index.js';
 import * as login from './cli/login.js';
 import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
+import * as start from './cli/start.js';
 import { header } from './lib/images.js';
 import { useTelemetry } from './middleware/index.js';
 import { AuthError } from './lib/util.js';
@@ -34,7 +35,7 @@ const pkg = require("../package.json");
 
 const notifier = updateNotifier({
   pkg,
-  updateCheckInterval: 1000 * 60 * 15 // 15 minutes 
+  updateCheckInterval: 1000 * 60 * 15 // 15 minutes
 });
 notifier.notify();
 
@@ -46,6 +47,7 @@ yargs(hideBin(process.argv))
   .command(info)
   .command(login)
   .command(configure)
+  .command(start)
   .command(['organization [command]', 'org'], '', organization)
   .command(['environment [command]', 'env'], '', environment)
   .command(['backup [command]'], '', backup)
