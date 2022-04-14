@@ -6,7 +6,9 @@ const debug = Debug('lib:index'); // esl
 
 import { Options } from '../types.js';
 
-const CloudURL = `https://staging-cloud.saleor.io/api`;
+const CloudURL = ("STAGING" in process.env) ?
+  'https://staging-cloud.saleor.io/api' :
+  'https://cloud.saleor.io/api';
 
 const BaseOptions = {
   prefixUrl: CloudURL,

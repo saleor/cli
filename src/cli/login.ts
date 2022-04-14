@@ -15,10 +15,16 @@ const { ux: cli } = CliUx;
 const { GET } = route;
 const { Redirect } = response;
 
-const ClientID = "2rb8kssv36nj9skfhdtm6uuevj";
+const ClientID =  ("STAGING" in process.env) ?
+  "2rb8kssv36nj9skfhdtm6uuevj" :
+  "2recfkoclv4bf8dapibguvssem";
+
 const RedirectURI = "http://localhost:3000/";
 
-const BaseURL = "https://saleor-cloud-staging-oauth.auth.us-east-1.amazoncognito.com";
+const BaseURL = ("STAGING" in process.env) ?
+  "https://saleor-cloud-staging-oauth.auth.us-east-1.amazoncognito.com" :
+  "https://auth.saleor.io";
+
 const Params = {
   response_type: "code",
   client_id: ClientID,
