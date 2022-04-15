@@ -5,7 +5,7 @@ import { showResult } from '../../lib/util.js';
 import { useOrganization } from "../../middleware/index.js";
 import { Options } from "../../types.js";
 
-export const command = "permissions";
+export const command = "permissions [slug]";
 export const desc = "List organization permissions";
 
 export const builder: CommandBuilder = (_) =>

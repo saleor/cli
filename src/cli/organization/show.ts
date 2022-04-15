@@ -5,7 +5,7 @@ import { Options } from "../../types.js";
 import { useOrganization } from "../../middleware/index.js";
 import { showResult } from "../../lib/util.js";
 
-export const command = "show [organization]";
+export const command = "show [slug]";
 export const desc = "Show a specific organization";
 
 export const builder: CommandBuilder = (_) => _
