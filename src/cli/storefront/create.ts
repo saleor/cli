@@ -1,8 +1,8 @@
-import type { Arguments, CommandBuilder } from "yargs";
+import { Arguments, boolean, CommandBuilder } from "yargs";
 import { download, extract } from "gitly";
 import ora from "ora";
-import { spawnSync, spawn } from 'child_process';
-import { existsSync } from 'fs';
+import { spawn } from 'child_process';
+import { access } from 'fs/promises';
 import { lookpath  } from "lookpath";
 import chalk from "chalk";
 import replace from "replace-in-file";
@@ -34,7 +34,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   const file = await download(`saleor/react-storefront`)
 
   spinner.text = 'Extracting...'
-  const target = getFolderName(sanitize(argv.name));
+  const target = await getFolderName(sanitize(argv.name));
   await extract(file, target);
 
   process.chdir(target);
@@ -46,20 +46,35 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     to: `NEXT_PUBLIC_API_URI=${baseUrl}`});
 
   spinner.text = 'Installing dependencies...';
-  spawnSync('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
+  await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
   spinner.succeed('Staring ...\`pnpm run dev\`');
 
-  const child = await spawn('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() });
+  await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() }, true)
+}
+
+const run = async (cmd: string, params: string[], options: Record<string, unknown>, log = false) => {
+  const child = spawn(cmd, params, options)
   for await (const data of child.stdout || []) {
-    console.log(data);
+    if (log) {console.log(data)}
+  }
+  for await (const data of child.stderr) {
+    console.log(data)
   }
 }
 
-const getFolderName = (name: string): string => {
+const getFolderName = async (name: string): Promise<string> => {
   let folderName = name;
-  while (existsSync(folderName)) {
+  while (await dirExists(folderName)) {
     folderName = folderName.concat('-0');
   }
-
   return folderName
+}
+
+const dirExists = async (name: string): Promise<boolean> => {
+  try {
+    await access(name);
+    return true
+  } catch (error) {
+    return false
+  }
 }
