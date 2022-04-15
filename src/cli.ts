@@ -73,7 +73,7 @@ yargs(hideBin(process.argv))
           attr: chalk.red
         }).value);
       } catch (error: any) {
-        console.log('Ouput is not JSON')
+        console.log('Output is not JSON')
         console.log(error.message)
         console.error('---')
         console.error(body)

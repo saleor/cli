@@ -32,7 +32,7 @@
     "@types/debug": "^4.1.7",
     "@types/figlet": "^1.5.4",
     "@types/fs-extra": "^9.0.13",
-    "@types/node": "^17.0.23",
+    "@types/node": "^17.0.24",
     "@types/prompt": "^1.1.2",
     "@types/update-notifier": "^5.1.0",
     "@types/yargs": "^17.0.10",
@@ -47,7 +47,7 @@
   "dependencies": {
     "@mobily/ts-belt": "^3.10.0",
     "@oclif/core": "^1.7.0",
-    "aws-amplify": "^4.3.19",
+    "aws-amplify": "^4.3.20",
     "boxen": "^6.2.1",
     "chalk": "^5.0.1",
     "cli-highlight": "^2.1.11",
