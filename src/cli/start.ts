@@ -15,8 +15,8 @@ Amplify.configure({
   }
 });
 
-interface Options {
-  fromCli: boolean
+interface Options  {
+  fromCli?: boolean
 }
 
 export const command = "start";
@@ -29,7 +29,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'specify sign up via CLI',
   })
 
-export const handler = async (argv: Arguments ) => {
+export const handler = async (argv: Arguments<Options>) => {
   if (!argv.fromCli) {
     cli.open('https://cloud.saleor.io/register');
     process.exit(0);
