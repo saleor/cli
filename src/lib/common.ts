@@ -1,3 +1,4 @@
+import { spawn } from "child_process";
 import Enquirer from "enquirer";
 import got from "got";
 import { AppInstall } from "../graphql/AppInstall.js";
@@ -42,5 +43,15 @@ export const doSaleorAppInstall = async (argv: any) => {
     console.log(data.errors)
     console.log(data.appInstall.errors)
     throw Error("cannot auth")
+  }
+}
+
+export const run = async (cmd: string, params: string[], options: Record<string, unknown>, log = false) => {
+  const child = spawn(cmd, params, options)
+  for await (const data of child.stdout || []) {
+    if (log) {console.log(data)}
+  }
+  for await (const data of child.stderr || []) {
+    console.error(data)
   }
 }
