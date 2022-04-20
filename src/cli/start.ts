@@ -1,6 +1,5 @@
 import { CommandBuilder, Arguments } from "yargs";
 import Enquirer from "enquirer";
-import _ from "chalk";
 import { validateEmail } from "../lib/util.js";
 import chalk from "chalk";
 import {Amplify, Auth} from "aws-amplify";
@@ -30,7 +29,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'specify sign up via CLI',
   })
 
-export const handler = async (argv: Arguments<Options> ) => {
+export const handler = async (argv: Arguments ) => {
   if (!argv.fromCli) {
     cli.open('https://cloud.saleor.io/register');
     process.exit(0);
