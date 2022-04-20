@@ -31,6 +31,10 @@ export const desc = "Log in to the Saleor Cloud";
 export const builder: CommandBuilder = (_) => _
 
 export const handler = async () => {
+  await doLogin();
+};
+
+export const doLogin = async () => {
   const generatedState = nanoid();
   const emitter = new EventEmitter();
 
@@ -83,4 +87,4 @@ export const handler = async () => {
   emitter.on('finish', async () => {
     await app.stop();
   });
-};
+}
