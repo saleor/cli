@@ -9,22 +9,20 @@ import got from "got";
 import { Config } from "../lib/config.js";
 import { response } from "retes";
 import EventEmitter from 'events'
-import { API, POST } from "../lib/index.js";
+import { API, POST, amplifyConfig } from "../lib/index.js";
 
 const { ux: cli } = CliUx;
 const { GET } = route;
 const { Redirect } = response;
 
-const ClientID = "2rb8kssv36nj9skfhdtm6uuevj";
 const RedirectURI = "http://localhost:3000/";
 
-const BaseURL = "https://saleor-cloud-staging-oauth.auth.us-east-1.amazoncognito.com";
 const Params = {
   response_type: "code",
-  client_id: ClientID,
+  client_id: amplifyConfig.aws_user_pools_web_client_id,
   redirect_uri: RedirectURI,
   identity_provider: "COGNITO",
-  scope: "phone email openid profile aws.cognito.signin.user.admin",
+  scope: amplifyConfig.oauth.scope.join(' ')
 }
 
 export const command = "login";
@@ -41,7 +39,7 @@ export const handler = async () => {
   spinner.text = '\nLogging in...\n';
 
   const QueryParams = new URLSearchParams({...Params, state: generatedState });
-  const url = `${BaseURL}/login?${QueryParams}`;
+  const url = `https://${amplifyConfig.oauth.domain}/login?${QueryParams}`;
   cli.open(url);
 
   const app = new ServerApp([
@@ -55,12 +53,12 @@ export const handler = async () => {
       const Params = {
         grant_type: "authorization_code",
         code,
-        client_id: ClientID,
+        client_id: amplifyConfig.aws_user_pools_web_client_id,
         redirect_uri: RedirectURI,
       }
 
       try {
-        const { id_token }: any = await got.post(`${BaseURL}/oauth2/token`, {
+        const { id_token }: any = await got.post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
           form: Params,
         }).json();
         const { token }: any  = await POST(
@@ -68,6 +66,7 @@ export const handler = async () => {
           { token: `Bearer ${id_token}`}
         );
 
+        await Config.reset();
         await Config.set("token", `Token ${token}`);
       } catch (error: any) {
         console.log(error);
@@ -76,7 +75,7 @@ export const handler = async () => {
       spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
       emitter.emit('finish');
 
-      return Redirect('https://cloud.saleor.io');
+      return Redirect(amplifyConfig.oauth.redirectSignIn);
     })
   ])
   await app.start(3000);

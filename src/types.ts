@@ -53,3 +53,13 @@ export interface ProjectCreate extends BaseOptions {
 export interface StoreCreate extends BaseOptions {
   name: string
 }
+
+export type Config = {
+  cloudApiUrl: string;
+  amplifyConfig: any;
+  captchaKey?: string | null;
+};
+
+export type ConfigMap = {
+  [key: string]: Config;
+};

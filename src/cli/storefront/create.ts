@@ -1,4 +1,4 @@
-import { Arguments, boolean, CommandBuilder } from "yargs";
+import { Arguments, CommandBuilder } from "yargs";
 import { download, extract } from "gitly";
 import ora from "ora";
 import { spawn } from 'child_process';
