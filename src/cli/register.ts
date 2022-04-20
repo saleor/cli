@@ -4,14 +4,16 @@ import { validateEmail } from "../lib/util.js";
 import chalk from "chalk";
 import {Amplify, Auth} from "aws-amplify";
 import { CliUx } from "@oclif/core";
+import { doLogin } from "./login.js"
+import { amplifyConfig } from "../lib/index.js"
 
 const { ux: cli } = CliUx;
 
 Amplify.configure({
   Auth: {
-      region: "us-east-1",
-      userPoolId: "us-east-1_FZpwvYl4o",
-      userPoolWebClientId: "2recfkoclv4bf8dapibguvssem",
+      region: amplifyConfig.aws_cognito_region,
+      userPoolId:  amplifyConfig.aws_user_pools_id,
+      userPoolWebClientId: amplifyConfig.aws_user_pools_web_client_id
   }
 });
 
@@ -30,14 +32,13 @@ export const builder: CommandBuilder = (_) =>
   })
 
 export const handler = async (argv: Arguments ) => {
-  if (!argv.fromCli) {
+  await doRegister(argv.fromCli as boolean)
+};
+
+export const doRegister = async (fromCli: boolean | undefined) => {
+  if (!fromCli) {
     cli.open('https://cloud.saleor.io/register');
     process.exit(0);
-  }
-
-  if ("STAGING" in process.env) {
-    console.log(chalk.red('This command can be run only on production!'));
-    process.exit(1);
   }
 
   const json = await Enquirer.prompt<{email: string,
@@ -117,7 +118,9 @@ export const handler = async (argv: Arguments ) => {
   })
 
   console.log('\nSaleor Cloud account confirmed. You can now sign in and create organization\n')
-};
+
+  await doLogin();
+}
 
 const validateCode = async (email: string, code: string): Promise<boolean> => {
   try {
