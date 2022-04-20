@@ -5,18 +5,9 @@ import chalk from "chalk";
 import {Amplify, Auth} from "aws-amplify";
 import { CliUx } from "@oclif/core";
 import { doLogin } from "./login.js"
-import { amplifyConfig } from "../lib/index.js"
+import { getAmplifyConfig } from "../lib/index.js"
 
 const { ux: cli } = CliUx;
-
-Amplify.configure({
-  Auth: {
-      region: amplifyConfig.aws_cognito_region,
-      userPoolId:  amplifyConfig.aws_user_pools_id,
-      userPoolWebClientId: amplifyConfig.aws_user_pools_web_client_id
-  }
-});
-
 interface Options {
   fromCli: boolean
 }
@@ -91,6 +82,9 @@ export const doRegister = async (fromCli: boolean | undefined) => {
     }])
 
   if (!confirms.terms) return
+
+  const amplifyConfig = await getAmplifyConfig();
+  Amplify.configure(amplifyConfig);
 
   try {
     await Auth.signUp({
