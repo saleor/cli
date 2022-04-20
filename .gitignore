@@ -136,3 +136,4 @@ build/
 binaries/
 .saleor
 token.txt
+vendor/
