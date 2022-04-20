@@ -4,7 +4,6 @@ import enquirer from "enquirer";
 import Enquirer from "enquirer";
 import got, { HTTPError } from "got";
 import { Arguments } from "yargs";
-import { configure } from "../cli/configure.js";
 import { Config } from "../lib/config.js";
 import { API, GET } from "../lib/index.js";
 import {

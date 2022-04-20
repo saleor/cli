@@ -9,21 +9,13 @@ import got from "got";
 import { Config } from "../lib/config.js";
 import { response } from "retes";
 import EventEmitter from 'events'
-import { API, POST, amplifyConfig } from "../lib/index.js";
+import { API, POST, getAmplifyConfig } from "../lib/index.js";
 
 const { ux: cli } = CliUx;
 const { GET } = route;
 const { Redirect } = response;
 
 const RedirectURI = "http://localhost:3000/";
-
-const Params = {
-  response_type: "code",
-  client_id: amplifyConfig.aws_user_pools_web_client_id,
-  redirect_uri: RedirectURI,
-  identity_provider: "COGNITO",
-  scope: amplifyConfig.oauth.scope.join(' ')
-}
 
 export const command = "login";
 export const desc = "Log in to the Saleor Cloud";
@@ -35,6 +27,16 @@ export const handler = async () => {
 };
 
 export const doLogin = async () => {
+  const amplifyConfig = await getAmplifyConfig();
+
+  const Params = {
+    response_type: "code",
+    client_id: amplifyConfig.aws_user_pools_web_client_id,
+    redirect_uri: RedirectURI,
+    identity_provider: "COGNITO",
+    scope: amplifyConfig.oauth.scope.join(' ')
+  }
+
   const generatedState = nanoid();
   const emitter = new EventEmitter();
 
