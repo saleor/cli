@@ -1,9 +1,12 @@
-import { CommandBuilder } from "yargs";
+import { CommandBuilder, Arguments } from "yargs";
 import Enquirer from "enquirer";
 import _ from "chalk";
 import { validateEmail } from "../lib/util.js";
 import chalk from "chalk";
 import {Amplify, Auth} from "aws-amplify";
+import { CliUx } from "@oclif/core";
+
+const { ux: cli } = CliUx;
 
 Amplify.configure({
   Auth: {
@@ -13,12 +16,26 @@ Amplify.configure({
   }
 });
 
+interface Options {
+  fromCli: boolean
+}
+
 export const command = "start";
 export const desc = "Create Saleor account";
 
-export const builder: CommandBuilder = (_) => _
+export const builder: CommandBuilder = (_) =>
+  _.option("from-cli", {
+    type: 'boolean',
+    default: false,
+    desc: 'specify sign up via CLI',
+  })
 
-export const handler = async () => {
+export const handler = async (argv: Arguments<Options> ) => {
+  if (!argv.fromCli) {
+    cli.open('https://cloud.saleor.io/register');
+    process.exit(0);
+  }
+
   if ("STAGING" in process.env) {
     console.log(chalk.red('This command can be run only on production!'));
     process.exit(1);
