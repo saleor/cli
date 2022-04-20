@@ -1,11 +1,9 @@
 import { Arguments, CommandBuilder } from "yargs";
 import { download, extract } from "gitly";
 import ora from "ora";
-import { spawn } from 'child_process';
 import { access } from 'fs/promises';
 import { lookpath  } from "lookpath";
 import chalk from "chalk";
-import replace from "replace-in-file";
 import sanitize from "sanitize-filename";
 import fs from 'fs-extra';
 
@@ -48,8 +46,8 @@ NEXT_PUBLIC_APP_URL=https://${argv.environment}.${argv.organization}.saleor.live
 `)
 
   spinner.text = 'Installing dependencies...';
-  await run('pnpm', ['i', '--ignore-scripts'], { stdio: 'inherit', cwd: process.cwd() }, true)
-  spinner.succeed('Staring ...\`pnpm run dev\`');
+  await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
+  spinner.succeed('Starting ...\`pnpm run dev\`');
 
   await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() })
 }
