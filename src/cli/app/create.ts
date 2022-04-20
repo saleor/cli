@@ -11,6 +11,7 @@ import fs from 'fs-extra';
 
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
+import { run } from "../../lib/common.js";
 
 export const command = "create [name]";
 export const desc = "Create a Saleor App template";
@@ -41,26 +42,16 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   spinner.text = `Creating .env...`;
   const baseURL = `https://${env.domain}/graphql/`;
 
-  fs.outputFile('.env', `
+  await fs.outputFile('.env', `
 NEXT_PUBLIC_SALEOR_API_URL=${baseURL}
 NEXT_PUBLIC_APP_URL=https://${argv.environment}.${argv.organization}.saleor.live
 `)
 
   spinner.text = 'Installing dependencies...';
-  await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
+  await run('pnpm', ['i', '--ignore-scripts'], { stdio: 'inherit', cwd: process.cwd() }, true)
   spinner.succeed('Staring ...\`pnpm run dev\`');
 
-  await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() }, true)
-}
-
-const run = async (cmd: string, params: string[], options: Record<string, unknown>, log = false) => {
-  const child = spawn(cmd, params, options)
-  for await (const data of child.stdout || []) {
-    if (log) {console.log(data)}
-  }
-  for await (const data of child.stderr) {
-    console.log(data)
-  }
+  await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() })
 }
 
 const getFolderName = async (name: string): Promise<string> => {
