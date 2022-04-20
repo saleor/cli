@@ -1,15 +1,35 @@
 import type { CancelableRequest } from "got";
 import got from "got";
 
+import amplifyProdConfig from "../aws-exports-prod.js";
+import amplifyStagingConfig from "../aws-exports-staging.js";
+
 import Debug from 'debug';
 const debug = Debug('lib:index'); // esl
 
-import { Options } from '../types.js';
+import { Options, ConfigMap } from '../types.js';
 
-const CloudURL = `https://staging-cloud.saleor.io/api`;
+const environment = ("SALEOR_CLI_ENV" in process.env) ? 'staging' : 'production';
+
+const configs: ConfigMap = {
+  staging: {
+    cloudApiUrl: "https://staging-cloud.saleor.io/api",
+    amplifyConfig: amplifyStagingConfig,
+  },
+  production: {
+    cloudApiUrl: "https://cloud.saleor.io/api",
+    amplifyConfig: amplifyProdConfig,
+  },
+}
+
+export const {
+  cloudApiUrl,
+  amplifyConfig,
+  captchaKey,
+} = configs[environment];
 
 const BaseOptions = {
-  prefixUrl: CloudURL,
+  prefixUrl: cloudApiUrl,
 };
 
 type DefaultURLPath = (_: Options) => string;
