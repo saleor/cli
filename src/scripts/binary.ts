@@ -14,7 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const exec = promisify(execRegular);
 const pipeline = promisify(stream.pipeline);
 
-const SupportedArch = ['darwin-arm64', 'linux-x86']
+const SupportedArch = ['darwin-arm64', 'linux-x64']
 
 async function install() {
   const target = `${process.platform}-${process.arch}`;
