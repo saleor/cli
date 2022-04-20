@@ -1,7 +1,6 @@
 import { Arguments, CommandBuilder } from "yargs";
 import { download, extract } from "gitly";
 import ora from "ora";
-import { spawn } from 'child_process';
 import { access } from 'fs/promises';
 import { lookpath  } from "lookpath";
 import chalk from "chalk";
@@ -10,6 +9,7 @@ import sanitize from "sanitize-filename";
 
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
+import { run } from "../../lib/common.js";
 
 
 export const command = "create [name]";
@@ -39,27 +39,18 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   process.chdir(target);
   spinner.text = `Creating .env...`;
-  const baseUrl = `https://${env.domain}/graphql/`;
+  const baseURL = `https://${env.domain}/graphql/`;
+
   replace.sync({
     files: '.env',
     from: /NEXT_PUBLIC_API_URI=.*/g,
-    to: `NEXT_PUBLIC_API_URI=${baseUrl}`});
+    to: `NEXT_PUBLIC_API_URI=${baseURL}`});
 
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
   spinner.succeed('Staring ...\`pnpm run dev\`');
 
   await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() }, true)
-}
-
-const run = async (cmd: string, params: string[], options: Record<string, unknown>, log = false) => {
-  const child = spawn(cmd, params, options)
-  for await (const data of child.stdout || []) {
-    if (log) {console.log(data)}
-  }
-  for await (const data of child.stderr) {
-    console.log(data)
-  }
 }
 
 const getFolderName = async (name: string): Promise<string> => {
