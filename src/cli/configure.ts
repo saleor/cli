@@ -42,7 +42,7 @@ Learn more: ${_.gray('https://saleor.io/')}${_.blueBright('telemetry')}
 };
 
 const validateToken = async (token: string) => {
-  const user = (await GET(API.User, { token })) as any;
+  const user = (await GET(API.User, { token: `Token ${token}` })) as any;
   console.log(`${_.green('Success')}. Logged as ${user.email}\n`);
 };
 
@@ -88,7 +88,7 @@ export const configure = async (token: string | undefined) => {
   try {
     await validateToken(token);
     Config.reset();
-    await Config.set("token", token);
+    await Config.set("token", `Token ${token}`);
     return token
   } catch (error) {
     // FIXME make it more explicit

@@ -8,8 +8,7 @@ import Debug from 'debug';
 const debug = Debug('lib:index'); // esl
 
 import { Options, ConfigMap } from '../types.js';
-
-const environment = ("SALEOR_CLI_ENV" in process.env) ? 'staging' : 'production';
+import { Config } from "./config.js";
 
 const configs: ConfigMap = {
   staging: {
@@ -22,26 +21,30 @@ const configs: ConfigMap = {
   },
 }
 
-export const {
-  cloudApiUrl,
-  amplifyConfig,
-  captchaKey,
-} = configs[environment];
+export const getEnvironment = async () => {
+  const { saleor_env } = await Config.get();
+  return process.env.SALEOR_CLI_ENV || saleor_env || 'production'
+}
 
-const BaseOptions = {
-  prefixUrl: cloudApiUrl,
-};
+export const getAmplifyConfig = async () => {
+  const environment = await getEnvironment();
+  const { amplifyConfig } = configs[environment];
+  return amplifyConfig
+}
 
 type DefaultURLPath = (_: Options) => string;
 
 const handleAuthAndConfig = (func: (path: string, options?: any) => any) => async (pathFunc: DefaultURLPath, argv: Options, options: any = {}) => {
   const path = pathFunc(argv);
+  const environment = await getEnvironment();
+  const { cloudApiUrl } = configs[environment];
 
   debug(path)
   debug('cli options', argv)
 
   options = {
     ...options,
+    prefixUrl: cloudApiUrl,
     headers: argv.token ? {
       Authorization: `${argv.token}`,
     } : {},
@@ -51,10 +54,10 @@ const handleAuthAndConfig = (func: (path: string, options?: any) => any) => asyn
   return func(path, options) as CancelableRequest;
 }
 
-const doGETRequest = (path: string, options?: any) => got(path, {...options, ...BaseOptions}).json();
-const doPOSTRequest = (path: string, options?: any) => got.post(path, { ...options, ...BaseOptions}).json()
-const doDELETERequest = (path: string, options: any) => got.delete(path, {...options, ...BaseOptions}).json();
-const doPUTRequest = (path: string, options: any) => got.put(path, {...options, ...BaseOptions}).json();
+const doGETRequest = (path: string, options?: any) => got(path, {...options}).json();
+const doPOSTRequest = (path: string, options?: any) => got.post(path, { ...options}).json()
+const doDELETERequest = (path: string, options: any) => got.delete(path, {...options}).json();
+const doPUTRequest = (path: string, options: any) => got.put(path, {...options}).json();
 
 export const GET = handleAuthAndConfig(doGETRequest);
 export const POST =  handleAuthAndConfig(doPOSTRequest);
