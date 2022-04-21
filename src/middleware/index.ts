@@ -158,8 +158,10 @@ export const interactiveDatabaseTemplate = async (argv: Options) => {
 };
 
 export const interactiveSaleorVersion = async (argv: Options) => {
+  const { region } = (await GET(API.Project, argv)) as any;
+
   if (!argv.saleor) {
-    const snapshot = await promptVersion(argv);
+    const snapshot = await promptVersion({...argv, region});
     return { saleor: snapshot.value };
   }
 
