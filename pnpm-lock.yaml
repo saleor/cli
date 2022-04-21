@@ -368,7 +368,7 @@ packages:
     resolution: {integrity: sha512-H8PjG5WJ4wz0UXAFXeJjWCW1vkvIJ3qUUD+rGRwJ2/hj+xT58Qle2MTql/2MGzkU+1JLAFuR6aJpLAjHwhmwwg==}
     dependencies:
       '@aws-sdk/types': 3.6.1
-      '@aws-sdk/util-utf8-browser': 3.55.0
+      '@aws-sdk/util-utf8-browser': 3.6.1
       tslib: 1.14.1
     dev: false
 
@@ -2022,12 +2022,6 @@ packages:
       tslib: 2.3.1
     dev: false
 
-  /@aws-sdk/util-utf8-browser/3.55.0:
-    resolution: {integrity: sha512-ljzqJcyjfJpEVSIAxwtIS8xMRUly84BdjlBXyp6cu4G8TUufgjNS31LWdhyGhgmW5vYBNr+LTz0Kwf6J+ou7Ug==}
-    dependencies:
-      tslib: 2.3.1
-    dev: false
-
   /@aws-sdk/util-utf8-browser/3.6.1:
     resolution: {integrity: sha512-gZPySY6JU5gswnw3nGOEHl3tYE7vPKvtXGYoS2NRabfDKRejFvu+4/nNW6SSpoOxk6LSXsrWB39NO51k+G4PVA==}
     dependencies:
@@ -2170,7 +2164,7 @@ packages:
       clean-stack: 3.0.1
       cli-progress: 3.10.0
       debug: 4.3.4_supports-color@8.1.1
-      ejs: 3.1.6
+      ejs: 3.1.7
       fs-extra: 9.1.0
       get-package-type: 0.1.0
       globby: 11.1.0
@@ -3188,8 +3182,8 @@ packages:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
     dev: false
 
-  /ejs/3.1.6:
-    resolution: {integrity: sha512-9lt9Zse4hPucPkoP7FHDF0LQAlGyF9JVpnClFLFH3aSSbxmyoqINRpp/9wePWJTUl4KOQwRL72Iw3InHPDkoGw==}
+  /ejs/3.1.7:
+    resolution: {integrity: sha512-BIar7R6abbUxDA3bfXrO4DSgwo8I+fB5/1zgujl3HLLjwd6+9iOnrT+t3grn2qbk9vOgBubXOFwX2m9axoFaGw==}
     engines: {node: '>=0.10.0'}
     hasBin: true
     dependencies:
