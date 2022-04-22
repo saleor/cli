@@ -15,14 +15,16 @@ const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1) + min);
 
 interface Opts {
+  name: string
   port: string
 }
 
-export const command = "tunnel [port]";
+export const command = "tunnel <name>";
 export const desc = "Expose your Saleor app remotely via tunnel";
 
 export const builder: CommandBuilder = (_) => 
-  _.positional("port", { type: "string", default: "3000" })
+  _.positional("name", { type: "string", default: () => `my-saleor-app-${nanoid(5)}` })
+   .positional("port", { type: "string", default: "3000" })
 
 export const handler = async (argv: Arguments<Opts>): Promise<void> => {
   // const spinner = ora('Starting your Saleor App...').start();
@@ -31,29 +33,15 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
   const vendorDir = path.join(__dirname, '..', '..', '..', 'vendor');
 
   const { organization, environment, port: localPort } = argv;
-  console.log('localPort', localPort)
 
   const port = random(1025, 65535);
-
-  let appName = `my-saleor-app-${nanoid(5)}`
+  const appName = argv.name; 
 
   const { install } = (await Enquirer.prompt({
     type: "confirm",
     name: "install",
     message: `Do you want to install this Saleor App in the ${environment} environment?`,
   })) as { install: boolean };
-
-  // place here, because it must be run before the tunnel
-  if (install) {
-    const { name } = (await Enquirer.prompt({
-      type: "input",
-      name: "name",
-      initial: appName,
-      message: `How should your Saleor App be named?`,
-    })) as { name: string };
-
-    appName = name 
-  }
 
   const subdomain = `${appName}.${environment}.${organization}`.toLowerCase();
   const tunnelURL = `${subdomain}.saleor.live`;
@@ -73,7 +61,7 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
     // spinner.succeed();
 
     console.log(
-      boxen(`Your Saleor App URL is: ${chalk.blue(`https://${tunnelURL}`)}`, {
+      boxen(`Your Saleor App URL is: ${chalk.blue(`https://${tunnelURL}`)}\n${chalk.yellow('NOTE')} new domains may need few seconds to provision a SSL certificate`, {
         padding: 1,
         margin: 1,
         float: "center",
