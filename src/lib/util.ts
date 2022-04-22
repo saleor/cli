@@ -102,7 +102,7 @@ export const promptWebhook = async (argv: any) => createPrompt(
   async () => {
     const { domain } = (await GET(API.Environment, argv)) as any;
     const { token } = await Config.get();
-  
+
     const { app: appID } = argv;
 
     const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
@@ -141,14 +141,14 @@ export const promptSaleorApp = async (argv: any) => createPrompt(
 export const promptVersion = async (argv: any) => createPrompt(
   'service',
   'Select a Saleor version',
-  async () => await GET(API.Services, { region: Region, ...argv }),
+  async () => await GET(API.Services, { ...argv, region: Region }),
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
 export const promptCompatibleVersion = async (argv: any, service = "SANDBOX" ) => createPrompt(
   'production service',
   'Select a Saleor service',
-  async () =>  (await GET(API.Services, { region: Region, ...argv }) as any).filter(({service_type}: any) => service_type === service),
+  async () =>  (await GET(API.Services, { ...argv, region: Region }) as any).filter(({service_type}: any) => service_type === service),
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 

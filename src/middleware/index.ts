@@ -19,8 +19,6 @@ import {
   promptWebhook,
 } from "../lib/util.js";
 import { CreatePromptResult, Options } from "../types.js";
-import { doLogin } from "../cli/login.js";
-import { doRegister } from "../cli/register.js";
 
 const debug = Debug("middleware");
 
@@ -38,34 +36,14 @@ export const useToken = async ({ token }: Options) => {
       debug("token read from file");
       opts = { ...opts, token };
     } else {
-      console.error(chalk.red("You are not logged in"));
+      console.error(chalk.red("\nYou are not logged in\n"));
       console.error(
         "If you have an account - login using " + chalk.green("saleor login")
       );
       console.error(
         "If you don't have an account - register using " + chalk.green("saleor register")
       );
-
-      const { action } = (await Enquirer.prompt<{ action: string }>({
-        type: "select",
-        name: "action",
-        message: "Would you like to register or login",
-        choices: ['login', 'register']
-      }))
-
-      if (action === 'login') {
-        debug("login");
-        await doLogin();
-      }
-
-      if (action === 'register') {
-        debug("register");
-        await doRegister(false);
-      }
-
-      const config = await Config.get();
-      const { token } = config;
-      opts = { ...opts, token };
+      process.exit(1);
     }
   }
 
@@ -157,8 +135,10 @@ export const interactiveDatabaseTemplate = async (argv: Options) => {
 };
 
 export const interactiveSaleorVersion = async (argv: Options) => {
+  const { region } = (await GET(API.Project, argv)) as any;
+
   if (!argv.saleor) {
-    const snapshot = await promptVersion(argv);
+    const snapshot = await promptVersion({...argv, region});
     return { saleor: snapshot.value };
   }
 
