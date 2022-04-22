@@ -14,23 +14,26 @@ const nanoid = customAlphabet('1234567890abcdefghijklmnoprstuwxyz', 5)
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1) + min);
 
-export const command = "start";
-export const desc = "Start and setup your Saleor App for development";
+interface Opts {
+  port: string
+}
 
-export const builder: CommandBuilder = (_) => _;
+export const command = "tunnel [port]";
+export const desc = "Expose your Saleor app remotely via tunnel";
 
-export const handler = async (argv: Arguments): Promise<void> => {
+export const builder: CommandBuilder = (_) => 
+  _.positional("port", { type: "string", default: "3000" })
+
+export const handler = async (argv: Arguments<Opts>): Promise<void> => {
   // const spinner = ora('Starting your Saleor App...').start();
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const vendorDir = path.join(__dirname, '..', '..', '..', 'vendor');
 
-  const { organization, environment } = argv;
+  const { organization, environment, port: localPort } = argv;
+  console.log('localPort', localPort)
 
   const port = random(1025, 65535);
-
-  const name = `${environment}.${organization}`.toLowerCase();
-  const tunnelURL = `${name}.saleor.live`;
 
   let appName = `my-saleor-app-${nanoid(5)}`
 
@@ -52,12 +55,15 @@ export const handler = async (argv: Arguments): Promise<void> => {
     appName = name 
   }
 
+  const subdomain = `${appName}.${environment}.${organization}`.toLowerCase();
+  const tunnelURL = `${subdomain}.saleor.live`;
+
   try {
-    await fetch(`https://id.saleor.live/add/${name}/${port}`, { method: 'POST' })
+    await fetch(`https://id.saleor.live/add/${subdomain}/${port}`, { method: 'POST' })
 
     await spawn(
       `${vendorDir}/tunnel`, [
-        "local", "3000",
+        "local", localPort,
         "--to", tunnelURL,
         "--port", port.toString(),
         "--secret", TunnelServerSecret,
