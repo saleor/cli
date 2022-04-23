@@ -84,8 +84,8 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
 
     replace.sync({
       files: '.env',
-      from: /NEXT_PUBLIC_APP_URL=.*/g,
-      to: `NEXT_PUBLIC_APP_URL=https://${tunnelURL}`});
+      from: /APP_URL=.*/g,
+      to: `APP_URL=https://${tunnelURL}`});
 
     if (install) {
       argv.manifestURL = `https://${tunnelURL}/api/manifest`;

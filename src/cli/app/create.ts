@@ -42,7 +42,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   await fs.outputFile('.env', `
 NEXT_PUBLIC_SALEOR_API_URL=${baseURL}
-NEXT_PUBLIC_APP_URL=
+APP_URL=
 `)
 
   spinner.text = 'Installing dependencies...';
