@@ -45,7 +45,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   replace.sync({
     files: '.env',
     from: /NEXT_PUBLIC_API_URI=.*/g,
-    to: `NEXT_PUBLIC_APP_URL=${baseURL}`});
+    to: `NEXT_PUBLIC_API_URI=${baseURL}`});
 
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
