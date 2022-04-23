@@ -6,11 +6,11 @@ import { lookpath  } from "lookpath";
 import chalk from "chalk";
 import replace from "replace-in-file";
 import sanitize from "sanitize-filename";
+import fs from 'fs-extra';
 
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
 import { run } from "../../lib/common.js";
-
 
 export const command = "create [name]";
 export const desc = "Boostrap example [name]";
@@ -19,6 +19,7 @@ export const builder: CommandBuilder<Record<string, never>, StoreCreate> = (_) =
   _.positional("name", { type: "string", demandOption: true, default: "saleor-react-storefront-app" })
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
+
   const env = await GET(API.Environment, argv) as any;
 
   const pnpm = await lookpath('pnpm');
@@ -44,7 +45,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   replace.sync({
     files: '.env',
     from: /NEXT_PUBLIC_API_URI=.*/g,
-    to: `NEXT_PUBLIC_API_URI=${baseURL}`});
+    to: `NEXT_PUBLIC_APP_URL=${baseURL}`});
 
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
