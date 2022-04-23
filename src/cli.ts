@@ -26,7 +26,7 @@ import * as info from './cli/info.js';
 import * as register from './cli/register.js';
 import { header } from './lib/images.js';
 import { useTelemetry } from './middleware/index.js';
-import { AuthError } from './lib/util.js';
+import { AuthError, NotSaleorAppDirectoryError } from './lib/util.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json");
@@ -64,8 +64,6 @@ yargs(hideBin(process.argv))
   .alias('h', 'help')
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, yargs) => {
-    console.log("\n");
-
     if (error instanceof HTTPError) {
       const { body } = error.response as Response<any>;
 
@@ -81,6 +79,8 @@ yargs(hideBin(process.argv))
         console.error(body)
       }
     } else if (error instanceof AuthError) {
+      console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
+    } else if (error instanceof NotSaleorAppDirectoryError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
     } else if (error) {
       console.log(error)
