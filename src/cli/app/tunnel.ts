@@ -1,4 +1,4 @@
-import type { Arguments, CommandBuilder } from "yargs";
+import { Arguments, CommandBuilder, middleware } from "yargs";
 import { spawn } from "child_process";
 import path from 'path';
 import { TunnelServerSecret } from "../../const.js";
@@ -6,8 +6,11 @@ import Enquirer from "enquirer";
 import { doSaleorAppInstall } from "../../lib/common.js";
 import boxen from "boxen";
 import chalk from "chalk";
+import replace from "replace-in-file";
 import { fileURLToPath } from 'url';
 import { customAlphabet } from "nanoid";
+import fs from 'fs-extra';
+import { createRequire } from "module";
 
 const nanoid = customAlphabet('1234567890abcdefghijklmnoprstuwxyz', 5)
 
@@ -19,12 +22,12 @@ interface Opts {
   port: string
 }
 
-export const command = "tunnel <name>";
+export const command = "tunnel [port]";
 export const desc = "Expose your Saleor app remotely via tunnel";
 
 export const builder: CommandBuilder = (_) => 
-  _.positional("name", { type: "string", default: () => `my-saleor-app-${nanoid(5)}` })
-   .positional("port", { type: "string", default: "3000" })
+  _.positional("port", { type: "number", default: 3000 })
+   .option('name', { type: 'string' })
 
 export const handler = async (argv: Arguments<Opts>): Promise<void> => {
   // const spinner = ora('Starting your Saleor App...').start();
@@ -32,10 +35,20 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const vendorDir = path.join(__dirname, '..', '..', '..', 'vendor');
 
+  let appName;
+  if (argv.name) {
+    appName = argv.name;
+  } else {
+    const content = await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8');
+    appName = JSON.parse(content)['name'];
+  }
+
+  console.log('\n Your Saleor App name:', chalk.yellow(appName));
+  console.log('')
+
   const { organization, environment, port: localPort } = argv;
 
   const port = random(1025, 65535);
-  const appName = argv.name; 
 
   const { install } = (await Enquirer.prompt({
     type: "confirm",
@@ -68,6 +81,11 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
         borderColor: "yellow",
       })
     );
+
+    replace.sync({
+      files: '.env',
+      from: /APP_URL=.*/g,
+      to: `APP_URL=https://${tunnelURL}`});
 
     if (install) {
       argv.manifestURL = `https://${tunnelURL}/api/manifest`;

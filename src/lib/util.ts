@@ -20,6 +20,13 @@ export class AuthError extends Error {
   }
 }
 
+export class NotSaleorAppDirectoryError extends Error {
+  constructor(message = "") {
+    super(message);
+    this.name = "NotSaleorAppDirectoryError";
+  }
+}
+
 // Higher-Order Creator for Prompts
 const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation = false) => {
   const collection = await fetcher();
