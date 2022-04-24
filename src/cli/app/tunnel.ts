@@ -1,4 +1,4 @@
-import { Arguments, CommandBuilder, middleware } from "yargs";
+import { Arguments, CommandBuilder } from "yargs";
 import { spawn } from "child_process";
 import path from 'path';
 import { TunnelServerSecret } from "../../const.js";
@@ -8,11 +8,8 @@ import boxen from "boxen";
 import chalk from "chalk";
 import replace from "replace-in-file";
 import { fileURLToPath } from 'url';
-import { customAlphabet } from "nanoid";
 import fs from 'fs-extra';
-import { createRequire } from "module";
-
-const nanoid = customAlphabet('1234567890abcdefghijklmnoprstuwxyz', 5)
+import fetch from "node-fetch";
 
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1) + min);
@@ -56,7 +53,7 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
     message: `Do you want to install this Saleor App in the ${environment} environment?`,
   })) as { install: boolean };
 
-  const subdomain = `${appName}.${environment}.${organization}`.toLowerCase();
+  const subdomain = `${appName}-${environment}-${organization}`.toLowerCase();
   const tunnelURL = `${subdomain}.saleor.live`;
 
   try {
@@ -74,7 +71,7 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
     // spinner.succeed();
 
     console.log(
-      boxen(`Your Saleor App URL is: ${chalk.blue(`https://${tunnelURL}`)}\n${chalk.yellow('NOTE')} new domains may need few seconds to provision a SSL certificate`, {
+      boxen(`Your Saleor App URL is: ${chalk.blue(`https://${tunnelURL}`)}`, {
         padding: 1,
         margin: 1,
         float: "center",
