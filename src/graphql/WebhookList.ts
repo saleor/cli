@@ -1,4 +1,4 @@
-export const WebhookList = `
+export const WebhookList = /* GraphQL */`
 query WebhookList {
   apps(first: 100) {
     totalCount

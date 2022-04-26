@@ -1,4 +1,4 @@
-export const doWebhookCreate = `
+export const doWebhookCreate = /* GraphQL */`
 mutation doWebhookCreate($input: WebhookCreateInput!) {
   webhookCreate(input: $input) {
     webhook {
@@ -7,20 +7,3 @@ mutation doWebhookCreate($input: WebhookCreateInput!) {
   }
 }
 `;
-
-// {
-//   "input": {
-//     "app": "QXBwOjI=",
-//     "syncEvents": [
-//       "PAYMENT_CAPTURE"
-//     ],
-//     "asyncEvents": [
-//       "COLLECTION_CREATED",
-//       "CHECKOUT_CREATED"
-//     ],
-//     "isActive": true,
-//     "name": "Biuletyn",
-//     "secretKey": "",
-//     "targetUrl": "https://papier.com"
-//   }
-// }

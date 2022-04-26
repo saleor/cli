@@ -1,4 +1,4 @@
-export const SaleorAppByID = `
+export const SaleorAppByID = /* GraphQL */`
 query AppSingle($appID: ID!) {
   app(id: $appID) {
     id

@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { Arguments } from 'yargs';
 
 import { API, GET } from "../../lib/index.js";
-import { formatDateTime, printContext } from '../../lib/util.js';
+import { formatDateTime } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;

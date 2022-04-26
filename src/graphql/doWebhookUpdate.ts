@@ -1,4 +1,4 @@
-export const doWebhookUpdate = `
+export const doWebhookUpdate = /* GraphQL */`
 mutation doWebhookUpdate($id: ID!, $input: WebhookUpdateInput!) {
   webhookUpdate(id: $id, input: $input) {
     webhook {
@@ -7,20 +7,3 @@ mutation doWebhookUpdate($id: ID!, $input: WebhookUpdateInput!) {
   }
 }
 `;
-
-// {
-//   "input": {
-//     "app": "QXBwOjI=",
-//     "syncEvents": [
-//       "PAYMENT_CAPTURE"
-//     ],
-//     "asyncEvents": [
-//       "COLLECTION_CREATED",
-//       "CHECKOUT_CREATED"
-//     ],
-//     "isActive": true,
-//     "name": "Biuletyn",
-//     "secretKey": "",
-//     "targetUrl": "https://papier.com"
-//   }
-// }
