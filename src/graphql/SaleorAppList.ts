@@ -1,4 +1,4 @@
-export const SaleorAppList = `
+export const SaleorAppList = /* GraphQL */`
 query SaleorAppList {
   apps(first: 100) {
     totalCount

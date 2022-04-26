@@ -1,10 +1,8 @@
 import type { Arguments, CommandBuilder } from "yargs";
-import ora from "ora";
 import { CliUx } from "@oclif/core";
 import { ServerApp, route } from "retes";
 import { nanoid } from 'nanoid';
 
-import { delay } from "../../lib/util.js";
 import { Options } from "../../types.js";
 import got from "got";
 import { Config } from "../../lib/config.js";

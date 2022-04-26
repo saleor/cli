@@ -6,7 +6,6 @@ import figlet from 'figlet';
 
 import { header } from '../lib/images.js';
 
-
 const require = createRequire(import.meta.url);
 const pkg = require("../../package.json");
 

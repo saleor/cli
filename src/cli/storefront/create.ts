@@ -6,7 +6,6 @@ import { lookpath  } from "lookpath";
 import chalk from "chalk";
 import replace from "replace-in-file";
 import sanitize from "sanitize-filename";
-import fs from 'fs-extra';
 
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
