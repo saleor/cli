@@ -30,6 +30,16 @@ export const GetPermissionEnum = gql`
   }
 }
     `;
+export const GetWebhookAsyncEventEnum = gql`
+    query GetWebhookAsyncEventEnum {
+  __type(name: "WebhookEventTypeAsyncEnum") {
+    enumValues {
+      name
+      description
+    }
+  }
+}
+    `;
 export const GetWebhookEventEnum = gql`
     query GetWebhookEventEnum {
   __type(name: "WebhookEventTypeEnum") {
@@ -40,20 +50,8 @@ export const GetWebhookEventEnum = gql`
   }
 }
     `;
-
-export const GetWebhookAsyncEventEnum = gql`
-  query GetWebhookAsyncEventEnum {
-  __type(name: "WebhookEventTypeAsyncEnum") {
-    enumValues {
-      name
-      description
-    }
-  }
-}
-`;
-
 export const GetWebhookSyncEventEnum = gql`
-  query GetWebhookSyncEventEnum {
+    query GetWebhookSyncEventEnum {
   __type(name: "WebhookEventTypeSyncEnum") {
     enumValues {
       name
@@ -61,4 +59,18 @@ export const GetWebhookSyncEventEnum = gql`
     }
   }
 }
-`;
+    `;
+export const ProductUpdate = gql`
+    mutation ProductUpdate($id: ID!, $input: ProductInput!) {
+  productUpdate(id: $id, input: $input) {
+    product {
+      name
+    }
+    errors {
+      field
+      code
+      message
+    }
+  }
+}
+    `;
