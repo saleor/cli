@@ -77,7 +77,7 @@ export const handler = async (argv: Arguments<Options>) => {
     return
   }
 
-  const { name, domain, access } = await Enquirer.prompt([{
+  const { name,} = await Enquirer.prompt([{
     type: 'input',
     name: 'name',
     message: `Environment name`,
@@ -85,11 +85,13 @@ export const handler = async (argv: Arguments<Options>) => {
     required: true,
     skip: !!argv.name,
     validate: (value) => validateLength(value, 255)
-  }, {
+  }]) as { name: string};
+
+  const { domain, access } = await Enquirer.prompt([{
     type: 'input',
     name: 'domain',
     message: `Environment domain`,
-    initial: slugify(argv.domain || argv.name || ''),
+    initial: slugify(argv.domain || argv.name || name || ''),
     required: true,
     skip: !!argv.domain,
     validate: (value) => validateLength(value, 40)
@@ -99,7 +101,7 @@ export const handler = async (argv: Arguments<Options>) => {
     message: `Would you like to enable dashboard access `,
     skip: !!argv.email,
     initial: false
-  }]) as { name: string, domain: string, access: boolean };
+  }]) as {domain: string, access: boolean };
 
   let email = argv.email;
 

@@ -10,6 +10,7 @@ import fs from 'fs-extra';
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
 import { run } from "../../lib/common.js";
+import boxen from "boxen";
 
 export const command = "create [name]";
 export const desc = "Create a Saleor App template";
@@ -29,6 +30,11 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     process.exit(1);
   }
 
+  const baseURL = `https://${env.domain}`;
+  const dashboaardMsg = chalk.blue(`Dashboard - ${baseURL}/dashboard`);
+  const gqlMsg = chalk.blue(`GraphQL Playgroud - ${baseURL}/graphql/`);
+  console.log(boxen(`${dashboaardMsg}\n${gqlMsg}`, { padding: 1 }));
+
   const spinner = ora('Downloading...').start();
   const file = await download(`zaiste/saleor-app-template`)
 
@@ -38,10 +44,10 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   process.chdir(target);
   spinner.text = `Creating .env...`;
-  const baseURL = `https://${env.domain}/graphql/`;
+
 
   await fs.outputFile('.env', `
-NEXT_PUBLIC_SALEOR_API_URL=${baseURL}
+NEXT_PUBLIC_SALEOR_API_URL=${baseURL}/graphql/
 APP_URL=
 `)
 
