@@ -144,18 +144,22 @@ export const promptSaleorApp = async (argv: any) => createPrompt(
   ({ node: { name, id } }: any) => ({ name, value: id })
 )
 
+const getSortedServices = async (argv: any) => {
+  const services = await GET(API.Services, { region: Region, ...argv }) as Record<string, any>[];
+  return services.sort((a, b) => b.version.localeCompare(a.version))
+}
 
 export const promptVersion = async (argv: any) => createPrompt(
   'service',
   'Select a Saleor version',
-  async () => await GET(API.Services, { region: Region, ...argv }),
+  async () => await getSortedServices(argv),
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
 export const promptCompatibleVersion = async (argv: any, service = "SANDBOX" ) => createPrompt(
   'production service',
   'Select a Saleor service',
-  async () =>  (await GET(API.Services, { region: Region, ...argv }) as any).filter(({service_type}: any) => service_type === service),
+  async () =>  (await getSortedServices(argv)).filter(({service_type}: any) => service_type === service),
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
