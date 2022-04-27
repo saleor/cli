@@ -4,7 +4,7 @@ Saleor is a rapidly growing all-out commerce API. Saleor is **fully open-source,
 
 We make it easy for front-end teams to **prototype fast, experiment, and build wonderful, unrestricted storefront experiences**.
 
-We enable developers to [extend Saleor](https://docs.saleor.io/docs/3.x/developer/extending/apps/key-concepts) functionally with custom logic and async and sync webhooks, and in the Dashboard. 
+We enable developers to [extend Saleor](https://docs.saleor.io/docs/3.x/developer/extending/apps/key-concepts) easily via [Saleor Apps](https://github.com/saleor/saleor-app-template), a robust tally of async/sync webhooks, and a composable Dashboard. 
 
 We allow brands to own their data and go fast while staying fully flexible with [Saleor Cloud](https://cloud.saleor.io).
 
