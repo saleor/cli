@@ -7,7 +7,7 @@ specifiers:
   '@types/debug': ^4.1.7
   '@types/figlet': ^1.5.4
   '@types/fs-extra': ^9.0.13
-  '@types/node': ^17.0.27
+  '@types/node': ^17.0.29
   '@types/prompt': ^1.1.2
   '@types/update-notifier': ^5.1.0
   '@types/yargs': ^17.0.10
@@ -79,7 +79,7 @@ devDependencies:
   '@types/debug': 4.1.7
   '@types/figlet': 1.5.4
   '@types/fs-extra': 9.0.13
-  '@types/node': 17.0.27
+  '@types/node': 17.0.29
   '@types/prompt': 1.1.2
   '@types/update-notifier': 5.1.0
   '@types/yargs': 17.0.10
@@ -89,7 +89,7 @@ devDependencies:
   eslint: 8.14.0
   eslint-plugin-simple-import-sort: 7.0.0_eslint@8.14.0
   pkg: 5.6.0
-  ts-node: 10.7.0_2ac55ccfe31b73a92a95d1ea1798c6da
+  ts-node: 10.7.0_f6fb214a4af7a964c8bf8f234428ae9a
   typescript: 4.7.0-beta
 
 packages:
@@ -2257,14 +2257,14 @@ packages:
     dependencies:
       '@types/http-cache-semantics': 4.0.1
       '@types/keyv': 3.1.4
-      '@types/node': 17.0.27
+      '@types/node': 17.0.29
       '@types/responselike': 1.0.0
     dev: false
 
   /@types/cli-progress/3.9.2:
     resolution: {integrity: sha512-VO5/X5Ij+oVgEVjg5u0IXVe3JQSKJX+Ev8C5x+0hPy0AuWyW+bF8tbajR7cPFnDGhs7pidztcac+ccrDtk5teA==}
     dependencies:
-      '@types/node': 17.0.27
+      '@types/node': 17.0.29
     dev: true
 
   /@types/configstore/5.0.1:
@@ -2288,7 +2288,7 @@ packages:
   /@types/fs-extra/9.0.13:
     resolution: {integrity: sha512-nEnwB++1u5lVDM2UI4c1+5R+FYaKfaAzS4OococimjVm3nQw3TuzH5UNsocrcTBbhnerblyHj4A49qXbIiZdpA==}
     dependencies:
-      '@types/node': 17.0.27
+      '@types/node': 17.0.29
     dev: true
 
   /@types/hast/2.3.4:
@@ -2312,27 +2312,27 @@ packages:
   /@types/keyv/3.1.4:
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
     dependencies:
-      '@types/node': 17.0.27
+      '@types/node': 17.0.29
     dev: false
 
   /@types/ms/0.7.31:
     resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
     dev: true
 
-  /@types/node/17.0.27:
-    resolution: {integrity: sha512-4/Ke7bbWOasuT3kceBZFGakP1dYN2XFd8v2l9bqF2LNWrmeU07JLpp56aEeG6+Q3olqO5TvXpW0yaiYnZJ5CXg==}
+  /@types/node/17.0.29:
+    resolution: {integrity: sha512-tx5jMmMFwx7wBwq/V7OohKDVb/JwJU5qCVkeLMh1//xycAJ/ESuw9aJ9SEtlCZDYi2pBfe4JkisSoAtbOsBNAA==}
 
   /@types/prompt/1.1.2:
     resolution: {integrity: sha512-Zc9YzOvjAWxxGY7qo0Q6yINMVVspAa4p68UCzucWMU+GaPujpjwbOwzI38s7Jq01k0GztzLxXlRiFcZf/aeIWA==}
     dependencies:
-      '@types/node': 17.0.27
+      '@types/node': 17.0.29
       '@types/revalidator': 0.3.8
     dev: true
 
   /@types/responselike/1.0.0:
     resolution: {integrity: sha512-85Y2BjiufFzaMIlvJDvTTB8Fxl2xfLo4HgmHzVBz08w4wDePCTjYw66PdrolO0kzli3yam/YCgRufyo1DdQVTA==}
     dependencies:
-      '@types/node': 17.0.27
+      '@types/node': 17.0.29
     dev: false
 
   /@types/revalidator/0.3.8:
@@ -5092,7 +5092,7 @@ packages:
       utf8-byte-length: 1.0.4
     dev: false
 
-  /ts-node/10.7.0_2ac55ccfe31b73a92a95d1ea1798c6da:
+  /ts-node/10.7.0_f6fb214a4af7a964c8bf8f234428ae9a:
     resolution: {integrity: sha512-TbIGS4xgJoX2i3do417KSaep1uRAW/Lu+WAL2doDHC0D6ummjirVOXU5/7aiZotbQ5p1Zp9tP7U6cYhA0O7M8A==}
     hasBin: true
     peerDependencies:
@@ -5111,7 +5111,7 @@ packages:
       '@tsconfig/node12': 1.0.9
       '@tsconfig/node14': 1.0.1
       '@tsconfig/node16': 1.0.2
-      '@types/node': 17.0.27
+      '@types/node': 17.0.29
       acorn: 8.7.1
       acorn-walk: 8.2.0
       arg: 4.1.3
