@@ -38,6 +38,14 @@ If you're new to Saleor you might want to start by bootstrapping an end-to-end l
 saleor storefront create --auto
 ```
 
+### Register
+
+If you don't have a (free developer) Saleor Cloud account yet, create one with the following command:
+```
+saleor register
+```
+
+
 ### Login
 
 The `saleor` binary requires the Cloud API token that can be obtained via OAuth by running the `login` command:
