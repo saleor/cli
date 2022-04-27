@@ -1,42 +1,84 @@
-# Saleor CLI
+# Saleor
 
-## Getting Started
+Saleor is a rapidly growing all-out commerce API. Saleor is **fully open-source, and 100% focused on the GraphQL** interface. Our mission is to provide unparalleled extensibility.
 
-### Install
+We make it easy for front-end teams to **prototype fast, experiment, and build wonderful, unrestricted storefront experiences**.
 
-Use `npm` to install `saleor-cli`:
+We enable developers to [extend Saleor](https://docs.saleor.io/docs/3.x/developer/extending/apps/key-concepts) functionally with custom logic and async and sync webhooks, and in the Dashboard. 
+
+We allow brands to own their data and go fast while staying fully flexible with [Saleor Cloud](https://cloud.saleor.io).
+
+Composable all-out e-commerce.
+
+---
+
+**Saleor CLI** is designed to boost your productivity and improve development experience with Saleor and Saleor Cloud. It will take the burden of spawning new storefronts and apps locally, managing and connecting them with Saleor instances, or establishing tunnels for local developments in seconds.
+
+To install the latest version of Saleor CLI, run this command:
 
 ```
-npm i -g saleor-cli
+npm i -g saleor@latest
 ```
 
 You can also use `npx` to execute the Saleor CLI commands on the spot without installing the package.
 
 ```
-npx saleor-cli environment list
+npx saleor env list
 ```
 
 > If you're using `nvm`, make sure that the `NVM_BIN` path is added to `PATH`
 
+
+## Getting Started with CLI
+
+### A quick demo
+
+If you're new to Saleor you might want to start by bootstrapping an end-to-end local storefront development environment (and Saleor Cloud sandbox API instance). Since it requires Cloud access, you will be asked to register to a free Saleor Cloud developer account or log in. Then the command will automatically create your new local storefront environment and connect it to a newly created Saleor API instance/sandbox:
+```
+saleor storefront create --auto
+```
+
 ### Login
 
-The `saleor` binary requires the **Cloud API Token**. You can obtain it via OAuth with the `login` command:
+The `saleor` binary requires the Cloud API token that can be obtained via OAuth by running the `login` command:
 
 ```
 saleor login
 ```
 
-This command will open a browser and ask for your Saleor Cloud credentials. Once logged in, it will store your Cloud API Token locally for the CLI to use it.
+This command will open a browser and ask for your Saleor Cloud credentials. Once logged in, it will store your Cloud API token locally for the CLI to use.
 
 You can now start executing any of the available commands.
 
+Note: in order to log out you can use `saleor logout`.
+
 ### Create a storefront
 
-Let's create a new React.js storefront that is automatically configured with your Saleor Cloud environment:
+The following command will take you through the process of creating a new [react-storefront](https://github.com/saleor/react-storefront) and configuring it with a chosen Saleor Cloud API instance:
 
 ```
-saleor store create my-brand-new-storefront
+saleor store create my-new-storefront
 ```
+
+### Create an API sanbox
+
+You can create new API endpoints by running: 
+
+```
+saleor env create
+```
+
+
+## Saleor Apps management
+
+Coming soon 🦄
+
+
+## Webhooks management
+
+Coming soon 🔌
+
+
 
 ## Usage
 
@@ -64,35 +106,6 @@ Options:
 
 for more information, find the documentation at https://saleor.io
 ```
-
-## Available commands
-
-### `info`
-
-### `login`
-
-### `configure`
-
-### `organization`
-
-### `environment`
-
-### `backup`
-
-### `job`
-
-### `project`
-
-### `storefront`
-
-### `telemetry`
-
-### `webhook`
-
-### `app`
-
-### `vercel`
-
 ## Development
 
 ### Install dependencies
