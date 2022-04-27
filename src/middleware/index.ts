@@ -223,8 +223,11 @@ export const useTelemetry = async (argv: Arguments) => {
     debug("telemetry", argv._);
 
     try {
-      await got.post("https://saleor-cli.deno.dev", {
+      got.post("https://saleor-cli.deno.dev", {
         json: { command },
+        timeout: {
+          request: 2000
+        }
       });
     } catch (error) {
       if (error instanceof HTTPError) {
