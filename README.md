@@ -12,9 +12,9 @@ Composable all-out e-commerce.
 
 ---
 
-**Saleor CLI** is designed to boost your productivity and improve development experience with Saleor and Saleor Cloud. It will take the burden of spawning new storefronts and apps locally, managing and connecting them with Saleor instances, or establishing tunnels for local developments in seconds.
+**Saleor CLI** is designed to boost your productivity and improve development experience with Saleor and Saleor Cloud. It will take the burden of spawning new storefronts and apps locally, managing and connecting them with Saleor instances, or establishing tunnels for local development in seconds.
 
-To install the latest version of Saleor CLI, run this command:
+To install the latest version of Saleor CLI, run the following command:
 
 ```
 npm i -g saleor@latest
