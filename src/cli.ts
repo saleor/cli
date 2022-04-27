@@ -21,6 +21,7 @@ import app from './cli/app/index.js';
 import vercel from './cli/vercel/index.js';
 
 import * as login from './cli/login.js';
+import * as logout from './cli/logout.js';
 import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
 import * as register from './cli/register.js';
@@ -46,6 +47,7 @@ yargs(hideBin(process.argv))
   .usage('Usage: $0 <command> [options]')
   .command(info)
   .command(login)
+  .command(logout)
   .command(configure)
   .command(register)
   .command(['organization [command]', 'org'], '', organization)
