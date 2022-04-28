@@ -18,14 +18,14 @@ import { customAlphabet } from "nanoid";
 export const command = "create [name]";
 export const desc = "Boostrap example [name]";
 
-const nanoid = customAlphabet('A-Za-z0-9-', 10)
+const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10)
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("name", { type: "string", demandOption: true, default: "saleor-react-storefront-app" })
-  .option("auto", {
+  _.positional("name", { type: "string", demandOption: true, default: "storefront demo" })
+  .option("demo", {
     type: 'boolean',
     default: false,
-    desc: 'specify automatic process',
+    desc: 'specify demo process',
   })
   .option("environment", {
     type: 'string',
@@ -37,7 +37,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     return await createStorefront({...argv, ...{ environment: argv.environment }})
   }
 
-  if (argv.auto) {
+  if (argv.demo) {
     const project = await createProject(argv)
     const environment = await prepareEnvironment(argv, project)
     return await createStorefront({...argv, ...{ environment: environment.key }})
