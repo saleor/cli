@@ -14,11 +14,12 @@ interface Options {
   saleor: string
   database: string
   domain: string
-  login: string
-  pass: string
+  login?: string
+  pass?: string
   deploy: boolean
   restore: boolean
   restore_from: string
+  skipRestrict: boolean
 }
 
 export const command = "create [name]";
@@ -69,6 +70,36 @@ export const builder: CommandBuilder = (_) =>
     })
 
 export const handler = async (argv: Arguments<Options>) => {
+  const result = await createEnvironment(argv);
+
+  if (!!argv.restore_from) {
+    const { update } = await Enquirer.prompt<{ update: string }>({
+      type: "confirm",
+      name: 'update',
+      message: 'Would you like to update webhooks targetUrl',
+    });
+
+    if (update) {
+      await updateWebhook(result.domain);
+    }
+  }
+
+  const { deployPrompt } = await Enquirer.prompt({
+    type: 'confirm',
+    name: 'deployPrompt',
+    message: `Deploy our react-storefront starter pack to Vercel`,
+    initial: argv.deploy,
+    skip: !(argv.deploy === undefined)
+  }) as { deployPrompt: boolean };
+
+  if (deployPrompt) {
+    await deploy({ name: result.name, url:`https://${result.domain}` })
+  }
+
+  return { name, value: name }
+};
+
+export const createEnvironment = async (argv: Arguments<Options>) => {
   const { project, saleor, database } = argv;
   const user = (await GET(API.User, argv)) as any;
 
@@ -121,7 +152,7 @@ export const handler = async (argv: Arguments<Options>) => {
     type: 'confirm',
     name: 'restrict',
     message: `You can restrict access to your env API with Basic Auth. Do you want to set it up`,
-    skip: !!argv.pass && !!argv.login
+    skip: (!!argv.pass && !!argv.login) || argv.skipRestrict
   }) as { restrict: boolean };
 
   let login = argv.login;
@@ -181,44 +212,18 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const baseUrl = `https://${result.domain}`;
   const dashboaardMsg = chalk.blue(`Dashboard - ${baseUrl}/dashboard`);
-  const accessMsg = access ? `Please check your email - ${email} - to setup your dashboaard access.` : '';
+  const accessMsg = (access || !!argv.email) ? `Please check your email - ${email} - to setup your dashboaard access.` : '';
   const gqlMsg = chalk.blue(`GraphQL Playgroud - ${baseUrl}/graphql/`);
   console.log(boxen(`${dashboaardMsg}
   ${accessMsg}
+${gqlMsg}`, { padding: 1, borderStyle: 'round'}));
 
-
-${gqlMsg}`, { padding: 1 }));
-
-  if (access) {
+  if (access || !!argv.email) {
     await GET(API.SetAdminAccount, { ...argv, environment: result.key }) as any;
   }
 
-  if (!!argv.restore_from) {
-    const { update } = await Enquirer.prompt<{ update: string }>({
-      type: "confirm",
-      name: 'update',
-      message: 'Would you like to update webhooks targetUrl',
-    });
-
-    if (update) {
-      await updateWebhook(result.domain);
-    }
-  }
-
-  const { deployPrompt } = await Enquirer.prompt({
-    type: 'confirm',
-    name: 'deployPrompt',
-    message: `Deploy our react-storefront starter pack to Vercel`,
-    initial: argv.deploy,
-    skip: !(argv.deploy === undefined)
-  }) as { deployPrompt: boolean };
-
-  if (deployPrompt) {
-    await deploy({ name, url: baseUrl })
-  }
-
-  return { name, value: name }
-};
+  return result
+}
 
 export const middlewares = [
   interactiveProject,

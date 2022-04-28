@@ -52,6 +52,8 @@ export interface ProjectCreate extends BaseOptions {
 
 export interface StoreCreate extends BaseOptions {
   name: string
+  auto?: boolean
+  environment?: string
 }
 
 export type Config = {
