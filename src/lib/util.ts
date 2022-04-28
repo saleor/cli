@@ -10,6 +10,7 @@ import { API, GET, POST, Region } from "../lib/index.js";
 import { Options, ProjectCreate } from "../types.js";
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
 import { Config } from './config.js';
+import { lookpath } from 'lookpath';
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -103,6 +104,16 @@ export const makeRequestAppList = async (argv: any) => {
 // P U B L I C
 //
 
+export const checkPnpmPresence = async () => {
+  const pnpm = await lookpath('pnpm');
+  if (!pnpm) {
+    console.log(chalk.red(`
+✘ react-storefront project uses the pnpm package manager. To install it, run:`));
+    console.log(`  npm install -g pnpm`);
+    process.exit(1);
+  }
+}
+
 export const promptWebhook = async (argv: any) => createPrompt(
   'webhookID',
   'Select a Webhook',
@@ -127,7 +138,7 @@ export const promptWebhook = async (argv: any) => createPrompt(
       throw Error("cannot auth")
     }
 
-    const { app: { name, webhooks } } = data;
+    const { app: { webhooks } } = data;
 
     return webhooks;
   },
@@ -144,7 +155,7 @@ export const promptSaleorApp = async (argv: any) => createPrompt(
   ({ node: { name, id } }: any) => ({ name, value: id })
 )
 
-const getSortedServices = async (argv: any) => {
+export const getSortedServices = async (argv: any) => {
   const services = await GET(API.Services, { region: Region, ...argv }) as Record<string, any>[];
   return services.sort((a, b) => b.version.localeCompare(a.version))
 }
@@ -373,6 +384,10 @@ export const confirmRemoval = async (argv: Options, name: string) => {
   }) as { proceed: boolean };
 
   return proceed;
+}
+
+export const capitalize = (string: string) => {
+  return string[0].toUpperCase() + string.slice(1);
 }
 
 export const countries : { [key: string]: string} = {
