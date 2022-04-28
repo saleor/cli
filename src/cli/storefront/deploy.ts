@@ -3,6 +3,7 @@ import type { Arguments, CommandBuilder } from "yargs";
 import { Config } from "../../lib/config.js";
 import { API, GET } from "../../lib/index.js";
 import { deploy } from "../../lib/util.js"
+import { useEnvironment } from "../../middleware/index.js";
 import { Options } from "../../types.js";
 
 export const command = "deploy [name]";
@@ -17,7 +18,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
 
   const { vercel_token, vercel_team_id } = await Config.get()
 
-  if (!vercel_team_id && !vercel_token) { 
+  if (!vercel_team_id && !vercel_token) {
     await deploy({ name, url });
   } else {
     console.log("Using Vercel API")
@@ -42,3 +43,8 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
 
   process.exit(0);
 };
+
+
+export const middlewares = [
+  useEnvironment
+]

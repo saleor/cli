@@ -1,4 +1,4 @@
-import { useEnvironment, useOrganization, useToken } from "../../middleware/index.js";
+import { useOrganization, useToken } from "../../middleware/index.js";
 import * as create from "./create.js";
 import * as deploy from "./deploy.js";
 
@@ -7,6 +7,6 @@ export default function (_: any) {
     create,
     deploy,
   ])
-  .middleware([useToken, useOrganization, useEnvironment])
+  .middleware([useToken, useOrganization])
   .demandCommand(1, "You need at least one command before moving on");
 }
