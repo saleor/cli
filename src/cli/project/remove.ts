@@ -5,7 +5,7 @@ import { confirmRemoval, promptProject } from "../../lib/util.js";
 import chalk from "chalk";
 
 export const command = "remove [slug]";
-export const desc = "Remove the organization";
+export const desc = "Remove the project";
 
 export const builder: CommandBuilder = (_) =>
   _.positional("slug", {

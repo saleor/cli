@@ -9,7 +9,7 @@ type Options = {
 };
 
 export const command = "switch [key]";
-export const desc = "Make the provided environmet the default one";
+export const desc = "Make the provided environment the default one";
 
 export const builder: CommandBuilder = (_) =>
   _.positional("key", {
