@@ -20,7 +20,7 @@ export const handler = async (argv: Arguments<Options>) => {
   if (!result.length) {
     console.warn(chalk.red(" No backups found for this environment"))
     process.exit(0);
-  };
+  }
 
   cli.table(result, {
     name: {
