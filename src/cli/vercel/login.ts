@@ -13,18 +13,7 @@ const { ux: cli } = CliUx;
 const { GET } = route;
 const { Redirect } = response;
 
-const ClientID = "oac_ckmMDFutBcVoOeyqkHCJ4i7S";
-const ClientSecret = "asrRXOlUZHvcmsIy0j4a4Nuj";
 const RedirectURI = "http://localhost:3000/vercel/callback";
-
-const BaseURL = "https://saleor-cloud-staging-oauth.auth.us-east-1.amazoncognito.com";
-const Params = {
-  response_type: "code",
-  client_id: ClientID,
-  redirect_uri: RedirectURI,
-  identity_provider: "COGNITO",
-  scope: "phone email openid profile aws.cognito.signin.user.admin",
-}
 
 export const command = "login";
 export const desc = "Log in to the Saleor Cloud";
@@ -34,6 +23,8 @@ export const builder: CommandBuilder = (_) => _
 export const handler = async (argv: Arguments<Options>) => {
   const generatedState = nanoid();
   const emitter = new EventEmitter();
+
+  const { VercelClientID, VercelClientSecret } = await Config.get() 
 
   // const spinner = ora('\nLogging in...').start();
   // await delay(1500);
@@ -52,8 +43,8 @@ export const handler = async (argv: Arguments<Options>) => {
       }
 
       const Params = {
-        client_id: ClientID,
-        client_secret: ClientSecret,
+        client_id: VercelClientID,
+        client_secret: VercelClientSecret,
         code,
         redirect_uri: RedirectURI,
       }

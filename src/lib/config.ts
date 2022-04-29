@@ -4,7 +4,7 @@ import path from "path";
 
 const DefaultConfigFile = path.join(os.homedir(), ".config", "saleor.json");
 
-type ConfigField =
+export type ConfigField =
   | "token"
   | "refresh_token"
   | "organization_slug"
@@ -13,7 +13,10 @@ type ConfigField =
   | "vercel_token"
   | "vercel_team_id"
   | "telemetry"
-  | "saleor_env";
+  | "saleor_env"
+  | "TunnelServerSecret"
+  | "VercelClientID"
+  | "VercelClientSecret"
 
 type ConfigProps = Record<ConfigField, string>;
 

@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid';
 
 import { delay } from "../lib/util.js";
 import got from "got";
-import { Config } from "../lib/config.js";
+import { Config, ConfigField } from "../lib/config.js";
 import { response } from "retes";
 import EventEmitter from 'events'
 import { API, POST, getAmplifyConfig } from "../lib/index.js";
@@ -40,9 +40,9 @@ export const doLogin = async () => {
   const generatedState = nanoid();
   const emitter = new EventEmitter();
 
-  const spinner = ora('\nLogging in...').start();
+  // const spinner = ora('\nLogging in...').start();
   await delay(1500);
-  spinner.text = '\nLogging in...\n';
+  // spinner.text = '\nLogging in...\n';
 
   const QueryParams = new URLSearchParams({...Params, state: generatedState });
   const url = `https://${amplifyConfig.oauth.domain}/login?${QueryParams}`;
@@ -64,21 +64,28 @@ export const doLogin = async () => {
       }
 
       try {
-        const { id_token }: any = await got.post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
+        const { id_token, access_token }: any = await got.post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
           form: Params,
         }).json();
-        const { token }: any  = await POST(
-          API.Token,
-          { token: `Bearer ${id_token}`}
-        );
+
+        const { token }: any  = await POST(API.Token, { token: `Bearer ${id_token}`});
+
+        const secrets: Record<ConfigField, string> = await got.post(`https://id.saleor.live/verify`, {
+          json: { 
+            token: access_token
+          }
+        }).json();
 
         await Config.reset();
         await Config.set("token", `Token ${token}`);
+        for (const [name, value] of Object.entries(secrets)) {
+          await Config.set(name as ConfigField, value);
+        }
       } catch (error: any) {
         console.log(error);
       }
 
-      spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
+      // spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
       emitter.emit('finish');
 
       return Redirect(amplifyConfig.oauth.redirectSignIn);

@@ -7,7 +7,7 @@ specifiers:
   '@types/debug': ^4.1.7
   '@types/figlet': ^1.5.4
   '@types/fs-extra': ^9.0.13
-  '@types/node': ^17.0.29
+  '@types/node': ^17.0.30
   '@types/prompt': ^1.1.2
   '@types/update-notifier': ^5.1.0
   '@types/yargs': ^17.0.10
@@ -79,7 +79,7 @@ devDependencies:
   '@types/debug': 4.1.7
   '@types/figlet': 1.5.4
   '@types/fs-extra': 9.0.13
-  '@types/node': 17.0.29
+  '@types/node': 17.0.30
   '@types/prompt': 1.1.2
   '@types/update-notifier': 5.1.0
   '@types/yargs': 17.0.10
@@ -89,7 +89,7 @@ devDependencies:
   eslint: 8.14.0
   eslint-plugin-simple-import-sort: 7.0.0_eslint@8.14.0
   pkg: 5.6.0
-  ts-node: 10.7.0_f6fb214a4af7a964c8bf8f234428ae9a
+  ts-node: 10.7.0_b1d37db57b7471783f769f581ac845c6
   typescript: 4.7.0-beta
 
 packages:
@@ -2257,14 +2257,14 @@ packages:
     dependencies:
       '@types/http-cache-semantics': 4.0.1
       '@types/keyv': 3.1.4
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
       '@types/responselike': 1.0.0
     dev: false
 
   /@types/cli-progress/3.9.2:
     resolution: {integrity: sha512-VO5/X5Ij+oVgEVjg5u0IXVe3JQSKJX+Ev8C5x+0hPy0AuWyW+bF8tbajR7cPFnDGhs7pidztcac+ccrDtk5teA==}
     dependencies:
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
     dev: true
 
   /@types/configstore/5.0.1:
@@ -2288,7 +2288,7 @@ packages:
   /@types/fs-extra/9.0.13:
     resolution: {integrity: sha512-nEnwB++1u5lVDM2UI4c1+5R+FYaKfaAzS4OococimjVm3nQw3TuzH5UNsocrcTBbhnerblyHj4A49qXbIiZdpA==}
     dependencies:
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
     dev: true
 
   /@types/hast/2.3.4:
@@ -2312,27 +2312,27 @@ packages:
   /@types/keyv/3.1.4:
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
     dependencies:
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
     dev: false
 
   /@types/ms/0.7.31:
     resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
     dev: true
 
-  /@types/node/17.0.29:
-    resolution: {integrity: sha512-tx5jMmMFwx7wBwq/V7OohKDVb/JwJU5qCVkeLMh1//xycAJ/ESuw9aJ9SEtlCZDYi2pBfe4JkisSoAtbOsBNAA==}
+  /@types/node/17.0.30:
+    resolution: {integrity: sha512-oNBIZjIqyHYP8VCNAV9uEytXVeXG2oR0w9lgAXro20eugRQfY002qr3CUl6BAe+Yf/z3CRjPdz27Pu6WWtuSRw==}
 
   /@types/prompt/1.1.2:
     resolution: {integrity: sha512-Zc9YzOvjAWxxGY7qo0Q6yINMVVspAa4p68UCzucWMU+GaPujpjwbOwzI38s7Jq01k0GztzLxXlRiFcZf/aeIWA==}
     dependencies:
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
       '@types/revalidator': 0.3.8
     dev: true
 
   /@types/responselike/1.0.0:
     resolution: {integrity: sha512-85Y2BjiufFzaMIlvJDvTTB8Fxl2xfLo4HgmHzVBz08w4wDePCTjYw66PdrolO0kzli3yam/YCgRufyo1DdQVTA==}
     dependencies:
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
     dev: false
 
   /@types/revalidator/0.3.8:
@@ -2617,10 +2617,6 @@ packages:
   /array-union/2.1.0:
     resolution: {integrity: sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==}
     engines: {node: '>=8'}
-
-  /async/1.0.0:
-    resolution: {integrity: sha1-+PwEyjoTeErenhZBr5hXjPvWR6k=}
-    dev: false
 
   /async/3.2.3:
     resolution: {integrity: sha512-spZRyzKL5l5BZQrr/6m/SqFdBN0q3OCI0f9rjfBzCMBIP4p75P620rR3gTmaksNOhmzgdxcaxdNfMy6anrbM0g==}
@@ -4584,7 +4580,7 @@ packages:
       async: 3.2.3
       read: 1.0.7
       revalidator: 0.1.8
-      winston: 2.4.5
+      winston: 2.4.6
     dev: false
 
   /pump/3.0.0:
@@ -5092,7 +5088,7 @@ packages:
       utf8-byte-length: 1.0.4
     dev: false
 
-  /ts-node/10.7.0_f6fb214a4af7a964c8bf8f234428ae9a:
+  /ts-node/10.7.0_b1d37db57b7471783f769f581ac845c6:
     resolution: {integrity: sha512-TbIGS4xgJoX2i3do417KSaep1uRAW/Lu+WAL2doDHC0D6ummjirVOXU5/7aiZotbQ5p1Zp9tP7U6cYhA0O7M8A==}
     hasBin: true
     peerDependencies:
@@ -5111,7 +5107,7 @@ packages:
       '@tsconfig/node12': 1.0.9
       '@tsconfig/node14': 1.0.1
       '@tsconfig/node16': 1.0.2
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
       acorn: 8.7.1
       acorn-walk: 8.2.0
       arg: 4.1.3
@@ -5347,11 +5343,11 @@ packages:
       string-width: 5.1.2
     dev: false
 
-  /winston/2.4.5:
-    resolution: {integrity: sha512-TWoamHt5yYvsMarGlGEQE59SbJHqGsZV8/lwC+iCcGeAe0vUaOh+Lv6SYM17ouzC/a/LB1/hz/7sxFBtlu1l4A==}
+  /winston/2.4.6:
+    resolution: {integrity: sha512-J5Zu4p0tojLde8mIOyDSsmLmcP8I3Z6wtwpTDHx1+hGcdhxcJaAmG4CFtagkb+NiN1M9Ek4b42pzMWqfc9jm8w==}
     engines: {node: '>= 0.10.0'}
     dependencies:
-      async: 1.0.0
+      async: 3.2.3
       colors: 1.0.3
       cycle: 1.0.3
       eyes: 0.1.8

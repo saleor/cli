@@ -1,7 +1,6 @@
 import { Arguments, CommandBuilder } from "yargs";
 import { spawn } from "child_process";
 import path from 'path';
-import { TunnelServerSecret } from "../../const.js";
 import Enquirer from "enquirer";
 import { doSaleorAppInstall } from "../../lib/common.js";
 import boxen from "boxen";
@@ -10,6 +9,7 @@ import replace from "replace-in-file";
 import { fileURLToPath } from 'url';
 import fs from 'fs-extra';
 import fetch from "node-fetch";
+import { Config } from "../../lib/config.js";
 
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1) + min);
@@ -39,6 +39,8 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
     const content = await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8');
     appName = JSON.parse(content)['name'];
   }
+
+  const { TunnelServerSecret } = await Config.get() 
 
   console.log('\n Your Saleor App name:', chalk.yellow(appName));
   console.log('')
