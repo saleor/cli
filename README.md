@@ -35,7 +35,7 @@ npx saleor env list
 
 If you're new to Saleor you might want to start by bootstrapping an end-to-end local storefront development environment (and Saleor Cloud sandbox API instance). Since it requires Cloud access, you will be asked to register to a free Saleor Cloud developer account or log in. Then the command will automatically create your new local storefront environment and connect it to a newly created Saleor API instance/sandbox:
 ```
-saleor storefront create --auto
+saleor storefront create --demo
 ```
 
 ### Register
