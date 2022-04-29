@@ -6,7 +6,7 @@ import { useEnvironment } from "../../middleware/index.js";
 import { showResult } from "../../lib/util.js";
 
 export const command = "show [environment]";
-export const desc = "Show a specific environmet";
+export const desc = "Show a specific environment";
 
 export const builder: CommandBuilder = (_) => _
 

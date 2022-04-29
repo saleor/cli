@@ -24,7 +24,7 @@ interface Options {
 }
 
 export const command = "create [name]";
-export const desc = "Create a new environmet";
+export const desc = "Create a new environment";
 
 export const builder: CommandBuilder = (_) =>
   _.positional("name", {

@@ -3,14 +3,20 @@ import { API, GET } from "../../lib/index.js";
 import { format } from 'date-fns';
 import { Options } from '../../types.js';
 import { Arguments } from 'yargs';
+import chalk from 'chalk';
 
 const { ux: cli } = CliUx;
 
 export const command = "list";
-export const desc = "List environments";
+export const desc = "List organizations";
 
 export const handler = async (argv: Arguments<Options>) => {
   const result = await GET(API.Organization, { ...argv, organization: '' }) as any[];
+
+  if (!result.length) {
+    console.warn(chalk.red(" No organizations found"))
+    process.exit(0);
+  }
 
   cli.table(result, {
     slug: { minWidth: 2 },
