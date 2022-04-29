@@ -6,6 +6,7 @@ import chalk from "chalk";
 import Enquirer from "enquirer";
 import slugify from "slugify";
 import boxen from "boxen";
+import { HTTPError, Response } from "got";
 import { API, GET, POST } from "../../lib/index.js";
 import { updateWebhook } from "../webhook/update.js";
 interface Options {
@@ -111,7 +112,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   const { name,} = await Enquirer.prompt([{
     type: 'input',
     name: 'name',
-    message: `Environment name`,
+    message: 'Environment name',
     initial: argv.name,
     required: true,
     skip: !!argv.name,
@@ -121,7 +122,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   const { domain, access } = await Enquirer.prompt([{
     type: 'input',
     name: 'domain',
-    message: `Environment domain`,
+    message: 'Environment domain',
     initial: slugify(argv.domain || argv.name || name || ''),
     required: true,
     skip: !!argv.domain,
@@ -206,7 +207,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     restore_from: argv.restore_from
   }
 
-  const result = await POST(API.Environment, { ...argv, environment: '' }, { json }) as any;
+  const result = await getResult(json, argv);
 
   await waitForTask(argv, result.task_id, 'Creating a new environment', 'Yay! A new environment is now ready!')
 
@@ -230,3 +231,66 @@ export const middlewares = [
   interactiveDatabaseTemplate,
   interactiveSaleorVersion,
 ]
+
+
+const getResult = async (json: Record<string, any>, argv: Arguments<Options>) => {
+  let loop = true;
+  const _json = {...json};
+
+  while (loop) {
+    try {
+      const result = await POST(API.Environment, { ...argv, environment: '' }, { json: _json }) as any;
+      loop = false;
+      return result
+    } catch(error) {
+      if (error instanceof HTTPError) {
+        const { body } = error.response as Response<any>;
+        const errors: Record< string, string[]> = JSON.parse(body)
+        for (const [errorMsg] of Object.values(errors)) {
+          switch(errorMsg) {
+            case 'environment with this domain label already exists.': {
+                const { newValue } = await Enquirer.prompt<{newValue: string}>({
+                  type: 'input',
+                  name: 'newValue',
+                  message: 'Environment domain',
+                  initial: _json.domain_label,
+                  required: true,
+                  validate: (value) => {
+                    if (value === _json.domain_label) {
+                      return chalk.red(errorMsg)
+                    }
+
+                    return true
+                  }
+                })
+
+                _json.domain_label = newValue
+                break
+              }
+            case 'The fields name, project must make a unique set.': {
+              const { newValue } = await Enquirer.prompt<{newValue: string}>({
+                type: 'input',
+                name: 'newValue',
+                message: 'Environment name',
+                initial: _json.name,
+                required: true,
+                validate: (value) => {
+                  if (value === _json.name) {
+                    return chalk.red(errorMsg)
+                  }
+
+                  return true
+                }
+              })
+
+              _json.name = newValue
+              break
+            }
+            default:
+              throw error
+          }
+        }
+      }
+    }
+  }
+}
