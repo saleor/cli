@@ -21,7 +21,7 @@ export const desc = "Boostrap example [name]";
 const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10)
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("name", { type: "string", demandOption: true, default: "storefront demo" })
+  _.positional("name", { type: "string", demandOption: true, default: "saleor-demo" })
   .option("demo", {
     type: 'boolean',
     default: false,
@@ -49,7 +49,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
 const createProject = async (argv: Arguments<StoreCreate>) => {
   const projects = await GET(API.Project, argv) as any[];
-  const demoName = capitalize(argv.name || "storefront demo")
+  const demoName = capitalize(argv.name || "saleor demo")
 
   if (projects.filter(({name}) => name === demoName).length > 0) {
     console.log(chalk.green("✔"), chalk.bold("Select Project  ·"), chalk.cyan(demoName));
@@ -134,7 +134,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
   spinner.succeed('Staring ...\`pnpm run dev\`');
 
-  await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() }, true)
+  await run('pnpm', ['next', 'dev', '--port', '3005'], { stdio: 'inherit', cwd: process.cwd() }, true)
 }
 
 const getFolderName = async (name: string): Promise<string> => {
