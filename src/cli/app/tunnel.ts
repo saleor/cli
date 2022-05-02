@@ -61,7 +61,7 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
   try {
     await fetch(`https://id.saleor.live/add/${subdomain}/${port}`, { method: 'POST' })
 
-    await spawn(
+    const p = await spawn(
       `${vendorDir}/tunnel`, [
         "local", localPort,
         "--to", tunnelURL,
