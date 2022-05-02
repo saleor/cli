@@ -4,7 +4,7 @@ import enquirer from "enquirer";
 import got, { HTTPError } from "got";
 import { Arguments } from "yargs";
 import { Config } from "../lib/config.js";
-import { API, GET } from "../lib/index.js";
+import { API, GET, getEnvironment } from "../lib/index.js";
 import {
   AuthError,
   createProject,
@@ -210,21 +210,22 @@ export const interactiveWebhook = async (argv: Options) => {
   return {};
 };
 
-export const useTelemetry = async (argv: Arguments) => {
+export const useTelemetry = (version: string) => async (argv: Arguments) => {
   const command = argv._.join(" ");
 
   const { telemetry } = await Config.get();
   const isTelemetryEnabled = telemetry === undefined;
 
-  debug("is telemetry enabled", isTelemetryEnabled);
+  const environment = await getEnvironment();
 
+  debug("is telemetry enabled", isTelemetryEnabled);
 
   if (isTelemetryEnabled) {
     debug("telemetry", argv._);
 
     try {
       got.post("https://saleor-cli.deno.dev", {
-        json: { command },
+        json: { command, environment, version },
         timeout: {
           request: 2000
         }
