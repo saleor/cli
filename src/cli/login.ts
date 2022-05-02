@@ -9,7 +9,7 @@ import got from "got";
 import { Config, ConfigField } from "../lib/config.js";
 import { response } from "retes";
 import EventEmitter from 'events'
-import { API, POST, getAmplifyConfig } from "../lib/index.js";
+import { API, POST, getAmplifyConfig, getEnvironment } from "../lib/index.js";
 
 const { ux: cli } = CliUx;
 const { GET } = route;
@@ -70,9 +70,11 @@ export const doLogin = async () => {
 
         const { token }: any  = await POST(API.Token, { token: `Bearer ${id_token}`});
 
+        const environment = await getEnvironment();
         const secrets: Record<ConfigField, string> = await got.post(`https://id.saleor.live/verify`, {
           json: { 
-            token: access_token
+            token: access_token,
+            environment
           }
         }).json();
 
