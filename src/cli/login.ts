@@ -1,5 +1,4 @@
 import type { CommandBuilder } from "yargs";
-import ora from "ora";
 import { CliUx } from "@oclif/core";
 import { ServerApp, route } from "retes";
 import { nanoid } from 'nanoid';
