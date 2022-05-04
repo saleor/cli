@@ -1,17 +1,3 @@
-# Saleor
-
-Saleor is a rapidly growing all-out commerce API. Saleor is **fully open-source, and 100% focused on the GraphQL** interface. Our mission is to provide unparalleled extensibility.
-
-We make it easy for front-end teams to **prototype fast, experiment, and build wonderful, unrestricted storefront experiences**.
-
-We enable developers to [extend Saleor](https://docs.saleor.io/docs/3.x/developer/extending/apps/key-concepts) easily via [Saleor Apps](https://github.com/saleor/saleor-app-template), a robust tally of async/sync webhooks, and a composable Dashboard. 
-
-We allow brands to own their data and go fast while staying fully flexible with [Saleor Cloud](https://cloud.saleor.io).
-
-Composable all-out e-commerce.
-
----
-
 **Saleor CLI** is designed to boost your productivity and improve development experience with Saleor and Saleor Cloud. It will take the burden of spawning new storefronts and apps locally, managing and connecting them with Saleor instances, or establishing tunnels for local development in seconds.
 
 To install the latest version of Saleor CLI, run the following command:
