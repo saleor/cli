@@ -49,7 +49,6 @@ const createPrompt = async (name: string, message: string, fetcher: any, extract
 
   const { [name]: ret } = r;
 
-
   const result = choices.find((choice: any) => choice.name === ret)
   if (!result) {
     throw Error('something went wrong with prompt')
