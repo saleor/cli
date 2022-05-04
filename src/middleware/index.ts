@@ -3,6 +3,7 @@ import Debug from "debug";
 import enquirer from "enquirer";
 import got, { HTTPError } from "got";
 import { Arguments } from "yargs";
+import * as Configuration from "../config.js";
 import { Config } from "../lib/config.js";
 import { API, GET, getEnvironment } from "../lib/index.js";
 import {
@@ -224,7 +225,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
     debug("telemetry", argv._);
 
     try {
-      got.post("https://saleor-cli.deno.dev", {
+      got.post(Configuration.TelemetryDomain, {
         json: { command, environment, version },
         timeout: {
           request: 2000
