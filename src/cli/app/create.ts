@@ -45,7 +45,6 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   process.chdir(target);
   spinner.text = `Creating .env...`;
 
-
   await fs.outputFile('.env', `
 NEXT_PUBLIC_SALEOR_API_URL=${baseURL}/graphql/
 APP_URL=
