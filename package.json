@@ -1,6 +1,6 @@
 {
   "name": "saleor-cli",
-  "version": "0.28.0",
+  "version": "1.0.0",
   "description": "",
   "type": "module",
   "bin": {
