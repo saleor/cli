@@ -6,7 +6,7 @@ import { Config } from "./config.js";
 import { API, GET } from "./index.js";
 
 export const doSaleorAppInstall = async (argv: any) => {
-  const { domain } = await GET(API.Environment, argv) as any; 
+  const { domain } = await GET(API.Environment, argv) as any;
   const { token } = await Config.get();
 
   let form = {}
@@ -22,8 +22,8 @@ export const doSaleorAppInstall = async (argv: any) => {
 
     form = await prompt.run();
   } else {
-    form = { 
-      manifestURL: argv.manifestURL, 
+    form = {
+      manifestURL: argv.manifestURL,
       name: argv.appName
     }
   }
@@ -32,8 +32,8 @@ export const doSaleorAppInstall = async (argv: any) => {
     headers: {
       'Authorization-Bearer': token.split(' ').slice(-1),
     },
-    json: { 
-      query: AppInstall, 
+    json: {
+      query: AppInstall,
       variables: form
     }
   }).json()
@@ -47,7 +47,8 @@ export const doSaleorAppInstall = async (argv: any) => {
 }
 
 export const run = async (cmd: string, params: string[], options: Record<string, unknown>, log = false) => {
-  const child = spawn(cmd, params, options)
+  const winSuffix = process.platform === 'win32' ? '.cmd' : '';
+  const child = spawn(`${cmd}${winSuffix}`, params, options)
   for await (const data of child.stdout || []) {
     if (log) {console.log(data)}
   }
