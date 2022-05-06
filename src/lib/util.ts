@@ -5,12 +5,15 @@ import got from 'got';
 import ora from 'ora';
 import { emphasize } from 'emphasize';
 import yaml from "yaml";
+import { CliUx } from "@oclif/core";
+import { lookpath } from 'lookpath';
 
 import { API, GET, POST, Region } from "../lib/index.js";
 import { Options, ProjectCreate } from "../types.js";
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
 import { Config } from './config.js';
-import { lookpath } from 'lookpath';
+
+const { ux: cli } = CliUx;
 
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -335,6 +338,17 @@ export const checkIfJobSucceeded = async (taskId: string): Promise<boolean> => {
   return result.status === "SUCCEEDED";
 }
 
+const simpleProgress = (current = 0):string => {
+  const barCompleteChar = '\u2588';
+  const barIncompleteChar = '\u2591';
+  let progress = current > 100 ? 100 : current;
+  const filled = Math.round(progress / 2);
+  const left = 50 - filled;
+  const bar = `progress [${barCompleteChar.repeat(filled)}${barIncompleteChar.repeat(left)}] ${progress}%`;
+
+  return bar
+}
+
 export const waitForTask = async (argv: Options, taskId: string, spinnerText: string, spinnerSucceed: string) => {
   let currentMsg = 0;
   const messages = [
@@ -347,23 +361,41 @@ export const waitForTask = async (argv: Options, taskId: string, spinnerText: st
   const spinner = ora(`${spinnerText}...`).start();
   let succeed = await checkIfJobSucceeded(taskId);
 
-  while (!succeed) {
-    await delay(10000)
-    spinner.text = `${spinnerText}...
+  if (spinnerText === 'Creating a new environment') {
+    let progress = 0;
 
-  ${messages[currentMsg]}`;
+    while (!succeed) {
+      progress = progress + 1;
+      await delay(2000)
+      spinner.text = `${spinnerText}...\n
+    ${simpleProgress(progress)}\n
+    ${messages[currentMsg]}`;
 
-    if (currentMsg === (messages.length - 1)) {
-      currentMsg = 0;
-    } else {
-      currentMsg++
+    const nextMsg = progress % 5 === 0;
+      if (nextMsg) {
+        currentMsg = progress % 3;
+        succeed = await checkIfJobSucceeded(taskId);
+      }
     }
 
-    succeed = await checkIfJobSucceeded(taskId);
-  }
+    spinner.succeed(`${spinnerSucceed}\n`);
+  } else {
+    while (!succeed) {
+      await delay(10000)
+      spinner.text = `${spinnerText}...
 
-  spinner.succeed(`${spinnerSucceed}
-  `);
+    ${messages[currentMsg]}`;
+
+      if (currentMsg === (messages.length - 1)) {
+        currentMsg = 0;
+      } else {
+        currentMsg++
+      }
+      succeed = await checkIfJobSucceeded(taskId);
+    }
+
+    spinner.succeed(`${spinnerSucceed}\n`);
+  }
 }
 
 export const showResult = (result: Record<string, unknown>) => {
