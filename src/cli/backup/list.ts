@@ -3,18 +3,15 @@ import chalk from 'chalk';
 import { Arguments } from 'yargs';
 
 import { API, GET } from "../../lib/index.js";
-import { formatDateTime, printContext } from '../../lib/util.js';
+import { formatDateTime } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
-export const command = "list";
-export const desc = "List backups";
+export const command = "list [key|environment]";
+export const desc = "List backups of the environment";
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { organization, environment } = argv;
-
-  printContext(organization, environment)
   const result = await GET(API.Backup, argv) as any[];
 
   if (!result.length) {

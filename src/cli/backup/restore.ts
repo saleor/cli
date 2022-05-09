@@ -10,23 +10,18 @@ export const command = "restore [from]";
 export const desc = "Restore a specific backup";
 
 export const builder: CommandBuilder = (_) =>
-    _.option("from", {
-      type: 'string',
-      demandOption: false,
-      desc: 'id of the snapshot',
-    })
+  _.option("from", {
+    type: 'string',
+    demandOption: false,
+    desc: 'key of the snapshot',
+  })
 
 export const handler = async (argv: Arguments<Options>) => {
-  let { from } = argv;
-
-  if (!from) {
-    const { value } = await promptOrganizationBackup(argv)
-    from = value;
-  }
+  const from = await getBackup(argv);
 
   const result = await PUT(API.Restore, argv, {
     json: {
-      restore_from: from
+      restore_from: from.value
     }
   }) as any;
 
@@ -43,3 +38,11 @@ export const handler = async (argv: Arguments<Options>) => {
     await updateWebhook(domain);
   }
 };
+
+const getBackup = async (argv: Arguments<Options>) => {
+  if (argv.from) {
+    return { key: argv.from, value: argv.from }
+  }
+
+  return await promptOrganizationBackup(argv);
+}
