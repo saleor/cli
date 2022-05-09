@@ -4,11 +4,11 @@ import { API,  GET } from "../../lib/index.js";
 import { waitForTask } from "../../lib/util.js";
 import { Options } from "../../types.js";
 
-export const command = "populate <environment>";
+export const command = "populate <key|environment>";
 export const desc = "Populate database for environment";
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("environment", {
+  _.positional("key", {
     type: "string",
     demandOption: false,
     desc: 'key of the environment'
