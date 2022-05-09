@@ -15,10 +15,14 @@ export const command = "configure [token]";
 export const desc = "Configure Saleor CLI";
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("token", { type: "string", demandOption: false });
+  _.positional("token", { type: "string", demandOption: false })
+  .option("force", {
+    type: 'boolean',
+    desc: 'skip additional prompts',
+  });
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { token } = argv;
+  const { token, force } = argv;
   const legitToken = await configure(token)
 
   console.log(`
@@ -26,6 +30,10 @@ Saleor Telemetry is ${_.underline('completely anonymous and optional')} informat
 You may opt-out at any time (check 'saleor telemetry').
 Learn more: ${_.gray('https://saleor.io/')}${_.blueBright('telemetry')}
   `)
+
+  if (force) {
+    process.exit(0);
+  }
 
   const { telemetry } = await Enquirer.prompt({
     type: 'confirm',
@@ -88,8 +96,9 @@ export const configure = async (token: string | undefined) => {
   try {
     await validateToken(token);
     Config.reset();
-    await Config.set("token", `Token ${token}`);
-    return token
+    const header = `Token ${token}`;
+    await Config.set("token", header);
+    return header
   } catch (error) {
     // FIXME make it more explicit
     if (error instanceof HTTPError) {
