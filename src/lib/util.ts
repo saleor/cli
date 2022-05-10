@@ -352,10 +352,14 @@ const simpleProgress = (current = 0):string => {
 export const waitForTask = async (argv: Options, taskId: string, spinnerText: string, spinnerSucceed: string) => {
   let currentMsg = 0;
   const messages = [
-    `🙌  If you see yourself working on tools like this one, Saleor is looking for great educators and DevRel engineers.
+    `🙌  If you see yourself working on tools like this one, Saleor is looking
+      for great educators and DevRel engineers.\n
       Contact us directly at careers@saleor.io or DM on LinkedIn.`,
-    `✨ Take your first steps with Saleor's API by checking our tutorial at https://learn.saleor.io`,
-    `⚡ If you like React and Next.js, you may want to take a look at our storefront starter pack available at https://github.com/saleor/react-storefront`
+    `✨  Take your first steps with Saleor's API by checking our tutorial at\n
+      https://learn.saleor.io`,
+    `⚡  If you like React and Next.js, you may want to take a look at our
+      storefront starter pack available at\n
+      https://github.com/saleor/react-storefront`
   ]
 
   const spinner = ora(`${spinnerText}...`).start();
