@@ -38,7 +38,7 @@ const notifier = updateNotifier({
   pkg,
   updateCheckInterval: 1000 * 60 * 15 // 15 minutes
 });
-notifier.notify({isGlobal: true});
+notifier.notify({ isGlobal: true });
 
 yargs(hideBin(process.argv))
   .scriptName("saleor")
