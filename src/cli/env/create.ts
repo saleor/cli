@@ -94,10 +94,8 @@ export const handler = async (argv: Arguments<Options>) => {
   }) as { deployPrompt: boolean };
 
   if (deployPrompt) {
-    await deploy({ name: result.name, url:`https://${result.domain}` })
+    await deploy({ name: result.name, url: `https://${result.domain}` })
   }
-
-  return { name, value: name }
 };
 
 export const createEnvironment = async (argv: Arguments<Options>) => {
@@ -109,7 +107,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     return
   }
 
-  const { name,} = await Enquirer.prompt([{
+  const { name } = await Enquirer.prompt([{
     type: 'input',
     name: 'name',
     message: 'Environment name',
@@ -117,7 +115,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     required: true,
     skip: !!argv.name,
     validate: (value) => validateLength(value, 255)
-  }]) as { name: string};
+  }]) as { name: string };
 
   const { domain, access } = await Enquirer.prompt([{
     type: 'input',
@@ -127,13 +125,13 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     required: true,
     skip: !!argv.domain,
     validate: (value) => validateLength(value, 40)
-  },{
+  }, {
     type: 'confirm',
     name: 'access',
     message: `Would you like to enable dashboard access `,
     skip: !!argv.email,
     initial: false
-  }]) as {domain: string, access: boolean };
+  }]) as { domain: string, access: boolean };
 
   let email = argv.email;
 
@@ -217,7 +215,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   const gqlMsg = chalk.blue(`GraphQL Playgroud - ${baseUrl}/graphql/`);
   console.log(boxen(`${dashboaardMsg}
   ${accessMsg}
-${gqlMsg}`, { padding: 1, borderStyle: 'round'}));
+${gqlMsg}`, { padding: 1, borderStyle: 'round' }));
 
   if (access || !!argv.email) {
     await GET(API.SetAdminAccount, { ...argv, environment: result.key }) as any;
@@ -232,43 +230,42 @@ export const middlewares = [
   interactiveSaleorVersion,
 ]
 
-
 const getResult = async (json: Record<string, any>, argv: Arguments<Options>) => {
   let loop = true;
-  const _json = {...json};
+  const _json = { ...json };
 
   while (loop) {
     try {
       const result = await POST(API.Environment, { ...argv, environment: '' }, { json: _json }) as any;
       loop = false;
       return result
-    } catch(error) {
+    } catch (error) {
       if (error instanceof HTTPError) {
         const { body } = error.response as Response<any>;
-        const errors: Record< string, string[]> = JSON.parse(body)
+        const errors: Record<string, string[]> = JSON.parse(body)
         for (const [errorMsg] of Object.values(errors)) {
-          switch(errorMsg) {
+          switch (errorMsg) {
             case 'environment with this domain label already exists.': {
-                const { newValue } = await Enquirer.prompt<{newValue: string}>({
-                  type: 'input',
-                  name: 'newValue',
-                  message: 'Environment domain',
-                  initial: _json.domain_label,
-                  required: true,
-                  validate: (value) => {
-                    if (value === _json.domain_label) {
-                      return chalk.red(errorMsg)
-                    }
-
-                    return true
+              const { newValue } = await Enquirer.prompt<{ newValue: string }>({
+                type: 'input',
+                name: 'newValue',
+                message: 'Environment domain',
+                initial: _json.domain_label,
+                required: true,
+                validate: (value) => {
+                  if (value === _json.domain_label) {
+                    return chalk.red(errorMsg)
                   }
-                })
 
-                _json.domain_label = newValue
-                break
-              }
+                  return true
+                }
+              })
+
+              _json.domain_label = newValue
+              break
+            }
             case 'The fields name, project must make a unique set.': {
-              const { newValue } = await Enquirer.prompt<{newValue: string}>({
+              const { newValue } = await Enquirer.prompt<{ newValue: string }>({
                 type: 'input',
                 name: 'newValue',
                 message: 'Environment name',
