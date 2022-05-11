@@ -6,6 +6,7 @@ const DefaultConfigFile = path.join(os.homedir(), ".config", "saleor.json");
 
 export type ConfigField =
   | "token"
+  | "id_token"
   | "access_token"
   | "refresh_token"
   | "organization_slug"
