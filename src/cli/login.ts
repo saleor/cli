@@ -2,6 +2,7 @@ import type { CommandBuilder } from "yargs";
 import { CliUx } from "@oclif/core";
 import { ServerApp, route } from "retes";
 import { nanoid } from 'nanoid';
+import crypto from 'crypto';
 
 import { delay } from "../lib/util.js";
 import got from "got";
@@ -70,6 +71,8 @@ export const doLogin = async () => {
         const { token }: any  = await POST(API.Token, { token: `Bearer ${id_token}`});
 
         const environment = await getEnvironment();
+        const user_session = crypto.randomUUID();
+
         const secrets: Record<ConfigField, string> = await got.post(`https://id.saleor.live/verify`, {
           json: { 
             token: access_token,
@@ -79,7 +82,7 @@ export const doLogin = async () => {
 
         await Config.reset();
         await Config.set("token", `Token ${token}`);
-        await Config.set("id_token", id_token);
+        await Config.set("user_session", user_session);
         for (const [name, value] of Object.entries(secrets)) {
           await Config.set(name as ConfigField, value);
         }

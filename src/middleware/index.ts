@@ -218,7 +218,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
   const isTelemetryEnabled = telemetry === undefined;
 
   const environment = await getEnvironment();
-  const { id_token: token }= await Config.get();
+  const { user_session } = await Config.get();
 
   debug("is telemetry enabled", isTelemetryEnabled);
 
@@ -227,7 +227,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
 
     try {
       got.post(Configuration.TelemetryDomain, {
-        json: { command, environment, version, token },
+        json: { command, environment, version, user_session },
         timeout: {
           request: 2000
         }
