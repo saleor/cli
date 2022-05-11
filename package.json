@@ -29,11 +29,11 @@
   "author": "Saleor",
   "license": "ISC",
   "devDependencies": {
-    "@types/cli-progress": "^3.9.2",
+    "@types/cli-progress": "^3.11.0",
     "@types/debug": "^4.1.7",
     "@types/figlet": "^1.5.4",
     "@types/fs-extra": "^9.0.13",
-    "@types/node": "^17.0.31",
+    "@types/node": "^17.0.32",
     "@types/prompt": "^1.1.2",
     "@types/update-notifier": "^5.1.0",
     "@types/yargs": "^17.0.10",
@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@mobily/ts-belt": "^3.11.0",
-    "@oclif/core": "^1.8.0",
+    "@oclif/core": "^1.8.1",
     "aws-amplify": "^4.3.21",
     "boxen": "^6.2.1",
     "chalk": "^5.0.1",
