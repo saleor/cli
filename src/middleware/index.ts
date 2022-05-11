@@ -218,7 +218,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
   const isTelemetryEnabled = telemetry === undefined;
 
   const environment = await getEnvironment();
-  const { access_token: token }= await Config.get();
+  const { id_token: token }= await Config.get();
 
   debug("is telemetry enabled", isTelemetryEnabled);
 
