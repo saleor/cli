@@ -22,38 +22,38 @@ const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10)
 
 export const builder: CommandBuilder = (_) =>
   _.positional("name", { type: "string", demandOption: true, default: "saleor-demo" })
-  .option("demo", {
-    type: 'boolean',
-    default: false,
-    desc: 'specify demo process',
-  })
-  .option("environment", {
-    type: 'string',
-    desc: 'specify environment id',
-  })
+    .option("demo", {
+      type: 'boolean',
+      default: false,
+      desc: 'specify demo process',
+    })
+    .option("environment", {
+      type: 'string',
+      desc: 'specify environment id',
+    })
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   if (argv.environment) {
-    return await createStorefront({...argv, ...{ environment: argv.environment }})
+    return await createStorefront({ ...argv, ...{ environment: argv.environment } })
   }
 
   if (argv.demo) {
     const project = await createProject(argv)
     const environment = await prepareEnvironment(argv, project)
-    return await createStorefront({...argv, ...{ environment: environment.key }})
+    return await createStorefront({ ...argv, ...{ environment: environment.key } })
   }
 
   const _argv = await useEnvironment(argv)
-  await createStorefront({...argv, ..._argv})
+  await createStorefront({ ...argv, ..._argv })
 }
 
 const createProject = async (argv: Arguments<StoreCreate>) => {
   const projects = await GET(API.Project, argv) as any[];
   const demoName = capitalize(argv.name || "saleor demo")
 
-  if (projects.filter(({name}) => name === demoName).length > 0) {
+  if (projects.filter(({ name }) => name === demoName).length > 0) {
     console.log(chalk.green("✔"), chalk.bold("Select Project  ·"), chalk.cyan(demoName));
-    const project = projects.filter(({name}) => name === demoName)[0]
+    const project = projects.filter(({ name }) => name === demoName)[0]
     return { slug: project.slug }
   }
 
@@ -61,7 +61,8 @@ const createProject = async (argv: Arguments<StoreCreate>) => {
     json: {
       name: demoName,
       plan: 'dev',
-      region: 'us-east-1'}
+      region: 'us-east-1'
+    }
   }) as any;
 
   console.log(chalk.green("✔"), chalk.bold("Select Project  ·"), chalk.cyan(demoName));
@@ -75,7 +76,7 @@ const prepareEnvironment = async (argv: Arguments<StoreCreate>, project: any) =>
 
   const saleorEnv = await getEnvironment();
   const service = (saleorEnv === 'staging') ?
-    services.filter(({service_type}) => service_type === "SANDBOX")[0] :
+    services.filter(({ service_type }) => service_type === "SANDBOX")[0] :
     services[0];
 
   const name = `${project.slug}-${nanoid(8).toLocaleLowerCase()}`;
@@ -100,11 +101,13 @@ const prepareEnvironment = async (argv: Arguments<StoreCreate>, project: any) =>
     restore_from: ''
   }
 
-  const environment = await createEnvironment({...argv,
-                                               ...json,
-                                               ...{
-                                                 skipRestrict: true
-                                                }});
+  const environment = await createEnvironment({
+    ...argv,
+    ...json,
+    ...{
+      skipRestrict: true
+    }
+  });
 
   return environment
 }
@@ -115,9 +118,9 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   const env = await GET(API.Environment, argv) as any;
 
   const spinner = ora('Downloading...').start();
-  const file = await download(`saleor/react-storefront`)
+  const file = await download(`saleor/react-storefront`);
 
-  spinner.text = 'Extracting...'
+  spinner.text = 'Extracting...';
   const target = await getFolderName(sanitize(argv.name));
   await extract(file, target);
 
@@ -128,13 +131,16 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   replace.sync({
     files: '.env',
     from: /NEXT_PUBLIC_API_URI=.*/g,
-    to: `NEXT_PUBLIC_API_URI=${baseURL}`});
+    to: `NEXT_PUBLIC_API_URI=${baseURL}`
+  });
 
   spinner.text = 'Installing dependencies...';
-  await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
-  spinner.succeed('Staring ...\`pnpm run dev\`');
+  await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
+  spinner.succeed(chalk.bold('Storefront prepared \n'));
+  console.log('-'.repeat(process.stdout.columns));
+  console.log(chalk(chalk.bold('\n  Starting server on 0.0.0.0:3005, url: http://localhost:3005'), '\n'));
 
-  await run('pnpm', ['next', 'dev', '--port', '3005'], { stdio: 'inherit', cwd: process.cwd() }, true)
+  await run('pnpm', ['next', 'dev', '--port', '3005'], { stdio: 'inherit', cwd: process.cwd() }, true);
 }
 
 const getFolderName = async (name: string): Promise<string> => {
