@@ -44,7 +44,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   }
 
   const _argv = await useEnvironment(argv)
-  await createStorefront({...argv, _argv})
+  await createStorefront({...argv, ..._argv})
 }
 
 const createProject = async (argv: Arguments<StoreCreate>) => {
