@@ -341,7 +341,7 @@ export const checkIfJobSucceeded = async (taskId: string): Promise<boolean> => {
 const simpleProgress = (current = 0):string => {
   const barCompleteChar = '\u2588';
   const barIncompleteChar = '\u2591';
-  let progress = current > 100 ? 100 : current;
+  const progress = current > 100 ? 100 : current;
   const filled = Math.round(progress / 2);
   const left = 50 - filled;
   const bar = `progress [${barCompleteChar.repeat(filled)}${barIncompleteChar.repeat(left)}] ${progress}%`;
