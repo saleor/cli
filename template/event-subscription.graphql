@@ -1,0 +1,9 @@
+subscription ${name}Subscription {
+  event {
+    ... on ${name} {
+      ${operationName} {
+        id
+      }
+    }
+  }
+}

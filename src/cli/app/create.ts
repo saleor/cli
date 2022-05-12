@@ -11,6 +11,7 @@ import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
 import { run } from "../../lib/common.js";
 import boxen from "boxen";
+import { useEnvironment, useOrganization, useToken } from "../../middleware/index.js";
 
 export const command = "create [name]";
 export const desc = "Create a Saleor App template";
@@ -36,7 +37,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   console.log(boxen(`${dashboaardMsg}\n${gqlMsg}`, { padding: 1 }));
 
   const spinner = ora('Downloading...').start();
-  const file = await download(`zaiste/saleor-app-template`)
+  const file = await download(`saleor/saleor-app-template`)
 
   spinner.text = 'Extracting...'
   const target = await getFolderName(sanitize(argv.name));
@@ -73,3 +74,7 @@ const dirExists = async (name: string): Promise<boolean> => {
     return false
   }
 }
+
+export const middlewares = [
+  useToken, useOrganization, useEnvironment
+]

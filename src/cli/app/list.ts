@@ -7,6 +7,7 @@ import { Config } from '../../lib/config.js';
 
 import { API, GET } from "../../lib/index.js";
 import { formatDateTime, printContext } from '../../lib/util.js';
+import { useEnvironment, useOrganization, useToken } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
@@ -74,3 +75,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   process.exit(0);
 };
+
+export const middlewares = [
+  useToken, useOrganization, useEnvironment
+]

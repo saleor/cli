@@ -12,10 +12,12 @@
     "watch": "tsc -w",
     "package": "pkg .",
     "eslint": "eslint src/**/*.ts",
+    "generate": "graphql-codegen",
     "postinstall": "node ./build/scripts/binary.js install"
   },
   "files": [
-    "build"
+    "build",
+    "template"
   ],
   "pkg": {
     "scripts": "build/**/*.js",
@@ -29,6 +31,8 @@
   "author": "Saleor",
   "license": "ISC",
   "devDependencies": {
+    "@graphql-codegen/cli": "^2.6.2",
+    "@graphql-codegen/typescript-document-nodes": "^2.2.11",
     "@types/cli-progress": "^3.11.0",
     "@types/debug": "^4.1.7",
     "@types/figlet": "^1.5.4",
@@ -62,6 +66,8 @@
     "fs-extra": "^10.1.0",
     "gitly": "^2.1.6",
     "got": "^12.0.4",
+    "graphql-request": "^4.2.0",
+    "graphql-tag": "^2.12.6",
     "lookpath": "^1.2.2",
     "nanoid": "^3.3.4",
     "node-fetch": "^3.2.4",
@@ -71,9 +77,10 @@
     "retes": "^0.23.0",
     "sanitize-filename": "^1.6.3",
     "slugify": "^1.6.5",
+    "tplv": "^1.0.0",
     "update-notifier": "^5.1.0",
     "yaml": "^2.0.1",
-    "yargs": "^17.4.1"
+    "yargs": "^17.5.0"
   },
   "engines": {
     "node": "^14.13.1 || >=16.0.0"

@@ -137,3 +137,6 @@ binaries/
 .saleor
 token.txt
 vendor/
+test.js
+dummy/
+..bfg-report

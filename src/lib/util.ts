@@ -13,9 +13,9 @@ import { Options, ProjectCreate } from "../types.js";
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
 import { Config } from './config.js';
 
-const { ux: cli } = CliUx;
-
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+export const uncapitalize = (value: string) => value.charAt(0).toLowerCase() + value.slice(1);
 
 export class AuthError extends Error {
   constructor(message: string) {
@@ -419,10 +419,6 @@ export const confirmRemoval = async (argv: Options, name: string) => {
   }) as { proceed: boolean };
 
   return proceed;
-}
-
-export const capitalize = (string: string) => {
-  return string[0].toUpperCase() + string.slice(1);
 }
 
 export const countries : { [key: string]: string} = {
