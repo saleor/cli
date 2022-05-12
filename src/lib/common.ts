@@ -1,9 +1,12 @@
 import { spawn } from "child_process";
 import Enquirer from "enquirer";
 import got from "got";
+import fs from 'fs-extra';
+
 import { AppInstall } from "../graphql/AppInstall.js";
 import { Config } from "./config.js";
 import { API, GET } from "./index.js";
+import { NotSaleorAppDirectoryError } from "./util.js";
 
 export const doSaleorAppInstall = async (argv: any) => {
   const { domain } = await GET(API.Environment, argv) as any;
@@ -56,3 +59,22 @@ export const run = async (cmd: string, params: string[], options: Record<string,
     console.error(data)
   }
 }
+
+export const verifyIsSaleorAppDirectory = async (argv: any) => {
+  const isTunnel = ['tunnel', 'generate'].includes(argv._[1]);
+
+  // check if this is a Next.js app
+  const isNodeApp = await fs.pathExists('package.json')
+  const isNextApp = await fs.pathExists('next.config.js')
+  const hasDotEnvFile = await fs.pathExists('.env')
+
+  if (! isTunnel) {
+    return {}
+  }
+
+  if (!isNextApp || !isNodeApp || !hasDotEnvFile) {
+    throw new NotSaleorAppDirectoryError(`'app ${argv._[1]}' must be run from the directory of your Saleor app`);
+  }
+
+  return {};
+};
