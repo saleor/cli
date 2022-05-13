@@ -1,0 +1,5 @@
+mutation AppTokenCreate($app: ID!) {
+  appTokenCreate(input: { app: $app }) {
+    authToken
+  }
+}

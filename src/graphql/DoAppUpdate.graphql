@@ -1,0 +1,13 @@
+mutation appUpdate($app: ID!, $permissions: [PermissionEnum!]) {
+  appUpdate(id: $app, input: {
+    permissions: $permissions 
+  }) {
+    app {
+      id
+    }
+    errors {
+      field
+      message
+    }
+  }
+}
