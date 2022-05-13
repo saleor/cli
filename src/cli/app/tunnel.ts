@@ -57,17 +57,18 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
 
   const subdomain = `${appName}-${environment}-${organization}`.toLowerCase();
   const tunnelURL = `${subdomain}.saleor.live`;
+  const winSuffix = process.platform === 'win32' ? '.cmd' : '';
 
   try {
     await fetch(`https://id.saleor.live/add/${subdomain}/${port}`, { method: 'POST' })
 
     const p = await spawn(
-      `${vendorDir}/tunnel`, [
-        "local", localPort,
-        "--to", tunnelURL,
-        "--port", port.toString(),
-        "--secret", TunnelServerSecret,
-      ], { cwd: process.cwd() }
+      `${vendorDir}/tunnel${winSuffix}`, [
+      "local", localPort,
+      "--to", tunnelURL,
+      "--port", port.toString(),
+      "--secret", TunnelServerSecret,
+    ], { cwd: process.cwd() }
     );
 
     // spinner.succeed();
