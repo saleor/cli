@@ -1,0 +1,8 @@
+query GetPermissionEnum {
+  __type(name: "PermissionEnum") {
+    enumValues {
+      name
+      description
+    }
+  }
+}

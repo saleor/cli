@@ -3,6 +3,8 @@ import * as install from "./install.js";
 import * as tunnel from "./tunnel.js";
 import * as create from "./create.js";
 import * as generate from "./generate.js";
+import * as token from "./token.js";
+import * as permission from "./permission.js";
 
 export default function (_: any) {
   _.command([
@@ -10,6 +12,8 @@ export default function (_: any) {
     install,
     create,
     tunnel,
+    token,
+    permission,
 
     // no auth needed
     generate,
