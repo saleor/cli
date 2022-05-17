@@ -1,5 +1,4 @@
 import { Arguments, CommandBuilder } from "yargs";
-import gitly from "gitly";
 import ora from "ora";
 import { access } from 'fs/promises';
 import { lookpath  } from "lookpath";
@@ -12,7 +11,7 @@ import { StoreCreate } from "../../types.js";
 import { run } from "../../lib/common.js";
 import boxen from "boxen";
 import { useEnvironment, useOrganization, useToken } from "../../middleware/index.js";
-
+import { downloadFromGitHub } from "../../lib/download.js";
 
 export const command = "create [name]";
 export const desc = "Create a Saleor App template";
@@ -40,7 +39,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(argv.name));
 
-  await gitly(`saleor/saleor-app-template`, target, {})
+  await downloadFromGitHub(`saleor/saleor-app-template`, target)
 
   process.chdir(target);
   spinner.text = `Creating .env...`;

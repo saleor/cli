@@ -1,5 +1,4 @@
 import { Arguments, CommandBuilder } from "yargs";
-import gitly from "gitly";
 import ora from "ora";
 import { access } from 'fs/promises';
 import replace from "replace-in-file";
@@ -13,6 +12,7 @@ import { createEnvironment } from "../env/create.js";
 import { useEnvironment } from "../../middleware/index.js";
 import chalk from "chalk";
 import { customAlphabet } from "nanoid";
+import { downloadFromGitHub } from "../../lib/download.js";
 
 
 export const command = "create [name]";
@@ -119,7 +119,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(argv.name));
-  const file = await gitly(`saleor/react-storefront`, target, {});
+  const file = await downloadFromGitHub(`saleor/react-storefront`, target);
 
   process.chdir(target);
   spinner.text = `Creating .env...`;
