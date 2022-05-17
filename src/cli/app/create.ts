@@ -43,6 +43,7 @@ APP_URL=
 
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
+  await run('pnpm', ['generate'], { cwd: process.cwd() })
   spinner.succeed('Starting ...\`pnpm run dev\`');
 
   await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() })
