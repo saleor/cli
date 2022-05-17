@@ -1,5 +1,5 @@
 import { Arguments, CommandBuilder } from "yargs";
-import { download, extract } from "gitly";
+import pkg from "gitly";
 import ora from "ora";
 import { access } from 'fs/promises';
 import { lookpath  } from "lookpath";
@@ -21,7 +21,7 @@ export const builder: CommandBuilder<Record<string, never>, StoreCreate> = (_) =
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   const env = await GET(API.Environment, argv) as any;
-
+  const { download, extract } = pkg;
   const pnpm = await lookpath('pnpm');
 
   if (!pnpm) {

@@ -1,5 +1,5 @@
 import { Arguments, CommandBuilder } from "yargs";
-import { download, extract } from "gitly";
+import pkg from "gitly";
 import ora from "ora";
 import { access } from 'fs/promises';
 import replace from "replace-in-file";
@@ -18,6 +18,7 @@ import { customAlphabet } from "nanoid";
 export const command = "create [name]";
 export const desc = "Boostrap example [name]";
 
+const { download, extract } = pkg;
 const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10)
 
 export const builder: CommandBuilder = (_) =>
