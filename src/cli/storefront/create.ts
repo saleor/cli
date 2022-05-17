@@ -1,5 +1,5 @@
 import { Arguments, CommandBuilder } from "yargs";
-import { download, extract } from "gitly";
+import gitly from "gitly";
 import ora from "ora";
 import { access } from 'fs/promises';
 import replace from "replace-in-file";
@@ -118,11 +118,8 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   const env = await GET(API.Environment, argv) as any;
 
   const spinner = ora('Downloading...').start();
-  const file = await download(`saleor/react-storefront`);
-
-  spinner.text = 'Extracting...';
   const target = await getFolderName(sanitize(argv.name));
-  await extract(file, target);
+  const file = await gitly(`saleor/react-storefront`, target, {});
 
   process.chdir(target);
   spinner.text = `Creating .env...`;
