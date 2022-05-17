@@ -2,11 +2,13 @@ import { spawn } from "child_process";
 import Enquirer from "enquirer";
 import got from "got";
 import fs from 'fs-extra';
+import tar from 'tar';
 
 import { AppInstall } from "../graphql/AppInstall.js";
 import { Config } from "./config.js";
 import { API, GET } from "./index.js";
 import { NotSaleorAppDirectoryError } from "./util.js";
+
 
 export const doSaleorAppInstall = async (argv: any) => {
   const { domain } = await GET(API.Environment, argv) as any;
@@ -78,3 +80,5 @@ export const verifyIsSaleorAppDirectory = async (argv: any) => {
 
   return {};
 };
+
+
