@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs-extra';
 import fetch from "node-fetch";
 import { Config } from "../../lib/config.js";
+import { useEnvironment, useOrganization, useToken } from "../../middleware/index.js";
 
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1) + min);
@@ -22,7 +23,7 @@ interface Opts {
 export const command = "tunnel [port]";
 export const desc = "Expose your Saleor app remotely via tunnel";
 
-export const builder: CommandBuilder = (_) => 
+export const builder: CommandBuilder = (_) =>
   _.positional("port", { type: "number", default: 3000 })
    .option('name', { type: 'string' })
 
@@ -40,7 +41,7 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
     appName = JSON.parse(content)['name'];
   }
 
-  const { TunnelServerSecret } = await Config.get() 
+  const { TunnelServerSecret } = await Config.get()
 
   console.log('\n Your Saleor App name:', chalk.yellow(appName));
   console.log('')
@@ -100,5 +101,8 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
 };
 
 export const middlewares = [
+  useToken,
+  useOrganization,
+  useEnvironment,
   verifyIsSaleorAppDirectory
 ]

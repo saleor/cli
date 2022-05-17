@@ -1,7 +1,7 @@
 import { Arguments, CommandBuilder } from "yargs";
 import ora from "ora";
 import { access } from 'fs/promises';
-import { lookpath  } from "lookpath";
+import { lookpath } from "lookpath";
 import chalk from "chalk";
 import sanitize from "sanitize-filename";
 import fs from 'fs-extra';
