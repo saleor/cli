@@ -113,7 +113,7 @@ const prepareEnvironment = async (argv: Arguments<StoreCreate>, project: any) =>
 }
 
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
-  await checkPnpmPresence();
+  await checkPnpmPresence('react-storefront project');
 
   const env = await GET(API.Environment, argv) as any;
 

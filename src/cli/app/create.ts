@@ -1,7 +1,6 @@
 import { Arguments, CommandBuilder } from "yargs";
 import ora from "ora";
 import { access } from 'fs/promises';
-import { lookpath  } from "lookpath";
 import chalk from "chalk";
 import sanitize from "sanitize-filename";
 import fs from 'fs-extra';
@@ -12,6 +11,7 @@ import { run } from "../../lib/common.js";
 import boxen from "boxen";
 import { useEnvironment, useOrganization, useToken } from "../../middleware/index.js";
 import { downloadFromGitHub } from "../../lib/download.js";
+import { checkPnpmPresence } from "../../lib/util.js";
 
 export const command = "create [name]";
 export const desc = "Create a Saleor App template";
@@ -20,17 +20,9 @@ export const builder: CommandBuilder<Record<string, never>, StoreCreate> = (_) =
   _.positional("name", { type: "string", demandOption: true, default: "my-saleor-app" })
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
+  await checkPnpmPresence('This Saleor App template')
+
   const env = await GET(API.Environment, argv) as any;
-
-  const pnpm = await lookpath('pnpm');
-
-  if (!pnpm) {
-    console.log(chalk.red(`
-✘ This Saleor App template uses the pnpm package manager. To install it, run:`));
-    console.log(`  npm install -g pnpm`);
-    process.exit(1);
-  }
-
   const baseURL = `https://${env.domain}`;
   const dashboaardMsg = chalk.blue(`Dashboard - ${baseURL}/dashboard`);
   const gqlMsg = chalk.blue(`GraphQL Playgroud - ${baseURL}/graphql/`);
@@ -51,6 +43,7 @@ APP_URL=
 
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
+  await run('pnpm', ['generate'], { cwd: process.cwd() })
   spinner.succeed('Starting ...\`pnpm run dev\`');
 
   await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() })

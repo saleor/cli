@@ -106,11 +106,11 @@ export const makeRequestAppList = async (argv: any) => {
 // P U B L I C
 //
 
-export const checkPnpmPresence = async () => {
+export const checkPnpmPresence = async (entity: string) => {
   const pnpm = await lookpath('pnpm');
   if (!pnpm) {
     console.log(chalk.red(`
-✘ react-storefront project uses the pnpm package manager. To install it, run:`));
+✘ ${entity} uses the pnpm package manager. To install it, run:`));
     console.log(`  npm install -g pnpm`);
     process.exit(1);
   }
