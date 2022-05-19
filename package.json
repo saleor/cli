@@ -55,6 +55,7 @@
   "dependencies": {
     "@mobily/ts-belt": "^3.11.0",
     "@oclif/core": "^1.8.2",
+    "@sentry/node": "^6.19.7",
     "aws-amplify": "^4.3.22",
     "boxen": "^6.2.1",
     "chalk": "^5.0.1",

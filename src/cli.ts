@@ -8,6 +8,7 @@ import { emphasize } from 'emphasize';
 import chalk from 'chalk';
 import { createRequire } from "module";
 import updateNotifier from 'update-notifier';
+import * as Sentry from "@sentry/node";
 
 import organization from './cli/organization/index.js';
 import environment from './cli/env/index.js';
@@ -25,9 +26,12 @@ import * as logout from './cli/logout.js';
 import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
 import * as register from './cli/register.js';
+
 import { header } from './lib/images.js';
 import { useTelemetry } from './middleware/index.js';
 import { AuthError, NotSaleorAppDirectoryError } from './lib/util.js';
+import { getEnvironment } from './lib/index.js';
+import { Config } from './lib/config.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json");
@@ -39,6 +43,17 @@ const notifier = updateNotifier({
   updateCheckInterval: 1000 * 60 * 15 // 15 minutes
 });
 notifier.notify({ isGlobal: true });
+
+const env = await getEnvironment();
+const { user_session, SentryDSN } = await Config.get();
+
+if (SentryDSN) {
+  const release = `saleor-cli@${pkg.version}`;
+  const dsn = SentryDSN 
+
+  Sentry.init({ dsn, environment: env, release });
+  Sentry.setUser({ id: user_session })
+}
 
 yargs(hideBin(process.argv))
   .scriptName("saleor")
@@ -66,6 +81,11 @@ yargs(hideBin(process.argv))
   .alias('h', 'help')
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, yargs) => {
+
+    if (error) {
+      Sentry.captureException(error);
+    }
+
     if (error instanceof HTTPError) {
       const { body } = error.response as Response<any>;
 
@@ -85,11 +105,14 @@ yargs(hideBin(process.argv))
     } else if (error instanceof NotSaleorAppDirectoryError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
     } else if (error) {
-      console.log(error)
+      console.log(error.message)
     } else {
       if (!process.argv.slice(2).length) header(pkg.version);
       console.log(yargs.help())
     }
-    process.exit(1)
+
+    await Sentry.close(2000);
+
+    process.exit(1);
   })
   .argv;

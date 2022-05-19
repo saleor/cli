@@ -20,6 +20,7 @@ export type ConfigField =
   | "TunnelServerSecret"
   | "VercelClientID"
   | "VercelClientSecret"
+  | "SentryDSN"
 
 type ConfigProps = Record<ConfigField, string>;
 
