@@ -24,6 +24,7 @@ export interface Options extends BaseOptions {
   slug?: string
   force?: boolean
   key?: string
+  json?: boolean
 }
 
 export interface CreatePromptResult {

@@ -13,7 +13,7 @@ export const builder: CommandBuilder = (_) =>
 
 export const handler = async (argv: Arguments<Options>) => {
   const result = (await GET(API.Project, argv)) as any;
-  showResult(result);
+  showResult(result, argv);
 };
 
 export const middlewares = [
