@@ -13,7 +13,8 @@
     "package": "pkg .",
     "eslint": "eslint src/**/*.ts",
     "generate": "graphql-codegen",
-    "postinstall": "node ./build/scripts/binary.js install"
+    "postinstall": "node ./build/scripts/binary.js install",
+    "test": "pnpm uvu -r tsm spec"
   },
   "files": [
     "build",
