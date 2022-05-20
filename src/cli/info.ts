@@ -37,9 +37,7 @@ export const handler = async (): Promise<void> => {
                      The commerce API that puts developers first
    `))
 
-   await cli.url(chalk.blue('Website - https://saleor.io/'), 'https://saleor.io/');
-   await cli.url(chalk.blue('Console - https://cloud.saleor.io/'), 'https://cloud.saleor.io/');
-   await cli.url(chalk.blue('Github  - https://github.com/saleor/'), 'https://github.com/saleor/');
-
-   return
+   cli.url(chalk.blue('Website - https://saleor.io/'), 'https://saleor.io/');
+   cli.url(chalk.blue('Console - https://cloud.saleor.io/'), 'https://cloud.saleor.io/');
+   cli.url(chalk.blue('Github  - https://github.com/saleor/'), 'https://github.com/saleor/');
 };

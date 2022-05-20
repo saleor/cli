@@ -5,7 +5,6 @@ import got from 'got';
 import ora from 'ora';
 import { emphasize } from 'emphasize';
 import yaml from "yaml";
-import { CliUx } from "@oclif/core";
 import { lookpath } from 'lookpath';
 
 import { API, GET, POST, Region } from "../lib/index.js";
@@ -16,6 +15,10 @@ import { Config } from './config.js';
 export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 export const uncapitalize = (value: string) => value.charAt(0).toLowerCase() + value.slice(1);
+
+interface ResultFormat {
+  json?: boolean
+}
 
 export class AuthError extends Error {
   constructor(message: string) {
@@ -402,11 +405,14 @@ export const waitForTask = async (argv: Options, taskId: string, spinnerText: st
   }
 }
 
-export const showResult = (result: Record<string, unknown>) => {
-  console.log("---")
-  console.log(emphasize.highlight("yaml", yaml.stringify(result), {
-    'attr': chalk.blue
-  }).value);
+export const showResult = (result: Record<string, unknown>, { json }: ResultFormat = { json: false }) => {
+  if (json) {
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    console.log(emphasize.highlight("yaml", yaml.stringify(result), {
+      'attr': chalk.blue
+    }).value);
+  }
 }
 
 export const confirmRemoval = async (argv: Options, name: string) => {

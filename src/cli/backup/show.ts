@@ -11,5 +11,5 @@ export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
   const result = (await GET(API.Backup, argv)) as any;
-  showResult(result)
+  showResult(result, argv)
 };

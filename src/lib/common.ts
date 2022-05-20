@@ -2,13 +2,11 @@ import { spawn } from "child_process";
 import Enquirer from "enquirer";
 import got from "got";
 import fs from 'fs-extra';
-import tar from 'tar';
 
 import { AppInstall } from "../graphql/AppInstall.js";
 import { Config } from "./config.js";
 import { API, GET } from "./index.js";
 import { NotSaleorAppDirectoryError } from "./util.js";
-
 
 export const doSaleorAppInstall = async (argv: any) => {
   const { domain } = await GET(API.Environment, argv) as any;
@@ -16,16 +14,16 @@ export const doSaleorAppInstall = async (argv: any) => {
 
   let form = {}
   if (!argv.manifestURL && !argv.appName) {
-    const prompt = new (Enquirer as any).Form({
-      name: 'saleorapp',
+    const { install } = await Enquirer.prompt<{ install: object }>({
+      type: 'form',
+      name: 'install',
       message: 'Configure your Saleor App',
       choices: [
         { name: 'name', message: 'Name' },
         { name: 'manifestURL', message: 'Manifest URL' },
       ]
     });
-
-    form = await prompt.run();
+    form = { ...install }
   } else {
     form = {
       manifestURL: argv.manifestURL,
