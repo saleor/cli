@@ -10,6 +10,7 @@ import { Config, ConfigField } from "../lib/config.js";
 import { response } from "retes";
 import EventEmitter from 'events'
 import { API, POST, getAmplifyConfig, getEnvironment } from "../lib/index.js";
+import { portIsAvailable } from "../lib/detectPort.js";
 
 const { ux: cli } = CliUx;
 const { GET } = route;
@@ -27,6 +28,10 @@ export const handler = async () => {
 };
 
 export const doLogin = async () => {
+  if (! await portIsAvailable(3000)) {
+    throw new Error(`\nSomething is already running at port 3000\nPlease release port 3000 and try again`)
+  }
+
   const amplifyConfig = await getAmplifyConfig();
 
   const Params = {
@@ -44,7 +49,7 @@ export const doLogin = async () => {
   await delay(1500);
   // spinner.text = '\nLogging in...\n';
 
-  const QueryParams = new URLSearchParams({...Params, state: generatedState });
+  const QueryParams = new URLSearchParams({ ...Params, state: generatedState });
   const url = `https://${amplifyConfig.oauth.domain}/login?${QueryParams}`;
   cli.open(url);
 
@@ -68,13 +73,13 @@ export const doLogin = async () => {
           form: Params,
         }).json();
 
-        const { token }: any  = await POST(API.Token, { token: `Bearer ${id_token}`});
+        const { token }: any = await POST(API.Token, { token: `Bearer ${id_token}` });
 
         const environment = await getEnvironment();
         const user_session = crypto.randomUUID();
 
         const secrets: Record<ConfigField, string> = await got.post(`https://id.saleor.live/verify`, {
-          json: { 
+          json: {
             token: access_token,
             environment
           }

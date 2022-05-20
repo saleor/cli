@@ -11,9 +11,10 @@ specifiers:
   '@sentry/node': ^6.19.7
   '@types/cli-progress': ^3.11.0
   '@types/debug': ^4.1.7
+  '@types/detect-port': ^1.3.2
   '@types/figlet': ^1.5.4
   '@types/fs-extra': ^9.0.13
-  '@types/node': ^17.0.35
+  '@types/node': ^17.0.34
   '@types/prompt': ^1.1.2
   '@types/tar': ^6.1.1
   '@types/update-notifier': ^5.1.0
@@ -28,6 +29,7 @@ specifiers:
   cli-progress: ^3.11.1
   date-fns: ^2.28.0
   debug: ^4.3.4
+  detect-port: ^1.3.0
   emphasize: ^5.0.0
   enquirer: ^2.3.6
   eslint: ^8.15.0
@@ -62,6 +64,7 @@ dependencies:
   '@mobily/ts-belt': 3.11.0
   '@oclif/core': 1.8.2
   '@sentry/node': 6.19.7
+  '@types/detect-port': 1.3.2
   aws-amplify: 4.3.22_debug@4.3.4
   boxen: 6.2.1
   chalk: 5.0.1
@@ -69,6 +72,7 @@ dependencies:
   cli-progress: 3.11.1
   date-fns: 2.28.0
   debug: 4.3.4
+  detect-port: 1.3.0
   emphasize: 5.0.0
   enquirer: 2.3.6
   fetch-repo-dir: 1.0.6
@@ -2761,7 +2765,6 @@ packages:
       - typescript
       - utf-8-validate
       - zen-observable
-      - zenObservable
     dev: true
 
   /@graphql-codegen/core/2.5.1_graphql@16.5.0:
@@ -3250,10 +3253,8 @@ packages:
       zen-observable:
         optional: true
     dependencies:
-      any-observable: 0.3.0_rxjs@6.6.7
+      any-observable: 0.3.0
       rxjs: 6.6.7
-    transitivePeerDependencies:
-      - zenObservable
     dev: true
 
   /@sentry/core/6.19.7:
@@ -3402,6 +3403,10 @@ packages:
     dependencies:
       '@types/ms': 0.7.31
     dev: true
+
+  /@types/detect-port/1.3.2:
+    resolution: {integrity: sha512-xxgAGA2SAU4111QefXPSp5eGbDm/hW6zhvYl9IeEPZEry9F4d66QAHm5qpUXjb6IsevZV/7emAEx5MhP6O192g==}
+    dev: false
 
   /@types/figlet/1.5.4:
     resolution: {integrity: sha512-cskPTju7glYgzvkJy/hftqw7Fen3fsd0yrPOqcbBLJu+YdDQuA438akS1g+2XVKGzsQOnXGV2I9ePv6xUBnKMQ==}
@@ -3669,6 +3674,11 @@ packages:
     hasBin: true
     dev: true
 
+  /address/1.2.0:
+    resolution: {integrity: sha512-tNEZYz5G/zYunxFm7sfhAxkXEuLj3K6BKwv6ZURlsF6yiUQ65z0Q2wZW9L5cPUl9ocofGvXOdFYbFHp0+6MOig==}
+    engines: {node: '>= 10.0.0'}
+    dev: false
+
   /agent-base/6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
@@ -3763,19 +3773,9 @@ packages:
     resolution: {integrity: sha512-QXu7BPrP29VllRxH8GwB7x5iX5qWKAAMLqKQGWTeLWVlNHNOpVMJ91dsxQAIWXpjuW5wqvxu3Jd/nRjrJ+0pqg==}
     dev: false
 
-  /any-observable/0.3.0_rxjs@6.6.7:
+  /any-observable/0.3.0:
     resolution: {integrity: sha512-/FQM1EDkTsf63Ub2C6O7GuYFDsSXUwsaZDurV0np41ocwq0jthUAYCmhBX9f+KwlaCgIuWyr/4WlUQUBfKfZog==}
     engines: {node: '>=6'}
-    peerDependencies:
-      rxjs: '*'
-      zenObservable: '*'
-    peerDependenciesMeta:
-      rxjs:
-        optional: true
-      zenObservable:
-        optional: true
-    dependencies:
-      rxjs: 6.6.7
     dev: true
 
   /any-promise/1.3.0:
@@ -4552,6 +4552,12 @@ packages:
     resolution: {integrity: sha512-XRRe6Glud4rd/ZGQfiV1ruXSfbvfJedlV9Y6zOlP+2K04vBYiJEte6stfFkCP03aMnY5tsipamumUjL14fofug==}
     dev: true
 
+  /debug/2.6.9:
+    resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
+    dependencies:
+      ms: 2.0.0
+    dev: false
+
   /debug/4.3.4:
     resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
     engines: {node: '>=6.0'}
@@ -4662,6 +4668,15 @@ packages:
     engines: {node: '>=0.10'}
     hasBin: true
     dev: true
+
+  /detect-port/1.3.0:
+    resolution: {integrity: sha512-E+B1gzkl2gqxt1IhUzwjrxBKRqx1UzC3WLONHinn8S3T6lwV/agVCyitiFOsGJ/eYuEUBvD71MZHy3Pv1G9doQ==}
+    engines: {node: '>= 4.2.1'}
+    hasBin: true
+    dependencies:
+      address: 1.2.0
+      debug: 2.6.9
+    dev: false
 
   /diff/4.0.2:
     resolution: {integrity: sha512-58lmxKSA4BNyLz+HHMUzlOEpg09FV+ev6ZMe3vJihgdxzgcwZ8VoEEPmALCZG9LmqfVoNMMKpttIYTVG6uDY7A==}
@@ -6318,7 +6333,6 @@ packages:
       rxjs: 6.6.7
     transitivePeerDependencies:
       - zen-observable
-      - zenObservable
     dev: true
 
   /locate-path/5.0.0:
@@ -6577,6 +6591,10 @@ packages:
     resolution: {integrity: sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==}
     engines: {node: '>=10'}
     hasBin: true
+
+  /ms/2.0.0:
+    resolution: {integrity: sha1-VgiurfwAvmwpAd9fmGF4jeDVl8g=}
+    dev: false
 
   /ms/2.1.2:
     resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
