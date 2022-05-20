@@ -14,7 +14,7 @@ specifiers:
   '@types/detect-port': ^1.3.2
   '@types/figlet': ^1.5.4
   '@types/fs-extra': ^9.0.13
-  '@types/node': ^17.0.34
+  '@types/node': ^17.0.35
   '@types/prompt': ^1.1.2
   '@types/tar': ^6.1.1
   '@types/update-notifier': ^5.1.0
@@ -2765,6 +2765,7 @@ packages:
       - typescript
       - utf-8-validate
       - zen-observable
+      - zenObservable
     dev: true
 
   /@graphql-codegen/core/2.5.1_graphql@16.5.0:
@@ -3077,7 +3078,7 @@ packages:
       isomorphic-ws: 4.0.1_ws@8.6.0
       meros: 1.2.0_@types+node@17.0.35
       sync-fetch: 0.3.1
-      tslib: 2.3.1
+      tslib: 2.4.0
       value-or-promise: 1.0.11
       ws: 8.6.0
     transitivePeerDependencies:
@@ -3253,8 +3254,10 @@ packages:
       zen-observable:
         optional: true
     dependencies:
-      any-observable: 0.3.0
+      any-observable: 0.3.0_rxjs@6.6.7
       rxjs: 6.6.7
+    transitivePeerDependencies:
+      - zenObservable
     dev: true
 
   /@sentry/core/6.19.7:
@@ -3773,9 +3776,19 @@ packages:
     resolution: {integrity: sha512-QXu7BPrP29VllRxH8GwB7x5iX5qWKAAMLqKQGWTeLWVlNHNOpVMJ91dsxQAIWXpjuW5wqvxu3Jd/nRjrJ+0pqg==}
     dev: false
 
-  /any-observable/0.3.0:
+  /any-observable/0.3.0_rxjs@6.6.7:
     resolution: {integrity: sha512-/FQM1EDkTsf63Ub2C6O7GuYFDsSXUwsaZDurV0np41ocwq0jthUAYCmhBX9f+KwlaCgIuWyr/4WlUQUBfKfZog==}
     engines: {node: '>=6'}
+    peerDependencies:
+      rxjs: '*'
+      zenObservable: '*'
+    peerDependenciesMeta:
+      rxjs:
+        optional: true
+      zenObservable:
+        optional: true
+    dependencies:
+      rxjs: 6.6.7
     dev: true
 
   /any-promise/1.3.0:
@@ -4554,6 +4567,11 @@ packages:
 
   /debug/2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
     dependencies:
       ms: 2.0.0
     dev: false
@@ -4676,6 +4694,8 @@ packages:
     dependencies:
       address: 1.2.0
       debug: 2.6.9
+    transitivePeerDependencies:
+      - supports-color
     dev: false
 
   /diff/4.0.2:
@@ -6333,6 +6353,7 @@ packages:
       rxjs: 6.6.7
     transitivePeerDependencies:
       - zen-observable
+      - zenObservable
     dev: true
 
   /locate-path/5.0.0:
