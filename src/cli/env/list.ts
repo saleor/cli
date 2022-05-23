@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET } from "../../lib/index.js";
-import { formatDateTime } from '../../lib/util.js';
+import { formatDateTime, verifyResultLength } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
@@ -23,10 +23,7 @@ export const handler = async (argv: Arguments) => {
 
   // const production = result.filter(({service}) => service.service_type === "SANDBOX")
 
-  if (!result.length) {
-    console.warn(chalk.red(" No environments found for this organization"))
-    process.exit(0);
-  }
+  verifyResultLength(result, 'environment')
 
   cli.table(result, {
     name: { minWidth: 2, get: ({ name }) => chalk.cyan(name) },

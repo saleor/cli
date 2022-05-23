@@ -38,12 +38,9 @@ export class NotSaleorAppDirectoryError extends Error {
 const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation = false) => {
   const collection = await fetcher();
 
-  if (!collection.length && !allowCreation) {
-    console.warn(chalk.red(`No ${name}s found`))
-    process.exit(0)
-  }
+  verifyResultLength(collection, name)
 
-  const creation = allowCreation ? [{name: "Create new"}] : []
+  const creation = allowCreation ? [{ name: "Create new" }] : []
   const choices = [...creation, ...collection.map(extractor)];
 
   const r = await Enquirer.prompt({
@@ -172,19 +169,19 @@ export const promptVersion = async (argv: any) => createPrompt(
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
-export const promptCompatibleVersion = async (argv: any, service = "SANDBOX" ) => createPrompt(
+export const promptCompatibleVersion = async (argv: any, service = "SANDBOX") => createPrompt(
   'production service',
   'Select a Saleor service',
-  async () =>  (await getSortedServices(argv)).filter(({service_type}: any) => service_type === service),
+  async () => (await getSortedServices(argv)).filter(({ service_type }: any) => service_type === service),
   (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
 )
 
 export const promptDatabaseTemplate = async () => createPrompt(
   'database',
   'Select the database template',
-  () => ([{name: 'sample', value: 'sample'},
-          {name: 'blank', value: null},
-          {name: 'snapshot', value: null}]),
+  () => ([{ name: 'sample', value: 'sample' },
+  { name: 'blank', value: null },
+  { name: 'snapshot', value: null }]),
   (_: any) => ({ name: _.name, value: _.value })
 )
 
@@ -199,7 +196,7 @@ export const promptProject = (argv: any) => createPrompt(
 export const promptEnvironment = async (argv: any) => createPrompt(
   'environment',
   'Select Environment',
-  async () => await GET(API.Environment, {...argv, environment: ''}),
+  async () => await GET(API.Environment, { ...argv, environment: '' }),
   (_: any) => ({ name: _.name, value: _.key }),
   false
 );
@@ -208,28 +205,28 @@ export const promptOrganization = async (argv: any) => createPrompt(
   'organization',
   'Select Organization',
   async () => await GET(API.Organization, argv),
-  (_: any) => ({ name: _.name, value: _.slug})
+  (_: any) => ({ name: _.name, value: _.slug })
 )
 
 export const promptPlan = async (argv: any) => createPrompt(
   'plan',
   'Select Plan',
   async () => await GET(API.Plan, argv),
-  (_: any) => ({ name: _.name, value: _.slug})
+  (_: any) => ({ name: _.name, value: _.slug })
 )
 
 export const promptRegion = async (argv: any) => createPrompt(
   'region',
   'Select Region',
   async () => await GET(API.Region, argv),
-  (_: any) => ({ name: _.name, value: _.name})
+  (_: any) => ({ name: _.name, value: _.name })
 )
 
 export const promptOrganizationBackup = async (argv: any) => createPrompt(
   'backup',
   'Select Snapshot',
   async () => await GET(API.OrganizationBackups, argv),
-  (_: any) => ({ name: chalk(chalk.bold(_.project.name), chalk(",","ver:", _.saleor_version, ", created on", formatDateTime(_.created), "-"), chalk.bold(_.name)), value: _.key})
+  (_: any) => ({ name: chalk(chalk.bold(_.project.name), chalk(",", "ver:", _.saleor_version, ", created on", formatDateTime(_.created), "-"), chalk.bold(_.name)), value: _.key })
 )
 
 export const formatDateTime = (name: string) => format(new Date(name), "yyyy-MM-dd HH:mm")
@@ -254,7 +251,7 @@ export const createProject = async (argv: ProjectCreate) => {
   }) as { promptName: string };
 
   const choosenRegion = argv.region ? { value: argv.region } : await promptRegion(argv);
-  const choosenPlan = argv.plan ? { value: argv.plan } :  await promptPlan(argv);
+  const choosenPlan = argv.plan ? { value: argv.plan } : await promptPlan(argv);
 
   const spinner = ora(`Creating project ${promptName}...`).start();
 
@@ -262,7 +259,8 @@ export const createProject = async (argv: ProjectCreate) => {
     json: {
       name: promptName,
       plan: choosenPlan.value,
-      region: choosenRegion.value }
+      region: choosenRegion.value
+    }
   }) as any;
 
   spinner.succeed(`Yay! Project ${promptName} created!`)
@@ -270,10 +268,10 @@ export const createProject = async (argv: ProjectCreate) => {
   return { name: project.slug, value: project.slug }
 }
 
-export const validateLength = ( value: string,
-                                maxLength: number,
-                                name = '',
-                                required = false): boolean | string => {
+export const validateLength = (value: string,
+  maxLength: number,
+  name = '',
+  required = false): boolean | string => {
 
   if (required && value.length < 1) {
     return chalk.red(`please provide value`)
@@ -337,11 +335,11 @@ https://vercel.com/new/clone?${queryParams}`);
 }
 
 export const checkIfJobSucceeded = async (taskId: string): Promise<boolean> => {
-  const result = await GET(API.TaskStatus, {task: taskId}) as any;
+  const result = await GET(API.TaskStatus, { task: taskId }) as any;
   return result.status === "SUCCEEDED";
 }
 
-const simpleProgress = (current = 0):string => {
+const simpleProgress = (current = 0): string => {
   const barCompleteChar = '\u2588';
   const barIncompleteChar = '\u2591';
   const progress = current > 100 ? 100 : current;
@@ -378,7 +376,7 @@ export const waitForTask = async (argv: Options, taskId: string, spinnerText: st
     ${simpleProgress(progress)}\n
     ${messages[currentMsg]}`;
 
-    const nextMsg = progress % 5 === 0;
+      const nextMsg = progress % 5 === 0;
       if (nextMsg) {
         currentMsg = progress % 3;
         succeed = await checkIfJobSucceeded(taskId);
@@ -427,7 +425,22 @@ export const confirmRemoval = async (argv: Options, name: string) => {
   return proceed;
 }
 
-export const countries : { [key: string]: string} = {
+export const verifyResultLength = (result: any[], entity: string) => {
+  if (result.length > 0) {
+    return
+  }
+
+  const element = entity === 'environment' ? 'organization' : 'environment';
+  const entities = ['environment', 'backup', 'webhook', 'project'];
+
+  console.warn(chalk.red(`\n  No ${entity}s found for this ${element} \n`));
+  if (entities.includes(entity)) {
+    console.warn(chalk(`  Create ${entity} with`, chalk.green(`saleor ${entity} create`), "command"))
+  }
+  process.exit(0);
+}
+
+export const countries: { [key: string]: string } = {
   "": "",
   "AF": "Afghanistan",
   "AL": "Albania",
