@@ -1,18 +1,18 @@
 import type { Arguments, CommandBuilder } from "yargs";
+
+import EventEmitter from 'events'
 import { CliUx } from "@oclif/core";
-import { ServerApp, route } from "retes";
+import { ServerApp } from "retes";
+import { GET } from "retes/route";
+import { Redirect } from "retes/response"
 import { nanoid } from 'nanoid';
+import got from "got";
 
 import { Options } from "../../types.js";
-import got from "got";
 import { Config } from "../../lib/config.js";
-import { response } from "retes";
-import EventEmitter from 'events'
 import { checkPort } from "../../lib/detectPort.js";
 
 const { ux: cli } = CliUx;
-const { GET } = route;
-const { Redirect } = response;
 
 const RedirectURI = "http://localhost:3000/vercel/callback";
 

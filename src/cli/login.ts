@@ -1,20 +1,19 @@
 import type { CommandBuilder } from "yargs";
 import { CliUx } from "@oclif/core";
-import { ServerApp, route } from "retes";
+import { ServerApp } from "retes";
+import { GET } from "retes/route"
+import { Redirect } from "retes/response";
 import { nanoid } from 'nanoid';
 import crypto from 'crypto';
 
 import { delay } from "../lib/util.js";
 import got from "got";
 import { Config, ConfigField } from "../lib/config.js";
-import { response } from "retes";
 import EventEmitter from 'events'
 import { API, POST, getAmplifyConfig, getEnvironment } from "../lib/index.js";
 import { checkPort } from "../lib/detectPort.js";
 
 const { ux: cli } = CliUx;
-const { GET } = route;
-const { Redirect } = response;
 
 const RedirectURI = "http://localhost:3000/";
 
@@ -102,6 +101,7 @@ export const doLogin = async () => {
   await app.start(3000);
 
   emitter.on('finish', async () => {
+    await delay(1000);
     await app.stop();
   });
 }
