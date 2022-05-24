@@ -8,6 +8,7 @@ import got from "got";
 import { Config } from "../../lib/config.js";
 import { response } from "retes";
 import EventEmitter from 'events'
+import { checkPort } from "../../lib/detectPort.js";
 
 const { ux: cli } = CliUx;
 const { GET } = route;
@@ -16,15 +17,17 @@ const { Redirect } = response;
 const RedirectURI = "http://localhost:3000/vercel/callback";
 
 export const command = "login";
-export const desc = "Log in to the Saleor Cloud";
+export const desc = "Add integration for Saleor CLI";
 
 export const builder: CommandBuilder = (_) => _
 
 export const handler = async (argv: Arguments<Options>) => {
+  await checkPort(3000);
+
   const generatedState = nanoid();
   const emitter = new EventEmitter();
 
-  const { VercelClientID, VercelClientSecret } = await Config.get() 
+  const { VercelClientID, VercelClientSecret } = await Config.get()
 
   // const spinner = ora('\nLogging in...').start();
   // await delay(1500);
