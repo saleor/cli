@@ -2,7 +2,7 @@
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { HTTPError, Response } from 'got';
+import { HTTPError, Response, TimeoutError } from 'got';
 import yaml from "yaml";
 import { emphasize } from 'emphasize';
 import chalk from 'chalk';
@@ -105,6 +105,8 @@ yargs(hideBin(process.argv))
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
     } else if (error instanceof NotSaleorAppDirectoryError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
+    } else if (error instanceof TimeoutError) {
+      // Don't display `Timeout` errors to user
     } else if (error) {
       console.log(error.message)
     } else {
