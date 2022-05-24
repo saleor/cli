@@ -6,6 +6,7 @@ import { WebhookList } from '../../graphql/WebhookList.js';
 import { Config } from '../../lib/config.js';
 
 import { API, GET } from "../../lib/index.js";
+import { verifyResultLength } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
@@ -29,10 +30,7 @@ export const handler = async (argv: Arguments<Options>) => {
     }
   }).json()
 
-  if (!data.apps) {
-    console.warn(chalk.red(" No webhooks found for this environment"))
-    process.exit(0);
-  }
+  verifyResultLength(data.apps, 'webhook')
 
   if (errors) {
     throw Error("cannot auth")
