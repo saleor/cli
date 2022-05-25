@@ -3,16 +3,16 @@ import { Arguments } from 'yargs';
 import got from 'got';
 import { print } from 'graphql'
 
-import { AppTokenCreate, AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
+import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
 import { printContext } from '../../lib/util.js';
 import { useEnvironment, useOrganization, useToken } from '../../middleware/index.js';
 import { Options } from '../../types.js';
-import boxen from 'boxen';
 
-export const command = "permission <op>";
+
+export const command = "permission";
 export const desc = "Add or remove permission for a Saleor App";
 
 export const handler = async (argv: Arguments<Options>) => {
@@ -25,12 +25,12 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const endpoint = `https://${domain}/graphql/`;
 
-  const { data, errors }: any = await got.post(endpoint, {
+  const { data }: any = await got.post(endpoint, {
     headers: {
       'Authorization-Bearer': token.split(' ').slice(-1)[0],
     },
-    json: { 
-      query: SaleorAppList, 
+    json: {
+      query: SaleorAppList,
       variables: {}
     }
   }).json()
@@ -41,16 +41,16 @@ export const handler = async (argv: Arguments<Options>) => {
   const { app } = await Enquirer.prompt<{ app: string }>({
     type: 'autocomplete',
     name: 'app',
-    choices, 
+    choices,
     message: 'Select a Saleor App (start typing) ',
   });
 
-  const { data: { __type: { enumValues }} }: any = await got.post(endpoint, {
+  const { data: { __type: { enumValues } } }: any = await got.post(endpoint, {
     headers: {
       'Authorization-Bearer': token.split(' ').slice(-1)[0],
     },
-    json: { 
-      query: print(GetPermissionEnum), 
+    json: {
+      query: print(GetPermissionEnum),
       variables: {}
     }
   }).json()
@@ -61,30 +61,21 @@ export const handler = async (argv: Arguments<Options>) => {
     type: 'multiselect',
     name: 'permissions',
     muliple: true,
-    choices: choices2, 
+    choices: choices2,
     message: 'Select one or more permissions (start typing) ',
   });
 
-  try {
-    const { data, errors }: any = await got.post(endpoint, {
-      headers: {
-        'Authorization-Bearer': token.split(' ').slice(-1)[0],
-      },
-      json: { 
-        query: print(AppUpdate), 
-        variables: { app, permissions }
-      }
-    }).json()
+  await got.post(endpoint, {
+    headers: {
+      'Authorization-Bearer': token.split(' ').slice(-1)[0],
+    },
+    json: {
+      query: print(AppUpdate),
+      variables: { app, permissions }
+    }
+  }).json()
 
-    console.log();
-    console.log(`Permissions successfully updated.`)
-
-  } catch (error) {
-    console.log(error)
-  }
-
-
-  process.exit(0);
+  console.log(`Permissions successfully updated.`)
 };
 
 export const middlewares = [
