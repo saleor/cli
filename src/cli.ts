@@ -30,7 +30,7 @@ import * as register from './cli/register.js';
 import { header } from './lib/images.js';
 import { useTelemetry } from './middleware/index.js';
 import { AuthError, NotSaleorAppDirectoryError } from './lib/util.js';
-import { getEnvironment } from './lib/index.js';
+import { API, GET, getEnvironment } from './lib/index.js';
 import { Config } from './lib/config.js';
 
 const require = createRequire(import.meta.url);
@@ -49,7 +49,7 @@ const { user_session, SentryDSN } = await Config.get();
 
 if (SentryDSN) {
   const release = `saleor-cli@${pkg.version}`;
-  const dsn = SentryDSN 
+  const dsn = SentryDSN
 
   Sentry.init({ dsn, environment: env, release });
   Sentry.setUser({ id: user_session })
@@ -110,7 +110,24 @@ yargs(hideBin(process.argv))
     } else if (error) {
       console.log(error.message)
     } else {
-      if (!process.argv.slice(2).length) header(pkg.version);
+      if (!process.argv.slice(2).length) {
+        header(pkg.version);
+
+        try {
+          const config = await Config.get();
+          const { token } = config;
+
+          if (!token) throw new Error;
+
+          const { first_name, last_name, email } = (await GET(API.User, { token })) as any;
+          const user = [first_name, last_name].join(' ');
+
+          console.log(chalk.blue(`\nLogged as ${user} ${email}\n`))
+        } catch {
+          console.log(chalk.red("\nYou are not logged in\n"));
+        }
+      }
+
       console.log(yargs.help())
     }
 
