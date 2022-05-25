@@ -4,6 +4,7 @@ import { access } from 'fs/promises';
 import chalk from "chalk";
 import sanitize from "sanitize-filename";
 import fs from 'fs-extra';
+import replace from "replace-in-file";
 
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
@@ -24,8 +25,9 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   const env = await GET(API.Environment, argv) as any;
   const baseURL = `https://${env.domain}`;
+  const graphqlURL = `${baseURL}/graphql/`;
   const dashboaardMsg = chalk.blue(`Dashboard - ${baseURL}/dashboard`);
-  const gqlMsg = chalk.blue(`GraphQL Playgroud - ${baseURL}/graphql/`);
+  const gqlMsg = chalk.blue(`GraphQL Playgroud - ${graphqlURL}`);
   console.log(boxen(`${dashboaardMsg}\n${gqlMsg}`, { padding: 1 }));
 
   const spinner = ora('Downloading...').start();
@@ -35,11 +37,17 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   process.chdir(target);
   spinner.text = `Creating .env...`;
-
   await fs.outputFile('.env', `
-NEXT_PUBLIC_SALEOR_API_URL=${baseURL}/graphql/
+NEXT_PUBLIC_SALEOR_API_URL=${graphqlURL}
 APP_URL=
 `)
+
+  spinner.text = `Updating .graphqlrc.yml...`;
+  replace.sync({
+    files: '.graphqlrc.yml',
+    from: /schema:.*/g,
+    to: `schema: ${graphqlURL}`
+  });
 
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() })
