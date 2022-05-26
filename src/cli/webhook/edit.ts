@@ -14,8 +14,7 @@ export const desc = "Edit a webhook";
 export const builder: CommandBuilder = (_) => _
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { name, environment, webhookID } = argv;
-  const { token } = await Config.get();
+  const { environment, webhookID } = argv;
 
   console.log(`Editing the webhook for the ${environment} environment`);
 
@@ -33,14 +32,13 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const form = Object.fromEntries(Object.entries(result).filter(([_, v]) => v));
 
-  const { domain } = await GET(API.Environment, argv) as any; 
+  const { domain } = await GET(API.Environment, argv) as any;
+  const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
-    headers: {
-      'Authorization-Bearer': token.split(' ').slice(-1),
-    },
-    json: { 
-      query: doWebhookUpdate, 
+    headers,
+    json: {
+      query: doWebhookUpdate,
       variables: {
         id: webhookID,
         input: {

@@ -30,16 +30,13 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const form = await prompt.run();
 
-  const { domain } = await GET(API.Environment, argv) as any; 
-
-  const { token } = await Config.get();
+  const { domain } = await GET(API.Environment, argv) as any;
+  const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
-    headers: {
-      'Authorization-Bearer': token.split(' ').slice(-1),
-    },
-    json: { 
-      query: doWebhookCreate, 
+    headers,
+    json: {
+      query: doWebhookCreate,
       variables: {
         input: {
           ...form,

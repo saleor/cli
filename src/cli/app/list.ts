@@ -6,7 +6,7 @@ import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
 
 import { API, GET } from "../../lib/index.js";
-import { formatDateTime, printContext } from '../../lib/util.js';
+import { formatDateTime, getAppsFromResult, printContext } from '../../lib/util.js';
 import { useEnvironment, useOrganization, useToken } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -16,57 +16,51 @@ export const command = "list";
 export const desc = "List webhooks for an environment";
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { organization, environment, app: appID } = argv;
+  const { organization, environment } = argv;
 
   printContext(organization, environment)
 
-  const { domain } = await GET(API.Environment, argv) as any; 
-  const { token } = await Config.get();
+  const { domain } = await GET(API.Environment, argv) as any;
+  const headers = await Config.getBearerHeader();
 
-  const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
-    headers: {
-      'Authorization-Bearer': token.split(' ').slice(-1),
-    },
-    json: { 
-      query: SaleorAppList, 
+  const { data }: any = await got.post(`https://${domain}/graphql`, {
+    headers,
+    json: {
+      query: SaleorAppList,
       variables: {}
     }
   }).json()
 
-  if (errors) {
-    throw Error("cannot auth")
-  }
+  const apps = getAppsFromResult(data);
 
-  const { apps: { edges } } = data;
-
-  const collection: any[] = edges.map(({ node }: any) => ({ ...node }))
+  const collection: any[] = apps.map(({ node }: any) => ({ ...node }))
 
   cli.table(collection, {
-    id: { 
+    id: {
       header: 'ID',
       minWidth: 2,
       get: ({ id }) => chalk.gray(id)
     },
-    name: { 
-      header: 'Name', 
+    name: {
+      header: 'Name',
       minWidth: 2,
       get: ({ name }) => chalk.cyan(name)
     },
-    type: { 
-      header: 'URL', 
+    type: {
+      header: 'URL',
       get: ({ type }) => chalk.yellow(type)
     },
-    isActive: { 
+    isActive: {
       header: 'Active?',
       minWidth: 2,
       get: ({ isActive }) => isActive ? chalk.green('Yes') : chalk.red('No'),
     },
-    webhooks: { 
+    webhooks: {
       header: 'Webhooks #',
       minWidth: 2,
       get: ({ webhooks }) => (webhooks as string[]).length,
     },
-    created: { 
+    created: {
       header: 'Created',
       minWidth: 2,
       get: ({ created }) => chalk.gray(formatDateTime(created)),

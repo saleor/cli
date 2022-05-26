@@ -83,14 +83,11 @@ query AppsList {
 
 export const makeRequestAppList = async (argv: any) => {
   const { domain } = (await GET(API.Environment, argv)) as any;
-  const { token } = await Config.get();
+  const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
     .post(`https://${domain}/graphql`, {
-      headers: {
-        'Authorization-Bearer': token.split(' ').slice(-1),
-        "content-type": "application/json",
-      },
+      headers,
       json: { query: AppList },
     })
     .json();
@@ -121,15 +118,12 @@ export const promptWebhook = async (argv: any) => createPrompt(
   'Select a Webhook',
   async () => {
     const { domain } = (await GET(API.Environment, argv)) as any;
-    const { token } = await Config.get();
+    const headers = await Config.getBearerHeader();
 
     const { app: appID } = argv;
 
     const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
-      headers: {
-        'Authorization-Bearer': token.split(' ').slice(-1),
-        'Content-Type': 'application/json',
-      },
+      headers,
       json: {
         query: SaleorAppByID,
         variables: { appID }
@@ -438,6 +432,13 @@ export const verifyResultLength = (result: any[], entity: string) => {
     console.warn(chalk(`  Create ${entity} with`, chalk.green(`saleor ${entity} create`), "command"))
   }
   process.exit(0);
+}
+
+export const getAppsFromResult = (result: any) => {
+  const apps = result.apps?.edges;
+  verifyResultLength(apps || [], 'app');
+
+  return apps
 }
 
 export const countries: { [key: string]: string } = {
