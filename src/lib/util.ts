@@ -431,7 +431,7 @@ export const verifyResultLength = (result: any[], entity: string) => {
   }
 
   const element = entity === 'environment' ? 'organization' : 'environment';
-  const entities = ['environment', 'backup', 'webhook', 'project'];
+  const entities = ['environment', 'backup', 'webhook', 'project', 'app'];
 
   console.warn(chalk.red(`\n  No ${entity}s found for this ${element} \n`));
   if (entities.includes(entity)) {
