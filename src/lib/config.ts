@@ -56,5 +56,15 @@ const reset = async (): Promise<void> => {
   await fs.outputJSON(DefaultConfigFile, {})
 }
 
+const getBearerHeader = async (): Promise<Record<string, string>> => {
+  const { token } = await get();
 
-export const Config = { get, set, reset, remove }
+  if (token) {
+    return { 'Authorization-Bearer': token.split(' ').slice(-1)[0] }
+  }
+
+  throw new Error("\nYou are not logged in\n");
+}
+
+
+export const Config = { get, set, reset, remove, getBearerHeader }

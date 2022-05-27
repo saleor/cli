@@ -7,7 +7,7 @@ import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
-import { printContext, verifyResultLength } from '../../lib/util.js';
+import { getAppsFromResult, printContext } from '../../lib/util.js';
 import { useEnvironment, useOrganization, useToken } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -21,23 +21,21 @@ export const handler = async (argv: Arguments<Options>) => {
   printContext(organization, environment)
 
   const { domain } = await GET(API.Environment, argv) as any;
-  const { token } = await Config.get();
+  const headers = await Config.getBearerHeader();
 
   const endpoint = `https://${domain}/graphql/`;
 
   const { data }: any = await got.post(endpoint, {
-    headers: {
-      'Authorization-Bearer': token.split(' ').slice(-1)[0],
-    },
+    headers,
     json: {
       query: SaleorAppList,
       variables: {}
     }
   }).json()
 
-  const { apps } = data;
-  verifyResultLength(apps || [], 'app');
-  const choices = apps.edges.map(({ node }: any) => ({ name: node.name, value: node.id, hint: node.id }))
+  const apps = getAppsFromResult(data);
+
+  const choices = apps.map(({ node }: any) => ({ name: node.name, value: node.id, hint: node.id }))
 
   const { app } = await Enquirer.prompt<{ app: string }>({
     type: 'autocomplete',
@@ -47,9 +45,7 @@ export const handler = async (argv: Arguments<Options>) => {
   });
 
   const { data: { __type: { enumValues } } }: any = await got.post(endpoint, {
-    headers: {
-      'Authorization-Bearer': token.split(' ').slice(-1)[0],
-    },
+    headers,
     json: {
       query: print(GetPermissionEnum),
       variables: {}
@@ -67,9 +63,7 @@ export const handler = async (argv: Arguments<Options>) => {
   });
 
   await got.post(endpoint, {
-    headers: {
-      'Authorization-Bearer': token.split(' ').slice(-1)[0],
-    },
+    headers,
     json: {
       query: print(AppUpdate),
       variables: { app, permissions }

@@ -10,7 +10,7 @@ import { NotSaleorAppDirectoryError } from "./util.js";
 
 export const doSaleorAppInstall = async (argv: any) => {
   const { domain } = await GET(API.Environment, argv) as any;
-  const { token } = await Config.get();
+  const headers = await Config.getBearerHeader();
 
   let form = {}
   if (!argv.manifestURL && !argv.appName) {
@@ -32,9 +32,7 @@ export const doSaleorAppInstall = async (argv: any) => {
   }
 
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
-    headers: {
-      'Authorization-Bearer': token.split(' ').slice(-1),
-    },
+    headers,
     json: {
       query: AppInstall,
       variables: form
@@ -44,7 +42,7 @@ export const doSaleorAppInstall = async (argv: any) => {
   if (errors || data.appInstall.errors.length > 0) {
     console.log(errors)
     console.log(data.errors)
-    console.log(data.appInstall.errors)
+    console.log(data.appInstall?.errors)
     throw Error("cannot auth")
   }
 }
@@ -53,7 +51,7 @@ export const run = async (cmd: string, params: string[], options: Record<string,
   const winSuffix = process.platform === 'win32' ? '.cmd' : '';
   const child = spawn(`${cmd}${winSuffix}`, params, options)
   for await (const data of child.stdout || []) {
-    if (log) {console.log(data)}
+    if (log) { console.log(data) }
   }
   for await (const data of child.stderr || []) {
     console.error(data)
@@ -68,7 +66,7 @@ export const verifyIsSaleorAppDirectory = async (argv: any) => {
   const isNextApp = await fs.pathExists('next.config.js')
   const hasDotEnvFile = await fs.pathExists('.env')
 
-  if (! isTunnel) {
+  if (!isTunnel) {
     return {}
   }
 
