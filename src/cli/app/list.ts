@@ -13,7 +13,7 @@ import { Options } from '../../types.js';
 const { ux: cli } = CliUx;
 
 export const command = "list";
-export const desc = "List webhooks for an environment";
+export const desc = "List installed Saleor Apps for an environment";
 
 export const handler = async (argv: Arguments<Options>) => {
   const { organization, environment } = argv;
