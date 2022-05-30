@@ -4,7 +4,7 @@ import EventEmitter from 'events'
 import { CliUx } from "@oclif/core";
 import { ServerApp } from "retes";
 import { GET } from "retes/route";
-import { Redirect } from "retes/response"
+import { Response } from "retes/response"
 import { nanoid } from 'nanoid';
 import got from "got";
 
@@ -42,7 +42,7 @@ export const handler = async (argv: Arguments<Options>) => {
       const { state, code } = params;
 
       if (state !== generatedState) {
-        return "Wrong state"
+        return Response.BadRequest("Wrong state")
       }
 
       const Params = {
@@ -69,7 +69,7 @@ export const handler = async (argv: Arguments<Options>) => {
       // spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
       emitter.emit('finish');
 
-      return Redirect('https://cloud.saleor.io');
+      return Response.Redirect('https://cloud.saleor.io');
     })
   ])
   await app.start(3000);
