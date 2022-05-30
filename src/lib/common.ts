@@ -7,35 +7,52 @@ import { AppInstall } from "../graphql/AppInstall.js";
 import { Config } from "./config.js";
 import { API, GET } from "./index.js";
 import { NotSaleorAppDirectoryError } from "./util.js";
+import chalk from "chalk";
+
+interface Manifest {
+  name: string
+  permissions: string[]
+}
 
 export const doSaleorAppInstall = async (argv: any) => {
   const { domain } = await GET(API.Environment, argv) as any;
   const headers = await Config.getBearerHeader();
 
-  let form = {}
-  if (!argv.manifestURL && !argv.appName) {
-    const { install } = await Enquirer.prompt<{ install: object }>({
-      type: 'form',
-      name: 'install',
-      message: 'Configure your Saleor App',
-      choices: [
-        { name: 'name', message: 'Name' },
-        { name: 'manifestURL', message: 'Manifest URL' },
-      ]
-    });
-    form = { ...install }
-  } else {
-    form = {
-      manifestURL: argv.manifestURL,
-      name: argv.appName
-    }
+  console.log(chalk.green('  Configure your Saleor App'))
+  const { manifestURL } = await Enquirer.prompt<{ manifestURL: string }>({
+    type: 'input',
+    name: 'manifestURL',
+    message: 'Manifest URL',
+    skip: !!argv.manifestURL,
+    initial: argv.manifestURL
+  });
+
+
+  let manifest: Manifest;
+  try {
+    manifest = await got.get(manifestURL).json();
+  } catch {
+    console.log(chalk.red('\nThere was a problem while fetching provided manifest URL\n'));
+    process.exit(1);
   }
+
+  const { name } = await Enquirer.prompt<{ name: string }>({
+    type: 'input',
+    name: 'name',
+    message: 'App name',
+    skip: !!argv.appName,
+    initial: argv.appName ?? manifest.name
+  });
 
   const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
     headers,
     json: {
       query: AppInstall,
-      variables: form
+      variables: {
+        manifestURL,
+        name,
+        permissions: manifest.permissions
+      }
     }
   }).json()
 
