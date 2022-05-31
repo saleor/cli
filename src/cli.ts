@@ -27,6 +27,7 @@ import * as configure from './cli/configure.js';
 import * as info from './cli/info.js';
 import * as register from './cli/register.js';
 
+import * as trigger from './cli/trigger.js';
 import { header } from './lib/images.js';
 import { useTelemetry } from './middleware/index.js';
 import { AuthError, NotSaleorAppDirectoryError } from './lib/util.js';
@@ -65,6 +66,7 @@ yargs(hideBin(process.argv))
   .command(logout)
   .command(configure)
   .command(register)
+  .command(trigger)
   .command(['organization [command]', 'org'], '', organization)
   .command(['environment [command]', 'env'], '', environment)
   .command(['backup [command]'], '', backup)
