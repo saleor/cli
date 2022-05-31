@@ -40,3 +40,25 @@ export const GetWebhookEventEnum = gql`
   }
 }
     `;
+
+export const GetWebhookAsyncEventEnum = gql`
+  query GetWebhookAsyncEventEnum {
+  __type(name: "WebhookEventTypeAsyncEnum") {
+    enumValues {
+      name
+      description
+    }
+  }
+}
+`;
+
+export const GetWebhookSyncEventEnum = gql`
+  query GetWebhookSyncEventEnum {
+  __type(name: "WebhookEventTypeSyncEnum") {
+    enumValues {
+      name
+      description
+    }
+  }
+}
+`;
