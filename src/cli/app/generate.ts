@@ -12,18 +12,17 @@ import { GetWebhookEventEnum } from '../../generated/graphql.js'
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { capitalize, uncapitalize } from '../../lib/util.js';
+import { DefaultSaleorEndpoint } from '../../lib/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const SaleorEndpoint = 'https://vercel.saleor.cloud/graphql/';
 
 export const command = "generate <resource>";
 export const desc = "Generate a resource for a Saleor App";
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("resource", { 
-    type: "string", 
-    demandOption: true, 
+  _.positional("resource", {
+    type: "string",
+    demandOption: true,
     choices: ['webhook', 'query', 'mutation', 'subscription']
   })
 
@@ -32,7 +31,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   switch (resource) {
     case 'webhook':
-      const { __type: { enumValues } } = await request(SaleorEndpoint, GetWebhookEventEnum)
+      const { __type: { enumValues } } = await request(DefaultSaleorEndpoint, GetWebhookEventEnum)
 
       const choices = enumValues
 
@@ -40,7 +39,7 @@ export const handler = async (argv: Arguments<Options>) => {
         name: 'event',
         message: 'Select a web hook event (start typing)',
         limit: 10,
-        choices, 
+        choices,
       });
 
       const form: string = await prompt.run();

@@ -54,14 +54,14 @@ const handleAuthAndConfig = (func: (path: string, options?: any) => any) => asyn
   return func(path, options) as CancelableRequest;
 }
 
-const doGETRequest = (path: string, options?: any) => got(path, {...options}).json();
-const doPOSTRequest = (path: string, options?: any) => got.post(path, { ...options}).json()
-const doDELETERequest = (path: string, options: any) => got.delete(path, {...options}).json();
-const doPUTRequest = (path: string, options: any) => got.put(path, {...options}).json();
+const doGETRequest = (path: string, options?: any) => got(path, { ...options }).json();
+const doPOSTRequest = (path: string, options?: any) => got.post(path, { ...options }).json()
+const doDELETERequest = (path: string, options: any) => got.delete(path, { ...options }).json();
+const doPUTRequest = (path: string, options: any) => got.put(path, { ...options }).json();
 
 export const GET = handleAuthAndConfig(doGETRequest);
-export const POST =  handleAuthAndConfig(doPOSTRequest);
-export const PUT =  handleAuthAndConfig(doPUTRequest);
+export const POST = handleAuthAndConfig(doPOSTRequest);
+export const PUT = handleAuthAndConfig(doPUTRequest);
 export const DELETE = handleAuthAndConfig(doDELETERequest);
 
 export const API: Record<string, DefaultURLPath> = {
@@ -73,14 +73,14 @@ export const API: Record<string, DefaultURLPath> = {
   Environment: _ => `organizations/${_.organization}/environments/${_.environment || ''}`,
   PopulateDatabase: _ => `organizations/${_.organization}/environments/${_.environment}/populate-database`,
   ClearDatabase: _ => `organizations/${_.organization}/environments/${_.environment}/clear-database`,
-  SetAdminAccount:  _ => `organizations/${_.organization}/environments/${_.environment}/set-admin-account`,
+  SetAdminAccount: _ => `organizations/${_.organization}/environments/${_.environment}/set-admin-account`,
   Job: _ => `organizations/${_.organization}/environments/${_.environment}/jobs`,
   TaskStatus: _ => `service/task-status/${_.task}`,
   Backup: _ => `organizations/${_.organization}/environments/${_.environment}/backups/${_.backup || ''}`,
   Restore: _ => `organizations/${_.organization}/environments/${_.environment}/restore`,
   Project: _ => `organizations/${_.organization}/projects/${_.project || ''}`,
   PaymentMethod: _ => `organizations/${_.organization}/payment-methods/${_.paymentMethod || ''}`,
-  Region: _ =>  `regions/${_.region || ''}`,
+  Region: _ => `regions/${_.region || ''}`,
   Services: _ => `regions/${_.region}/services/${_.serviceName || ''}`,
   Plan: _ => `plans/${_.plan || ''}`,
   Token: _ => "tokens"
@@ -89,3 +89,4 @@ export const API: Record<string, DefaultURLPath> = {
 
 export const Region = 'us-east-1'
 export type Plan = 'startup' | 'pro' | 'dev' | 'enterprise' | 'staging'
+export const DefaultSaleorEndpoint = 'https://vercel.saleor.cloud/graphql/'

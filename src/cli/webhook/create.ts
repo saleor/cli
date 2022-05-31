@@ -1,55 +1,110 @@
 import type { Arguments, CommandBuilder } from "yargs";
-
 import Enquirer from "enquirer";
 import got from "got";
-import { API, GET } from "../../lib/index.js";
+import { request } from 'graphql-request';
+import chalk from "chalk";
+
+import { API, DefaultSaleorEndpoint, GET } from "../../lib/index.js";
 import { Options } from "../../types.js";
 import { doWebhookCreate } from "../../graphql/doWebhookCreate.js";
 import { interactiveSaleorApp } from "../../middleware/index.js";
 import { Config } from "../../lib/config.js";
+import { GetWebhookAsyncEventEnum, GetWebhookSyncEventEnum } from "../../generated/graphql.js";
 
 export const command = "create";
-export const desc = "Create a new backup";
+export const desc = "Create a new webhook";
 
 export const builder: CommandBuilder = (_) => _
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { name, environment, app } = argv;
+  const { environment, app } = argv;
+  const { __type: { enumValues: asyncEventsList } } = await request(DefaultSaleorEndpoint, GetWebhookAsyncEventEnum);
+  const { __type: { enumValues: syncEventsList } } = await request(DefaultSaleorEndpoint, GetWebhookSyncEventEnum);
 
   console.log(`Creating a webhook for the ${environment} environment`);
 
-  const prompt = new (Enquirer as any).Form({
-    name: 'user',
-    message: 'Please provide the following information:',
-    choices: [
-      { name: 'name', message: 'Name' },
-      { name: 'targetUrl', message: 'Target URL' },
-      { name: 'secretKey', message: 'Secret' }
-    ]
-  });
+  const {
+    name,
+    targetUrl,
+    secretKey,
+    asyncEvents,
+    syncEvents,
+    isActive,
+    query } = await Enquirer.prompt<{
+      name: string,
+      targetUrl: string,
+      secretKey: string,
+      asyncEvents: string[],
+      syncEvents: string[],
+      isActive: boolean,
+      query: string
+    }>([{
+      type: 'input',
+      name: 'name',
+      message: 'Name',
+      initial: argv.name,
+      required: true,
+      skip: !!argv.name,
+    }, {
+      type: 'input',
+      name: 'targetUrl',
+      message: `Target URL`,
+      initial: argv.targetUrl,
+      required: true,
+      skip: !!argv.targetUrl
+    }, {
+      type: 'input',
+      name: 'secretKey',
+      message: `Secret`,
+      initial: argv.secretKey,
+      skip: !!argv.secretKey
 
-  const form = await prompt.run();
+    }, {
+      type: 'multiselect',
+      name: 'asyncEvents',
+      message: 'Select asynchronous events',
+      choices: asyncEventsList
+    }, {
+      type: 'multiselect',
+      name: 'syncEvents',
+      message: 'Selec synchronous events',
+      choices: syncEventsList
+    }, {
+      type: 'confirm',
+      name: 'isActive',
+      message: 'Webhook is active',
+      initial: true,
+    }, {
+      type: 'input',
+      name: 'query',
+      message: 'Subscription query',
+    }
+    ]);
 
   const { domain } = await GET(API.Environment, argv) as any;
   const headers = await Config.getBearerHeader();
 
-  const { data, errors }: any = await got.post(`https://${domain}/graphql`, {
+  const { data }: any = await got.post(`https://${domain}/graphql`, {
     headers,
     json: {
       query: doWebhookCreate,
       variables: {
         input: {
-          ...form,
-          isActive: true,
-          app
+          name,
+          targetUrl,
+          secretKey,
+          asyncEvents,
+          syncEvents,
+          isActive,
+          app,
+          query
         }
       }
     }
   }).json()
 
-  console.log('webhook created')
-
-  process.exit(0);
+  const { webhookCreate: { webhook: {id} } } = data;
+  console.log(chalk('Webhook created with id', chalk.green(id)))
 };
 
 export const middlewares = [
