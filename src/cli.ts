@@ -20,6 +20,7 @@ import telemetry from './cli/telemetry/index.js';
 import webhook from './cli/webhook/index.js';
 import app from './cli/app/index.js';
 import vercel from './cli/vercel/index.js';
+import github from './cli/github/index.js';
 
 import * as login from './cli/login.js';
 import * as logout from './cli/logout.js';
@@ -77,6 +78,7 @@ yargs(hideBin(process.argv))
   .command(['webhook [command]', 'hook'], '', webhook)
   .command(['app [command]'], '', app)
   .command(['vercel [command]'], '', vercel)
+  .command(['github [command]'], '', github)
   .option('json', { type: "boolean", desc: "Output the data as JSON" })
   .strictCommands()
   .middleware(useTelemetry(pkg.version))

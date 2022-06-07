@@ -18,7 +18,10 @@ export const doSaleorAppInstall = async (argv: any) => {
   const { domain } = await GET(API.Environment, argv) as any;
   const headers = await Config.getBearerHeader();
 
-  console.log(chalk.green('  Configure your Saleor App'))
+  if (!argv.manifestURL) {
+    console.log(chalk.green('  Configure your Saleor App'))
+  }
+
   const { manifestURL } = await Enquirer.prompt<{ manifestURL: string }>({
     type: 'input',
     name: 'manifestURL',
@@ -32,7 +35,7 @@ export const doSaleorAppInstall = async (argv: any) => {
   try {
     manifest = await got.get(manifestURL).json();
   } catch {
-    console.log(chalk.red('\nThere was a problem while fetching provided manifest URL\n'));
+    console.log(chalk.red('\n There was a problem while fetching provided manifest URL\n'));
     process.exit(1);
   }
 

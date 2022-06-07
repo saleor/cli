@@ -5,6 +5,7 @@ import * as create from "./create.js";
 import * as generate from "./generate.js";
 import * as token from "./token.js";
 import * as permission from "./permission.js";
+import * as publish from "./publish.js";
 
 export default function (_: any) {
   _.command([
@@ -17,7 +18,8 @@ export default function (_: any) {
 
     // no auth needed
     generate,
+    publish,
   ])
-  // .middleware([useToken, useOrganization, useEnvironment])
-  .demandCommand(1, "You need at least one command before moving on");
+    // .middleware([useToken, useOrganization, useEnvironment])
+    .demandCommand(1, "You need at least one command before moving on");
 }

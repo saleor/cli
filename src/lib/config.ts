@@ -21,6 +21,9 @@ export type ConfigField =
   | "VercelClientID"
   | "VercelClientSecret"
   | "SentryDSN"
+  | "GithubClientID"
+  | "GithubClientSecret"
+  | "github_token"
 
 type ConfigProps = Record<ConfigField, string>;
 
