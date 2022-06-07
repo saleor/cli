@@ -74,6 +74,7 @@
     "graphql": "^16.5.0",
     "graphql-request": "^4.3.0",
     "graphql-tag": "^2.12.6",
+    "lodash.kebabcase": "^4.1.1",
     "lookpath": "^1.2.2",
     "nanoid": "^3.3.4",
     "node-fetch": "^3.2.4",

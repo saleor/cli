@@ -5,6 +5,7 @@ import chalk from "chalk";
 import sanitize from "sanitize-filename";
 import fs from 'fs-extra';
 import replace from "replace-in-file";
+import kebabCase from "lodash.kebabcase"
 
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
@@ -47,6 +48,13 @@ APP_URL=
     files: '.graphqlrc.yml',
     from: /schema:.*/g,
     to: `schema: ${graphqlURL}`
+  });
+
+  spinner.text = `Updating package.json...`;
+  replace.sync({
+    files: 'package.json',
+    from: /"name": "saleor-app-template".*/g,
+    to: `"name": "${kebabCase(target)}",`
   });
 
   spinner.text = 'Installing dependencies...';
