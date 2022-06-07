@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from "path";
 import got from "got";
 
-import { marketplaceAppSubmit } from "../../graphql/mutation/marketplaceAppSubmit.js";
+import { MarketplaceAppSubmit } from "../../graphql/mutation/marketplaceAppSubmit.js";
 import { Config } from "../../lib/config.js";
 
 export const command = "publish";
@@ -14,19 +14,18 @@ export const handler = async (): Promise<void> => {
   const { github_token } = await Config.get();
   const { saleorApp: input } = JSON.parse(await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8'));
 
-
-  const { data, errors }: any = await got.post(`https://saleor-graph.deno.dev`, {
+  const { data, errors } = await got.post(`https://saleor-graph.deno.dev`, {
     headers: {
-      "Authorization": github_token
+      Authorization: github_token,
     },
     json: {
-      query: marketplaceAppSubmit,
+      query: MarketplaceAppSubmit,
       variables: {
         input
       }
     }
-  }).json()
+  }).json();
 
-  console.log(data, errors)
+  console.log(data)
 };
 
