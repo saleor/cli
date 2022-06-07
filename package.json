@@ -3,6 +3,9 @@
   "version": "1.3.0",
   "description": "",
   "type": "module",
+  "repository": "github:saleor/saleor-cli",
+  "homepage": "https://github.com/saleor/saleor-cli#readme",
+  "bugs": "https://github.com/saleor/saleor-cli/issues",
   "bin": {
     "saleor": "./build/cli.js"
   },
