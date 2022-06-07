@@ -27,9 +27,13 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   const env = await GET(API.Environment, argv) as any;
   const baseURL = `https://${env.domain}`;
   const graphqlURL = `${baseURL}/graphql/`;
-  const dashboaardMsg = chalk.blue(`Dashboard - ${baseURL}/dashboard`);
-  const gqlMsg = chalk.blue(`GraphQL Playgroud - ${graphqlURL}`);
-  console.log(boxen(`${dashboaardMsg}\n${gqlMsg}`, { padding: 1 }));
+  const dashboaardMsg = `  Saleor Dashboard: ${chalk.blue(`${baseURL}/dashboard/`)}`;
+  const gqlMsg = `GraphQL Playground: ${chalk.blue(graphqlURL)}`;
+  console.log(boxen(`${dashboaardMsg}\n${gqlMsg}`, {
+    padding: 1,
+    margin: 1,
+    borderColor: "yellow",
+  }));
 
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(argv.name));
