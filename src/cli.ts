@@ -57,7 +57,7 @@ if (SentryDSN) {
   Sentry.setUser({ id: user_session })
 }
 
-yargs(hideBin(process.argv))
+const parser = yargs(hideBin(process.argv))
   .scriptName("saleor")
   .version(pkg.version)
   .alias('V', 'version')
@@ -86,7 +86,6 @@ yargs(hideBin(process.argv))
   .alias('h', 'help')
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, yargs) => {
-
     if (error) {
       Sentry.captureException(error);
     }
@@ -112,7 +111,7 @@ yargs(hideBin(process.argv))
     } else if (error instanceof TimeoutError) {
       // Don't display `Timeout` errors to user
     } else if (error) {
-      console.log(error.message)
+      console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
     } else {
       if (!process.argv.slice(2).length) {
         header(pkg.version);
@@ -138,5 +137,11 @@ yargs(hideBin(process.argv))
     await Sentry.close(2000);
 
     process.exit(1);
-  })
-  .argv;
+  });
+
+try {
+  await parser.parse();
+} catch (error) {
+  // FIXME 
+  // https://github.com/yargs/yargs/blob/main/docs/advanced.md#handling-async-errors
+}
