@@ -1,8 +1,6 @@
-export const marketplaceAppSubmit = /* GraphQL */`
-mutation marketplaceAppSubmit($input: MarketplaceAppInput!) {
+export const MarketplaceAppSubmit = `
+mutation MarketplaceAppSubmit($input: MarketplaceAppInput!) {
   marketplaceAppSubmit(input: $input) {
     status
-    reviewURL
   }
-}
-`;
+}`;
