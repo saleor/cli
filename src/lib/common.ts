@@ -8,6 +8,7 @@ import { Config } from "./config.js";
 import { API, GET } from "./index.js";
 import { NotSaleorAppDirectoryError } from "./util.js";
 import chalk from "chalk";
+import { isPortAvailable } from "./detectPort.js";
 
 interface Manifest {
   name: string
@@ -92,6 +93,18 @@ export const verifyIsSaleorAppDirectory = async (argv: any) => {
 
   if (!isNextApp || !isNodeApp || !hasDotEnvFile) {
     throw new NotSaleorAppDirectoryError(`'app ${argv._[1]}' must be run from the directory of your Saleor app`);
+  }
+
+  return {};
+};
+
+
+export const verifyIfSaleorAppRunning = async (argv: any) => {
+  const { port } = argv;
+
+  const isFree = await isPortAvailable(Number(port));
+  if (isFree) {
+    throw new Error(`No Saleor App running on port ${port}`);
   }
 
   return {};

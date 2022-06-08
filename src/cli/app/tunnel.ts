@@ -2,7 +2,7 @@ import { Arguments, CommandBuilder } from "yargs";
 import { spawn } from "child_process";
 import path from 'path';
 import Enquirer from "enquirer";
-import { doSaleorAppInstall, verifyIsSaleorAppDirectory } from "../../lib/common.js";
+import { doSaleorAppInstall, verifyIfSaleorAppRunning, verifyIsSaleorAppDirectory } from "../../lib/common.js";
 import boxen from "boxen";
 import chalk from "chalk";
 import replace from "replace-in-file";
@@ -101,8 +101,9 @@ export const handler = async (argv: Arguments<Opts>): Promise<void> => {
 };
 
 export const middlewares = [
+  verifyIsSaleorAppDirectory,
+  verifyIfSaleorAppRunning,
   useToken,
   useOrganization,
   useEnvironment,
-  verifyIsSaleorAppDirectory
 ]
