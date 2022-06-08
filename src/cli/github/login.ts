@@ -11,6 +11,7 @@ import got from "got";
 import { Options } from "../../types.js";
 import { Config } from "../../lib/config.js";
 import detectPort from "detect-port";
+import { delay } from "../../lib/util.js";
 
 const { ux: cli } = CliUx;
 
@@ -74,6 +75,7 @@ export const handler = async (argv: Arguments<Options>) => {
   await app.start(port);
 
   emitter.on('finish', async () => {
+    await delay(1000);
     await app.stop();
   });
 };
