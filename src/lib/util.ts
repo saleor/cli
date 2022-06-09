@@ -173,10 +173,12 @@ export const promptCompatibleVersion = async (argv: any, service = "SANDBOX") =>
 export const promptDatabaseTemplate = async () => createPrompt(
   'database',
   'Select the database template',
-  () => ([{ name: 'sample', value: 'sample' },
-  { name: 'blank', value: null },
-  { name: 'snapshot', value: null }]),
-  (_: any) => ({ name: _.name, value: _.value })
+  () => ([
+    { name: 'sample', value: 'sample', hint: 'Includes a sample product catalog and basic configuration' },
+    { name: 'blank', value: null, hint: 'Contains no data and configuration settings' },
+    { name: 'snapshot', value: null, hint: 'Import data from backups or your own snapshots' }
+  ]),
+  (_: any) => ({ name: _.name, value: _.value, hint: _.hint })
 )
 
 export const promptProject = (argv: any) => createPrompt(
