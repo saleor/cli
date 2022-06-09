@@ -15,7 +15,7 @@ import {
   promptOrganizationBackup,
   promptProject,
   promptSaleorApp,
-  promptVersion,
+  promptCompatibleVersion,
   promptWebhook,
 } from "../lib/util.js";
 import { CreatePromptResult, Options } from "../types.js";
@@ -138,7 +138,7 @@ export const interactiveSaleorVersion = async (argv: Options) => {
   const { region } = (await GET(API.Project, argv)) as any;
 
   if (!argv.saleor) {
-    const snapshot = await promptVersion({...argv, region});
+    const snapshot = await promptCompatibleVersion({...argv, region});
     return { saleor: snapshot.value };
   }
 
