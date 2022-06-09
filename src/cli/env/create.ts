@@ -89,6 +89,7 @@ export const handler = async (argv: Arguments<Options>) => {
     type: 'confirm',
     name: 'deployPrompt',
     message: `Deploy our react-storefront starter pack to Vercel`,
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
     initial: argv.deploy,
     skip: !(argv.deploy === undefined)
   }) as { deployPrompt: boolean };
@@ -128,9 +129,10 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   }, {
     type: 'confirm',
     name: 'access',
-    message: `Would you like to enable dashboard access `,
+    message: `Would you like to enable dashboard access?`,
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
     skip: !!argv.email,
-    initial: false
+    initial: true 
   }]) as { domain: string, access: boolean };
 
   let email = argv.email;
@@ -150,7 +152,8 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   const { restrict } = await Enquirer.prompt({
     type: 'confirm',
     name: 'restrict',
-    message: `You can restrict access to your env API with Basic Auth. Do you want to set it up`,
+    message: `Would you like to restrict your Environment API with Basic Auth?`,
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
     skip: (!!argv.pass && !!argv.login) || argv.skipRestrict
   }) as { restrict: boolean };
 

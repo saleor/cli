@@ -73,6 +73,7 @@ export const handler = async (argv: Arguments<Options>) => {
       type: 'confirm',
       name: 'isActive',
       message: 'Webhook is active',
+      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
       initial: true,
     }, {
       type: 'input',
