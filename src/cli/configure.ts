@@ -8,6 +8,7 @@ import { Options } from "../types.js";
 import Enquirer from "enquirer";
 import _ from "chalk";
 import { promptEnvironment, promptOrganization } from "../lib/util.js";
+import chalk from "chalk";
 
 const { ux: cli } = CliUx;
 
@@ -39,6 +40,7 @@ Learn more: ${_.gray('https://saleor.io/')}${_.blueBright('telemetry')}
     type: 'confirm',
     name: 'telemetry',
     initial: 'yes',
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
     message: 'Are you OK with leaving telemetry enabled?'
   }) as { telemetry: boolean }
 
@@ -62,7 +64,8 @@ const chooseOrganization = async (token: string | undefined) => {
       type: 'confirm',
       name: 'orgSetup',
       initial: 'yes',
-      message: 'Would you like to choose default Organization'
+      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+      message: 'Would you like to choose the default organization?'
     }) as { orgSetup: boolean }
 
     if (orgSetup) {
@@ -80,7 +83,8 @@ const chooseEnv = async (token: string | undefined, organization_slug: string) =
       type: 'confirm',
       name: 'envSetup',
       initial: 'yes',
-      message: 'Would you like to choose default Environment'
+      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+      message: 'Would you like to choose the default environment'
     }) as { envSetup: boolean }
 
     if (envSetup) {

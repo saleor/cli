@@ -416,6 +416,7 @@ export const confirmRemoval = async (argv: Options, name: string) => {
     initial: argv.force,
     skip: !!argv.force,
     message: `You are going to remove ${name}. Continue`,
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
   }) as { proceed: boolean };
 
   return proceed;

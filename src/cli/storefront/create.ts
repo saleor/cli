@@ -85,9 +85,9 @@ const prepareEnvironment = async (argv: Arguments<StoreCreate>, project: any) =>
   console.log(chalk.green("✔"), chalk.bold("Select a Saleor version ·"), chalk.cyan(`Saleor ${service.version} - ${service.display_name} - ${service.service_type}`));
   console.log(chalk.green("✔"), chalk.bold("Environment name ·"), chalk.cyan(name));
   console.log(chalk.green("✔"), chalk.bold("Environment domain ·"), chalk.cyan(name));
-  console.log(chalk.green("✔"), chalk.bold("Would you like to enable dashboard access  (y/N) ·"), chalk.cyan('true'));
+  console.log(chalk.green("✔"), chalk.bold("Would you like to enable dashboard access  (y/N) ·"), chalk.cyan('yes'));
   console.log(chalk.green("✔"), chalk.bold("Dashboard admin email ·"), chalk.cyan(user.email));
-  console.log(chalk.green("✔"), chalk.bold("You can restrict access to your env API with Basic Auth. Do you want to set it up (y/N) ·"), chalk.cyan('false'));
+  console.log(chalk.green("✔"), chalk.bold("Would you like to restrict your Environment API with Basic Auth? (y/N) ·"), chalk.cyan('no'));
 
   const json = {
     name,

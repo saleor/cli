@@ -78,6 +78,7 @@ export const doRegister = async (fromCli: boolean | undefined) => {
       type: 'confirm',
       name: 'terms',
       required: true,
+      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
       message: 'I agree to Saleor Terms and Conditions - https://saleor.io/legal/terms'
     }])
 
