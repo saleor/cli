@@ -156,6 +156,7 @@ export const getSortedServices = async (argv: any) => {
   return services.sort((a, b) => b.version.localeCompare(a.version))
 }
 
+// deprecated ?
 export const promptVersion = async (argv: any) => createPrompt(
   'service',
   'Select a Saleor version',
@@ -167,7 +168,7 @@ export const promptCompatibleVersion = async (argv: any, service = "SANDBOX") =>
   'production service',
   'Select a Saleor service',
   async () => (await getSortedServices(argv)).filter(({ service_type }: any) => service_type === service),
-  (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`, value: _.name })
+  (_: any) => ({ name: `Saleor ${_.version} - ${_.display_name}`, value: _.name })
 )
 
 export const promptDatabaseTemplate = async () => createPrompt(
