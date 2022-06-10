@@ -33,7 +33,8 @@ export const handler = async (argv: Arguments<Options>) => {
     case 'webhook':
       const { __type: { enumValues } } = await request(DefaultSaleorEndpoint, GetWebhookEventEnum)
 
-      const choices = enumValues
+      const without = (name: string) => (record: any) => record.name !== name;
+      const choices = enumValues.filter(without('ANY_EVENTS'));
 
       const prompt = new (Enquirer as any).AutoComplete({
         name: 'event',
