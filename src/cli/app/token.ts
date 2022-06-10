@@ -45,16 +45,7 @@ export const handler = async (argv: Arguments<Options>) => {
   });
 
   try {
-    const { data }: any = await got.post(endpoint, {
-      headers,
-      json: {
-        query: print(AppTokenCreate),
-        variables: { app }
-      }
-    }).json()
-
-    const { appTokenCreate: { authToken } } = data;
-
+    const authToken = createAppToken(endpoint, app)
     console.log();
     console.log(boxen(`Your Token: ${authToken}`, { padding: 1 }));
   } catch (error) {
@@ -63,6 +54,21 @@ export const handler = async (argv: Arguments<Options>) => {
 
   process.exit(0);
 };
+
+export const createAppToken = async (url: string, app: string) => {
+  const headers = await Config.getBearerHeader();
+
+  const { data }: any = await got.post(url, {
+    headers,
+    json: {
+      query: print(AppTokenCreate),
+      variables: { app }
+    }
+  }).json()
+
+  const { appTokenCreate: { authToken } } = data;
+  return authToken;
+}
 
 export const middlewares = [
   useToken, useOrganization, useEnvironment
