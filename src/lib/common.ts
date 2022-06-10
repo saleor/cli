@@ -66,6 +66,8 @@ export const doSaleorAppInstall = async (argv: any) => {
     console.log(data.appInstall?.errors)
     throw Error("cannot auth")
   }
+
+  return data;
 }
 
 export const run = async (cmd: string, params: string[], options: Record<string, unknown>, log = false) => {
