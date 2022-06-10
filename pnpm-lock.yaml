@@ -131,6 +131,35 @@ packages:
       '@jridgewell/trace-mapping': 0.3.13
     dev: true
 
+  /@ardatan/relay-compiler/12.0.0_graphql@16.5.0:
+    resolution: {integrity: sha512-9anThAaj1dQr6IGmzBMcfzOQKTa5artjuPmw8NYK/fiGEMjADbSguBY2FMDykt+QhilR3wc9VA/3yVju7JHg7Q==}
+    hasBin: true
+    peerDependencies:
+      graphql: '*'
+    dependencies:
+      '@babel/core': 7.18.2
+      '@babel/generator': 7.18.2
+      '@babel/parser': 7.18.4
+      '@babel/runtime': 7.18.3
+      '@babel/traverse': 7.18.2
+      '@babel/types': 7.18.4
+      babel-preset-fbjs: 3.4.0_@babel+core@7.18.2
+      chalk: 4.1.2
+      fb-watchman: 2.0.1
+      fbjs: 3.0.4
+      glob: 7.2.3
+      graphql: 16.5.0
+      immutable: 3.7.6
+      invariant: 2.2.4
+      nullthrows: 1.1.1
+      relay-runtime: 12.0.0
+      signedsource: 1.0.0
+      yargs: 15.4.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: true
+
   /@aws-amplify/analytics/5.2.9:
     resolution: {integrity: sha512-JpV9X70pfsxUuEtbSLnv4KrLALSuATfCr1LtOlNdb022fWHj4ciy1sUzu77TLuK+36y+8+weRzNJ9/NSWBPh1A==}
     dependencies:
@@ -2804,7 +2833,7 @@ packages:
     dependencies:
       '@graphql-codegen/plugin-helpers': 2.4.2_graphql@16.5.0
       '@graphql-tools/optimize': 1.2.1_graphql@16.5.0
-      '@graphql-tools/relay-operation-optimizer': 6.4.13_graphql@16.5.0
+      '@graphql-tools/relay-operation-optimizer': 6.4.14_graphql@16.5.0
       '@graphql-tools/utils': 8.6.13_graphql@16.5.0
       auto-bind: 4.0.0
       change-case-all: 1.0.14
@@ -3022,14 +3051,14 @@ packages:
       - utf-8-validate
     dev: true
 
-  /@graphql-tools/relay-operation-optimizer/6.4.13_graphql@16.5.0:
-    resolution: {integrity: sha512-H2urxI53jCgrvhjaRFMzFvdHEs95BES3Am07Zr1NZsbme9sxyPfaj8qftnaU37KvVs0v+wtf1pw6PnYelMsNoQ==}
+  /@graphql-tools/relay-operation-optimizer/6.4.14_graphql@16.5.0:
+    resolution: {integrity: sha512-vqch2M/sIUfMmlRJ4eCupiHlVPXWOPVpHX9yCZwRrpNg0Eaokyc57NSjJuKVV3KcvcJKf03qfMK2PxFbfDvN9A==}
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
     dependencies:
+      '@ardatan/relay-compiler': 12.0.0_graphql@16.5.0
       '@graphql-tools/utils': 8.6.13_graphql@16.5.0
       graphql: 16.5.0
-      relay-compiler: 12.0.0_graphql@16.5.0
       tslib: 2.4.0
     transitivePeerDependencies:
       - encoding
@@ -3062,13 +3091,13 @@ packages:
       dset: 3.1.2
       extract-files: 11.0.0
       graphql: 16.5.0
-      graphql-ws: 5.8.2_graphql@16.5.0
-      isomorphic-ws: 4.0.1_ws@8.7.0
+      graphql-ws: 5.9.0_graphql@16.5.0
+      isomorphic-ws: 4.0.1_ws@8.8.0
       meros: 1.2.0_@types+node@17.0.41
       sync-fetch: 0.4.1
       tslib: 2.4.0
       value-or-promise: 1.0.11
-      ws: 8.7.0
+      ws: 8.8.0
     transitivePeerDependencies:
       - '@types/node'
       - bufferutil
@@ -3997,7 +4026,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001352
-      electron-to-chromium: 1.4.150
+      electron-to-chromium: 1.4.151
       escalade: 3.1.1
       node-releases: 2.0.5
       picocolors: 1.0.0
@@ -4720,8 +4749,8 @@ packages:
       jake: 10.8.5
     dev: false
 
-  /electron-to-chromium/1.4.150:
-    resolution: {integrity: sha512-MP3oBer0X7ZeS9GJ0H6lmkn561UxiwOIY9TTkdxVY7lI9G6GVCKfgJaHaDcakwdKxBXA4T3ybeswH/WBIN/KTA==}
+  /electron-to-chromium/1.4.151:
+    resolution: {integrity: sha512-XaG2LpZi9fdiWYOqJh0dJy4SlVywCvpgYXhzOlZTp4JqSKqxn5URqOjbm9OMYB3aInA2GuHQiem1QUOc1yT0Pw==}
     dev: true
 
   /elegant-spinner/1.0.1:
@@ -5637,8 +5666,8 @@ packages:
       graphql: 16.5.0
       tslib: 2.4.0
 
-  /graphql-ws/5.8.2_graphql@16.5.0:
-    resolution: {integrity: sha512-hYo8kTGzxePFJtMGC7Y4cbypwifMphIJJ7n4TDcVUAfviRwQBnmZAbfZlC+XFwWDUaR7raEDQPxWctpccmE0JQ==}
+  /graphql-ws/5.9.0_graphql@16.5.0:
+    resolution: {integrity: sha512-CXv0l0nI1bgChwl4Rm+BqNOAKwL/C9T2N8RfmTkhQ38YLFdUXCi2WNW4oFp8BJP+t75nCLzjHHgR04sP1oF02w==}
     engines: {node: '>=10'}
     peerDependencies:
       graphql: '>=0.11 <=16'
@@ -6058,12 +6087,12 @@ packages:
       - encoding
     dev: false
 
-  /isomorphic-ws/4.0.1_ws@8.7.0:
+  /isomorphic-ws/4.0.1_ws@8.8.0:
     resolution: {integrity: sha512-BhBvN2MBpWTaSHdWRb/bwdZJ1WaehQ2L1KngkCkfLUGF0mAWAT1sQUQacEmQ0jXkFw/czDXPNQSL5u2/Krsz1w==}
     peerDependencies:
       ws: '*'
     dependencies:
-      ws: 8.7.0
+      ws: 8.8.0
     dev: true
 
   /isstream/0.1.2:
@@ -7178,35 +7207,6 @@ packages:
     dependencies:
       rc: 1.2.8
 
-  /relay-compiler/12.0.0_graphql@16.5.0:
-    resolution: {integrity: sha512-SWqeSQZ+AMU/Cr7iZsHi1e78Z7oh00I5SvR092iCJq79aupqJ6Ds+I1Pz/Vzo5uY5PY0jvC4rBJXzlIN5g9boQ==}
-    hasBin: true
-    peerDependencies:
-      graphql: ^15.0.0
-    dependencies:
-      '@babel/core': 7.18.2
-      '@babel/generator': 7.18.2
-      '@babel/parser': 7.18.4
-      '@babel/runtime': 7.18.3
-      '@babel/traverse': 7.18.2
-      '@babel/types': 7.18.4
-      babel-preset-fbjs: 3.4.0_@babel+core@7.18.2
-      chalk: 4.1.2
-      fb-watchman: 2.0.1
-      fbjs: 3.0.4
-      glob: 7.2.3
-      graphql: 16.5.0
-      immutable: 3.7.6
-      invariant: 2.2.4
-      nullthrows: 1.1.1
-      relay-runtime: 12.0.0
-      signedsource: 1.0.0
-      yargs: 15.4.1
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
-    dev: true
-
   /relay-runtime/12.0.0:
     resolution: {integrity: sha512-QU6JKr1tMsry22DXNy9Whsq5rmvwr3LSZiiWV/9+DFpuTWvp+WFhobWMc8TC4OjKFfNhEZy7mOiqUAn5atQtug==}
     dependencies:
@@ -7604,7 +7604,7 @@ packages:
     dev: false
 
   /supports-color/2.0.0:
-    resolution: {integrity: sha1-U10EXOa2Nj+kARcIRimZXp3zJMc=}
+    resolution: {integrity: sha512-KKNVtd6pCYgPIKU4cp2733HWYCpplQhddZLBUryaAHou723x+FRzQ5Df824Fj+IyyuiQTRoub4SnIFfIcrp70g==}
     engines: {node: '>=0.8.0'}
     dev: true
 
@@ -7700,11 +7700,11 @@ packages:
     dev: true
 
   /text-table/0.2.0:
-    resolution: {integrity: sha1-f17oI66AUgfACvLfSoTsP8+lcLQ=}
+    resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
     dev: true
 
   /thenify-all/1.6.0:
-    resolution: {integrity: sha1-GhkY1ALY/D+Y+/I02wvMjMEOlyY=}
+    resolution: {integrity: sha512-RNxQH/qI8/t3thXJDwcstUO4zeqo64+Uy/+sNVRBx4Xn2OX+OZ9oP+iJnNFqplFra2ZUVeKCSa2oVWi3T4uVmA==}
     engines: {node: '>=0.8'}
     dependencies:
       thenify: 3.3.1
@@ -7717,7 +7717,7 @@ packages:
     dev: false
 
   /through/2.3.8:
-    resolution: {integrity: sha1-DdTJ/6q8NXlgsbckEV1+Doai4fU=}
+    resolution: {integrity: sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==}
     dev: true
 
   /title-case/3.0.3:
@@ -7741,7 +7741,7 @@ packages:
     dev: false
 
   /to-fast-properties/2.0.0:
-    resolution: {integrity: sha1-3F5pjL0HkmW8c+A3doGk5Og/YW4=}
+    resolution: {integrity: sha512-/OaKK0xYrs3DmxRYqL/yDc+FxFUVYhDlXMhRmv3z915w2HF1tnN1omB354j8VUGO/hbRzyD6Y3sA7v7GS/ceog==}
     engines: {node: '>=4'}
     dev: true
 
@@ -7760,7 +7760,7 @@ packages:
     dev: false
 
   /tr46/0.0.3:
-    resolution: {integrity: sha1-gYT9NH2snNwYWZLzpmIuFLnZq2o=}
+    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
 
   /truncate-utf8-bytes/1.0.2:
     resolution: {integrity: sha1-QFkjkJWS1W94pYGENLC3hInKXys=}
@@ -8118,8 +8118,8 @@ packages:
       typedarray-to-buffer: 3.1.5
     dev: false
 
-  /ws/8.7.0:
-    resolution: {integrity: sha512-c2gsP0PRwcLFzUiA8Mkr37/MI7ilIlHQxaEAtd0uNMbVMoy8puJyafRlm0bV9MbGSabUPeLrRRaqIBcFcA2Pqg==}
+  /ws/8.8.0:
+    resolution: {integrity: sha512-JDAgSYQ1ksuwqfChJusw1LSJ8BizJ2e/vVu5Lxjq3YvNJNlROv1ui4i+c/kUUrPheBvQl4c5UbERhTwKa6QBJQ==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1

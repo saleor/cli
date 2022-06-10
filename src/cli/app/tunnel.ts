@@ -51,6 +51,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     type: "confirm",
     name: "install",
     message: `Do you want to install this Saleor App in the ${environment} environment?`,
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
   })) as { install: boolean };
 
   const env = await GET(API.Environment, argv) as any;
