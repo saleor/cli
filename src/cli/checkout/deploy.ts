@@ -152,7 +152,7 @@ const createCheckout = async (
       ],
       gitRepository: {
         type: "github",
-        repo: "2can/saleor-checkout", // TODO fork
+        repo: "saleor/saleor-checkout", // TODO fork
         sourceless: true
       },
       framework: "create-react-app",
@@ -217,7 +217,7 @@ const createCheckoutApp = async (
       ],
       gitRepository: {
         type: "github",
-        repo: "2can/saleor-checkout", //TODO choose fork
+        repo: "saleor/saleor-checkout", //TODO choose fork
         sourceless: true
       },
       framework: "nextjs",
@@ -299,7 +299,7 @@ const deployVercelProject = async (vercelToken: string, name: string) => {
       "gitSource": {
         "type": "github",
         "ref": "main",
-        "repoId": 501309190 //450152242
+        "repoId": 450152242
       },
       name: name,
       target: "production",
