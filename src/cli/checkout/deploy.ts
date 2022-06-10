@@ -69,9 +69,8 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     await createVercelEnv(vercelToken, appName, appVars);
 
     // REDEPLOY
-    console.log('redeploy')
     const checkoutAppRedeploymentId = await deployVercelProject(vercelToken, appName);
-    await verifyDeployment(vercelToken, appName, checkoutAppRedeploymentId)
+    await verifyDeployment(vercelToken, appName, checkoutAppRedeploymentId, "Redeploying")
 
     // SETUP CHECKOUT CRA
     await createCheckout(vercelToken, name, apiURL, url)
@@ -88,7 +87,7 @@ const doCheckoutAppInstall = async (
   appName: string
 ) => {
   const { environment } = argv;
-  const spinner = ora(`Install ${appName} in the ${environment} environment...`).start();
+  const spinner = ora(`Installing ${appName} in the ${environment} environment...`).start();
   const manifestURL = `${apiURL}/manifest`;
   await doSaleorAppInstall({ ...argv, manifestURL, appName: 'Checkout' });
   spinner.succeed(`Installed ${appName} in the ${environment} environment`);
@@ -246,8 +245,6 @@ const getAppId = async (url: string) => {
     }
   }).json()
 
-  console.log(edges)
-
   if (!edges) { throw console.error("No apps installed") }
 
   const [{ node: { id } }] = edges.slice(-1);
@@ -263,8 +260,8 @@ const getDeployment = async (vercelToken: string, deploymentId: string): Promise
   }).json();
 }
 
-const verifyDeployment = async (vercelToken: string, name: string, deploymentId: string) => {
-  const spinner = ora(`Deploying ${name}...`).start();
+const verifyDeployment = async (vercelToken: string, name: string, deploymentId: string, msg = `Deploying`) => {
+  const spinner = ora(`${msg} ${name}...`).start();
   let { readyState } = await getDeployment(vercelToken, deploymentId);
   deploymentFailed(readyState);
 
