@@ -138,7 +138,7 @@ export const interactiveSaleorVersion = async (argv: Options) => {
   const { region } = (await GET(API.Project, argv)) as any;
 
   if (!argv.saleor) {
-    const snapshot = await promptCompatibleVersion({...argv, region});
+    const snapshot = await promptCompatibleVersion({ ...argv, region });
     return { saleor: snapshot.value };
   }
 
@@ -251,3 +251,23 @@ const checkBackup = async (argv: Options, chosenBackup: CreatePromptResult) => {
 
   return {};
 };
+
+export const useGitub = () => async () => {
+  const { github_token } = await Config.get();
+
+  if (!github_token) {
+    throw new Error("\nYou are not logged into Github, use `saleor github login` command to login\n");
+  }
+
+  return {}
+}
+
+export const useVercel = () => async () => {
+  const { vercel_token } = await Config.get();
+
+  if (!vercel_token) {
+    throw new Error("\nYou are not logged into Vercel, use `saleor vercel login` command to login\n");
+  }
+
+  return {}
+}
