@@ -1,6 +1,6 @@
 import got from "got";
 import ora from "ora";
-import type { Arguments, CommandBuilder } from "yargs";
+import { Arguments, CommandBuilder } from "yargs";
 import crypto from 'crypto';
 import { customAlphabet } from "nanoid";
 
@@ -81,6 +81,21 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
   process.exit(0);
 };
 
+const createFork = async () => {
+  const { github_token } = await Config.get();
+
+  const { id, full_name: fullName } = await got.post(`https://api.github.com/repos/saleor/saleor-checkout/forks`, {
+    headers: {
+      Authorization: github_token,
+    }
+  }).json()
+
+  return {
+    id,
+    fullName
+  }
+}
+
 const doCheckoutAppInstall = async (
   argv: Options,
   apiURL: string,
@@ -101,6 +116,7 @@ const createCheckout = async (
   url: string
 ) => {
   const spinner = ora(`Creating ${name}...`).start();
+  const { fullName } = await createFork();
 
   const response = await got.post(`https://api.vercel.com/v8/projects`, {
     headers: {
@@ -152,14 +168,14 @@ const createCheckout = async (
       ],
       gitRepository: {
         type: "github",
-        repo: "saleor/saleor-checkout", // TODO fork
+        repo: fullName,
         sourceless: true
       },
       framework: "create-react-app",
       devCommand: null,
       rootDirectory: null,
       outputDirectory: "apps/checkout/build",
-      buildCommand: `pnpm run build --config.scope="checkout-app"`,
+      buildCommand: `pnpm run build --scope="checkout-app"`,
       installCommand: null
     }
   }).json();
@@ -174,6 +190,7 @@ const createCheckoutApp = async (
   name: string,
   url: string) => {
   const spinner = ora(`Creating ${name}...`).start();
+  const { fullName } = await createFork();
 
   const secret = crypto.randomBytes(256).toString('hex')
 
@@ -217,7 +234,7 @@ const createCheckoutApp = async (
       ],
       gitRepository: {
         type: "github",
-        repo: "saleor/saleor-checkout", //TODO choose fork
+        repo: fullName,
         sourceless: true
       },
       framework: "nextjs",
@@ -299,7 +316,7 @@ const deployVercelProject = async (vercelToken: string, name: string) => {
       "gitSource": {
         "type": "github",
         "ref": "main",
-        "repoId": 450152242
+        "repoId": 450152242 // saleor
       },
       name: name,
       target: "production",
