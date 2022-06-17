@@ -73,7 +73,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     await verifyDeployment(vercelToken, appName, checkoutAppRedeploymentId, "Redeploying")
 
     // SETUP CHECKOUT CRA
-    await createCheckout(vercelToken, name, apiURL, url)
+    await createCheckout(vercelToken, name, checkoutAppURL, url)
     const checkoutDeploymentId = await deployVercelProject(vercelToken, name);
     await verifyDeployment(vercelToken, name, checkoutDeploymentId)
   }
@@ -127,7 +127,7 @@ const createCheckout = async (
       environmentVariables: [
         {
           type: "encrypted",
-          key: "REACT_APP_CHECKOUT_API_URL",
+          key: "REACT_APP_CHECKOUT_APP_URL",
           value: checkoutAppUrl,
           target: [
             "production",
@@ -137,7 +137,7 @@ const createCheckout = async (
         },
         {
           type: "encrypted",
-          key: "CHECKOUT_API_URL",
+          key: "CHECKOUT_APP_URL",
           value: checkoutAppUrl,
           target: [
             "production",
