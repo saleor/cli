@@ -3,6 +3,8 @@ import ora from "ora";
 import { Arguments, CommandBuilder } from "yargs";
 import crypto from 'crypto';
 import { customAlphabet } from "nanoid";
+import chalk from "chalk";
+import boxen from "boxen";
 
 import { doSaleorAppInstall } from "../../lib/common.js";
 import { Config } from "../../lib/config.js";
@@ -37,7 +39,8 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     const checkoutAppDeploymentId = await deployVercelProject(vercelToken, appName);
     await verifyDeployment(vercelToken, appName, checkoutAppDeploymentId)
     const { alias } = await getDeployment(vercelToken, checkoutAppDeploymentId);
-    const apiURL = `https://${alias[0]}/api`;
+    const checkoutAppURL = `https://${alias[0]}`;
+    const apiURL = `${checkoutAppURL}/api`;
 
     // INSTALL APP IN CLOUD ENVIRONMENT
     await doCheckoutAppInstall(argv, apiURL, appName);
@@ -75,7 +78,32 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     // SETUP CHECKOUT CRA
     await createCheckout(vercelToken, name, apiURL, url)
     const checkoutDeploymentId = await deployVercelProject(vercelToken, name);
-    await verifyDeployment(vercelToken, name, checkoutDeploymentId)
+    await verifyDeployment(vercelToken, name, checkoutDeploymentId);
+    const { alias: checkoutAlias } = await getDeployment(vercelToken, checkoutDeploymentId);
+
+
+    const appDashboardURL = `https://${domain}/dashboard/apps/${appId}/app`
+    const checkoutURL = `https://${checkoutAlias[0]}`
+
+    const summary = `
+   Saleor Dashboard: ${chalk.blue(`https://${domain}/dashboard`)}
+ GraphQL Playground: ${chalk.blue(url)}
+Vercel checkout app: ${chalk.blue(checkoutAppURL)}
+    Vercel checkout: ${chalk.blue(checkoutURL)}
+
+Checkout App configuration page:
+${chalk.blue(appDashboardURL)}
+
+Update your react-storefront's environment variable
+${chalk.blue(`NEXT_PUBLIC_CHECKOUT_URL=${checkoutURL}`)}
+`
+
+    console.log(boxen(summary, {
+      padding: 1,
+      margin: 1,
+      borderStyle: 'round',
+      borderColor: "yellow",
+    }));
   }
 
   process.exit(0);
