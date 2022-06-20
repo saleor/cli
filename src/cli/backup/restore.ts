@@ -15,6 +15,11 @@ export const builder: CommandBuilder = (_) =>
     demandOption: false,
     desc: 'key of the snapshot',
   })
+  .option("skip-webhooks-update", {
+    type: 'boolean',
+    demandOption: false,
+    desc: 'skip webhooks update prompt',
+  })
 
 export const handler = async (argv: Arguments<Options>) => {
   const from = await getBackup(argv);
@@ -30,6 +35,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const { update } = await Enquirer.prompt<{ update: string }>({
     type: "confirm",
     name: 'update',
+    skip: !!argv.skipWebhooksUpdate,
     message: 'Would you like to update webhooks targetUrl',
   });
 
