@@ -14,6 +14,16 @@ import replace from "replace-in-file";
 import { fileURLToPath } from "url";
 import fs from "fs-extra";
 import fetch from "node-fetch";
+import path from "path";
+import replace from "replace-in-file";
+import { fileURLToPath } from "url";
+import { Arguments, CommandBuilder } from "yargs";
+
+import {
+  doSaleorAppInstall,
+  verifyIfSaleorAppRunning,
+  verifyIsSaleorAppDirectory,
+} from "../../lib/common.js";
 import { Config } from "../../lib/config.js";
 import {
   useEnvironment,
@@ -21,6 +31,11 @@ import {
   useToken,
 } from "../../middleware/index.js";
 import { API, GET } from "../../lib/index.js";
+import {
+  useEnvironment,
+  useOrganization,
+  useToken,
+} from "../../middleware/index.js";
 import { Options } from "../../types.js";
 import ora from "ora";
 
@@ -49,7 +64,6 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {
-
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const vendorDir = path.join(__dirname, "..", "..", "..", "vendor");
 
@@ -65,7 +79,6 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
   }
 
   const { TunnelServerSecret } = await Config.get();
-
 
   const { organization, environment, port: localPort } = argv;
 
@@ -95,24 +108,32 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
         "--secret",
         TunnelServerSecret,
       ],
-      { cwd: process.cwd(), stdio: 'ignore' }
+      { cwd: process.cwd(), stdio: "ignore" }
     );
 
     p.on("exit", () => {
-      console.log("Closing the tunnel...")
-    })
-
+      console.log("Closing the tunnel...");
+    });
 
     const saleorAppName = `    Saleor App Name: ${chalk.yellow(appName)}`;
-    const saleorAppURLMessage = `     Saleor App URL: ${chalk.blue(`https://${tunnelURL}`)}`;
-    const dashboaardMsg = `   Saleor Dashboard: ${chalk.blue(`${baseURL}/dashboard/`)}`;
+    const saleorAppURLMessage = `     Saleor App URL: ${chalk.blue(
+      `https://${tunnelURL}`
+    )}`;
+    const dashboaardMsg = `   Saleor Dashboard: ${chalk.blue(
+      `${baseURL}/dashboard/`
+    )}`;
     const gqlMsg = ` GraphQL Playground: ${chalk.blue(`${baseURL}/graphql/`)}`;
 
-    console.log(boxen(`${saleorAppName}\n${saleorAppURLMessage}\n\n${dashboaardMsg}\n${gqlMsg}`, {
-      padding: 1,
-      margin: 1,
-      borderColor: "yellow",
-    }));
+    console.log(
+      boxen(
+        `${saleorAppName}\n${saleorAppURLMessage}\n\n${dashboaardMsg}\n${gqlMsg}`,
+        {
+          padding: 1,
+          margin: 1,
+          borderColor: "yellow",
+        }
+      )
+    );
 
     replace.sync({
       files: ".env",
@@ -123,28 +144,39 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     argv.manifestURL = `https://${tunnelURL}/api/manifest`;
     argv.appName = appName;
 
-    const spinner = ora('Installing... \n').start();
+    const spinner = ora("Installing... \n").start();
     // TODO this should return App ID, now it returns an ID of a job installing the app
     await doSaleorAppInstall(argv);
     spinner.succeed();
 
     // Find the App ID
-    const { apps: { edges: apps } } = await fetchSaleorAppList(argv)
+    const {
+      apps: { edges: apps },
+    } = await fetchSaleorAppList(argv);
 
-    const byName = (name: string) => ({ node }: any) => name === node.name;
-    const { node: { id: app } } = apps.filter(byName(appName)).shift()
+    const byName =
+      (name: string) =>
+      ({ node }: any) =>
+        name === node.name;
+    const {
+      node: { id: app },
+    } = apps.filter(byName(appName)).shift();
 
-    console.log("Press CTRL-C to stop the tunnel and uninstall this Saleor App...");
+    console.log(
+      "Press CTRL-C to stop the tunnel and uninstall this Saleor App..."
+    );
     while (1) {
       const key = await getKeypress();
-      if (String(key) === '\u0003') {
-        process.stdout.write(`Uninstalling the Saleor App from your Dashboard...`);
+      if (String(key) === "\u0003") {
+        process.stdout.write(
+          `Uninstalling the Saleor App from your Dashboard...`
+        );
         argv.app = app;
 
-        await doSaleorAppDelete(argv)
-        p.kill('SIGINT')
+        await doSaleorAppDelete(argv);
+        p.kill("SIGINT");
 
-        console.log(` ${chalk.green('success')}`);
+        console.log(` ${chalk.green("success")}`);
         process.exit(0);
       }
     }

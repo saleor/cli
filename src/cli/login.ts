@@ -1,17 +1,17 @@
-import type { CommandBuilder } from "yargs";
 import { CliUx } from "@oclif/core";
-import { ServerApp } from "retes";
-import { GET } from "retes/route"
-import { Response } from "retes/response";
-import { nanoid } from 'nanoid';
-import crypto from 'crypto';
-
-import { delay } from "../lib/util.js";
+import crypto from "crypto";
+import EventEmitter from "events";
 import got from "got";
+import { nanoid } from "nanoid";
+import { ServerApp } from "retes";
+import { Response } from "retes/response";
+import { GET } from "retes/route";
+import type { CommandBuilder } from "yargs";
+
 import { Config, ConfigField } from "../lib/config.js";
-import EventEmitter from 'events'
-import { API, POST, getAmplifyConfig, getEnvironment } from "../lib/index.js";
 import { checkPort } from "../lib/detectPort.js";
+import { API, getAmplifyConfig, getEnvironment, POST } from "../lib/index.js";
+import { delay } from "../lib/util.js";
 
 const { ux: cli } = CliUx;
 
@@ -20,7 +20,7 @@ const RedirectURI = "http://localhost:3000/";
 export const command = "login";
 export const desc = "Log in to the Saleor Cloud";
 
-export const builder: CommandBuilder = (_) => _
+export const builder: CommandBuilder = (_) => _;
 
 export const handler = async () => {
   await doLogin();
@@ -36,8 +36,8 @@ export const doLogin = async () => {
     client_id: amplifyConfig.aws_user_pools_web_client_id,
     redirect_uri: RedirectURI,
     identity_provider: "COGNITO",
-    scope: amplifyConfig.oauth.scope.join(' ')
-  }
+    scope: amplifyConfig.oauth.scope.join(" "),
+  };
 
   const generatedState = nanoid();
   const emitter = new EventEmitter();
@@ -55,7 +55,7 @@ export const doLogin = async () => {
       const { state, code } = params;
 
       if (state !== generatedState) {
-        return Response.BadRequest("Wrong state")
+        return Response.BadRequest("Wrong state");
       }
 
       const Params = {
@@ -63,24 +63,30 @@ export const doLogin = async () => {
         code,
         client_id: amplifyConfig.aws_user_pools_web_client_id,
         redirect_uri: RedirectURI,
-      }
+      };
 
       try {
-        const { id_token, access_token }: any = await got.post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
-          form: Params,
-        }).json();
+        const { id_token, access_token }: any = await got
+          .post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
+            form: Params,
+          })
+          .json();
 
-        const { token }: any = await POST(API.Token, { token: `Bearer ${id_token}` });
+        const { token }: any = await POST(API.Token, {
+          token: `Bearer ${id_token}`,
+        });
 
         const environment = await getEnvironment();
         const user_session = crypto.randomUUID();
 
-        const secrets: Record<ConfigField, string> = await got.post(`https://id.saleor.live/verify`, {
-          json: {
-            token: access_token,
-            environment
-          }
-        }).json();
+        const secrets: Record<ConfigField, string> = await got
+          .post("https://id.saleor.live/verify", {
+            json: {
+              token: access_token,
+              environment,
+            },
+          })
+          .json();
 
         await Config.reset();
         await Config.set("token", `Token ${token}`);
@@ -93,15 +99,15 @@ export const doLogin = async () => {
       }
 
       // spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
-      emitter.emit('finish');
+      emitter.emit("finish");
 
       return Response.Redirect(amplifyConfig.oauth.redirectSignIn);
-    })
-  ])
+    }),
+  ]);
   await app.start(3000);
 
-  emitter.on('finish', async () => {
+  emitter.on("finish", async () => {
     await delay(1000);
     await app.stop();
   });
-}
+};

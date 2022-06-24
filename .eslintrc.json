@@ -18,9 +18,8 @@
     "import/first": "warn",
     "import/newline-after-import": "warn",
     "import/no-duplicates": "warn",
-    "import/no-unresolved": "warn",
+    "import/no-unresolved": "off",
     "no-unused-vars": "off",
-    "@typescript-eslint/no-unused-vars": ["error"],
     "@typescript-eslint/ban-types": "off",
     "no-console": "off",
     "no-continue": "off",
@@ -32,6 +31,21 @@
     "@typescript-eslint/no-non-null-assertion": "off",
     "no-restricted-imports": "off",
     "no-restricted-exports": "off",
-    "@typescript-eslint/ban-ts-comment": "off"
+    "@typescript-eslint/ban-ts-comment": "off",
+
+    // TODO
+    "camelcase": "warn",
+    "no-return-await": "warn",
+    "import/prefer-default-export": "warn",
+    "no-shadow": "warn",
+    "no-use-before-define": "warn",
+    "max-classes-per-file": "warn",
+    "no-param-reassign": "warn",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "no-plusplus": "warn",
+    "no-promise-executor-return": "warn",
+    "prefer-const": "warn",
+    "consistent-return": "warn",
+    "no-case-declarations": "warn"
   }
 }

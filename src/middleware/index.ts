@@ -3,19 +3,20 @@ import Debug from "debug";
 import enquirer from "enquirer";
 import got, { HTTPError } from "got";
 import { Arguments } from "yargs";
+
 import * as Configuration from "../config.js";
 import { Config } from "../lib/config.js";
 import { API, GET, getEnvironment } from "../lib/index.js";
 import {
   AuthError,
   createProject,
+  promptCompatibleVersion,
   promptDatabaseTemplate,
   promptEnvironment,
   promptOrganization,
   promptOrganizationBackup,
   promptProject,
   promptSaleorApp,
-  promptCompatibleVersion,
   promptWebhook,
 } from "../lib/util.js";
 import { CreatePromptResult, Options } from "../types.js";
@@ -37,12 +38,18 @@ export const useToken = async ({ token }: Options) => {
       opts = { ...opts, token };
     } else {
       console.error(chalk.red("\nYou are not logged in\n"));
-      console.error(chalk(
-        "If you have an account - login using",
-        chalk.bold.green("saleor login")));
-      console.error(chalk(
-        "If you don't have an account - register using",
-        chalk.bold.green("saleor register")));
+      console.error(
+        chalk(
+          "If you have an account - login using",
+          chalk.bold.green("saleor login")
+        )
+      );
+      console.error(
+        chalk(
+          "If you don't have an account - register using",
+          chalk.bold.green("saleor register")
+        )
+      );
 
       process.exit(1);
     }
@@ -157,7 +164,6 @@ mutation login($email: String!, $password: String!) {
 }
 `;
 
-
   if (!argv.email && !argv.password) {
     const { email } = await enquirer.prompt<{ email: string }>({
       type: "text",
@@ -230,12 +236,12 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
       got.post(Configuration.TelemetryDomain, {
         json: { command, environment, version, user_session },
         timeout: {
-          request: 2000
-        }
+          request: 2000,
+        },
       });
     } catch (error) {
       if (error instanceof HTTPError) {
-        console.error(`${chalk.yellow('Warning')} Telemetry is down `)
+        console.error(`${chalk.yellow("Warning")} Telemetry is down `);
       }
       // FIXME
     }
@@ -258,23 +264,27 @@ export const useGithub = async () => {
 
   if (!githubToken) {
     console.error(chalk.red("\nYou are not logged into Github\n"));
-    console.log(chalk("Run", chalk.bold.green("saleor github login"), "command to login"));
+    console.log(
+      chalk("Run", chalk.bold.green("saleor github login"), "command to login")
+    );
 
     process.exit(1);
   }
 
-  return {}
-}
+  return {};
+};
 
 export const useVercel = async () => {
   const { vercel_token: vercelToken } = await Config.get();
 
   if (!vercelToken) {
     console.error(chalk.red("\nYou are not logged into Vercel\n"));
-    console.log(chalk("Run", chalk.bold.green("saleor vercel login"), "command to login"));
+    console.log(
+      chalk("Run", chalk.bold.green("saleor vercel login"), "command to login")
+    );
 
     process.exit(1);
   }
 
-  return {}
-}
+  return {};
+};

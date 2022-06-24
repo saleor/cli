@@ -1,17 +1,17 @@
+import chalk from "chalk";
 import { spawn } from "child_process";
 import Enquirer from "enquirer";
-import got from "got";
 import fs from "fs-extra";
+import got from "got";
+import { print } from "graphql";
 
+import { AppDelete } from "../generated/graphql.js";
 import { AppInstall } from "../graphql/AppInstall.js";
+import { SaleorAppList } from "../graphql/SaleorAppList.js";
 import { Config } from "./config.js";
+import { isPortAvailable , isPortAvailable } from "./detectPort.js";
 import { API, GET } from "./index.js";
 import { NotSaleorAppDirectoryError, SaleorAppInstallError } from "./util.js";
-import chalk from "chalk";
-import { isPortAvailable } from "./detectPort.js";
-import { AppDelete } from "../generated/graphql.js";
-import { SaleorAppList } from "../graphql/SaleorAppList.js";
-import { print } from 'graphql'
 
 interface Manifest {
   name: string;
@@ -31,7 +31,8 @@ export const doSaleorAppDelete = async (argv: any) => {
           app: argv.app,
         },
       },
-    }).json();
+    })
+    .json();
 
   if (errors) {
     console.log(errors);

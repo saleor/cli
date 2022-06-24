@@ -6,7 +6,7 @@ import sanitize from "sanitize-filename";
 import fs from "fs-extra";
 import replace from "replace-in-file";
 import kebabCase from "lodash.kebabcase";
-import { simpleGit } from 'simple-git';
+import { simpleGit } from "simple-git";
 
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
@@ -73,7 +73,7 @@ APP_URL=
   });
 
   spinner.text = `Updating package.json...`;
-  await replace.replaceInFile ({
+  await replace.replaceInFile({
     files: "package.json",
     from: /"name": "saleor-app-template".*/g,
     to: `"name": "${kebabCase(target)}",`,
@@ -107,11 +107,11 @@ const dirExists = async (name: string): Promise<boolean> => {
 };
 
 export const setupGitRepository = async (spinner: Ora) => {
-  spinner.text = `Setting up the Git repository...`
+  spinner.text = `Setting up the Git repository...`;
   const git = simpleGit();
   await git.init();
-  await git.add('.')
-  await git.commit('Initial commit from Saleor CLI')
-}
+  await git.add(".");
+  await git.commit("Initial commit from Saleor CLI");
+};
 
 export const middlewares = [useToken, useOrganization, useEnvironment];
