@@ -82,7 +82,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     const { alias: checkoutAlias } = await getDeployment(vercelToken, checkoutDeploymentId);
 
 
-    const appDashboardURL = `https://${domain}/dashboard/apps/${appId}/app`
+    const appDashboardURL = encodeURIComponent(`https://${domain}/dashboard/apps/${appId}/app`)
     const checkoutURL = `https://${checkoutAlias[0]}`
 
     const summary = `
