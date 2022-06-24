@@ -37,12 +37,13 @@ export const useToken = async ({ token }: Options) => {
       opts = { ...opts, token };
     } else {
       console.error(chalk.red("\nYou are not logged in\n"));
-      console.error(
-        "If you have an account - login using " + chalk.green("saleor login")
-      );
-      console.error(
-        "If you don't have an account - register using " + chalk.green("saleor register")
-      );
+      console.error(chalk(
+        "If you have an account - login using",
+        chalk.bold.green("saleor login")));
+      console.error(chalk(
+        "If you don't have an account - register using",
+        chalk.bold.green("saleor register")));
+
       process.exit(1);
     }
   }
@@ -252,21 +253,27 @@ const checkBackup = async (argv: Options, chosenBackup: CreatePromptResult) => {
   return {};
 };
 
-export const useGitub = () => async () => {
+export const useGithub = async () => {
   const { github_token } = await Config.get();
 
   if (!github_token) {
-    throw new Error("\nYou are not logged into Github, use `saleor github login` command to login\n");
+    console.error(chalk.red("\nYou are not logged into Github\n"));
+    console.log(chalk("Run", chalk.bold.green("saleor github login"), "command to login"));
+
+    process.exit(1);
   }
 
   return {}
 }
 
-export const useVercel = () => async () => {
+export const useVercel = async () => {
   const { vercel_token } = await Config.get();
 
   if (!vercel_token) {
-    throw new Error("\nYou are not logged into Vercel, use `saleor vercel login` command to login\n");
+    console.error(chalk.red("\nYou are not logged into Vercel\n"));
+    console.log(chalk("Run", chalk.bold.green("saleor vercel login"), "command to login"));
+
+    process.exit(1);
   }
 
   return {}
