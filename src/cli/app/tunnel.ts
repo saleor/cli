@@ -76,10 +76,10 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     // spinner.succeed();
 
     const saleorAppURLMessage = `Your Saleor App URL: ${chalk.blue(`https://${tunnelURL}`)}`
-    const dashboaardMsg = `   Saleor Dashboard: ${chalk.blue(`${baseURL}/dashboard/apps/`)}`;
+    const dashboardMsg = `   Saleor Dashboard: ${chalk.blue(`${baseURL}/dashboard/apps/`)}`;
     const gqlMsg = ` GraphQL Playground: ${chalk.blue(`${baseURL}/graphql/`)}`;
 
-    console.log(boxen(`${saleorAppURLMessage}\n\n${dashboaardMsg}\n${gqlMsg}`, {
+    console.log(boxen(`${saleorAppURLMessage}\n\n${dashboardMsg}\n${gqlMsg}`, {
       padding: 1,
       margin: 1,
       borderColor: "yellow",
