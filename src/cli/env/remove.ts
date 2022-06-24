@@ -13,21 +13,28 @@ export const builder: CommandBuilder = (_) =>
   _.positional("key", {
     type: "string",
     demandOption: false,
-    desc: 'key of the environment'
-  })
-    .option("force", {
-      type: 'boolean',
-      desc: 'skip confrimation prompt',
-    });
+    desc: "key of the environment",
+  }).option("force", {
+    type: "boolean",
+    desc: "skip confrimation prompt",
+  });
 
 export const handler = async (argv: Arguments<Options>) => {
   const { environment } = argv;
-  const env = await GET(API.Environment, argv) as any;
-  const proceed = await confirmRemoval(argv, `environment ${env.name} - ${env.key}`);
+  const env = (await GET(API.Environment, argv)) as any;
+  const proceed = await confirmRemoval(
+    argv,
+    `environment ${env.name} - ${env.key}`
+  );
 
   if (proceed && environment) {
-    const result = await DELETE(API.Environment, argv) as any;
-    await waitForTask(argv, result.task_id, `Deleting environment: ${environment}`, 'Yay! Environment deleted!');
+    const result = (await DELETE(API.Environment, argv)) as any;
+    await waitForTask(
+      argv,
+      result.task_id,
+      `Deleting environment: ${environment}`,
+      "Yay! Environment deleted!"
+    );
     await removeCurrentEnvironment(environment);
   }
 };
@@ -37,12 +44,12 @@ const removeCurrentEnvironment = async (environment: string) => {
 
   if (environment === current) {
     await Config.remove("environment_id");
-    console.log('Default environment unset. Use ',
-      chalk.bold('saleor environment switch'),
-      ' to choose default one')
+    console.log(
+      "Default environment unset. Use ",
+      chalk.bold("saleor environment switch"),
+      " to choose default one"
+    );
   }
-}
+};
 
-export const middlewares = [
-  useEnvironment
-]
+export const middlewares = [useEnvironment];

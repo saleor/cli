@@ -9,18 +9,23 @@ export const builder: CommandBuilder = (_) =>
   _.positional("name", {
     type: "string",
     demandOption: false,
-    desc: 'name for the new backup'
+    desc: "name for the new backup",
   });
 
 export const handler = async (argv: Arguments<any>) => {
   const { name, env } = argv;
 
-  const result = await POST(API.Backup, argv, {
+  const result = (await POST(API.Backup, argv, {
     json: {
       name: name,
-    }
-  }) as any;
+    },
+  })) as any;
 
-  await waitForTask(argv, result.task_id, `Creating backup ${name}`, 'Yay! Backup created!')
-  showResult(result)
+  await waitForTask(
+    argv,
+    result.task_id,
+    `Creating backup ${name}`,
+    "Yay! Backup created!"
+  );
+  showResult(result);
 };

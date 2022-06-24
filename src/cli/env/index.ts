@@ -19,8 +19,8 @@ export default function (_: any) {
     upgrade,
     cleardb,
     populatedb,
-    promote
+    promote,
   ])
-  .middleware([useToken, useOrganization])
-  .demandCommand(1, "You need at least one command before moving on");
+    .middleware([useToken, useOrganization])
+    .demandCommand(1, "You need at least one command before moving on");
 }

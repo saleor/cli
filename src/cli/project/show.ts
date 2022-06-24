@@ -16,6 +16,4 @@ export const handler = async (argv: Arguments<Options>) => {
   showResult(result, argv);
 };
 
-export const middlewares = [
-  interactiveProject
-]
+export const middlewares = [interactiveProject];

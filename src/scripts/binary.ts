@@ -1,40 +1,39 @@
 #!/usr/bin/env node
 
-import { promisify } from 'util';
-import path from 'path';
-import fs from 'fs-extra';
-import { exec as execRegular } from 'child_process';
+import { promisify } from "util";
+import path from "path";
+import fs from "fs-extra";
+import { exec as execRegular } from "child_process";
 import stream from "stream";
 import got from "got";
 
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const exec = promisify(execRegular);
 const pipeline = promisify(stream.pipeline);
 
-const SupportedArch = [
-  'darwin-arm64', 
-  'darwin-x64',
-  'linux-x64',
-]
+const SupportedArch = ["darwin-arm64", "darwin-x64", "linux-x64"];
 
 async function install() {
   const target = `${process.platform}-${process.arch}`;
 
-  if (! SupportedArch.includes(target)) {
+  if (!SupportedArch.includes(target)) {
     console.error(`${target} - this architecture is not supported`);
     return;
   }
 
-  const binaryDir = path.join(__dirname, '..', '..', 'vendor');
+  const binaryDir = path.join(__dirname, "..", "..", "vendor");
   await fs.ensureDir(binaryDir);
 
   const url = `https://binary.saleor.live/tunnel-${process.platform}-${process.arch}`;
 
   const downloadStream = got.stream(url);
-  const fileWriterStream = fs.createWriteStream(path.join(binaryDir, "tunnel"), { mode: 0o755 });
+  const fileWriterStream = fs.createWriteStream(
+    path.join(binaryDir, "tunnel"),
+    { mode: 0o755 }
+  );
 
   // FIXME progress bar not working
   // const bar = new progress.SingleBar({}, progress.Presets.shades_classic);
@@ -51,9 +50,9 @@ async function install() {
     console.error(`Something went wrong. ${error}`);
   }
 
-  const { stdout } = await exec('./vendor/tunnel --version')
+  const { stdout } = await exec("./vendor/tunnel --version");
   if (stdout.length > 0) {
-    console.log('OK');
+    console.log("OK");
   }
 }
 
@@ -70,6 +69,6 @@ const main = async () => {
 
     await actions[cmd]();
   }
-}
+};
 
-main()
+main();

@@ -12,15 +12,13 @@ export const builder: CommandBuilder = (_) =>
   _.positional("key", {
     type: "string",
     demandOption: false,
-    desc: 'key of the environment'
+    desc: "key of the environment",
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  const result = await GET(API.Environment, argv) as any;
+  const result = (await GET(API.Environment, argv)) as any;
 
   showResult(result, argv);
 };
 
-export const middlewares = [
-  useEnvironment
-]
+export const middlewares = [useEnvironment];

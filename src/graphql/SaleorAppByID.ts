@@ -1,22 +1,22 @@
-export const SaleorAppByID = /* GraphQL */`
-query AppSingle($appID: ID!) {
-  app(id: $appID) {
-    id
-    name
-    isActive
-    type
-    webhooks {
+export const SaleorAppByID = /* GraphQL */ `
+  query AppSingle($appID: ID!) {
+    app(id: $appID) {
       id
       name
       isActive
-      targetUrl
-      syncEvents {
-        eventType
-      }
-      asyncEvents {
-        eventType
+      type
+      webhooks {
+        id
+        name
+        isActive
+        targetUrl
+        syncEvents {
+          eventType
+        }
+        asyncEvents {
+          eventType
+        }
       }
     }
   }
-}
-`
+`;

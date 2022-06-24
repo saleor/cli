@@ -2,14 +2,14 @@ import { CommandBuilder, Arguments } from "yargs";
 import Enquirer from "enquirer";
 import { validateEmail } from "../lib/util.js";
 import chalk from "chalk";
-import {Amplify, Auth} from "aws-amplify";
+import { Amplify, Auth } from "aws-amplify";
 import { CliUx } from "@oclif/core";
-import { doLogin } from "./login.js"
-import { getAmplifyConfig } from "../lib/index.js"
+import { doLogin } from "./login.js";
+import { getAmplifyConfig } from "../lib/index.js";
 
 const { ux: cli } = CliUx;
 interface Options {
-  fromCli: boolean
+  fromCli: boolean;
 }
 
 export const command = "register";
@@ -17,72 +17,78 @@ export const desc = "Create Saleor account";
 
 export const builder: CommandBuilder = (_) =>
   _.option("from-cli", {
-    type: 'boolean',
+    type: "boolean",
     default: false,
-    desc: 'specify sign up via CLI',
-  })
+    desc: "specify sign up via CLI",
+  });
 
-export const handler = async (argv: Arguments ) => {
-  await doRegister(argv.fromCli as boolean)
+export const handler = async (argv: Arguments) => {
+  await doRegister(argv.fromCli as boolean);
 };
 
 export const doRegister = async (fromCli: boolean | undefined) => {
   if (!fromCli) {
-    cli.open('https://cloud.saleor.io/register');
+    cli.open("https://cloud.saleor.io/register");
     process.exit(0);
   }
 
-  const json = await Enquirer.prompt<{email: string,
-                                      firstName: string,
-                                      lastName: string,
-                                      password: string}>([
+  const json = await Enquirer.prompt<{
+    email: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+  }>([
     {
-      type: 'input',
-      name: 'email',
+      type: "input",
+      name: "email",
       required: true,
-      message: 'Email address',
-      validate: (value) => validateEmail(value)
+      message: "Email address",
+      validate: (value) => validateEmail(value),
     },
     {
-      type: 'input',
-      name: 'firstName',
+      type: "input",
+      name: "firstName",
       required: true,
-      message: 'First name'
+      message: "First name",
     },
     {
-      type: 'input',
-      name: 'lastName',
+      type: "input",
+      name: "lastName",
       required: true,
-      message: 'Last name'
+      message: "Last name",
     },
     {
-      type: 'password',
-      name: 'password',
-      message: 'Password',
-      required: true
-    }
+      type: "password",
+      name: "password",
+      message: "Password",
+      required: true,
+    },
   ]);
 
-  const confirms = await Enquirer.prompt<{confirm:string, terms: boolean}>([{
-    type: 'password',
-    name: 'confirm',
-    message: 'Confirm password',
-    validate: (value) => {
-      if (value !== json.password) {
-        return chalk.red(`Passwords must match`)
-      }
-
-      return true
-    }},
+  const confirms = await Enquirer.prompt<{ confirm: string; terms: boolean }>([
     {
-      type: 'confirm',
-      name: 'terms',
-      required: true,
-      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
-      message: 'I agree to Saleor Terms and Conditions - https://saleor.io/legal/terms'
-    }])
+      type: "password",
+      name: "confirm",
+      message: "Confirm password",
+      validate: (value) => {
+        if (value !== json.password) {
+          return chalk.red(`Passwords must match`);
+        }
 
-  if (!confirms.terms) return
+        return true;
+      },
+    },
+    {
+      type: "confirm",
+      name: "terms",
+      required: true,
+      format: (value) => chalk.cyan(value ? "yes" : "no"),
+      message:
+        "I agree to Saleor Terms and Conditions - https://saleor.io/legal/terms",
+    },
+  ]);
+
+  if (!confirms.terms) return;
 
   const amplifyConfig = await getAmplifyConfig();
   Amplify.configure(amplifyConfig);
@@ -92,36 +98,40 @@ export const doRegister = async (fromCli: boolean | undefined) => {
       username: json.email.toLowerCase(),
       password: json.password,
       attributes: {
-          email: json.email.toLowerCase(),
-          given_name: json.firstName,
-          family_name: json.lastName
-      }
-    })
+        email: json.email.toLowerCase(),
+        given_name: json.firstName,
+        family_name: json.lastName,
+      },
+    });
   } catch (err) {
-    console.log(chalk.red((err as any)?.message))
-    process.exit(1)
+    console.log(chalk.red((err as any)?.message));
+    process.exit(1);
   }
 
-  console.log('\nSaleor Cloud account created. \nWe\’ve sent you an email with verification code. Please provide it:\n')
+  console.log(
+    "\nSaleor Cloud account created. \nWe’ve sent you an email with verification code. Please provide it:\n"
+  );
 
-  await Enquirer.prompt<{code: string}> ({
-    type: 'input',
-    name: 'code',
-    message: 'Verfication code',
+  await Enquirer.prompt<{ code: string }>({
+    type: "input",
+    name: "code",
+    message: "Verfication code",
     required: true,
-    validate: (value) => validateCode(json.email, value)
-  })
+    validate: (value) => validateCode(json.email, value),
+  });
 
-  console.log('\nSaleor Cloud account confirmed. You can now sign in and create organization\n')
+  console.log(
+    "\nSaleor Cloud account confirmed. You can now sign in and create organization\n"
+  );
 
   await doLogin();
-}
+};
 
 const validateCode = async (email: string, code: string): Promise<boolean> => {
   try {
     await Auth.confirmSignUp(email, code);
-    return true
+    return true;
   } catch (err) {
-    return false
+    return false;
   }
-}
+};
