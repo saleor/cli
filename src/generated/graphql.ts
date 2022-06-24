@@ -60,6 +60,19 @@ export const GetWebhookSyncEventEnum = gql`
   }
 }
     `;
+export const AppDelete = gql`
+    mutation AppDelete($app: ID!) {
+  appDelete(id: $app) {
+    app {
+      id
+    }
+    errors {
+      field
+      message
+    }
+  }
+}
+    `;
 export const ProductUpdate = gql`
     mutation ProductUpdate($id: ID!, $input: ProductInput!) {
   productUpdate(id: $id, input: $input) {
