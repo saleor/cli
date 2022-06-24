@@ -130,9 +130,12 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# Editors
+.vscode/
+.idea/
+
 # other
 build/
-.vscode/
 binaries/
 .saleor
 token.txt
