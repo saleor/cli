@@ -318,7 +318,6 @@ export const deploy = async ({ name, url }: { name: string, url: string }) => {
   const queryParams = new URLSearchParams(params)
 
   console.log('');
-  console.log(`You will be redirected to Vercel's deployment page to finish the process`);
   console.log(`Use the following ${chalk.underline('Environment Variables')} for configuration:`);
 
   console.log(`

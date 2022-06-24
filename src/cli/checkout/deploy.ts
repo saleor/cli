@@ -109,12 +109,12 @@ ${chalk.blue(`NEXT_PUBLIC_CHECKOUT_URL=${checkoutURL}`)}
   process.exit(0);
 };
 
-const createFork = async () => {
-  const { github_token } = await Config.get();
+export const createFork = async (repoName: string) => {
+  const { github_token: githubToken } = await Config.get();
 
-  const { id, full_name: fullName } = await got.post(`https://api.github.com/repos/saleor/saleor-checkout/forks`, {
+  const { id, full_name: fullName } = await got.post(`https://api.github.com/repos/saleor/${repoName}/forks`, {
     headers: {
-      Authorization: github_token,
+      Authorization: githubToken,
     }
   }).json()
 
@@ -144,7 +144,7 @@ const createCheckout = async (
   url: string
 ) => {
   const spinner = ora(`Creating ${name}...`).start();
-  const { fullName } = await createFork();
+  const { fullName } = await createFork('saleor-checkout');
 
   const response = await got.post(`https://api.vercel.com/v8/projects`, {
     headers: {
@@ -218,7 +218,7 @@ const createCheckoutApp = async (
   name: string,
   url: string) => {
   const spinner = ora(`Creating ${name}...`).start();
-  const { fullName } = await createFork();
+  const { fullName } = await createFork('saleor-checkout');
 
   const secret = crypto.randomBytes(256).toString('hex')
 
@@ -297,7 +297,7 @@ const getAppId = async (url: string) => {
   return id
 }
 
-const getDeployment = async (vercelToken: string, deploymentId: string): Promise<any> => {
+export const getDeployment = async (vercelToken: string, deploymentId: string): Promise<any> => {
   return await got.get(`https://api.vercel.com/v13/deployments/${deploymentId}`, {
     headers: {
       Authorization: vercelToken,
@@ -305,7 +305,7 @@ const getDeployment = async (vercelToken: string, deploymentId: string): Promise
   }).json();
 }
 
-const verifyDeployment = async (vercelToken: string, name: string, deploymentId: string, msg = `Deploying`) => {
+export const verifyDeployment = async (vercelToken: string, name: string, deploymentId: string, msg = `Deploying`) => {
   const spinner = ora(`${msg} ${name}...`).start();
   let { readyState } = await getDeployment(vercelToken, deploymentId);
   deploymentFailed(readyState);
@@ -335,16 +335,16 @@ const deploymentFailed = (readyState: string) => {
   }
 }
 
-const deployVercelProject = async (vercelToken: string, name: string) => {
+export const deployVercelProject = async (vercelToken: string, name: string, repoId = 450152242) => {
   const { id } = await got.post(`https://api.vercel.com/v13/deployments`, {
     headers: {
       Authorization: vercelToken,
     },
     json: {
-      "gitSource": {
-        "type": "github",
-        "ref": "main",
-        "repoId": 450152242 // saleor
+      gitSource: {
+        type: "github",
+        ref: "main",
+        repoId
       },
       name: name,
       target: "production",
