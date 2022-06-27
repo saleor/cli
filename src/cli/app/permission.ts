@@ -52,13 +52,18 @@ export const handler = async (argv: Arguments<Options>) => {
     }
   }).json()
 
-
   const choices2 = enumValues.map((node: any) => ({ name: node.name, value: node.name, hint: node.description }))
+
+  const { node: { permissions: currentPermissions } } = apps.filter(({ node }: any) => node.id === app)[0];
+  const choices2Names = choices2.map(({ name }: any) => name);
+  const initial = currentPermissions.map((permission: any) => choices2Names.indexOf(permission.code));
+
   const { permissions } = await Enquirer.prompt<{ permissions: string[] }>({
     type: 'multiselect',
     name: 'permissions',
     muliple: true,
     choices: choices2,
+    initial,
     message: 'Select one or more permissions (start typing) ',
   });
 
