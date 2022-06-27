@@ -34,6 +34,13 @@ export class NotSaleorAppDirectoryError extends Error {
   }
 }
 
+export class SaleorAppInstallError extends Error {
+  constructor(message = "") {
+    super(message);
+    this.name = "SaleorAppInstallError";
+  }
+}
+
 // Higher-Order Creator for Prompts
 const createPrompt = async (name: string, message: string, fetcher: any, extractor: any, allowCreation = false) => {
   const collection = await fetcher();

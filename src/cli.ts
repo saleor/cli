@@ -32,7 +32,7 @@ import * as register from './cli/register.js';
 import * as trigger from './cli/trigger.js';
 import { header } from './lib/images.js';
 import { useTelemetry } from './middleware/index.js';
-import { AuthError, NotSaleorAppDirectoryError } from './lib/util.js';
+import { AuthError, NotSaleorAppDirectoryError, SaleorAppInstallError } from './lib/util.js';
 import { API, GET, getEnvironment } from './lib/index.js';
 import { Config } from './lib/config.js';
 
@@ -110,6 +110,8 @@ const parser = yargs(hideBin(process.argv))
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
     } else if (error instanceof NotSaleorAppDirectoryError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
+    } else if (error instanceof SaleorAppInstallError) {
+      console.log(`\n ${chalk.red('ERROR')} Cannot install this Saleor App. Check your connection and try again.`);
     } else if (error instanceof TimeoutError) {
       // Don't display `Timeout` errors to user
     } else if (error) {
