@@ -18,6 +18,10 @@ query SaleorAppList {
         webhooks {
           id
         }
+        permissions {
+          code
+          name
+        }
       }
     }
   }
