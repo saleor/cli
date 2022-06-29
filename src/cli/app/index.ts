@@ -6,6 +6,7 @@ import * as generate from "./generate.js";
 import * as token from "./token.js";
 import * as permission from "./permission.js";
 import * as publish from "./publish.js";
+import * as deploy from "./deploy.js";
 
 export default function (_: any) {
   _.command([
@@ -15,6 +16,7 @@ export default function (_: any) {
     tunnel,
     token,
     permission,
+    deploy,
 
     // no auth needed
     generate,

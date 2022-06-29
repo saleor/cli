@@ -6,6 +6,7 @@ import sanitize from "sanitize-filename";
 import fs from "fs-extra";
 import replace from "replace-in-file";
 import kebabCase from "lodash.kebabcase";
+import { simpleGit } from 'simple-git';
 
 import { API, GET } from "../../lib/index.js";
 import { StoreCreate } from "../../types.js";
@@ -77,6 +78,12 @@ APP_URL=
     from: /"name": "saleor-app-template".*/g,
     to: `"name": "${kebabCase(target)}",`,
   });
+
+  spinner.text = `Setting up the Git repository...`
+  const git = simpleGit();
+  await git.init();
+  await git.add('.')
+  await git.commit('Initial commit from Saleor CLI')
 
   spinner.text = "Installing dependencies...";
   await run("pnpm", ["i", "--ignore-scripts"], { cwd: process.cwd() });
