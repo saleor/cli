@@ -31,11 +31,11 @@ export const useToken = async ({ token }: Options) => {
   if (!token) {
     const config = await Config.get();
     debug("useDefault", config);
-    const { token } = config;
+    const { token: configToken } = config;
 
-    if (token) {
+    if (configToken) {
       debug("token read from file");
-      opts = { ...opts, token };
+      opts = { ...opts, token: configToken };
     } else {
       console.error(chalk.red("\nYou are not logged in\n"));
       console.error(
@@ -64,16 +64,16 @@ export const useOrganization = async ({ token, organization }: Options) => {
   if (!organization) {
     const config = await Config.get();
     debug("useDefault", config);
-    const { organization_slug } = config;
+    const { organization_slug: organizationSlug } = config;
 
-    if (organization_slug) {
+    if (organizationSlug) {
       debug("org read from file");
-      opts = { ...opts, ...{ organization: organization_slug } };
+      opts = { ...opts, ...{ organization: organizationSlug } };
     } else {
-      const organization = await promptOrganization(opts);
-      await Config.set("organization_slug", organization.value);
-      await Config.set("organization_name", organization.name);
-      opts = { ...opts, ...{ organization: organization.value } };
+      const org = await promptOrganization(opts);
+      await Config.set("organization_slug", org.value);
+      await Config.set("organization_name", org.name);
+      opts = { ...opts, ...{ organization: org.value } };
     }
   }
 
@@ -96,14 +96,14 @@ export const useEnvironment = async ({
   if (!environment) {
     const config = await Config.get();
     debug("useDefault", config);
-    const { environment_id } = config;
+    const { environment_id: environmentId } = config;
 
-    if (environment_id) {
+    if (environmentId) {
       debug("env read from file");
-      opts = { ...opts, ...{ environment: environment_id } };
+      opts = { ...opts, ...{ environment: environmentId } };
     } else {
-      const environment = await promptEnvironment(opts);
-      opts = { ...opts, ...{ environment: environment.value } };
+      const env = await promptEnvironment(opts);
+      opts = { ...opts, ...{ environment: env.value } };
     }
   }
 
@@ -120,8 +120,8 @@ export const interactiveProject = async (argv: Options) => {
   if (!argv.project) {
     const project = await promptProject(argv);
     if (project.value === undefined) {
-      const project = await createProject(argv);
-      return { project: project.value };
+      const newProject = await createProject(argv);
+      return { project: newProject.value };
     }
     return { project: project.value };
   }
@@ -225,7 +225,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
   const isTelemetryEnabled = telemetry === undefined;
 
   const environment = await getEnvironment();
-  const { user_session } = await Config.get();
+  const { user_session: userSession } = await Config.get();
 
   debug("is telemetry enabled", isTelemetryEnabled);
 
@@ -234,7 +234,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
 
     try {
       got.post(Configuration.TelemetryDomain, {
-        json: { command, environment, version, user_session },
+        json: { command, environment, version, user_session: userSession },
         timeout: {
           request: 2000,
         },

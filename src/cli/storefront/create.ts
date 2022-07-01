@@ -1,5 +1,7 @@
 import chalk from "chalk";
+import detectPort from "detect-port";
 import { access } from "fs/promises";
+import kebabCase from "lodash.kebabcase";
 import { customAlphabet } from "nanoid";
 import ora from "ora";
 import replace from "replace-in-file";
@@ -8,9 +10,16 @@ import { Arguments, CommandBuilder } from "yargs";
 
 import { run } from "../../lib/common.js";
 import { downloadFromGitHub } from "../../lib/download.js";
+import { API, GET, getEnvironment, POST } from "../../lib/index.js";
+import {
+  capitalize,
+  checkPnpmPresence,
+  getSortedServices,
+} from "../../lib/util.js";
+import { useEnvironment } from "../../middleware/index.js";
+import { StoreCreate } from "../../types.js";
 import { setupGitRepository } from "../app/create.js";
-import detectPort from "detect-port";
-import kebabCase from "lodash.kebabcase";
+import { createEnvironment } from "../env/create.js";
 
 export const command = "create [name]";
 export const desc = "Boostrap example [name]";
@@ -35,23 +44,29 @@ export const builder: CommandBuilder = (_) =>
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   if (argv.environment) {
-    return await createStorefront({
+    await createStorefront({
       ...argv,
       ...{ environment: argv.environment },
     });
+
+    return;
   }
 
   if (argv.demo) {
     const project = await createProject(argv);
     const environment = await prepareEnvironment(argv, project);
-    return await createStorefront({
+    await createStorefront({
       ...argv,
       ...{ environment: environment.key },
     });
+
+    return;
   }
 
   const _argv = await useEnvironment(argv);
   await createStorefront({ ...argv, ..._argv });
+
+  
 };
 
 const createProject = async (argv: Arguments<StoreCreate>) => {
@@ -95,7 +110,9 @@ const prepareEnvironment = async (
   const saleorEnv = await getEnvironment();
   const service =
     saleorEnv === "staging"
-      ? services.filter(({ service_type }) => service_type === "SANDBOX")[0]
+      ? services.filter(
+          ({ service_type: serviceType }) => serviceType === "SANDBOX"
+        )[0]
       : services[0];
 
   const name = `${project.slug}-${nanoid(8).toLocaleLowerCase()}`;
@@ -170,7 +187,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   const spinner = ora("Downloading...").start();
   const target = await getFolderName(sanitize(argv.name));
-  const file = await downloadFromGitHub("saleor/react-storefront", target);
+  await downloadFromGitHub("saleor/react-storefront", target);
 
   process.chdir(target);
   spinner.text = "Creating .env...";

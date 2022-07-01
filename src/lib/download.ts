@@ -6,6 +6,7 @@ import { promisify } from "util";
 
 const pipeline = promisify(stream.pipeline);
 
+/* eslint-disable import/prefer-default-export */
 export const downloadFromGitHub = async (repo: string, dest: string) => {
   const url = `https://github.com/${repo}/archive/master.tar.gz`;
   const downloadStream = got.stream(url);

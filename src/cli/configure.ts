@@ -1,8 +1,6 @@
 import { CliUx } from "@oclif/core";
-import _ from "chalk";
 import chalk from "chalk";
 import Enquirer from "enquirer";
-import { HTTPError } from "got";
 import type { Arguments, CommandBuilder } from "yargs";
 
 import { Config } from "../lib/config.js";
@@ -29,11 +27,11 @@ export const handler = async (argv: Arguments<Options>) => {
   const legitToken = await configure(token);
 
   console.log(`
-Saleor Telemetry is ${_.underline(
+Saleor Telemetry is ${chalk.underline(
     "completely anonymous and optional"
   )} information about general usage.
 You may opt-out at any time (check 'saleor telemetry').
-Learn more: ${_.gray("https://saleor.io/")}${_.blueBright("telemetry")}
+Learn more: ${chalk.gray("https://saleor.io/")}${chalk.blueBright("telemetry")}
   `);
 
   if (force) {
@@ -57,7 +55,7 @@ Learn more: ${_.gray("https://saleor.io/")}${_.blueBright("telemetry")}
 
 const validateToken = async (token: string) => {
   const user = (await GET(API.User, { token: `Token ${token}` })) as any;
-  console.log(`${_.green("Success")}. Logged as ${user.email}\n`);
+  console.log(`${chalk.green("Success")}. Logged as ${user.email}\n`);
 };
 
 const chooseOrganization = async (token: string | undefined) => {
@@ -81,11 +79,11 @@ const chooseOrganization = async (token: string | undefined) => {
 
 const chooseEnv = async (
   token: string | undefined,
-  organization_slug: string
+  organizationSlug: string
 ) => {
   const envs = (await GET(API.Environment, {
     token,
-    organization: organization_slug,
+    organization: organizationSlug,
   })) as any[];
 
   if (envs.length) {
@@ -100,28 +98,20 @@ const chooseEnv = async (
     if (envSetup) {
       const env = await promptEnvironment({
         token,
-        organization: organization_slug,
+        organization: organizationSlug,
       });
       await Config.set("environment_id", env.value);
     }
   }
 };
 
-export const configure = async (token: string | undefined) => {
+export const configure = async (providedToken: string | undefined) => {
+  let token = providedToken;
   while (!token) token = await cli.prompt("Access Token", { type: "mask" });
 
-  try {
-    await validateToken(token);
-    Config.reset();
-    const header = `Token ${token}`;
-    await Config.set("token", header);
-    return header;
-  } catch (error) {
-    // FIXME make it more explicit
-    if (error instanceof HTTPError) {
-      console.log(error.message);
-    } else {
-      console.log(error);
-    }
-  }
+  await validateToken(token);
+  Config.reset();
+  const header = `Token ${token}`;
+  await Config.set("token", header);
+  return header;
 };

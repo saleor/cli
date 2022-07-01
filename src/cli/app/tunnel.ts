@@ -1,6 +1,14 @@
-import { Arguments, CommandBuilder } from "yargs";
+import boxen from "boxen";
+import chalk from "chalk";
 import { spawn } from "child_process";
+import fs from "fs-extra";
+import fetch from "node-fetch";
+import ora from "ora";
 import path from "path";
+import replace from "replace-in-file";
+import { fileURLToPath } from "url";
+import { Arguments, CommandBuilder } from "yargs";
+
 import {
   doSaleorAppDelete,
   doSaleorAppInstall,
@@ -8,28 +16,7 @@ import {
   verifyIfSaleorAppRunning,
   verifyIsSaleorAppDirectory,
 } from "../../lib/common.js";
-import boxen from "boxen";
-import chalk from "chalk";
-import replace from "replace-in-file";
-import { fileURLToPath } from "url";
-import fs from "fs-extra";
-import fetch from "node-fetch";
-import path from "path";
-import replace from "replace-in-file";
-import { fileURLToPath } from "url";
-import { Arguments, CommandBuilder } from "yargs";
-
-import {
-  doSaleorAppInstall,
-  verifyIfSaleorAppRunning,
-  verifyIsSaleorAppDirectory,
-} from "../../lib/common.js";
 import { Config } from "../../lib/config.js";
-import {
-  useEnvironment,
-  useOrganization,
-  useToken,
-} from "../../middleware/index.js";
 import { API, GET } from "../../lib/index.js";
 import {
   useEnvironment,
@@ -37,14 +24,13 @@ import {
   useToken,
 } from "../../middleware/index.js";
 import { Options } from "../../types.js";
-import ora from "ora";
 
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1) + min);
 
 async function getKeypress() {
   return new Promise((resolve) => {
-    const stdin = process.stdin;
+    const {stdin} = process;
     stdin.setRawMode(true); // so get each keypress
     stdin.resume(); // resume stdin in the parent process
     stdin.once("data", onData); // like on but removes listener also
@@ -75,7 +61,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
       path.join(process.cwd(), "package.json"),
       "utf-8"
     );
-    appName = JSON.parse(content)["name"];
+    appName = JSON.parse(content).name;
   }
 
   const { TunnelServerSecret } = await Config.get();
@@ -141,18 +127,19 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
       to: `APP_URL=https://${tunnelURL}`,
     });
 
-    argv.manifestURL = `https://${tunnelURL}/api/manifest`;
-    argv.appName = appName;
+    const _argv = argv;
+    _argv.manifestURL = `https://${tunnelURL}/api/manifest`;
+    _argv.appName = appName;
 
     const spinner = ora("Installing... \n").start();
     // TODO this should return App ID, now it returns an ID of a job installing the app
-    await doSaleorAppInstall(argv);
+    await doSaleorAppInstall(_argv);
     spinner.succeed();
 
     // Find the App ID
     const {
       apps: { edges: apps },
-    } = await fetchSaleorAppList(argv);
+    } = await fetchSaleorAppList(_argv);
 
     const byName =
       (name: string) =>
@@ -169,11 +156,11 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
       const key = await getKeypress();
       if (String(key) === "\u0003") {
         process.stdout.write(
-          `Uninstalling the Saleor App from your Dashboard...`
+          "Uninstalling the Saleor App from your Dashboard..."
         );
-        argv.app = app;
+        _argv.app = app;
 
-        await doSaleorAppDelete(argv);
+        await doSaleorAppDelete(_argv);
         p.kill("SIGINT");
 
         console.log(` ${chalk.green("success")}`);

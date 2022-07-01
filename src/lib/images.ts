@@ -3,6 +3,7 @@ import chalk from "chalk";
 const primaryColor = chalk.blue;
 const secondaryColor = chalk.blue;
 
+/* eslint-disable import/prefer-default-export */
 export const header = (version: string) => {
   console.log(`
                                                ${primaryColor(
@@ -10,7 +11,7 @@ export const header = (version: string) => {
                                                )}
                                             ${primaryColor(
                                               "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"
-                                            )} 
+                                            )}
                 ${secondaryColor(
                   "▄█████████████████████████████████████████▀"
                 )}${primaryColor("░░░░░░░░░░░░░░░░")}
@@ -28,6 +29,6 @@ export const header = (version: string) => {
   )}
  ${secondaryColor(
    "▄█████████████████████████████████████████▀"
- )}         Saleor Commerce CLI v${version} 
+ )}         Saleor Commerce CLI v${version}
 `);
 };

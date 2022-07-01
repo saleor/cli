@@ -27,16 +27,14 @@ export type ConfigField =
 
 type ConfigProps = Record<ConfigField, string>;
 
-const isEmpty = (object: any) => Object.keys(object).length === 0;
-
 const set = async (field: ConfigField, value: string) => {
   await fs.ensureFile(DefaultConfigFile);
   const content = await fs.readJSON(DefaultConfigFile, { throws: false });
 
-  const new_content = { ...content, [field]: value };
-  await fs.outputJSON(DefaultConfigFile, new_content);
+  const newContent = { ...content, [field]: value };
+  await fs.outputJSON(DefaultConfigFile, newContent);
 
-  return new_content;
+  return newContent;
 };
 
 const remove = async (field: ConfigField) => {

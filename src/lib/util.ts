@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import chalk from "chalk";
 import { format } from "date-fns";
 import { emphasize } from "emphasize";
@@ -13,7 +14,7 @@ import { Options, ProjectCreate } from "../types.js";
 import { Config } from "./config.js";
 
 export const delay = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+  new Promise((resolve) => setTimeout(resolve, ms)); // eslint-disable-line no-promise-executor-return
 export const capitalize = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1);
 export const uncapitalize = (value: string) =>
@@ -191,7 +192,7 @@ export const promptVersion = async (argv: any) =>
   createPrompt(
     "service",
     "Select a Saleor version",
-    async () => await getSortedServices(argv),
+    async () => getSortedServices(argv),
     (_: any) => ({
       name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`,
       value: _.name,
@@ -204,7 +205,7 @@ export const promptCompatibleVersion = async (argv: any, service = "SANDBOX") =>
     "Select a Saleor service",
     async () =>
       (await getSortedServices(argv)).filter(
-        ({ service_type }: any) => service_type === service
+        ({ service_type: serviceType }: any) => serviceType === service
       ),
     (_: any) => ({
       name: `Saleor ${_.version} - ${_.display_name}`,
@@ -240,7 +241,7 @@ export const promptProject = (argv: any) =>
   createPrompt(
     "project",
     "Select Project",
-    async () => await GET(API.Project, argv),
+    async () => GET(API.Project, argv),
     (_: any) => ({ name: _.name, value: _.slug }),
     true
   );
@@ -249,7 +250,7 @@ export const promptEnvironment = async (argv: any) =>
   createPrompt(
     "environment",
     "Select Environment",
-    async () => await GET(API.Environment, { ...argv, environment: "" }),
+    async () => GET(API.Environment, { ...argv, environment: "" }),
     (_: any) => ({ name: _.name, value: _.key }),
     false
   );
@@ -258,7 +259,7 @@ export const promptOrganization = async (argv: any) =>
   createPrompt(
     "organization",
     "Select Organization",
-    async () => await GET(API.Organization, argv),
+    async () => GET(API.Organization, argv),
     (_: any) => ({ name: _.name, value: _.slug })
   );
 
@@ -266,7 +267,7 @@ export const promptPlan = async (argv: any) =>
   createPrompt(
     "plan",
     "Select Plan",
-    async () => await GET(API.Plan, argv),
+    async () => GET(API.Plan, argv),
     (_: any) => ({ name: _.name, value: _.slug })
   );
 
@@ -274,7 +275,7 @@ export const promptRegion = async (argv: any) =>
   createPrompt(
     "region",
     "Select Region",
-    async () => await GET(API.Region, argv),
+    async () => GET(API.Region, argv),
     (_: any) => ({ name: _.name, value: _.name })
   );
 
@@ -282,7 +283,7 @@ export const promptOrganizationBackup = async (argv: any) =>
   createPrompt(
     "backup",
     "Select Snapshot",
-    async () => await GET(API.OrganizationBackups, argv),
+    async () => GET(API.OrganizationBackups, argv),
     (_: any) => ({
       name: chalk(
         chalk.bold(_.project.name),
@@ -492,7 +493,7 @@ export const waitForTask = async (
       if (currentMsg === messages.length - 1) {
         currentMsg = 0;
       } else {
-        currentMsg++;
+        currentMsg += 1;
       }
       succeed = await checkIfJobSucceeded(taskId);
     }

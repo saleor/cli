@@ -1,19 +1,18 @@
 import chalk from "chalk";
 import Enquirer from "enquirer";
-import got from "got";
 import { request } from "graphql-request";
 import type { Arguments, CommandBuilder } from "yargs";
 
 import * as SaleorGraphQL from "../generated/graphql.js";
 import { Config } from "../lib/config.js";
-import { API, API, DefaultSaleorEndpoint, DefaultSaleorEndpoint, GET , GET } from "../lib/index.js";
-import { capitalize , capitalize, uncapitalize } from "../lib/util.js";
+import { API, DefaultSaleorEndpoint, GET } from "../lib/index.js";
+import { capitalize } from "../lib/util.js";
 import {
   useEnvironment,
   useOrganization,
   useToken,
 } from "../middleware/index.js";
-import { Options , Options } from "../types.js";
+import { Options } from "../types.js";
 
 export const command = "trigger [event]";
 export const desc = "This triggers a Saleor event";
@@ -22,7 +21,8 @@ export const builder: CommandBuilder = (_) =>
   _.option("event", { type: "string" }).option("id", { type: "string" });
 
 export const handler = async (argv: Arguments<Options>) => {
-  let { event, id } = argv;
+  const { id } = argv;
+  let { event } = argv;
 
   const {
     __type: { enumValues },
@@ -61,7 +61,6 @@ export const handler = async (argv: Arguments<Options>) => {
     `\n  GraphQL Operation for ${chalk.underline(event)} available\n`
   );
   const { domain } = (await GET(API.Environment, argv)) as any;
-  const { token } = await Config.get();
   const headers = await Config.getBearerHeader();
 
   // FIXME

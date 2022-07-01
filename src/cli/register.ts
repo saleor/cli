@@ -9,9 +9,6 @@ import { validateEmail } from "../lib/util.js";
 import { doLogin } from "./login.js";
 
 const { ux: cli } = CliUx;
-interface Options {
-  fromCli: boolean;
-}
 
 export const command = "register";
 export const desc = "Create Saleor account";

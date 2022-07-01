@@ -21,8 +21,8 @@ const configs: ConfigMap = {
 };
 
 export const getEnvironment = async () => {
-  const { saleor_env } = await Config.get();
-  return process.env.SALEOR_CLI_ENV || saleor_env || "production";
+  const { saleor_env: saleorEnv } = await Config.get();
+  return process.env.SALEOR_CLI_ENV || saleorEnv || "production";
 };
 
 export const getAmplifyConfig = async () => {
@@ -43,7 +43,7 @@ const handleAuthAndConfig =
     debug(path);
     debug("cli options", argv);
 
-    options = {
+    const opts = {
       ...options,
       prefixUrl: cloudApiUrl,
       headers: argv.token
@@ -52,9 +52,9 @@ const handleAuthAndConfig =
           }
         : {},
     };
-    debug("`got` options", options);
+    debug("`got` options", opts);
 
-    return func(path, options) as CancelableRequest;
+    return func(path, opts) as CancelableRequest;
   };
 
 const doGETRequest = (path: string, options?: any) =>
@@ -72,7 +72,7 @@ export const PUT = handleAuthAndConfig(doPUTRequest);
 export const DELETE = handleAuthAndConfig(doDELETERequest);
 
 export const API: Record<string, DefaultURLPath> = {
-  User: (_) => "user",
+  User: () => "user",
   Organization: (_) => `organizations/${_.organization || ""}`,
   OrganizationPermissions: (_) => `organizations/${_.organization}/permissions`,
   OrganizationBackups: (_) => `organizations/${_.organization}/backups`,
@@ -101,7 +101,7 @@ export const API: Record<string, DefaultURLPath> = {
   Region: (_) => `regions/${_.region || ""}`,
   Services: (_) => `regions/${_.region}/services/${_.serviceName || ""}`,
   Plan: (_) => `plans/${_.plan || ""}`,
-  Token: (_) => "tokens",
+  Token: () => "tokens",
 };
 
 export const Region = "us-east-1";

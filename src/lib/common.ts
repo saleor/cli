@@ -9,7 +9,7 @@ import { AppDelete } from "../generated/graphql.js";
 import { AppInstall } from "../graphql/AppInstall.js";
 import { SaleorAppList } from "../graphql/SaleorAppList.js";
 import { Config } from "./config.js";
-import { isPortAvailable , isPortAvailable } from "./detectPort.js";
+import { isPortAvailable } from "./detectPort.js";
 import { API, GET } from "./index.js";
 import { NotSaleorAppDirectoryError, SaleorAppInstallError } from "./util.js";
 

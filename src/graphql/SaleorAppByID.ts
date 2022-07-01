@@ -1,3 +1,4 @@
+/* eslint-disable import/prefer-default-export */
 export const SaleorAppByID = /* GraphQL */ `
   query AppSingle($appID: ID!) {
     app(id: $appID) {

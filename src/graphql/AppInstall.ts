@@ -1,3 +1,4 @@
+/* eslint-disable import/prefer-default-export */
 export const AppInstall = /* GraphQL */ `
   mutation AppInstall(
     $name: String!
