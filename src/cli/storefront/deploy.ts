@@ -31,9 +31,13 @@ export const handler = async (argv: Arguments<Options>) => {
 
   console.log("\nDeploying to Vercel");
   // 2. Create a project in Vercel
-  const projectId = await createProjectInVercel(name, owner, repoName);
+  const { projectId, newProject } = await createProjectInVercel(
+    name,
+    owner,
+    repoName
+  );
   // 3. Deploy the project in Vercel
-  await triggerDeploymentInVercel(name, owner, projectId);
+  await triggerDeploymentInVercel(name, owner, projectId, newProject);
 
   process.exit(0);
 };
