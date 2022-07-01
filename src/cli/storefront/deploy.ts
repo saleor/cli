@@ -3,13 +3,13 @@ import GitUrlParse from "git-url-parse";
 import path from "path";
 import fs from "fs-extra";
 import type { Arguments, CommandBuilder } from "yargs";
-import { Config } from "../../lib/config.js";
 import { Options } from "../../types.js";
 import {
   createProjectInVercel,
   getRepoUrl,
   triggerDeploymentInVercel,
 } from "../app/deploy.js";
+import { useVercel } from "../../middleware/index.js";
 
 export const command = "deploy";
 export const desc = "Deploy this `react-storefront` to Vercel";
@@ -17,15 +17,6 @@ export const desc = "Deploy this `react-storefront` to Vercel";
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =
-    await Config.get();
-  if (!vercelTeamId && !vercelToken) {
-    console.error(
-      `Error: You must be logged to Vercel - use 'saleor vercel login'`
-    );
-    process.exit(1);
-  }
-
   const { name } = JSON.parse(
     await fs.readFile(path.join(process.cwd(), "package.json"), "utf-8")
   );
@@ -47,4 +38,4 @@ export const handler = async (argv: Arguments<Options>) => {
   process.exit(0);
 };
 
-export const middlewares = [];
+export const middlewares = [useVercel];

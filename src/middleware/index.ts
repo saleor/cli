@@ -254,9 +254,9 @@ const checkBackup = async (argv: Options, chosenBackup: CreatePromptResult) => {
 };
 
 export const useGithub = async () => {
-  const { github_token } = await Config.get();
+  const { github_token: githubToken } = await Config.get();
 
-  if (!github_token) {
+  if (!githubToken) {
     console.error(chalk.red("\nYou are not logged into Github\n"));
     console.log(chalk("Run", chalk.bold.green("saleor github login"), "command to login"));
 
@@ -267,9 +267,9 @@ export const useGithub = async () => {
 }
 
 export const useVercel = async () => {
-  const { vercel_token } = await Config.get();
+  const { vercel_token: vercelToken } = await Config.get();
 
-  if (!vercel_token) {
+  if (!vercelToken) {
     console.error(chalk.red("\nYou are not logged into Vercel\n"));
     console.log(chalk("Run", chalk.bold.green("saleor vercel login"), "command to login"));
 

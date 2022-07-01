@@ -11,6 +11,7 @@ import chalk from "chalk";
 import { delay } from "../../lib/util.js";
 import ora from "ora";
 import GitUrlParse from "git-url-parse";
+import { useVercel } from "../../middleware/index.js";
 
 export const command = "deploy";
 export const desc = "Deploy this Saleor App repository to Vercel";
@@ -18,15 +19,6 @@ export const desc = "Deploy this Saleor App repository to Vercel";
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =
-    await Config.get();
-  if (!vercelTeamId && !vercelToken) {
-    console.error(
-      `Error: You must be logged to Vercel - use 'saleor vercel login'`
-    );
-    process.exit(1);
-  }
-
   const { name } = JSON.parse(
     await fs.readFile(path.join(process.cwd(), "package.json"), "utf-8")
   );
@@ -302,6 +294,4 @@ const deployVercelProject = async (
   };
 };
 
-export const middlewares = [
-  //
-];
+export const middlewares = [useVercel];
