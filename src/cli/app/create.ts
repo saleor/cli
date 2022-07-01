@@ -1,5 +1,5 @@
 import { Arguments, CommandBuilder } from "yargs";
-import ora from "ora";
+import ora, { Ora } from "ora";
 import { access } from "fs/promises";
 import chalk from "chalk";
 import sanitize from "sanitize-filename";
@@ -66,24 +66,20 @@ APP_URL=
   );
 
   spinner.text = `Updating .graphqlrc.yml...`;
-  replace.sync({
+  await replace.replaceInFile({
     files: ".graphqlrc.yml",
     from: /schema:.*/g,
     to: `schema: ${graphqlURL}`,
   });
 
   spinner.text = `Updating package.json...`;
-  replace.sync({
+  await replace.replaceInFile ({
     files: "package.json",
     from: /"name": "saleor-app-template".*/g,
     to: `"name": "${kebabCase(target)}",`,
   });
 
-  spinner.text = `Setting up the Git repository...`
-  const git = simpleGit();
-  await git.init();
-  await git.add('.')
-  await git.commit('Initial commit from Saleor CLI')
+  await setupGitRepository(spinner);
 
   spinner.text = "Installing dependencies...";
   await run("pnpm", ["i", "--ignore-scripts"], { cwd: process.cwd() });
@@ -109,5 +105,13 @@ const dirExists = async (name: string): Promise<boolean> => {
     return false;
   }
 };
+
+export const setupGitRepository = async (spinner: Ora) => {
+  spinner.text = `Setting up the Git repository...`
+  const git = simpleGit();
+  await git.init();
+  await git.add('.')
+  await git.commit('Initial commit from Saleor CLI')
+}
 
 export const middlewares = [useToken, useOrganization, useEnvironment];

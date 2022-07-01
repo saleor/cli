@@ -1,50 +1,45 @@
-import got from "got";
+import chalk from "chalk";
+import GitUrlParse from "git-url-parse";
+import path from "path";
+import fs from "fs-extra";
 import type { Arguments, CommandBuilder } from "yargs";
-import { Config } from "../../lib/config.js";
-import { API, GET } from "../../lib/index.js";
-import { deploy } from "../../lib/util.js"
-import { useEnvironment } from "../../middleware/index.js";
 import { Options } from "../../types.js";
+import {
+  createProjectInVercel,
+  getRepoUrl,
+  triggerDeploymentInVercel,
+} from "../app/deploy.js";
+import { useVercel } from "../../middleware/index.js";
 
-export const command = "deploy [name]";
-export const desc = "Deploy `react-storefront` to Vercel";
+export const command = "deploy";
+export const desc = "Deploy this `react-storefront` to Vercel";
 
-export const builder: CommandBuilder = (_) => _
+export const builder: CommandBuilder = (_) => _;
 
-export const handler = async (argv: Arguments<Options & { name: string }>) => {
-  const { name } = argv;
-  const { domain } = await GET(API.Environment, argv) as any;
-  const url = `https://${domain}/graphql/`;
+export const handler = async (argv: Arguments<Options>) => {
+  const { name } = JSON.parse(
+    await fs.readFile(path.join(process.cwd(), "package.json"), "utf-8")
+  );
+  console.log(
+    `\nDeploying... ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
+      "package.json"
+    )})`
+  );
 
-  const { vercel_token, vercel_team_id } = await Config.get()
+  const repoUrl = await getRepoUrl(name);
+  const { owner, name: repoName } = GitUrlParse(repoUrl);
 
-  if (!vercel_team_id && !vercel_token) {
-    await deploy({ name, url });
-  } else {
-    console.log("Using Vercel API")
-    console.log(name)
-
-    const data: any = await got.post(`https://api.vercel.com/v8/projects`, {
-      headers: {
-        Authorization: vercel_token,
-      },
-      json: {
-        name,
-        environmentVariables: [
-          { key: "NEXT_PUBLIC_API_URI", value: url, target: "production", type: "plain" }
-        ],
-        gitRepository: {
-          type: "github",
-          repo: "saleor/react-storefront"
-        }
-      },
-    }).json();
-  }
+  console.log("\nDeploying to Vercel");
+  // 2. Create a project in Vercel
+  const { projectId, newProject } = await createProjectInVercel(
+    name,
+    owner,
+    repoName
+  );
+  // 3. Deploy the project in Vercel
+  await triggerDeploymentInVercel(name, owner, projectId, newProject);
 
   process.exit(0);
 };
 
-
-export const middlewares = [
-  useEnvironment
-]
+export const middlewares = [useVercel];

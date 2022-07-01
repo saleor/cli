@@ -13,6 +13,9 @@ import { useEnvironment } from "../../middleware/index.js";
 import chalk from "chalk";
 import { customAlphabet } from "nanoid";
 import { downloadFromGitHub } from "../../lib/download.js";
+import { setupGitRepository } from "../app/create.js";
+import detectPort from "detect-port";
+import kebabCase from "lodash.kebabcase";
 
 
 export const command = "create [name]";
@@ -125,19 +128,28 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   spinner.text = `Creating .env...`;
   const baseURL = `https://${env.domain}/graphql/`;
 
-  replace.sync({
+  await replace.replaceInFile({
     files: '.env',
     from: /NEXT_PUBLIC_API_URI=.*/g,
     to: `NEXT_PUBLIC_API_URI=${baseURL}`
   });
 
+  await replace.replaceInFile({
+    files: "package.json",
+    from: /"name": "react-storefront".*/g,
+    to: `"name": "${kebabCase(target)}",`,
+  });
+
+  await setupGitRepository(spinner);
+
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
   spinner.succeed(chalk.bold('Storefront prepared \n'));
   console.log('-'.repeat(process.stdout.columns));
-  console.log(chalk(chalk.bold('\n  Starting server on 0.0.0.0:3005, url: http://localhost:3005'), '\n'));
+  const detectedPort = await detectPort(3005);
+  console.log(chalk(chalk.bold(`\n  Starting server on 0.0.0.0:${detectedPort}, url: http://localhost:${detectedPort}`), '\n'));
 
-  await run('pnpm', ['next', 'dev', '--port', '3005'], { stdio: 'inherit', cwd: process.cwd() }, true);
+  await run('pnpm', ['next', 'dev', '--port', detectedPort.toString()], { stdio: 'inherit', cwd: process.cwd() }, true);
 }
 
 const getFolderName = async (name: string): Promise<string> => {
