@@ -1,114 +1,117 @@
-import type { Arguments, CommandBuilder } from "yargs";
-import { CliUx } from "@oclif/core";
-import { HTTPError } from "got";
+import { CliUx } from '@oclif/core';
+import chalk from 'chalk';
+import Enquirer from 'enquirer';
+import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET } from "../lib/index.js";
-import { Config } from "../lib/config.js";
-import { Options } from "../types.js";
-import Enquirer from "enquirer";
-import _ from "chalk";
-import { promptEnvironment, promptOrganization } from "../lib/util.js";
-import chalk from "chalk";
+import { Config } from '../lib/config.js';
+import { API, GET } from '../lib/index.js';
+import { promptEnvironment, promptOrganization } from '../lib/util.js';
+import { Options } from '../types.js';
 
 const { ux: cli } = CliUx;
 
-export const command = "configure [token]";
-export const desc = "Configure Saleor CLI";
+export const command = 'configure [token]';
+export const desc = 'Configure Saleor CLI';
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("token", { type: "string", demandOption: false })
-  .option("force", {
-    type: 'boolean',
-    desc: 'skip additional prompts',
-  });
+  _.positional('token', { type: 'string', demandOption: false }).option(
+    'force',
+    {
+      type: 'boolean',
+      desc: 'skip additional prompts',
+    }
+  );
 
 export const handler = async (argv: Arguments<Options>) => {
   const { token, force } = argv;
-  const legitToken = await configure(token)
+  const legitToken = await configure(token);
 
   console.log(`
-Saleor Telemetry is ${_.underline('completely anonymous and optional')} information about general usage.
+Saleor Telemetry is ${chalk.underline(
+    'completely anonymous and optional'
+  )} information about general usage.
 You may opt-out at any time (check 'saleor telemetry').
-Learn more: ${_.gray('https://saleor.io/')}${_.blueBright('telemetry')}
-  `)
+Learn more: ${chalk.gray('https://saleor.io/')}${chalk.blueBright('telemetry')}
+  `);
 
   if (force) {
     process.exit(0);
   }
 
-  const { telemetry } = await Enquirer.prompt({
+  const { telemetry } = (await Enquirer.prompt({
     type: 'confirm',
     name: 'telemetry',
     initial: 'yes',
     format: (value) => chalk.cyan(value ? 'yes' : 'no'),
-    message: 'Are you OK with leaving telemetry enabled?'
-  }) as { telemetry: boolean }
+    message: 'Are you OK with leaving telemetry enabled?',
+  })) as { telemetry: boolean };
 
   if (!telemetry) {
-    await Config.set('telemetry', 'false')
+    await Config.set('telemetry', 'false');
   }
 
-  await chooseOrganization(legitToken)
+  await chooseOrganization(legitToken);
 };
 
 const validateToken = async (token: string) => {
   const user = (await GET(API.User, { token: `Token ${token}` })) as any;
-  console.log(`${_.green('Success')}. Logged as ${user.email}\n`);
+  console.log(`${chalk.green('Success')}. Logged as ${user.email}\n`);
 };
 
 const chooseOrganization = async (token: string | undefined) => {
-  const organizations = await GET(API.Organization, {token}) as any[]
+  const organizations = (await GET(API.Organization, { token })) as any[];
 
-  if (!!organizations.length) {
-    const { orgSetup } = await Enquirer.prompt({
+  if (organizations.length) {
+    const { orgSetup } = (await Enquirer.prompt({
       type: 'confirm',
       name: 'orgSetup',
       initial: 'yes',
       format: (value) => chalk.cyan(value ? 'yes' : 'no'),
-      message: 'Would you like to choose the default organization?'
-    }) as { orgSetup: boolean }
+      message: 'Would you like to choose the default organization?',
+    })) as { orgSetup: boolean };
 
     if (orgSetup) {
-      const organization = await promptOrganization({token});
-      await chooseEnv(token, organization.value)
+      const organization = await promptOrganization({ token });
+      await chooseEnv(token, organization.value);
     }
   }
-}
+};
 
-const chooseEnv = async (token: string | undefined, organization_slug: string) => {
-  const envs = await GET(API.Environment, {token, organization: organization_slug }) as any[]
+const chooseEnv = async (
+  token: string | undefined,
+  organizationSlug: string
+) => {
+  const envs = (await GET(API.Environment, {
+    token,
+    organization: organizationSlug,
+  })) as any[];
 
-  if (!!envs.length) {
-    const { envSetup } = await Enquirer.prompt({
+  if (envs.length) {
+    const { envSetup } = (await Enquirer.prompt({
       type: 'confirm',
       name: 'envSetup',
       initial: 'yes',
       format: (value) => chalk.cyan(value ? 'yes' : 'no'),
-      message: 'Would you like to choose the default environment'
-    }) as { envSetup: boolean }
+      message: 'Would you like to choose the default environment',
+    })) as { envSetup: boolean };
 
     if (envSetup) {
-      const env = await promptEnvironment({token, organization: organization_slug});
-      await Config.set("environment_id", env.value);
+      const env = await promptEnvironment({
+        token,
+        organization: organizationSlug,
+      });
+      await Config.set('environment_id', env.value);
     }
   }
-}
+};
 
-export const configure = async (token: string | undefined) => {
-  while (!token) token = await cli.prompt("Access Token", { type: "mask" });
+export const configure = async (providedToken: string | undefined) => {
+  let token = providedToken;
+  while (!token) token = await cli.prompt('Access Token', { type: 'mask' });
 
-  try {
-    await validateToken(token);
-    Config.reset();
-    const header = `Token ${token}`;
-    await Config.set("token", header);
-    return header
-  } catch (error) {
-    // FIXME make it more explicit
-    if (error instanceof HTTPError) {
-      console.log(error.message);
-    } else {
-      console.log(error);
-    }
-  }
-}
+  await validateToken(token);
+  Config.reset();
+  const header = `Token ${token}`;
+  await Config.set('token', header);
+  return header;
+};

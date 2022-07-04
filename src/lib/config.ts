@@ -1,73 +1,71 @@
-import os from "os";
 import fs from 'fs-extra';
-import path from "path";
+import os from 'os';
+import path from 'path';
 
-const DefaultConfigFile = path.join(os.homedir(), ".config", "saleor.json");
+const DefaultConfigFile = path.join(os.homedir(), '.config', 'saleor.json');
 
 export type ConfigField =
-  | "token"
-  | "user_session"
-  | "id_token"
-  | "access_token"
-  | "refresh_token"
-  | "organization_slug"
-  | "organization_name"
-  | "environment_id"
-  | "vercel_token"
-  | "vercel_team_id"
-  | "telemetry"
-  | "saleor_env"
-  | "TunnelServerSecret"
-  | "VercelClientID"
-  | "VercelClientSecret"
-  | "SentryDSN"
-  | "GithubClientID"
-  | "GithubClientSecret"
-  | "github_token"
+  | 'token'
+  | 'user_session'
+  | 'id_token'
+  | 'access_token'
+  | 'refresh_token'
+  | 'organization_slug'
+  | 'organization_name'
+  | 'environment_id'
+  | 'vercel_token'
+  | 'vercel_team_id'
+  | 'telemetry'
+  | 'saleor_env'
+  | 'TunnelServerSecret'
+  | 'VercelClientID'
+  | 'VercelClientSecret'
+  | 'SentryDSN'
+  | 'GithubClientID'
+  | 'GithubClientSecret'
+  | 'github_token';
 
 type ConfigProps = Record<ConfigField, string>;
 
-const isEmpty = (object: any) => Object.keys(object).length === 0;
-
 const set = async (field: ConfigField, value: string) => {
   await fs.ensureFile(DefaultConfigFile);
-  const content = await fs.readJSON(DefaultConfigFile, { throws: false })
+  const content = await fs.readJSON(DefaultConfigFile, { throws: false });
 
-  const new_content = { ...content, [field]: value }
-  await fs.outputJSON(DefaultConfigFile, new_content);
+  const newContent = { ...content, [field]: value };
+  await fs.outputJSON(DefaultConfigFile, newContent);
 
-  return new_content
-}
+  return newContent;
+};
 
 const remove = async (field: ConfigField) => {
   await fs.ensureFile(DefaultConfigFile);
-  const content = await fs.readJSON(DefaultConfigFile, { throws: false }) || {};
+  const content =
+    (await fs.readJSON(DefaultConfigFile, { throws: false })) || {};
 
   delete content[field];
   await fs.outputJSON(DefaultConfigFile, content);
 
-  return content
-}
+  return content;
+};
 
 const get = async (): Promise<ConfigProps> => {
   await fs.ensureFile(DefaultConfigFile);
-  const content = await fs.readJSON(DefaultConfigFile, { throws: false })
+  const content = await fs.readJSON(DefaultConfigFile, { throws: false });
   return content || {};
-}
+};
 
 const reset = async (): Promise<void> => {
-  await fs.outputJSON(DefaultConfigFile, {})
-}
+  await fs.outputJSON(DefaultConfigFile, {});
+};
 
 const getBearerHeader = async (): Promise<Record<string, string>> => {
   const { token } = await get();
 
   if (token) {
-    return { 'Authorization-Bearer': token.split(' ').slice(-1)[0] }
+    return { 'Authorization-Bearer': token.split(' ').slice(-1)[0] };
   }
 
-  throw new Error("\nYou are not logged in\n");
-}
+  throw new Error('\nYou are not logged in\n');
+};
 
-
-export const Config = { get, set, reset, remove, getBearerHeader }
+export const Config = { get, set, reset, remove, getBearerHeader };

@@ -4,6 +4,36 @@
     "ecmaVersion": 2018,
     "sourceType": "module"
   },
-  "plugins": ["@typescript-eslint", "simple-import-sort"],
-  "extends": ["plugin:@typescript-eslint/recommended"]
+  "extends": ["airbnb", "plugin:@typescript-eslint/recommended", "prettier"],
+  "ignorePatterns": ["pnpm-lock.yaml"],
+  "plugins": ["simple-import-sort", "@typescript-eslint"],
+  "rules": {
+    "quotes": ["error", "single"],
+    "import/extensions": "off", // file extension not required when importing
+    "no-restricted-syntax": "off",
+    "no-underscore-dangle": "off",
+    "no-await-in-loop": "off",
+    "simple-import-sort/imports": "warn",
+    "simple-import-sort/exports": "warn",
+    "import/first": "warn",
+    "import/newline-after-import": "warn",
+    "import/no-duplicates": "warn",
+    "import/no-unresolved": "off",
+    "no-unused-vars": "off",
+    "@typescript-eslint/ban-types": "off",
+    "no-console": "off",
+    "no-continue": "off",
+    "operator-linebreak": "off",
+    "max-len": "off",
+    "array-callback-return": "off",
+    "implicit-arrow-linebreak": "off",
+    "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "no-restricted-imports": "off",
+    "no-restricted-exports": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "no-use-before-define": "off",
+    "func-names": "off", // FIXME
+    "@typescript-eslint/no-explicit-any": "off" // FIXME
+  }
 }

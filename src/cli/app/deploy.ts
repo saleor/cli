@@ -1,30 +1,30 @@
-import got from "got";
-import path from "path";
-import fs from "fs-extra";
-import dotenv from "dotenv";
-import { simpleGit } from "simple-git";
-import type { Arguments, CommandBuilder } from "yargs";
-import { Config } from "../../lib/config.js";
-import { Options } from "../../types.js";
-import Enquirer from "enquirer";
-import chalk from "chalk";
-import { delay } from "../../lib/util.js";
-import ora from "ora";
-import GitUrlParse from "git-url-parse";
-import { useVercel } from "../../middleware/index.js";
+import chalk from 'chalk';
+import dotenv from 'dotenv';
+import Enquirer from 'enquirer';
+import fs from 'fs-extra';
+import GitUrlParse from 'git-url-parse';
+import got from 'got';
+import ora from 'ora';
+import path from 'path';
+import { simpleGit } from 'simple-git';
+import type { CommandBuilder } from 'yargs';
 
-export const command = "deploy";
-export const desc = "Deploy this Saleor App repository to Vercel";
+import { Config } from '../../lib/config.js';
+import { delay } from '../../lib/util.js';
+import { useVercel } from '../../middleware/index.js';
+
+export const command = 'deploy';
+export const desc = 'Deploy this Saleor App repository to Vercel';
 
 export const builder: CommandBuilder = (_) => _;
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async () => {
   const { name } = JSON.parse(
-    await fs.readFile(path.join(process.cwd(), "package.json"), "utf-8")
+    await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
   );
   console.log(
     `\nDeploying... ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
-      "package.json"
+      'package.json'
     )})`
   );
 
@@ -32,7 +32,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const repoUrl = await getRepoUrl(name);
   const { owner, name: repoName } = GitUrlParse(repoUrl);
 
-  console.log("\nDeploying to Vercel");
+  console.log('\nDeploying to Vercel');
   // 2. Create a project in Vercel
   const { projectId, newProject } = await createProjectInVercel(
     name,
@@ -51,7 +51,7 @@ export const getRepoUrl = async (name: string): Promise<string> => {
   let gitUrl;
 
   if (remotes.length > 0) {
-    gitUrl = (await git.remote(["get-url", "origin"])) as string;
+    gitUrl = (await git.remote(['get-url', 'origin'])) as string;
   } else {
     gitUrl = createProjectInGithub(name);
   }
@@ -84,7 +84,7 @@ const getGithubRepository = async (
   }`;
 
   const { data } = await got
-    .post(`https://api.github.com/graphql`, {
+    .post('https://api.github.com/graphql', {
       headers: { Authorization: GitHubToken },
       json: {
         query,
@@ -101,22 +101,22 @@ const createProjectInGithub = async (name: string): Promise<string> => {
   const { github_token: GitHubToken } = await Config.get();
 
   const { githubProjectCreate } = (await Enquirer.prompt({
-    type: "confirm",
-    name: "githubProjectCreate",
-    initial: "yes",
-    format: (value) => chalk.cyan(value ? "yes" : "no"),
-    message: "Creating a project on your GitHub. Do you want to continue?",
+    type: 'confirm',
+    name: 'githubProjectCreate',
+    initial: 'yes',
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    message: 'Creating a project on your GitHub. Do you want to continue?',
   })) as { githubProjectCreate: boolean };
 
   if (!githubProjectCreate) {
-    console.error("Saleor App deployment cancelled by the user");
+    console.error('Saleor App deployment cancelled by the user');
     process.exit(1);
   }
 
   let gitRepoUrl;
 
   const { data, errors } = await got
-    .post(`https://api.github.com/graphql`, {
+    .post('https://api.github.com/graphql', {
       headers: {
         Authorization: GitHubToken,
       },
@@ -136,18 +136,18 @@ const createProjectInGithub = async (name: string): Promise<string> => {
 
   if (errors) {
     for (const error of errors) {
-      if (error.message === "Name already exists on this account") {
+      if (error.message === 'Name already exists on this account') {
         console.log(`Pushing to the existing repository '${name}'`);
-        const data = await getGithubRepository(name);
+        const repo = await getGithubRepository(name);
         const {
           viewer: {
             repository: { sshUrl },
           },
-        } = data;
-        await git.addRemote("origin", sshUrl);
+        } = repo;
+        await git.addRemote('origin', sshUrl);
         gitRepoUrl = sshUrl;
       } else {
-        console.error(`\n ${chalk.red("ERROR")} ${error.message}`);
+        console.error(`\n ${chalk.red('ERROR')} ${error.message}`);
         process.exit(1);
       }
     }
@@ -157,7 +157,7 @@ const createProjectInGithub = async (name: string): Promise<string> => {
         repository: { sshUrl },
       },
     } = data;
-    await git.addRemote("origin", sshUrl);
+    await git.addRemote('origin', sshUrl);
     gitRepoUrl = sshUrl;
   }
 
@@ -168,7 +168,7 @@ const updateEnvironmentVariables = async (name: string) => {
   const { vercel_token: vercelToken } = await Config.get();
 
   const localEnvs = dotenv.parse(
-    await fs.readFile(path.join(process.cwd(), ".env"))
+    await fs.readFile(path.join(process.cwd(), '.env'))
   );
 
   const { envs: vercelEnvs } = await got
@@ -186,7 +186,7 @@ const updateEnvironmentVariables = async (name: string) => {
     );
 
     // new env, create
-    if (vercelEnv == undefined) {
+    if (vercelEnv === undefined) {
       console.log(`Creating new environment variable - ${localKey}`);
       await got.post(`https://api.vercel.com/v9/projects/${name}/env`, {
         headers: {
@@ -195,8 +195,8 @@ const updateEnvironmentVariables = async (name: string) => {
         json: {
           key: localKey,
           value: localValue,
-          target: ["production", "preview", "development"],
-          type: "plain",
+          target: ['production', 'preview', 'development'],
+          type: 'plain',
         },
       });
 
@@ -227,24 +227,24 @@ export const createProjectInVercel = async (
   name: string,
   owner: string,
   repoName: string,
-  provider = "github" // TODO allow gitlab & bitbucket
+  provider = 'github' // TODO allow gitlab & bitbucket
 ): Promise<Record<string, any>> => {
   const { vercel_token: vercelToken } = await Config.get();
 
   const envs = dotenv.parse(
-    await fs.readFile(path.join(process.cwd(), ".env"))
+    await fs.readFile(path.join(process.cwd(), '.env'))
   );
   const environmentVariables = Object.entries(envs).map(([key, value]) => ({
     key,
     value,
-    target: ["production", "preview", "development"],
-    type: "plain",
+    target: ['production', 'preview', 'development'],
+    type: 'plain',
   }));
 
   const output = Object.entries(envs)
     .map(([key, value]) => `${chalk.dim(key)}=${chalk.cyan(value)}`)
-    .join("\n");
-  console.log("\n--- Setting the environment variables from `.env` in Vercel");
+    .join('\n');
+  console.log('\n--- Setting the environment variables from `.env` in Vercel');
   console.log(output);
 
   let projectId;
@@ -263,7 +263,7 @@ export const createProjectInVercel = async (
   } catch (error) {
     // TODO check if `ERR_NON_2XX_3XX_RESPONSE` for `error.code`
     const { id } = await got
-      .post(`https://api.vercel.com/v9/projects`, {
+      .post('https://api.vercel.com/v9/projects', {
         headers: {
           Authorization: vercelToken,
         },
@@ -293,7 +293,7 @@ export const triggerDeploymentInVercel = async (
   owner: string,
   projectId: string,
   newProject: boolean,
-  provider = "github"
+  provider = 'github'
 ) => {
   const { vercel_token: vercelToken } = await Config.get();
   const git = simpleGit();
@@ -302,11 +302,11 @@ export const triggerDeploymentInVercel = async (
     await updateEnvironmentVariables(name);
   }
 
-  const spinner = ora("Registering the changes in Vercel...").start();
+  const spinner = ora('Registering the changes in Vercel...').start();
 
   const {
     pushed: [{ alreadyUpdated }],
-  } = await git.push("origin", "main");
+  } = await git.push('origin', 'main');
   if (alreadyUpdated) {
     const {
       repository: { databaseId: repoId },
@@ -314,14 +314,14 @@ export const triggerDeploymentInVercel = async (
 
     const { url } = await deployVercelProject(name, provider, repoId);
 
-    spinner.succeed("Done");
+    spinner.succeed('Done');
     console.log(`\nYour Vercel URL: ${url}`);
 
     process.exit(0);
   }
 
   await delay(5000);
-  spinner.succeed("Done");
+  spinner.succeed('Done');
 
   const { deployments } = await got
     .get(`https://api.vercel.com/v6/deployments?projectId=${projectId}`, {
@@ -345,19 +345,19 @@ const deployVercelProject = async (
   const { vercel_token: vercelToken } = await Config.get();
 
   const { url } = await got
-    .post(`https://api.vercel.com/v13/deployments`, {
+    .post('https://api.vercel.com/v13/deployments', {
       headers: {
         Authorization: vercelToken,
       },
       json: {
         gitSource: {
           type: provider,
-          ref: "main",
+          ref: 'main',
           repoId,
         },
-        name: name,
-        target: "production",
-        source: "import",
+        name,
+        target: 'production',
+        source: 'import',
       },
     })
     .json();

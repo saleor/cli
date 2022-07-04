@@ -1,41 +1,50 @@
 import Enquirer from 'enquirer';
-import { Arguments } from 'yargs';
 import got from 'got';
-import { print } from 'graphql'
+import { print } from 'graphql';
+import { Arguments } from 'yargs';
 
 import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
 import { getAppsFromResult, printContext } from '../../lib/util.js';
-import { useEnvironment, useOrganization, useToken } from '../../middleware/index.js';
+import {
+  useEnvironment,
+  useOrganization,
+  useToken,
+} from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
-
-export const command = "permission";
-export const desc = "Add or remove permission for a Saleor App";
+export const command = 'permission';
+export const desc = 'Add or remove permission for a Saleor App';
 
 export const handler = async (argv: Arguments<Options>) => {
   const { organization, environment } = argv;
 
-  printContext(organization, environment)
+  printContext(organization, environment);
 
-  const { domain } = await GET(API.Environment, argv) as any;
+  const { domain } = (await GET(API.Environment, argv)) as any;
   const headers = await Config.getBearerHeader();
 
   const endpoint = `https://${domain}/graphql/`;
 
-  const { data }: any = await got.post(endpoint, {
-    headers,
-    json: {
-      query: SaleorAppList,
-      variables: {}
-    }
-  }).json()
+  const { data }: any = await got
+    .post(endpoint, {
+      headers,
+      json: {
+        query: SaleorAppList,
+        variables: {},
+      },
+    })
+    .json();
 
   const apps = getAppsFromResult(data);
 
-  const choices = apps.map(({ node }: any) => ({ name: node.name, value: node.id, hint: node.id }))
+  const choices = apps.map(({ node }: any) => ({
+    name: node.name,
+    value: node.id,
+    hint: node.id,
+  }));
 
   const { app } = await Enquirer.prompt<{ app: string }>({
     type: 'autocomplete',
@@ -44,19 +53,33 @@ export const handler = async (argv: Arguments<Options>) => {
     message: 'Select a Saleor App (start typing) ',
   });
 
-  const { data: { __type: { enumValues } } }: any = await got.post(endpoint, {
-    headers,
-    json: {
-      query: print(GetPermissionEnum),
-      variables: {}
-    }
-  }).json()
+  const {
+    data: {
+      __type: { enumValues },
+    },
+  }: any = await got
+    .post(endpoint, {
+      headers,
+      json: {
+        query: print(GetPermissionEnum),
+        variables: {},
+      },
+    })
+    .json();
 
-  const choices2 = enumValues.map((node: any) => ({ name: node.name, value: node.name, hint: node.description }))
+  const choices2 = enumValues.map((node: any) => ({
+    name: node.name,
+    value: node.name,
+    hint: node.description,
+  }));
 
-  const { node: { permissions: currentPermissions } } = apps.filter(({ node }: any) => node.id === app)[0];
+  const {
+    node: { permissions: currentPermissions },
+  } = apps.filter(({ node }: any) => node.id === app)[0];
   const choices2Names = choices2.map(({ name }: any) => name);
-  const initial = currentPermissions.map((permission: any) => choices2Names.indexOf(permission.code));
+  const initial = currentPermissions.map((permission: any) =>
+    choices2Names.indexOf(permission.code)
+  );
 
   const { permissions } = await Enquirer.prompt<{ permissions: string[] }>({
     type: 'multiselect',
@@ -67,17 +90,17 @@ export const handler = async (argv: Arguments<Options>) => {
     message: 'Select one or more permissions (start typing) ',
   });
 
-  await got.post(endpoint, {
-    headers,
-    json: {
-      query: print(AppUpdate),
-      variables: { app, permissions }
-    }
-  }).json()
+  await got
+    .post(endpoint, {
+      headers,
+      json: {
+        query: print(AppUpdate),
+        variables: { app, permissions },
+      },
+    })
+    .json();
 
-  console.log(`Permissions successfully updated.`)
+  console.log('Permissions successfully updated.');
 };
 
-export const middlewares = [
-  useToken, useOrganization, useEnvironment
-]
+export const middlewares = [useToken, useOrganization, useEnvironment];

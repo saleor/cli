@@ -1,26 +1,26 @@
-import type { CommandBuilder } from "yargs";
-import { CliUx } from "@oclif/core";
-import { ServerApp } from "retes";
-import { GET } from "retes/route"
-import { Response } from "retes/response";
-import { nanoid } from 'nanoid';
+import { CliUx } from '@oclif/core';
 import crypto from 'crypto';
+import EventEmitter from 'events';
+import got from 'got';
+import { nanoid } from 'nanoid';
+import { ServerApp } from 'retes';
+import { Response } from 'retes/response';
+import { GET } from 'retes/route';
+import type { CommandBuilder } from 'yargs';
 
-import { delay } from "../lib/util.js";
-import got from "got";
-import { Config, ConfigField } from "../lib/config.js";
-import EventEmitter from 'events'
-import { API, POST, getAmplifyConfig, getEnvironment } from "../lib/index.js";
-import { checkPort } from "../lib/detectPort.js";
+import { Config, ConfigField } from '../lib/config.js';
+import { checkPort } from '../lib/detectPort.js';
+import { API, getAmplifyConfig, getEnvironment, POST } from '../lib/index.js';
+import { delay } from '../lib/util.js';
 
 const { ux: cli } = CliUx;
 
-const RedirectURI = "http://localhost:3000/";
+const RedirectURI = 'http://localhost:3000/';
 
-export const command = "login";
-export const desc = "Log in to the Saleor Cloud";
+export const command = 'login';
+export const desc = 'Log in to the Saleor Cloud';
 
-export const builder: CommandBuilder = (_) => _
+export const builder: CommandBuilder = (_) => _;
 
 export const handler = async () => {
   await doLogin();
@@ -32,12 +32,12 @@ export const doLogin = async () => {
   const amplifyConfig = await getAmplifyConfig();
 
   const Params = {
-    response_type: "code",
+    response_type: 'code',
     client_id: amplifyConfig.aws_user_pools_web_client_id,
     redirect_uri: RedirectURI,
-    identity_provider: "COGNITO",
-    scope: amplifyConfig.oauth.scope.join(' ')
-  }
+    identity_provider: 'COGNITO',
+    scope: amplifyConfig.oauth.scope.join(' '),
+  };
 
   const generatedState = nanoid();
   const emitter = new EventEmitter();
@@ -51,40 +51,46 @@ export const doLogin = async () => {
   cli.open(url);
 
   const app = new ServerApp([
-    GET("/", async ({ params }) => {
+    GET('/', async ({ params }) => {
       const { state, code } = params;
 
       if (state !== generatedState) {
-        return Response.BadRequest("Wrong state")
+        return Response.BadRequest('Wrong state');
       }
 
-      const Params = {
-        grant_type: "authorization_code",
+      const OauthParams = {
+        grant_type: 'authorization_code',
         code,
         client_id: amplifyConfig.aws_user_pools_web_client_id,
         redirect_uri: RedirectURI,
-      }
+      };
 
       try {
-        const { id_token, access_token }: any = await got.post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
-          form: Params,
-        }).json();
+        const { id_token: idToken, accessToken }: any = await got
+          .post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
+            form: OauthParams,
+          })
+          .json();
 
-        const { token }: any = await POST(API.Token, { token: `Bearer ${id_token}` });
+        const { token }: any = await POST(API.Token, {
+          token: `Bearer ${idToken}`,
+        });
 
         const environment = await getEnvironment();
-        const user_session = crypto.randomUUID();
+        const userSession = crypto.randomUUID();
 
-        const secrets: Record<ConfigField, string> = await got.post(`https://id.saleor.live/verify`, {
-          json: {
-            token: access_token,
-            environment
-          }
-        }).json();
+        const secrets: Record<ConfigField, string> = await got
+          .post('https://id.saleor.live/verify', {
+            json: {
+              token: accessToken,
+              environment,
+            },
+          })
+          .json();
 
         await Config.reset();
-        await Config.set("token", `Token ${token}`);
-        await Config.set("user_session", user_session);
+        await Config.set('token', `Token ${token}`);
+        await Config.set('user_session', userSession);
         for (const [name, value] of Object.entries(secrets)) {
           await Config.set(name as ConfigField, value);
         }
@@ -96,12 +102,12 @@ export const doLogin = async () => {
       emitter.emit('finish');
 
       return Response.Redirect(amplifyConfig.oauth.redirectSignIn);
-    })
-  ])
+    }),
+  ]);
   await app.start(3000);
 
   emitter.on('finish', async () => {
     await delay(1000);
     await app.stop();
   });
-}
+};

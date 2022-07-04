@@ -1,14 +1,14 @@
-import type { Arguments, CommandBuilder } from "yargs";
+import type { Arguments, CommandBuilder } from 'yargs';
 
 type Options = {
   name: string;
 };
 
-export const command = "init <name>";
-export const desc = "Initialize <name>";
+export const command = 'init <name>';
+export const desc = 'Initialize <name>';
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("name", { type: "string", demandOption: true });
+  _.positional('name', { type: 'string', demandOption: true });
 
 export const handler = (argv: Arguments<Options>): void => {
   const { name } = argv;

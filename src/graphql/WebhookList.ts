@@ -1,27 +1,28 @@
-export const WebhookList = /* GraphQL */`
-query WebhookList {
-  apps(first: 100) {
-    totalCount
-    edges {
-      node {
-        id
-        name
-        isActive
-        type
-        webhooks {
+/* eslint-disable import/prefer-default-export */
+export const WebhookList = /* GraphQL */ `
+  query WebhookList {
+    apps(first: 100) {
+      totalCount
+      edges {
+        node {
           id
           name
           isActive
-          targetUrl
-          syncEvents {
-            eventType
-          }
-          asyncEvents {
-            eventType
+          type
+          webhooks {
+            id
+            name
+            isActive
+            targetUrl
+            syncEvents {
+              eventType
+            }
+            asyncEvents {
+              eventType
+            }
           }
         }
       }
     }
   }
-}
-`
+`;
