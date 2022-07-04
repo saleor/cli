@@ -1,27 +1,26 @@
-import { CliUx } from "@oclif/core";
-import EventEmitter from "events";
-import got from "got";
-import { nanoid } from "nanoid";
-import { ServerApp } from "retes";
-import { Response } from "retes/response";
-import { GET } from "retes/route";
-import type { Arguments, CommandBuilder } from "yargs";
+import { CliUx } from '@oclif/core';
+import EventEmitter from 'events';
+import got from 'got';
+import { nanoid } from 'nanoid';
+import { ServerApp } from 'retes';
+import { Response } from 'retes/response';
+import { GET } from 'retes/route';
+import type { CommandBuilder } from 'yargs';
 
-import { Config } from "../../lib/config.js";
-import { checkPort } from "../../lib/detectPort.js";
-import { delay } from "../../lib/util.js";
-import { Options } from "../../types.js";
+import { Config } from '../../lib/config.js';
+import { checkPort } from '../../lib/detectPort.js';
+import { delay } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
-const RedirectURI = "http://localhost:3000/vercel/callback";
+const RedirectURI = 'http://localhost:3000/vercel/callback';
 
-export const command = "login";
-export const desc = "Add integration for Saleor CLI";
+export const command = 'login';
+export const desc = 'Add integration for Saleor CLI';
 
 export const builder: CommandBuilder = (_) => _;
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async () => {
   await checkPort(3000);
 
   const generatedState = nanoid();
@@ -38,11 +37,11 @@ export const handler = async (argv: Arguments<Options>) => {
   cli.open(url);
 
   const app = new ServerApp([
-    GET("/vercel/callback", async ({ params }) => {
+    GET('/vercel/callback', async ({ params }) => {
       const { state, code } = params;
 
       if (state !== generatedState) {
-        return Response.BadRequest("Wrong state");
+        return Response.BadRequest('Wrong state');
       }
 
       const Params = {
@@ -54,28 +53,28 @@ export const handler = async (argv: Arguments<Options>) => {
 
       try {
         const data: any = await got
-          .post("https://api.vercel.com/v2/oauth/access_token", {
+          .post('https://api.vercel.com/v2/oauth/access_token', {
             form: Params,
           })
           .json();
 
-        const { access_token, team_id } = data;
+        const { access_token: accessToken, team_id: teamId } = data;
 
-        await Config.set("vercel_token", `Bearer ${access_token}`);
-        await Config.set("vercel_team_id", team_id);
+        await Config.set('vercel_token', `Bearer ${accessToken}`);
+        await Config.set('vercel_team_id', teamId);
       } catch (error: any) {
         console.log(error.message);
       }
 
       // spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
-      emitter.emit("finish");
+      emitter.emit('finish');
 
-      return Response.Redirect("https://cloud.saleor.io");
+      return Response.Redirect('https://cloud.saleor.io');
     }),
   ]);
   await app.start(3000);
 
-  emitter.on("finish", async () => {
+  emitter.on('finish', async () => {
     await delay(1500);
     await app.stop();
   });

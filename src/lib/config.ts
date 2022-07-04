@@ -1,29 +1,29 @@
-import fs from "fs-extra";
-import os from "os";
-import path from "path";
+import fs from 'fs-extra';
+import os from 'os';
+import path from 'path';
 
-const DefaultConfigFile = path.join(os.homedir(), ".config", "saleor.json");
+const DefaultConfigFile = path.join(os.homedir(), '.config', 'saleor.json');
 
 export type ConfigField =
-  | "token"
-  | "user_session"
-  | "id_token"
-  | "access_token"
-  | "refresh_token"
-  | "organization_slug"
-  | "organization_name"
-  | "environment_id"
-  | "vercel_token"
-  | "vercel_team_id"
-  | "telemetry"
-  | "saleor_env"
-  | "TunnelServerSecret"
-  | "VercelClientID"
-  | "VercelClientSecret"
-  | "SentryDSN"
-  | "GithubClientID"
-  | "GithubClientSecret"
-  | "github_token";
+  | 'token'
+  | 'user_session'
+  | 'id_token'
+  | 'access_token'
+  | 'refresh_token'
+  | 'organization_slug'
+  | 'organization_name'
+  | 'environment_id'
+  | 'vercel_token'
+  | 'vercel_team_id'
+  | 'telemetry'
+  | 'saleor_env'
+  | 'TunnelServerSecret'
+  | 'VercelClientID'
+  | 'VercelClientSecret'
+  | 'SentryDSN'
+  | 'GithubClientID'
+  | 'GithubClientSecret'
+  | 'github_token';
 
 type ConfigProps = Record<ConfigField, string>;
 
@@ -62,10 +62,10 @@ const getBearerHeader = async (): Promise<Record<string, string>> => {
   const { token } = await get();
 
   if (token) {
-    return { "Authorization-Bearer": token.split(" ").slice(-1)[0] };
+    return { 'Authorization-Bearer': token.split(' ').slice(-1)[0] };
   }
 
-  throw new Error("\nYou are not logged in\n");
+  throw new Error('\nYou are not logged in\n');
 };
 
 export const Config = { get, set, reset, remove, getBearerHeader };

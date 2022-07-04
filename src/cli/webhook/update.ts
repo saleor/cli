@@ -1,17 +1,17 @@
-import Enquirer from "enquirer";
-import got from "got";
-import ora from "ora";
-import { Arguments } from "yargs";
+import Enquirer from 'enquirer';
+import got from 'got';
+import ora from 'ora';
+import { Arguments } from 'yargs';
 
-import { doWebhookUpdate } from "../../graphql/doWebhookUpdate.js";
-import { WebhookList } from "../../graphql/WebhookList.js";
-import { Config } from "../../lib/config.js";
-import { API, GET } from "../../lib/index.js";
-import { getAppsFromResult } from "../../lib/util.js";
-import { Options } from "../../types.js";
+import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
+import { WebhookList } from '../../graphql/WebhookList.js';
+import { Config } from '../../lib/config.js';
+import { API, GET } from '../../lib/index.js';
+import { getAppsFromResult } from '../../lib/util.js';
+import { Options } from '../../types.js';
 
-export const command = "update";
-export const desc = "Update webhooks for an environment";
+export const command = 'update';
+export const desc = 'Update webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
   const { domain } = (await GET(API.Environment, argv)) as any;
@@ -34,22 +34,22 @@ export const updateWebhook = async (domain: string) => {
   const apps = getAppsFromResult(data);
 
   const { updateAll } = await Enquirer.prompt<{ updateAll: string }>({
-    type: "confirm",
-    name: "updateAll",
-    message: "Would you like to replace domain for all webhooks targetUrl",
+    type: 'confirm',
+    name: 'updateAll',
+    message: 'Would you like to replace domain for all webhooks targetUrl',
   });
 
   if (updateAll) {
     const { webhooksDomain } = await Enquirer.prompt<{
       webhooksDomain: string;
     }>({
-      type: "input",
-      name: "webhooksDomain",
-      message: "Domain",
-      initial: "http://localhost:3000",
+      type: 'input',
+      name: 'webhooksDomain',
+      message: 'Domain',
+      initial: 'http://localhost:3000',
     });
 
-    const spinner = ora("Updating...").start();
+    const spinner = ora('Updating...').start();
 
     for (const {
       node: { webhooks },
@@ -61,7 +61,7 @@ export const updateWebhook = async (domain: string) => {
       }
     }
 
-    spinner.succeed("Yay! Webhooks updated");
+    spinner.succeed('Yay! Webhooks updated');
   } else {
     for (const {
       node: { webhooks, name: appName },
@@ -70,15 +70,15 @@ export const updateWebhook = async (domain: string) => {
         const { newTargetUrl } = await Enquirer.prompt<{
           newTargetUrl: string;
         }>({
-          type: "input",
-          name: "newTargetUrl",
+          type: 'input',
+          name: 'newTargetUrl',
           message: `App: ${appName}, webhook: ${name} - ${targetUrl}`,
           initial: targetUrl,
         });
 
-        const spinner = ora("Updating...").start();
+        const spinner = ora('Updating...').start();
         await runUpdateWebhook(headers, gqlUrl, id, newTargetUrl);
-        spinner.succeed("Updated");
+        spinner.succeed('Updated');
       }
     }
   }
@@ -106,6 +106,6 @@ const runUpdateWebhook = async (
     .json();
 
   if (errors) {
-    throw Error("cannot auth");
+    throw Error('cannot auth');
   }
 };

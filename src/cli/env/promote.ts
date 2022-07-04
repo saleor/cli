@@ -1,21 +1,21 @@
-import type { Arguments, CommandBuilder } from "yargs";
+import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET, PUT } from "../../lib/index.js";
-import { promptCompatibleVersion, showResult } from "../../lib/util.js";
-import { useEnvironment } from "../../middleware/index.js";
-import { Options } from "../../types.js";
+import { API, GET, PUT } from '../../lib/index.js';
+import { promptCompatibleVersion, showResult } from '../../lib/util.js';
+import { useEnvironment } from '../../middleware/index.js';
+import { Options } from '../../types.js';
 
-export const command = "promote [key|environment]";
-export const desc = "Promote environment to production";
+export const command = 'promote [key|environment]';
+export const desc = 'Promote environment to production';
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("key", {
-    type: "string",
+  _.positional('key', {
+    type: 'string',
     demandOption: false,
-    desc: "key of the environment",
-  }).option("saleor", {
-    type: "string",
-    desc: "specify the Saleor version",
+    desc: 'key of the environment',
+  }).option('saleor', {
+    type: 'string',
+    desc: 'specify the Saleor version',
   });
 
 export const handler = async (argv: Arguments<Options>) => {
@@ -32,14 +32,16 @@ const getService = async (argv: Arguments<Options>) => {
   }
 
   const env = (await GET(API.Environment, argv)) as any;
-  return await promptCompatibleVersion(
+  const data = await promptCompatibleVersion(
     {
       ...argv,
       region: env.service.region,
       serviceName: `?compatible_with=${env.service.version}`,
     },
-    "PRODUCTION"
+    'PRODUCTION'
   );
+
+  return data;
 };
 
 export const middlewares = [useEnvironment];

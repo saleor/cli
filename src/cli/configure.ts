@@ -1,24 +1,24 @@
-import { CliUx } from "@oclif/core";
-import chalk from "chalk";
-import Enquirer from "enquirer";
-import type { Arguments, CommandBuilder } from "yargs";
+import { CliUx } from '@oclif/core';
+import chalk from 'chalk';
+import Enquirer from 'enquirer';
+import type { Arguments, CommandBuilder } from 'yargs';
 
-import { Config } from "../lib/config.js";
-import { API, GET } from "../lib/index.js";
-import { promptEnvironment, promptOrganization } from "../lib/util.js";
-import { Options } from "../types.js";
+import { Config } from '../lib/config.js';
+import { API, GET } from '../lib/index.js';
+import { promptEnvironment, promptOrganization } from '../lib/util.js';
+import { Options } from '../types.js';
 
 const { ux: cli } = CliUx;
 
-export const command = "configure [token]";
-export const desc = "Configure Saleor CLI";
+export const command = 'configure [token]';
+export const desc = 'Configure Saleor CLI';
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("token", { type: "string", demandOption: false }).option(
-    "force",
+  _.positional('token', { type: 'string', demandOption: false }).option(
+    'force',
     {
-      type: "boolean",
-      desc: "skip additional prompts",
+      type: 'boolean',
+      desc: 'skip additional prompts',
     }
   );
 
@@ -28,10 +28,10 @@ export const handler = async (argv: Arguments<Options>) => {
 
   console.log(`
 Saleor Telemetry is ${chalk.underline(
-    "completely anonymous and optional"
+    'completely anonymous and optional'
   )} information about general usage.
 You may opt-out at any time (check 'saleor telemetry').
-Learn more: ${chalk.gray("https://saleor.io/")}${chalk.blueBright("telemetry")}
+Learn more: ${chalk.gray('https://saleor.io/')}${chalk.blueBright('telemetry')}
   `);
 
   if (force) {
@@ -39,15 +39,15 @@ Learn more: ${chalk.gray("https://saleor.io/")}${chalk.blueBright("telemetry")}
   }
 
   const { telemetry } = (await Enquirer.prompt({
-    type: "confirm",
-    name: "telemetry",
-    initial: "yes",
-    format: (value) => chalk.cyan(value ? "yes" : "no"),
-    message: "Are you OK with leaving telemetry enabled?",
+    type: 'confirm',
+    name: 'telemetry',
+    initial: 'yes',
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    message: 'Are you OK with leaving telemetry enabled?',
   })) as { telemetry: boolean };
 
   if (!telemetry) {
-    await Config.set("telemetry", "false");
+    await Config.set('telemetry', 'false');
   }
 
   await chooseOrganization(legitToken);
@@ -55,7 +55,7 @@ Learn more: ${chalk.gray("https://saleor.io/")}${chalk.blueBright("telemetry")}
 
 const validateToken = async (token: string) => {
   const user = (await GET(API.User, { token: `Token ${token}` })) as any;
-  console.log(`${chalk.green("Success")}. Logged as ${user.email}\n`);
+  console.log(`${chalk.green('Success')}. Logged as ${user.email}\n`);
 };
 
 const chooseOrganization = async (token: string | undefined) => {
@@ -63,11 +63,11 @@ const chooseOrganization = async (token: string | undefined) => {
 
   if (organizations.length) {
     const { orgSetup } = (await Enquirer.prompt({
-      type: "confirm",
-      name: "orgSetup",
-      initial: "yes",
-      format: (value) => chalk.cyan(value ? "yes" : "no"),
-      message: "Would you like to choose the default organization?",
+      type: 'confirm',
+      name: 'orgSetup',
+      initial: 'yes',
+      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+      message: 'Would you like to choose the default organization?',
     })) as { orgSetup: boolean };
 
     if (orgSetup) {
@@ -88,11 +88,11 @@ const chooseEnv = async (
 
   if (envs.length) {
     const { envSetup } = (await Enquirer.prompt({
-      type: "confirm",
-      name: "envSetup",
-      initial: "yes",
-      format: (value) => chalk.cyan(value ? "yes" : "no"),
-      message: "Would you like to choose the default environment",
+      type: 'confirm',
+      name: 'envSetup',
+      initial: 'yes',
+      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+      message: 'Would you like to choose the default environment',
     })) as { envSetup: boolean };
 
     if (envSetup) {
@@ -100,18 +100,18 @@ const chooseEnv = async (
         token,
         organization: organizationSlug,
       });
-      await Config.set("environment_id", env.value);
+      await Config.set('environment_id', env.value);
     }
   }
 };
 
 export const configure = async (providedToken: string | undefined) => {
   let token = providedToken;
-  while (!token) token = await cli.prompt("Access Token", { type: "mask" });
+  while (!token) token = await cli.prompt('Access Token', { type: 'mask' });
 
   await validateToken(token);
   Config.reset();
   const header = `Token ${token}`;
-  await Config.set("token", header);
+  await Config.set('token', header);
   return header;
 };

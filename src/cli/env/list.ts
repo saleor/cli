@@ -1,32 +1,32 @@
-import { CliUx } from "@oclif/core";
-import chalk from "chalk";
-import { Arguments, CommandBuilder } from "yargs";
+import { CliUx } from '@oclif/core';
+import chalk from 'chalk';
+import { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET } from "../../lib/index.js";
-import { formatDateTime, verifyResultLength } from "../../lib/util.js";
+import { API, GET } from '../../lib/index.js';
+import { formatDateTime, verifyResultLength } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
-export const command = "list";
-export const desc = "List environments";
+export const command = 'list';
+export const desc = 'List environments';
 
 export const builder: CommandBuilder = (_) =>
-  _.option("extended", {
-    type: "boolean",
+  _.option('extended', {
+    type: 'boolean',
     default: false,
-    desc: "show extended table",
+    desc: 'show extended table',
   });
 
 export const handler = async (argv: Arguments) => {
   const { extended } = argv;
   const result = (await GET(API.Environment, {
     ...argv,
-    environment: "",
+    environment: '',
   })) as any[];
 
   // const production = result.filter(({service}) => service.service_type === "SANDBOX")
 
-  verifyResultLength(result, "environment");
+  verifyResultLength(result, 'environment');
 
   cli.table(
     result,
@@ -39,7 +39,7 @@ export const handler = async (argv: Arguments) => {
       project: { minWidth: 2, get: (_) => _.project.name },
       service: {
         minWidth: 2,
-        header: "Ver.",
+        header: 'Ver.',
         get: (_) => chalk.yellow(_.service.version),
       },
       key: { minWidth: 2 },

@@ -1,22 +1,22 @@
-import Enquirer from "enquirer";
-import got from "got";
-import { print } from "graphql";
-import { Arguments } from "yargs";
+import Enquirer from 'enquirer';
+import got from 'got';
+import { print } from 'graphql';
+import { Arguments } from 'yargs';
 
-import { AppUpdate, GetPermissionEnum } from "../../generated/graphql.js";
-import { SaleorAppList } from "../../graphql/SaleorAppList.js";
-import { Config } from "../../lib/config.js";
-import { API, GET } from "../../lib/index.js";
-import { getAppsFromResult, printContext } from "../../lib/util.js";
+import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
+import { SaleorAppList } from '../../graphql/SaleorAppList.js';
+import { Config } from '../../lib/config.js';
+import { API, GET } from '../../lib/index.js';
+import { getAppsFromResult, printContext } from '../../lib/util.js';
 import {
   useEnvironment,
   useOrganization,
   useToken,
-} from "../../middleware/index.js";
-import { Options } from "../../types.js";
+} from '../../middleware/index.js';
+import { Options } from '../../types.js';
 
-export const command = "permission";
-export const desc = "Add or remove permission for a Saleor App";
+export const command = 'permission';
+export const desc = 'Add or remove permission for a Saleor App';
 
 export const handler = async (argv: Arguments<Options>) => {
   const { organization, environment } = argv;
@@ -47,10 +47,10 @@ export const handler = async (argv: Arguments<Options>) => {
   }));
 
   const { app } = await Enquirer.prompt<{ app: string }>({
-    type: "autocomplete",
-    name: "app",
+    type: 'autocomplete',
+    name: 'app',
     choices,
-    message: "Select a Saleor App (start typing) ",
+    message: 'Select a Saleor App (start typing) ',
   });
 
   const {
@@ -82,12 +82,12 @@ export const handler = async (argv: Arguments<Options>) => {
   );
 
   const { permissions } = await Enquirer.prompt<{ permissions: string[] }>({
-    type: "multiselect",
-    name: "permissions",
+    type: 'multiselect',
+    name: 'permissions',
     muliple: true,
     choices: choices2,
     initial,
-    message: "Select one or more permissions (start typing) ",
+    message: 'Select one or more permissions (start typing) ',
   });
 
   await got
@@ -100,7 +100,7 @@ export const handler = async (argv: Arguments<Options>) => {
     })
     .json();
 
-  console.log("Permissions successfully updated.");
+  console.log('Permissions successfully updated.');
 };
 
 export const middlewares = [useToken, useOrganization, useEnvironment];

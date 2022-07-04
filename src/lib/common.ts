@@ -1,17 +1,17 @@
-import chalk from "chalk";
-import { spawn } from "child_process";
-import Enquirer from "enquirer";
-import fs from "fs-extra";
-import got from "got";
-import { print } from "graphql";
+import chalk from 'chalk';
+import { spawn } from 'child_process';
+import Enquirer from 'enquirer';
+import fs from 'fs-extra';
+import got from 'got';
+import { print } from 'graphql';
 
-import { AppDelete } from "../generated/graphql.js";
-import { AppInstall } from "../graphql/AppInstall.js";
-import { SaleorAppList } from "../graphql/SaleorAppList.js";
-import { Config } from "./config.js";
-import { isPortAvailable } from "./detectPort.js";
-import { API, GET } from "./index.js";
-import { NotSaleorAppDirectoryError, SaleorAppInstallError } from "./util.js";
+import { AppDelete } from '../generated/graphql.js';
+import { AppInstall } from '../graphql/AppInstall.js';
+import { SaleorAppList } from '../graphql/SaleorAppList.js';
+import { Config } from './config.js';
+import { isPortAvailable } from './detectPort.js';
+import { API, GET } from './index.js';
+import { NotSaleorAppDirectoryError, SaleorAppInstallError } from './util.js';
 
 interface Manifest {
   name: string;
@@ -46,13 +46,13 @@ export const doSaleorAppInstall = async (argv: any) => {
   const headers = await Config.getBearerHeader();
 
   if (!argv.manifestURL) {
-    console.log(chalk.green("  Configure your Saleor App"));
+    console.log(chalk.green('  Configure your Saleor App'));
   }
 
   const { manifestURL } = await Enquirer.prompt<{ manifestURL: string }>({
-    type: "input",
-    name: "manifestURL",
-    message: "Manifest URL",
+    type: 'input',
+    name: 'manifestURL',
+    message: 'Manifest URL',
     skip: !!argv.manifestURL,
     initial: argv.manifestURL,
   });
@@ -62,15 +62,15 @@ export const doSaleorAppInstall = async (argv: any) => {
     manifest = await got.get(manifestURL).json();
   } catch {
     console.log(
-      chalk.red("\n There was a problem while fetching provided manifest URL\n")
+      chalk.red('\n There was a problem while fetching provided manifest URL\n')
     );
     process.exit(1);
   }
 
   const { name } = await Enquirer.prompt<{ name: string }>({
-    type: "input",
-    name: "name",
-    message: "App name",
+    type: 'input',
+    name: 'name',
+    message: 'App name',
     skip: !!argv.appName,
     initial: argv.appName ?? manifest.name,
   });
@@ -124,7 +124,7 @@ export const run = async (
   options: Record<string, unknown>,
   log = false
 ) => {
-  const winSuffix = process.platform === "win32" ? ".cmd" : "";
+  const winSuffix = process.platform === 'win32' ? '.cmd' : '';
   const child = spawn(`${cmd}${winSuffix}`, params, options);
   for await (const data of child.stdout || []) {
     if (log) {
@@ -137,12 +137,12 @@ export const run = async (
 };
 
 export const verifyIsSaleorAppDirectory = async (argv: any) => {
-  const isTunnel = ["tunnel", "generate"].includes(argv._[1]);
+  const isTunnel = ['tunnel', 'generate'].includes(argv._[1]);
 
   // check if this is a Next.js app
-  const isNodeApp = await fs.pathExists("package.json");
-  const isNextApp = await fs.pathExists("next.config.js");
-  const hasDotEnvFile = await fs.pathExists(".env");
+  const isNodeApp = await fs.pathExists('package.json');
+  const isNextApp = await fs.pathExists('next.config.js');
+  const hasDotEnvFile = await fs.pathExists('.env');
 
   if (!isTunnel) {
     return {};

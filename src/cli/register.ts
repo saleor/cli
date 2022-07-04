@@ -1,23 +1,23 @@
-import { CliUx } from "@oclif/core";
-import { Amplify, Auth } from "aws-amplify";
-import chalk from "chalk";
-import Enquirer from "enquirer";
-import { Arguments, CommandBuilder } from "yargs";
+import { CliUx } from '@oclif/core';
+import { Amplify, Auth } from 'aws-amplify';
+import chalk from 'chalk';
+import Enquirer from 'enquirer';
+import { Arguments, CommandBuilder } from 'yargs';
 
-import { getAmplifyConfig } from "../lib/index.js";
-import { validateEmail } from "../lib/util.js";
-import { doLogin } from "./login.js";
+import { getAmplifyConfig } from '../lib/index.js';
+import { validateEmail } from '../lib/util.js';
+import { doLogin } from './login.js';
 
 const { ux: cli } = CliUx;
 
-export const command = "register";
-export const desc = "Create Saleor account";
+export const command = 'register';
+export const desc = 'Create Saleor account';
 
 export const builder: CommandBuilder = (_) =>
-  _.option("from-cli", {
-    type: "boolean",
+  _.option('from-cli', {
+    type: 'boolean',
     default: false,
-    desc: "specify sign up via CLI",
+    desc: 'specify sign up via CLI',
   });
 
 export const handler = async (argv: Arguments) => {
@@ -26,7 +26,7 @@ export const handler = async (argv: Arguments) => {
 
 export const doRegister = async (fromCli: boolean | undefined) => {
   if (!fromCli) {
-    cli.open("https://cloud.saleor.io/register");
+    cli.open('https://cloud.saleor.io/register');
     process.exit(0);
   }
 
@@ -37,52 +37,52 @@ export const doRegister = async (fromCli: boolean | undefined) => {
     password: string;
   }>([
     {
-      type: "input",
-      name: "email",
+      type: 'input',
+      name: 'email',
       required: true,
-      message: "Email address",
+      message: 'Email address',
       validate: (value) => validateEmail(value),
     },
     {
-      type: "input",
-      name: "firstName",
+      type: 'input',
+      name: 'firstName',
       required: true,
-      message: "First name",
+      message: 'First name',
     },
     {
-      type: "input",
-      name: "lastName",
+      type: 'input',
+      name: 'lastName',
       required: true,
-      message: "Last name",
+      message: 'Last name',
     },
     {
-      type: "password",
-      name: "password",
-      message: "Password",
+      type: 'password',
+      name: 'password',
+      message: 'Password',
       required: true,
     },
   ]);
 
   const confirms = await Enquirer.prompt<{ confirm: string; terms: boolean }>([
     {
-      type: "password",
-      name: "confirm",
-      message: "Confirm password",
+      type: 'password',
+      name: 'confirm',
+      message: 'Confirm password',
       validate: (value) => {
         if (value !== json.password) {
-          return chalk.red("Passwords must match");
+          return chalk.red('Passwords must match');
         }
 
         return true;
       },
     },
     {
-      type: "confirm",
-      name: "terms",
+      type: 'confirm',
+      name: 'terms',
       required: true,
-      format: (value) => chalk.cyan(value ? "yes" : "no"),
+      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
       message:
-        "I agree to Saleor Terms and Conditions - https://saleor.io/legal/terms",
+        'I agree to Saleor Terms and Conditions - https://saleor.io/legal/terms',
     },
   ]);
 
@@ -107,19 +107,19 @@ export const doRegister = async (fromCli: boolean | undefined) => {
   }
 
   console.log(
-    "\nSaleor Cloud account created. \nWe’ve sent you an email with verification code. Please provide it:\n"
+    '\nSaleor Cloud account created. \nWe’ve sent you an email with verification code. Please provide it:\n'
   );
 
   await Enquirer.prompt<{ code: string }>({
-    type: "input",
-    name: "code",
-    message: "Verfication code",
+    type: 'input',
+    name: 'code',
+    message: 'Verfication code',
     required: true,
     validate: (value) => validateCode(json.email, value),
   });
 
   console.log(
-    "\nSaleor Cloud account confirmed. You can now sign in and create organization\n"
+    '\nSaleor Cloud account confirmed. You can now sign in and create organization\n'
   );
 
   await doLogin();

@@ -1,23 +1,23 @@
-import boxen from "boxen";
-import chalk from "chalk";
-import crypto from "crypto";
-import got from "got";
-import { customAlphabet } from "nanoid";
-import ora from "ora";
-import { Arguments, CommandBuilder } from "yargs";
+import boxen from 'boxen';
+import chalk from 'chalk';
+import crypto from 'crypto';
+import got from 'got';
+import { customAlphabet } from 'nanoid';
+import ora from 'ora';
+import { Arguments, CommandBuilder } from 'yargs';
 
-import { SaleorAppList } from "../../graphql/SaleorAppList.js";
-import { doSaleorAppInstall } from "../../lib/common.js";
-import { Config } from "../../lib/config.js";
-import { API, GET } from "../../lib/index.js";
-import { delay } from "../../lib/util.js";
-import { Options } from "../../types.js";
-import { createAppToken } from "../app/token.js";
+import { SaleorAppList } from '../../graphql/SaleorAppList.js';
+import { doSaleorAppInstall } from '../../lib/common.js';
+import { Config } from '../../lib/config.js';
+import { API, GET } from '../../lib/index.js';
+import { delay } from '../../lib/util.js';
+import { Options } from '../../types.js';
+import { createAppToken } from '../app/token.js';
 
-export const command = "deploy [name]";
-export const desc = "Deploy `saleor-checkout` to Vercel";
+export const command = 'deploy [name]';
+export const desc = 'Deploy `saleor-checkout` to Vercel';
 
-const nanoid = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyz", 10);
+const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);
 
 export const builder: CommandBuilder = (_) => _;
 
@@ -26,7 +26,8 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
   const { domain } = (await GET(API.Environment, argv)) as any;
   const url = `https://${domain}/graphql/`;
 
-  const { vercel_token: vercelToken, vercel_team_id } = await Config.get();
+  const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =
+    await Config.get();
 
   if (!vercelToken) {
     // TODO vercel_team_id
@@ -53,16 +54,16 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     // CREATE SALEOR_APP_ID & SALEOR_APP_TOKEN variables in CHECKOUT APP
     const appVars = [
       {
-        type: "encrypted",
-        key: "SALEOR_APP_ID",
+        type: 'encrypted',
+        key: 'SALEOR_APP_ID',
         value: appId,
-        target: ["production", "preview", "development"],
+        target: ['production', 'preview', 'development'],
       },
       {
-        type: "encrypted",
-        key: "SALEOR_APP_TOKEN",
+        type: 'encrypted',
+        key: 'SALEOR_APP_TOKEN',
         value: authToken,
-        target: ["production", "preview", "development"],
+        target: ['production', 'preview', 'development'],
       },
     ];
     await createVercelEnv(vercelToken, appName, appVars);
@@ -76,7 +77,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
       vercelToken,
       appName,
       checkoutAppRedeploymentId,
-      "Redeploying"
+      'Redeploying'
     );
 
     // SETUP CHECKOUT CRA
@@ -110,8 +111,8 @@ ${chalk.blue(`NEXT_PUBLIC_CHECKOUT_URL=${checkoutURL}`)}
       boxen(summary, {
         padding: 1,
         margin: 1,
-        borderStyle: "round",
-        borderColor: "yellow",
+        borderStyle: 'round',
+        borderColor: 'yellow',
       })
     );
   }
@@ -120,12 +121,12 @@ ${chalk.blue(`NEXT_PUBLIC_CHECKOUT_URL=${checkoutURL}`)}
 };
 
 const createFork = async () => {
-  const { github_token } = await Config.get();
+  const { github_token: githubToken } = await Config.get();
 
   const { id, full_name: fullName } = await got
-    .post("https://api.github.com/repos/saleor/saleor-checkout/forks", {
+    .post('https://api.github.com/repos/saleor/saleor-checkout/forks', {
       headers: {
-        Authorization: github_token,
+        Authorization: githubToken,
       },
     })
     .json();
@@ -146,7 +147,7 @@ const doCheckoutAppInstall = async (
     `Installing ${appName} in the ${environment} environment...`
   ).start();
   const manifestURL = `${apiURL}/manifest`;
-  await doSaleorAppInstall({ ...argv, manifestURL, appName: "Checkout" });
+  await doSaleorAppInstall({ ...argv, manifestURL, appName: 'Checkout' });
   spinner.succeed(`Installed ${appName} in the ${environment} environment`);
   await delay(2000);
 };
@@ -161,7 +162,7 @@ const createCheckout = async (
   const { fullName } = await createFork();
 
   const response = await got
-    .post("https://api.vercel.com/v8/projects", {
+    .post('https://api.vercel.com/v8/projects', {
       headers: {
         Authorization: vercelToken,
       },
@@ -169,39 +170,39 @@ const createCheckout = async (
         name,
         environmentVariables: [
           {
-            type: "encrypted",
-            key: "REACT_APP_CHECKOUT_APP_URL",
+            type: 'encrypted',
+            key: 'REACT_APP_CHECKOUT_APP_URL',
             value: checkoutAppUrl,
-            target: ["production", "preview", "development"],
+            target: ['production', 'preview', 'development'],
           },
           {
-            type: "encrypted",
-            key: "CHECKOUT_APP_URL",
+            type: 'encrypted',
+            key: 'CHECKOUT_APP_URL',
             value: checkoutAppUrl,
-            target: ["production", "preview", "development"],
+            target: ['production', 'preview', 'development'],
           },
           {
-            type: "encrypted",
-            key: "SALEOR_API_URL",
+            type: 'encrypted',
+            key: 'SALEOR_API_URL',
             value: url,
-            target: ["production", "preview", "development"],
+            target: ['production', 'preview', 'development'],
           },
           {
-            type: "encrypted",
-            key: "REACT_APP_SALEOR_API_URL",
+            type: 'encrypted',
+            key: 'REACT_APP_SALEOR_API_URL',
             value: url,
-            target: ["production", "preview", "development"],
+            target: ['production', 'preview', 'development'],
           },
         ],
         gitRepository: {
-          type: "github",
+          type: 'github',
           repo: fullName,
           sourceless: true,
         },
-        framework: "create-react-app",
+        framework: 'create-react-app',
         devCommand: null,
         rootDirectory: null,
-        outputDirectory: "apps/checkout/build",
+        outputDirectory: 'apps/checkout/build',
         buildCommand: 'pnpm run build --scope="checkout-app"',
         installCommand: null,
       },
@@ -221,10 +222,10 @@ const createCheckoutApp = async (
   const spinner = ora(`Creating ${name}...`).start();
   const { fullName } = await createFork();
 
-  const secret = crypto.randomBytes(256).toString("hex");
+  const secret = crypto.randomBytes(256).toString('hex');
 
   const response = await got
-    .post("https://api.vercel.com/v8/projects", {
+    .post('https://api.vercel.com/v8/projects', {
       headers: {
         Authorization: vercelToken,
       },
@@ -232,34 +233,34 @@ const createCheckoutApp = async (
         name,
         environmentVariables: [
           {
-            type: "encrypted",
-            key: "SETTINGS_ENCRYPTION_SECRET",
+            type: 'encrypted',
+            key: 'SETTINGS_ENCRYPTION_SECRET',
             value: secret,
-            target: ["production", "preview", "development"],
+            target: ['production', 'preview', 'development'],
           },
           {
-            type: "encrypted",
-            key: "SALEOR_API_URL",
+            type: 'encrypted',
+            key: 'SALEOR_API_URL',
             value: url,
-            target: ["production", "preview", "development"],
+            target: ['production', 'preview', 'development'],
           },
           {
-            type: "encrypted",
-            key: "NEXT_PUBLIC_SALEOR_API_URL",
+            type: 'encrypted',
+            key: 'NEXT_PUBLIC_SALEOR_API_URL',
             value: url,
-            target: ["production", "preview", "development"],
+            target: ['production', 'preview', 'development'],
           },
         ],
         gitRepository: {
-          type: "github",
+          type: 'github',
           repo: fullName,
           sourceless: true,
         },
-        framework: "nextjs",
+        framework: 'nextjs',
         devCommand: null,
-        rootDirectory: "apps/checkout-app",
+        rootDirectory: 'apps/checkout-app',
         outputDirectory: null,
-        buildCommand: "pnpm run build",
+        buildCommand: 'pnpm run build',
         installCommand: null,
       },
     })
@@ -288,7 +289,7 @@ const getAppId = async (url: string) => {
     .json();
 
   if (!edges) {
-    throw console.error("No apps installed");
+    throw console.error('No apps installed');
   }
 
   const [
@@ -303,8 +304,8 @@ const getAppId = async (url: string) => {
 const getDeployment = async (
   vercelToken: string,
   deploymentId: string
-): Promise<any> =>
-  await got
+): Promise<any> => {
+  const data = await got
     .get(`https://api.vercel.com/v13/deployments/${deploymentId}`, {
       headers: {
         Authorization: vercelToken,
@@ -312,11 +313,14 @@ const getDeployment = async (
     })
     .json();
 
+  return data;
+};
+
 const verifyDeployment = async (
   vercelToken: string,
   name: string,
   deploymentId: string,
-  msg = "Deploying"
+  msg = 'Deploying'
 ) => {
   const spinner = ora(`${msg} ${name}...`).start();
   let { readyState } = await getDeployment(vercelToken, deploymentId);
@@ -333,7 +337,7 @@ const verifyDeployment = async (
 };
 
 const deploymentSucceeded = (readyState: string) => {
-  if (readyState === "READY") {
+  if (readyState === 'READY') {
     return false;
   }
 
@@ -341,7 +345,7 @@ const deploymentSucceeded = (readyState: string) => {
 };
 
 const deploymentFailed = (readyState: string) => {
-  if (["ERROR", "CANCELED"].includes(readyState)) {
+  if (['ERROR', 'CANCELED'].includes(readyState)) {
     console.log(`\nDeployment status: ${readyState}`);
     process.exit(1);
   }
@@ -349,19 +353,19 @@ const deploymentFailed = (readyState: string) => {
 
 const deployVercelProject = async (vercelToken: string, name: string) => {
   const { id } = await got
-    .post("https://api.vercel.com/v13/deployments", {
+    .post('https://api.vercel.com/v13/deployments', {
       headers: {
         Authorization: vercelToken,
       },
       json: {
         gitSource: {
-          type: "github",
-          ref: "main",
+          type: 'github',
+          ref: 'main',
           repoId: 450152242, // saleor
         },
         name,
-        target: "production",
-        source: "import",
+        target: 'production',
+        source: 'import',
       },
     })
     .json();
@@ -373,8 +377,8 @@ const createVercelEnv = async (
   vercelToken: string,
   name: string,
   json: Record<string, unknown>[] | Record<string, unknown>
-) =>
-  await got
+) => {
+  const data = await got
     .post(`https://api.vercel.com/v9/projects/${name}/env`, {
       headers: {
         Authorization: vercelToken,
@@ -382,3 +386,6 @@ const createVercelEnv = async (
       json,
     })
     .json();
+
+  return data;
+};

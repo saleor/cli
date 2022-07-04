@@ -1,18 +1,18 @@
-import type { Arguments, CommandBuilder } from "yargs";
+import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET, PUT } from "../../lib/index.js";
-import { promptCompatibleVersion, waitForTask } from "../../lib/util.js";
-import { useEnvironment } from "../../middleware/index.js";
-import { Options } from "../../types.js";
+import { API, GET, PUT } from '../../lib/index.js';
+import { promptCompatibleVersion, waitForTask } from '../../lib/util.js';
+import { useEnvironment } from '../../middleware/index.js';
+import { Options } from '../../types.js';
 
-export const command = "upgrade [key|environment]";
-export const desc = "Upgrade a Saleor version in a specific environment";
+export const command = 'upgrade [key|environment]';
+export const desc = 'Upgrade a Saleor version in a specific environment';
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("key", {
-    type: "string",
+  _.positional('key', {
+    type: 'string',
     demandOption: false,
-    desc: "key of the environment",
+    desc: 'key of the environment',
   });
 
 export const handler = async (argv: Arguments<Options>) => {
@@ -29,8 +29,8 @@ export const handler = async (argv: Arguments<Options>) => {
   await waitForTask(
     argv,
     result.task_id,
-    "Upgrading",
-    "Yay! Upgrade finished!"
+    'Upgrading',
+    'Yay! Upgrade finished!'
   );
 };
 

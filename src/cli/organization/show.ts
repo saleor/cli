@@ -1,12 +1,12 @@
-import type { Arguments, CommandBuilder } from "yargs";
+import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET } from "../../lib/index.js";
-import { showResult } from "../../lib/util.js";
-import { useOrganization } from "../../middleware/index.js";
-import { Options } from "../../types.js";
+import { API, GET } from '../../lib/index.js';
+import { showResult } from '../../lib/util.js';
+import { useOrganization } from '../../middleware/index.js';
+import { Options } from '../../types.js';
 
-export const command = "show [slug|organization]";
-export const desc = "Show a specific organization";
+export const command = 'show [slug|organization]';
+export const desc = 'Show a specific organization';
 
 export const builder: CommandBuilder = (_) => _;
 

@@ -4,8 +4,8 @@ import {
   useOrganization,
   useToken,
   useVercel,
-} from "../../middleware/index.js";
-import * as deploy from "./deploy.js";
+} from '../../middleware/index.js';
+import * as deploy from './deploy.js';
 
 export default function (_: any) {
   _.command([deploy])
@@ -16,5 +16,5 @@ export default function (_: any) {
       useOrganization,
       useEnvironment,
     ])
-    .demandCommand(1, "You need at least one command before moving on");
+    .demandCommand(1, 'You need at least one command before moving on');
 }

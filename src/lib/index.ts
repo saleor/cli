@@ -1,28 +1,28 @@
-import Debug from "debug";
-import type { CancelableRequest } from "got";
-import got from "got";
+import Debug from 'debug';
+import type { CancelableRequest } from 'got';
+import got from 'got';
 
-import amplifyProdConfig from "../aws-exports-prod.js";
-import amplifyStagingConfig from "../aws-exports-staging.js"; // esl
-import { ConfigMap, Options } from "../types.js";
-import { Config } from "./config.js";
+import amplifyProdConfig from '../aws-exports-prod.js';
+import amplifyStagingConfig from '../aws-exports-staging.js'; // esl
+import { ConfigMap, Options } from '../types.js';
+import { Config } from './config.js';
 
-const debug = Debug("lib:index");
+const debug = Debug('lib:index');
 
 const configs: ConfigMap = {
   staging: {
-    cloudApiUrl: "https://staging-cloud.saleor.io/api",
+    cloudApiUrl: 'https://staging-cloud.saleor.io/api',
     amplifyConfig: amplifyStagingConfig,
   },
   production: {
-    cloudApiUrl: "https://cloud.saleor.io/api",
+    cloudApiUrl: 'https://cloud.saleor.io/api',
     amplifyConfig: amplifyProdConfig,
   },
 };
 
 export const getEnvironment = async () => {
   const { saleor_env: saleorEnv } = await Config.get();
-  return process.env.SALEOR_CLI_ENV || saleorEnv || "production";
+  return process.env.SALEOR_CLI_ENV || saleorEnv || 'production';
 };
 
 export const getAmplifyConfig = async () => {
@@ -41,7 +41,7 @@ const handleAuthAndConfig =
     const { cloudApiUrl } = configs[environment];
 
     debug(path);
-    debug("cli options", argv);
+    debug('cli options', argv);
 
     const opts = {
       ...options,
@@ -52,7 +52,7 @@ const handleAuthAndConfig =
           }
         : {},
     };
-    debug("`got` options", opts);
+    debug('`got` options', opts);
 
     return func(path, opts) as CancelableRequest;
   };
@@ -72,14 +72,14 @@ export const PUT = handleAuthAndConfig(doPUTRequest);
 export const DELETE = handleAuthAndConfig(doDELETERequest);
 
 export const API: Record<string, DefaultURLPath> = {
-  User: () => "user",
-  Organization: (_) => `organizations/${_.organization || ""}`,
+  User: () => 'user',
+  Organization: (_) => `organizations/${_.organization || ''}`,
   OrganizationPermissions: (_) => `organizations/${_.organization}/permissions`,
   OrganizationBackups: (_) => `organizations/${_.organization}/backups`,
   UpgradeEnvironment: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/upgrade`,
   Environment: (_) =>
-    `organizations/${_.organization}/environments/${_.environment || ""}`,
+    `organizations/${_.organization}/environments/${_.environment || ''}`,
   PopulateDatabase: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/populate-database`,
   ClearDatabase: (_) =>
@@ -91,19 +91,19 @@ export const API: Record<string, DefaultURLPath> = {
   TaskStatus: (_) => `service/task-status/${_.task}`,
   Backup: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/backups/${
-      _.backup || ""
+      _.backup || ''
     }`,
   Restore: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/restore`,
-  Project: (_) => `organizations/${_.organization}/projects/${_.project || ""}`,
+  Project: (_) => `organizations/${_.organization}/projects/${_.project || ''}`,
   PaymentMethod: (_) =>
-    `organizations/${_.organization}/payment-methods/${_.paymentMethod || ""}`,
-  Region: (_) => `regions/${_.region || ""}`,
-  Services: (_) => `regions/${_.region}/services/${_.serviceName || ""}`,
-  Plan: (_) => `plans/${_.plan || ""}`,
-  Token: () => "tokens",
+    `organizations/${_.organization}/payment-methods/${_.paymentMethod || ''}`,
+  Region: (_) => `regions/${_.region || ''}`,
+  Services: (_) => `regions/${_.region}/services/${_.serviceName || ''}`,
+  Plan: (_) => `plans/${_.plan || ''}`,
+  Token: () => 'tokens',
 };
 
-export const Region = "us-east-1";
-export type Plan = "startup" | "pro" | "dev" | "enterprise" | "staging";
-export const DefaultSaleorEndpoint = "https://vercel.saleor.cloud/graphql/";
+export const Region = 'us-east-1';
+export type Plan = 'startup' | 'pro' | 'dev' | 'enterprise' | 'staging';
+export const DefaultSaleorEndpoint = 'https://vercel.saleor.cloud/graphql/';

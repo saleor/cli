@@ -1,11 +1,11 @@
-import type { Arguments, CommandBuilder } from "yargs";
+import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET } from "../../lib/index.js";
-import { showResult } from "../../lib/util.js";
-import { Options } from "../../types.js";
+import { API, GET } from '../../lib/index.js';
+import { showResult } from '../../lib/util.js';
+import { Options } from '../../types.js';
 
-export const command = "show [backup]";
-export const desc = "Show a specific backup";
+export const command = 'show [backup]';
+export const desc = 'Show a specific backup';
 
 export const builder: CommandBuilder = (_) => _;
 

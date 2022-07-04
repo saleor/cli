@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
-import { exec as execRegular } from "child_process";
-import fs from "fs-extra";
-import got from "got";
-import path from "path";
-import stream from "stream";
-import { fileURLToPath } from "url";
-import { promisify } from "util";
+import { exec as execRegular } from 'child_process';
+import fs from 'fs-extra';
+import got from 'got';
+import path from 'path';
+import stream from 'stream';
+import { fileURLToPath } from 'url';
+import { promisify } from 'util';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const exec = promisify(execRegular);
 const pipeline = promisify(stream.pipeline);
 
-const SupportedArch = ["darwin-arm64", "darwin-x64", "linux-x64"];
+const SupportedArch = ['darwin-arm64', 'darwin-x64', 'linux-x64'];
 
 async function install() {
   const target = `${process.platform}-${process.arch}`;
@@ -23,14 +23,14 @@ async function install() {
     return;
   }
 
-  const binaryDir = path.join(__dirname, "..", "..", "vendor");
+  const binaryDir = path.join(__dirname, '..', '..', 'vendor');
   await fs.ensureDir(binaryDir);
 
   const url = `https://binary.saleor.live/tunnel-${process.platform}-${process.arch}`;
 
   const downloadStream = got.stream(url);
   const fileWriterStream = fs.createWriteStream(
-    path.join(binaryDir, "tunnel"),
+    path.join(binaryDir, 'tunnel'),
     { mode: 0o755 }
   );
 
@@ -49,9 +49,9 @@ async function install() {
     console.error(`Something went wrong. ${error}`);
   }
 
-  const { stdout } = await exec("./vendor/tunnel --version");
+  const { stdout } = await exec('./vendor/tunnel --version');
   if (stdout.length > 0) {
-    console.log("OK");
+    console.log('OK');
   }
 }
 

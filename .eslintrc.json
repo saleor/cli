@@ -8,7 +8,7 @@
   "ignorePatterns": ["pnpm-lock.yaml"],
   "plugins": ["simple-import-sort", "@typescript-eslint"],
   "rules": {
-    "quotes": ["error", "double"],
+    "quotes": ["error", "single"],
     "import/extensions": "off", // file extension not required when importing
     "no-restricted-syntax": "off",
     "no-underscore-dangle": "off",
@@ -33,6 +33,7 @@
     "no-restricted-exports": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "no-use-before-define": "off",
+    "func-names": "off", // FIXME
     "@typescript-eslint/no-explicit-any": "off" // FIXME
   }
 }

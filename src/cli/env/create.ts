@@ -1,23 +1,23 @@
-import boxen from "boxen";
-import chalk from "chalk";
-import Enquirer from "enquirer";
-import { HTTPError, Response } from "got";
-import slugify from "slugify";
-import { Arguments, CommandBuilder } from "yargs";
+import boxen from 'boxen';
+import chalk from 'chalk';
+import Enquirer from 'enquirer';
+import { HTTPError, Response } from 'got';
+import slugify from 'slugify';
+import { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET, POST } from "../../lib/index.js";
+import { API, GET, POST } from '../../lib/index.js';
 import {
   deploy,
   validateEmail,
   validateLength,
   waitForTask,
-} from "../../lib/util.js";
+} from '../../lib/util.js';
 import {
   interactiveDatabaseTemplate,
   interactiveProject,
   interactiveSaleorVersion,
-} from "../../middleware/index.js";
-import { updateWebhook } from "../webhook/update.js";
+} from '../../middleware/index.js';
+import { updateWebhook } from '../webhook/update.js';
 
 interface Options {
   name: string;
@@ -33,51 +33,51 @@ interface Options {
   skipRestrict: boolean;
 }
 
-export const command = "create [name]";
-export const desc = "Create a new environment";
+export const command = 'create [name]';
+export const desc = 'Create a new environment';
 
 export const builder: CommandBuilder = (_) =>
-  _.positional("name", {
-    type: "string",
+  _.positional('name', {
+    type: 'string',
     demandOption: false,
-    desc: "name for the new environment",
+    desc: 'name for the new environment',
   })
-    .option("project", {
-      type: "string",
+    .option('project', {
+      type: 'string',
       demandOption: false,
-      desc: "create this environment in this project",
+      desc: 'create this environment in this project',
     })
-    .option("database", {
-      type: "string",
-      desc: "specify how to populate the database",
+    .option('database', {
+      type: 'string',
+      desc: 'specify how to populate the database',
     })
-    .option("saleor", {
-      type: "string",
-      desc: "specify the Saleor version",
+    .option('saleor', {
+      type: 'string',
+      desc: 'specify the Saleor version',
     })
-    .option("domain", {
-      type: "string",
-      desc: "specify the domain for the envronment",
+    .option('domain', {
+      type: 'string',
+      desc: 'specify the domain for the envronment',
     })
-    .option("email", {
-      type: "string",
-      desc: "specify the dashboard access email",
+    .option('email', {
+      type: 'string',
+      desc: 'specify the dashboard access email',
     })
-    .option("login", {
-      type: "string",
-      desc: "specify the api Basic Auth login",
+    .option('login', {
+      type: 'string',
+      desc: 'specify the api Basic Auth login',
     })
-    .option("pass", {
-      type: "string",
-      desc: "specify the api Basic Auth password",
+    .option('pass', {
+      type: 'string',
+      desc: 'specify the api Basic Auth password',
     })
-    .option("deploy", {
-      type: "boolean",
-      desc: "specify Vercel deployment",
+    .option('deploy', {
+      type: 'boolean',
+      desc: 'specify Vercel deployment',
     })
-    .option("restore_from", {
-      type: "string",
-      desc: "specify snapshot id to restore database from",
+    .option('restore_from', {
+      type: 'string',
+      desc: 'specify snapshot id to restore database from',
     });
 
 export const handler = async (argv: Arguments<Options>) => {
@@ -85,9 +85,9 @@ export const handler = async (argv: Arguments<Options>) => {
 
   if (argv.restore_from) {
     const { update } = await Enquirer.prompt<{ update: string }>({
-      type: "confirm",
-      name: "update",
-      message: "Would you like to update webhooks targetUrl",
+      type: 'confirm',
+      name: 'update',
+      message: 'Would you like to update webhooks targetUrl',
     });
 
     if (update) {
@@ -96,10 +96,10 @@ export const handler = async (argv: Arguments<Options>) => {
   }
 
   const { deployPrompt } = (await Enquirer.prompt({
-    type: "confirm",
-    name: "deployPrompt",
-    message: "Deploy our react-storefront starter pack to Vercel",
-    format: (value) => chalk.cyan(value ? "yes" : "no"),
+    type: 'confirm',
+    name: 'deployPrompt',
+    message: 'Deploy our react-storefront starter pack to Vercel',
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
     initial: argv.deploy,
     skip: !(argv.deploy === undefined),
   })) as { deployPrompt: boolean };
@@ -114,19 +114,19 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   const user = (await GET(API.User, argv)) as any;
 
   if (argv.restore && !argv.restore_from) {
-    console.log(
+    console.error(
       chalk.red(
-        "Error: `restore_from` option is requried for database snapshot"
+        'Error: `restore_from` option is required for database snapshot'
       )
     );
-    return;
+    process.exit(1);
   }
 
   const { name } = (await Enquirer.prompt([
     {
-      type: "input",
-      name: "name",
-      message: "Environment name",
+      type: 'input',
+      name: 'name',
+      message: 'Environment name',
       initial: argv.name,
       required: true,
       skip: !!argv.name,
@@ -136,19 +136,19 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
 
   const { domain, access } = (await Enquirer.prompt([
     {
-      type: "input",
-      name: "domain",
-      message: "Environment domain",
-      initial: slugify(argv.domain || argv.name || name || ""),
+      type: 'input',
+      name: 'domain',
+      message: 'Environment domain',
+      initial: slugify(argv.domain || argv.name || name || ''),
       required: true,
       skip: !!argv.domain,
       validate: (value) => validateLength(value, 40),
     },
     {
-      type: "confirm",
-      name: "access",
-      message: "Would you like to enable dashboard access?",
-      format: (value) => chalk.cyan(value ? "yes" : "no"),
+      type: 'confirm',
+      name: 'access',
+      message: 'Would you like to enable dashboard access?',
+      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
       skip: !!argv.email,
       initial: true,
     },
@@ -158,9 +158,9 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
 
   if (access) {
     const { emailPrompt } = (await Enquirer.prompt({
-      type: "input",
-      name: "emailPrompt",
-      message: "Dashboard admin email",
+      type: 'input',
+      name: 'emailPrompt',
+      message: 'Dashboard admin email',
       initial: argv.email || user.email,
       validate: (value) => validateEmail(value),
     })) as { emailPrompt: string };
@@ -169,10 +169,10 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   }
 
   const { restrict } = (await Enquirer.prompt({
-    type: "confirm",
-    name: "restrict",
-    message: "Would you like to restrict your Environment API with Basic Auth?",
-    format: (value) => chalk.cyan(value ? "yes" : "no"),
+    type: 'confirm',
+    name: 'restrict',
+    message: 'Would you like to restrict your Environment API with Basic Auth?',
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
     skip: (!!argv.pass && !!argv.login) || argv.skipRestrict,
   })) as { restrict: boolean };
 
@@ -182,17 +182,17 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   if (restrict) {
     const { loginPrompt, passwordPrompt } = (await Enquirer.prompt([
       {
-        type: "input",
-        name: "loginPrompt",
-        message: "Login",
+        type: 'input',
+        name: 'loginPrompt',
+        message: 'Login',
         required: true,
         initial: argv.login || user.email,
         validate: (value) => validateLength(value, 128),
       },
       {
-        type: "password",
-        name: "passwordPrompt",
-        message: "Password",
+        type: 'password',
+        name: 'passwordPrompt',
+        message: 'Password',
         required: true,
         initial: argv.pass,
         validate: (value) => validateLength(value, 128),
@@ -200,14 +200,14 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     ])) as { loginPrompt: string; passwordPrompt: string };
 
     await Enquirer.prompt({
-      type: "password",
-      name: "confirmation",
-      message: "Confirm password",
+      type: 'password',
+      name: 'confirmation',
+      message: 'Confirm password',
       required: true,
       initial: argv.pass,
       validate: (value) => {
         if (value !== passwordPrompt) {
-          return chalk.red("Passwords must match");
+          return chalk.red('Passwords must match');
         }
         return true;
       },
@@ -234,23 +234,23 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   await waitForTask(
     argv,
     result.task_id,
-    "Creating a new environment",
-    "Yay! A new environment is now ready!"
+    'Creating a new environment',
+    'Yay! A new environment is now ready!'
   );
 
   const baseUrl = `https://${result.domain}`;
-  const dashboaardMsg = chalk.blue(`Dashboard - ${baseUrl}/dashboard`);
+  const dashboardMsg = chalk.blue(`Dashboard - ${baseUrl}/dashboard`);
   const accessMsg =
     access || !!argv.email
-      ? `Please check your email - ${email} - to setup your dashboaard access.`
-      : "";
-  const gqlMsg = chalk.blue(`GraphQL Playgroud - ${baseUrl}/graphql/`);
+      ? `Please check your email - ${email} - to setup your dashboard access.`
+      : '';
+  const gqlMsg = chalk.blue(`GraphQL Playground - ${baseUrl}/graphql/`);
   console.log(
     boxen(
-      `${dashboaardMsg}
+      `${dashboardMsg}
   ${accessMsg}
 ${gqlMsg}`,
-      { padding: 1, borderStyle: "round" }
+      { padding: 1, borderStyle: 'round' }
     )
   );
 
@@ -276,27 +276,29 @@ const getResult = async (
 ) => {
   let loop = true;
   const _json = { ...json };
+  let result;
 
   while (loop) {
     try {
-      const result = (await POST(
+      const data = (await POST(
         API.Environment,
-        { ...argv, environment: "" },
+        { ...argv, environment: '' },
         { json: _json }
       )) as any;
       loop = false;
-      return result;
+
+      result = data;
     } catch (error) {
       if (error instanceof HTTPError) {
         const { body } = error.response as Response<any>;
         const errors: Record<string, string[]> = JSON.parse(body);
         for (const [errorMsg] of Object.values(errors)) {
           switch (errorMsg) {
-            case "environment with this domain label already exists.": {
+            case 'environment with this domain label already exists.': {
               const { newValue } = await Enquirer.prompt<{ newValue: string }>({
-                type: "input",
-                name: "newValue",
-                message: "Environment domain",
+                type: 'input',
+                name: 'newValue',
+                message: 'Environment domain',
                 initial: _json.domain_label,
                 required: true,
                 validate: (value) => {
@@ -311,11 +313,11 @@ const getResult = async (
               _json.domain_label = newValue;
               break;
             }
-            case "The fields name, project must make a unique set.": {
+            case 'The fields name, project must make a unique set.': {
               const { newValue } = await Enquirer.prompt<{ newValue: string }>({
-                type: "input",
-                name: "newValue",
-                message: "Environment name",
+                type: 'input',
+                name: 'newValue',
+                message: 'Environment name',
                 initial: _json.name,
                 required: true,
                 validate: (value) => {
@@ -337,4 +339,6 @@ const getResult = async (
       }
     }
   }
+
+  return result;
 };

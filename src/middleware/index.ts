@@ -1,12 +1,12 @@
-import chalk from "chalk";
-import Debug from "debug";
-import enquirer from "enquirer";
-import got, { HTTPError } from "got";
-import { Arguments } from "yargs";
+import chalk from 'chalk';
+import Debug from 'debug';
+import enquirer from 'enquirer';
+import got, { HTTPError } from 'got';
+import { Arguments } from 'yargs';
 
-import * as Configuration from "../config.js";
-import { Config } from "../lib/config.js";
-import { API, GET, getEnvironment } from "../lib/index.js";
+import * as Configuration from '../config.js';
+import { Config } from '../lib/config.js';
+import { API, GET, getEnvironment } from '../lib/index.js';
 import {
   AuthError,
   createProject,
@@ -18,10 +18,10 @@ import {
   promptProject,
   promptSaleorApp,
   promptWebhook,
-} from "../lib/util.js";
-import { CreatePromptResult, Options } from "../types.js";
+} from '../lib/util.js';
+import { CreatePromptResult, Options } from '../types.js';
 
-const debug = Debug("middleware");
+const debug = Debug('middleware');
 
 type Handler = (opts: Options) => Options | Promise<Options>;
 
@@ -30,24 +30,24 @@ export const useToken = async ({ token }: Options) => {
 
   if (!token) {
     const config = await Config.get();
-    debug("useDefault", config);
+    debug('useDefault', config);
     const { token: configToken } = config;
 
     if (configToken) {
-      debug("token read from file");
+      debug('token read from file');
       opts = { ...opts, token: configToken };
     } else {
-      console.error(chalk.red("\nYou are not logged in\n"));
+      console.error(chalk.red('\nYou are not logged in\n'));
       console.error(
         chalk(
-          "If you have an account - login using",
-          chalk.bold.green("saleor login")
+          'If you have an account - login using',
+          chalk.bold.green('saleor login')
         )
       );
       console.error(
         chalk(
-          "If you don't have an account - register using",
-          chalk.bold.green("saleor register")
+          'If you don\'t have an account - register using',
+          chalk.bold.green('saleor register')
         )
       );
 
@@ -63,23 +63,23 @@ export const useOrganization = async ({ token, organization }: Options) => {
 
   if (!organization) {
     const config = await Config.get();
-    debug("useDefault", config);
+    debug('useDefault', config);
     const { organization_slug: organizationSlug } = config;
 
     if (organizationSlug) {
-      debug("org read from file");
+      debug('org read from file');
       opts = { ...opts, ...{ organization: organizationSlug } };
     } else {
       const org = await promptOrganization(opts);
-      await Config.set("organization_slug", org.value);
-      await Config.set("organization_name", org.name);
+      await Config.set('organization_slug', org.value);
+      await Config.set('organization_name', org.name);
       opts = { ...opts, ...{ organization: org.value } };
     }
   }
 
   console.log(
-    chalk.green("✔"),
-    chalk.bold("Organization ·"),
+    chalk.green('✔'),
+    chalk.bold('Organization ·'),
     chalk.cyan(opts.organization)
   );
 
@@ -95,11 +95,11 @@ export const useEnvironment = async ({
 
   if (!environment) {
     const config = await Config.get();
-    debug("useDefault", config);
+    debug('useDefault', config);
     const { environment_id: environmentId } = config;
 
     if (environmentId) {
-      debug("env read from file");
+      debug('env read from file');
       opts = { ...opts, ...{ environment: environmentId } };
     } else {
       const env = await promptEnvironment(opts);
@@ -108,8 +108,8 @@ export const useEnvironment = async ({
   }
 
   console.log(
-    chalk.green("✔"),
-    chalk.bold("Environment ·"),
+    chalk.green('✔'),
+    chalk.bold('Environment ·'),
     chalk.cyan(opts.environment)
   );
 
@@ -136,8 +136,8 @@ export const interactiveDatabaseTemplate = async (argv: Options) => {
     return { database: db.value, ...backup };
   }
 
-  if (argv.database === "blank") return { database: null };
-  if (argv.database === "snapshot") return { database: null, restore: true };
+  if (argv.database === 'blank') return { database: null };
+  if (argv.database === 'snapshot') return { database: null, restore: true };
 
   return {};
 };
@@ -166,14 +166,14 @@ mutation login($email: String!, $password: String!) {
 
   if (!argv.email && !argv.password) {
     const { email } = await enquirer.prompt<{ email: string }>({
-      type: "text",
-      name: "email",
-      message: "Your Saleor Dashboard email?",
+      type: 'text',
+      name: 'email',
+      message: 'Your Saleor Dashboard email?',
     });
     const { password } = await enquirer.prompt<{ password: string }>({
-      type: "password",
-      name: "password",
-      message: "Your password?",
+      type: 'password',
+      name: 'password',
+      message: 'Your password?',
     });
 
     const { domain } = (await GET(API.Environment, argv)) as any;
@@ -188,7 +188,7 @@ mutation login($email: String!, $password: String!) {
       .json();
 
     if (errors) {
-      throw new AuthError("cannot login to dashboard");
+      throw new AuthError('cannot login to dashboard');
     }
 
     const {
@@ -219,7 +219,7 @@ export const interactiveWebhook = async (argv: Options) => {
 };
 
 export const useTelemetry = (version: string) => async (argv: Arguments) => {
-  const command = argv._.join(" ");
+  const command = argv._.join(' ');
 
   const { telemetry } = await Config.get();
   const isTelemetryEnabled = telemetry === undefined;
@@ -227,10 +227,10 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
   const environment = await getEnvironment();
   const { user_session: userSession } = await Config.get();
 
-  debug("is telemetry enabled", isTelemetryEnabled);
+  debug('is telemetry enabled', isTelemetryEnabled);
 
   if (isTelemetryEnabled) {
-    debug("telemetry", argv._);
+    debug('telemetry', argv._);
 
     try {
       got.post(Configuration.TelemetryDomain, {
@@ -241,7 +241,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
       });
     } catch (error) {
       if (error instanceof HTTPError) {
-        console.error(`${chalk.yellow("Warning")} Telemetry is down `);
+        console.error(`${chalk.yellow('Warning')} Telemetry is down `);
       }
       // FIXME
     }
@@ -251,7 +251,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
 const checkBackup = async (argv: Options, chosenBackup: CreatePromptResult) => {
   const { name } = chosenBackup;
 
-  if (name === "snapshot") {
+  if (name === 'snapshot') {
     const backup = await promptOrganizationBackup(argv);
     return { restore_from: backup.value };
   }
@@ -263,9 +263,9 @@ export const useGithub = async () => {
   const { github_token: githubToken } = await Config.get();
 
   if (!githubToken) {
-    console.error(chalk.red("\nYou are not logged into Github\n"));
+    console.error(chalk.red('\nYou are not logged into Github\n'));
     console.log(
-      chalk("Run", chalk.bold.green("saleor github login"), "command to login")
+      chalk('Run', chalk.bold.green('saleor github login'), 'command to login')
     );
 
     process.exit(1);
@@ -278,9 +278,9 @@ export const useVercel = async () => {
   const { vercel_token: vercelToken } = await Config.get();
 
   if (!vercelToken) {
-    console.error(chalk.red("\nYou are not logged into Vercel\n"));
+    console.error(chalk.red('\nYou are not logged into Vercel\n'));
     console.log(
-      chalk("Run", chalk.bold.green("saleor vercel login"), "command to login")
+      chalk('Run', chalk.bold.green('saleor vercel login'), 'command to login')
     );
 
     process.exit(1);
