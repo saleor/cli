@@ -121,12 +121,6 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
       )
     );
 
-    replace.sync({
-      files: '.env',
-      from: /APP_URL=.*/g,
-      to: `APP_URL=https://${tunnelURL}`,
-    });
-
     const _argv = argv;
     _argv.manifestURL = `https://${tunnelURL}/api/manifest`;
     _argv.appName = appName;
@@ -152,7 +146,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     console.log(
       'Press CTRL-C to stop the tunnel and uninstall this Saleor App...'
     );
-    while (1) {
+    while (true) {
       const key = await getKeypress();
       if (String(key) === '\u0003') {
         process.stdout.write(

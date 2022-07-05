@@ -59,8 +59,7 @@ export const GetWebhookSyncEventEnum = gql`
       }
     }
   }
-}
-    `;
+`;
 export const AppDelete = gql`
   mutation AppDelete($app: ID!) {
     appDelete(id: $app) {
