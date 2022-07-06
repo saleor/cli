@@ -15,7 +15,8 @@ import { delay } from '../lib/util.js';
 
 const { ux: cli } = CliUx;
 
-const RedirectURI = 'http://localhost:3000/';
+const SaleorCLIPort = 5375;
+const RedirectURI = `http://localhost:${SaleorCLIPort}/`;
 
 export const command = 'login';
 export const desc = 'Log in to the Saleor Cloud';
@@ -27,7 +28,7 @@ export const handler = async () => {
 };
 
 export const doLogin = async () => {
-  await checkPort(3000);
+  await checkPort(SaleorCLIPort);
 
   const amplifyConfig = await getAmplifyConfig();
 
@@ -104,7 +105,7 @@ export const doLogin = async () => {
       return Response.Redirect(amplifyConfig.oauth.redirectSignIn);
     }),
   ]);
-  await app.start(3000);
+  await app.start(SaleorCLIPort);
 
   emitter.on('finish', async () => {
     await delay(1000);
