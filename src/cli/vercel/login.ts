@@ -1,4 +1,5 @@
 import { CliUx } from '@oclif/core';
+import chalk from 'chalk';
 import EventEmitter from 'events';
 import got from 'got';
 import { nanoid } from 'nanoid';
@@ -65,7 +66,13 @@ export const handler = async () => {
       } catch (error: any) {
         console.log(error.message);
         console.log(
-          'Tip: in some cases `saleor logout` followed by `saleor login` may help'
+          chalk(
+            'Tip: in some cases',
+            chalk.green('saleor logout'),
+            'followed by',
+            chalk.green('saleor login'),
+            'may help'
+          )
         );
       }
 
