@@ -7,13 +7,13 @@ import { Response } from 'retes/response';
 import { GET } from 'retes/route';
 import type { CommandBuilder } from 'yargs';
 
-import { Config } from '../../lib/config.js';
+import { Config, SaleorCLIPort } from '../../lib/config.js';
 import { checkPort } from '../../lib/detectPort.js';
 import { delay } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
-const RedirectURI = 'http://localhost:3000/vercel/callback';
+const RedirectURI = `http://localhost:${SaleorCLIPort}/vercel/callback`;
 
 export const command = 'login';
 export const desc = 'Add integration for Saleor CLI';
@@ -21,7 +21,7 @@ export const desc = 'Add integration for Saleor CLI';
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async () => {
-  await checkPort(3000);
+  await checkPort(SaleorCLIPort);
 
   const generatedState = nanoid();
   const emitter = new EventEmitter();
@@ -64,6 +64,9 @@ export const handler = async () => {
         await Config.set('vercel_team_id', teamId);
       } catch (error: any) {
         console.log(error.message);
+        console.log(
+          'Tip: in some cases `saleor logout` followed by `saleor login` may help'
+        );
       }
 
       // spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
@@ -72,7 +75,7 @@ export const handler = async () => {
       return Response.Redirect('https://cloud.saleor.io');
     }),
   ]);
-  await app.start(3000);
+  await app.start(SaleorCLIPort);
 
   emitter.on('finish', async () => {
     await delay(1500);
