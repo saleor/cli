@@ -38,12 +38,16 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   const env = (await GET(API.Environment, argv)) as any;
   const baseURL = `https://${env.domain}`;
   const graphqlURL = `${baseURL}/graphql/`;
-  const dashboaardMsg = `  Saleor Dashboard: ${chalk.blue(
+  const target = await getFolderName(sanitize(argv.name));
+  const packageName = kebabCase(target);
+  const dashboardMsg = `  Saleor Dashboard: ${chalk.blue(
     `${baseURL}/dashboard/`
   )}`;
   const gqlMsg = `GraphQL Playground: ${chalk.blue(graphqlURL)}`;
+  const dirMsg = `     App directory: ${chalk.blue(target)}`;
+  const appMsg = `      Package name: ${chalk.blue(packageName)}`;
   console.log(
-    boxen(`${dashboaardMsg}\n${gqlMsg}`, {
+    boxen(`${dashboardMsg}\n${gqlMsg}\n${dirMsg}\n${appMsg}`, {
       padding: 1,
       margin: 1,
       borderColor: 'yellow',
@@ -51,7 +55,6 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   );
 
   const spinner = ora('Downloading...').start();
-  const target = await getFolderName(sanitize(argv.name));
 
   await downloadFromGitHub('saleor/saleor-app-template', target);
 
@@ -63,7 +66,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   await replace.replaceInFile({
     files: 'package.json',
     from: /"name": "saleor-app-template".*/g,
-    to: `"name": "${kebabCase(target)}",`,
+    to: `"name": "${packageName}",`,
   });
 
   await setupGitRepository(spinner);
@@ -71,7 +74,27 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
   await run('pnpm', ['generate'], { cwd: process.cwd() });
-  spinner.succeed('Starting ...`pnpm run dev`');
+
+  spinner.succeed(
+    chalk(
+      'Saleor App Template prepared in',
+      chalk.bold(target),
+      'directory',
+      '\n'
+    )
+  );
+
+  console.log(
+    chalk('  The saleor-cli will start the'),
+    chalk.bold(argv.name),
+    'app for you'
+  );
+  console.log(
+    chalk('  You can stop the process with', chalk.bold('ctrl-c'), '\n')
+  );
+
+  console.log('-'.repeat(process.stdout.columns));
+  console.log(chalk('  Starting...', chalk.green('pnpm run dev')));
 
   await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() });
 };
