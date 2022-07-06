@@ -14,6 +14,7 @@ import app from './cli/app/index.js';
 import backup from './cli/backup/index.js';
 import checkout from './cli/checkout/index.js';
 import * as configure from './cli/configure.js';
+import dev from './cli/dev/index.js';
 import environment from './cli/env/index.js';
 import github from './cli/github/index.js';
 import * as info from './cli/info.js';
@@ -83,6 +84,7 @@ const parser = yargs(hideBin(process.argv))
   .command(['vercel [command]'], '', vercel)
   .command(['github [command]'], '', github)
   .command(['checkout [command]'], '', checkout)
+  .command(['dev [command]'], false, dev)
   .option('json', { type: 'boolean', desc: 'Output the data as JSON' })
   .strictCommands()
   .middleware(useTelemetry(pkg.version))
