@@ -5,6 +5,7 @@ import { Arguments } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
+import { useGithub } from '../../middleware/index.js';
 
 interface Options {
   branch?: string;
@@ -92,3 +93,5 @@ export const handler = async (argv: Arguments<Options>) => {
   console.log('\n  run the saleor cli from project root with:');
   console.log(chalk.green('\n  node ./build/cli.js command-name'));
 };
+
+export const middlewares = [useGithub];
