@@ -128,7 +128,7 @@ export const run = async (
   const child = spawn(`${cmd}${winSuffix}`, params, options);
   for await (const data of child.stdout || []) {
     if (log) {
-      console.log(data);
+      console.log(data.toString());
     }
   }
   for await (const data of child.stderr || []) {
