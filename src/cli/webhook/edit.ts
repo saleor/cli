@@ -5,6 +5,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
+import { validatePresence } from '../../lib/util.js';
 import {
   interactiveSaleorApp,
   interactiveWebhook,
@@ -21,19 +22,34 @@ export const handler = async (argv: Arguments<Options>) => {
 
   console.log(`Editing the webhook for the ${environment} environment`);
 
-  const prompt = new (Enquirer as any).Form({
-    name: 'user',
-    message: 'Please provide the following information:',
-    choices: [
-      { name: 'name', message: 'Name' },
-      { name: 'targetUrl', message: 'Target URL' },
-      { name: 'secretKey', message: 'Secret' },
-    ],
-  });
-
-  const result = await prompt.run();
-
-  const form = Object.fromEntries(Object.entries(result).filter(([_, v]) => v));
+  const form = await Enquirer.prompt<{
+    name: string;
+    targetUrl: string;
+    secretKey: string;
+  }>([
+    {
+      type: 'input',
+      name: 'name',
+      message: 'Name',
+      // initial: FIXME
+      required: true,
+      validate: (value) => validatePresence(value),
+    },
+    {
+      type: 'input',
+      name: 'targetUrl',
+      message: 'Target URL',
+      // initial: FIXME
+      required: true,
+      validate: (value) => validatePresence(value),
+    },
+    {
+      type: 'input',
+      name: 'secretKey',
+      message: 'Secret',
+      // initial: FIXME
+    },
+  ]);
 
   const { domain } = (await GET(API.Environment, argv)) as any;
   const headers = await Config.getBearerHeader();
