@@ -4,6 +4,8 @@ import path from 'path';
 
 const DefaultConfigFile = path.join(os.homedir(), '.config', 'saleor.json');
 
+export const SaleorCLIPort = 5375;
+
 export type ConfigField =
   | 'token'
   | 'user_session'

@@ -8,14 +8,13 @@ import { Response } from 'retes/response';
 import { GET } from 'retes/route';
 import type { CommandBuilder } from 'yargs';
 
-import { Config, ConfigField } from '../lib/config.js';
+import { Config, ConfigField, SaleorCLIPort } from '../lib/config.js';
 import { checkPort } from '../lib/detectPort.js';
 import { API, getAmplifyConfig, getEnvironment, POST } from '../lib/index.js';
 import { delay } from '../lib/util.js';
 
 const { ux: cli } = CliUx;
 
-const SaleorCLIPort = 5375;
 const RedirectURI = `http://localhost:${SaleorCLIPort}/`;
 
 export const command = 'login';
