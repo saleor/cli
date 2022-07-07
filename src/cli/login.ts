@@ -66,7 +66,7 @@ export const doLogin = async () => {
       };
 
       try {
-        const { id_token: idToken, accessToken }: any = await got
+        const { id_token: idToken, access_token: accessToken }: any = await got
           .post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
             form: OauthParams,
           })
