@@ -51,7 +51,7 @@ async function install() {
 
   const { stdout } = await exec('./vendor/tunnel --version');
   if (stdout.length > 0) {
-    console.log('OK');
+    console.log('Saleor binaries correctly installed.');
   }
 }
 
@@ -59,7 +59,7 @@ async function uninstall() {
   //
 }
 
-const actions: Record<string, () => Promise<void>> = { install, uninstall };
+const actions = { install, uninstall };
 
 const main = async () => {
   const { argv } = process;

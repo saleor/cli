@@ -16,7 +16,7 @@
     "package": "pkg .",
     "lint": "prettier --write . && eslint src/**/*.ts --cache --fix",
     "generate": "graphql-codegen",
-    "postinstall": "tsm ./src/scripts/binary.ts install",
+    "postinstall": "node ./scripts/binary.js install",
     "test": "pnpm uvu -r tsm spec",
     "prepare": "husky install"
   },
