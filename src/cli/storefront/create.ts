@@ -105,13 +105,9 @@ const prepareEnvironment = async (
   const user = (await GET(API.User, argv)) as any;
   const services = (await getSortedServices(argv)) as any[];
 
-  const saleorEnv = await getEnvironment();
-  const service =
-    saleorEnv === 'staging'
-      ? services.filter(
-          ({ service_type: serviceType }) => serviceType === 'SANDBOX'
-        )[0]
-      : services[0];
+  const service = services.filter(
+    ({ service_type: serviceType }) => serviceType === 'SANDBOX'
+  )[0];
 
   const name = `${project.slug}-${nanoid(8).toLocaleLowerCase()}`;
 
