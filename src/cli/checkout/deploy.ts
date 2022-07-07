@@ -97,8 +97,6 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     const summary = `
    Saleor Dashboard: ${chalk.blue(`https://${domain}/dashboard`)}
  GraphQL Playground: ${chalk.blue(url)}
-Vercel checkout app: ${chalk.blue(checkoutAppURL)}
-    Vercel checkout: ${chalk.blue(checkoutURL)}
 
 Checkout App configuration page:
 ${chalk.blue(appDashboardURL)}
