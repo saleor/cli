@@ -396,9 +396,8 @@ export const deploy = async ({ name, url }: { name: string; url: string }) => {
     'repository-url': 'https://github.com/saleor/react-storefront',
     'project-name': name || 'my-react-storefront',
     'repository-name': name || 'my-react-storefront',
-    env: 'NEXT_PUBLIC_API_URI,NEXT_PUBLIC_DEFAULT_CHANNEL',
-    envDescription:
-      '\'NEXT_PUBLIC_API_URI\' is your GraphQL endpoint, while \'NEXT_PUBLIC_DEFAULT_CHANNEL\' in most cases should be set to \'default-channel\'',
+    env: 'NEXT_PUBLIC_API_URI',
+    envDescription: '\'NEXT_PUBLIC_API_URI\' is your GraphQL endpoint',
     envLink: 'https://github.com/saleor/react-storefront',
   };
 
@@ -414,10 +413,9 @@ export const deploy = async ({ name, url }: { name: string; url: string }) => {
     )} for configuration:`
   );
 
-  console.log(`
-${chalk.gray('NEXT_PUBLIC_API_URI')}=${chalk.yellow(url)}
-${chalk.gray('NEXT_PUBLIC_DEFAULT_CHANNEL')}=${chalk.yellow('default-channel')}
-  `);
+  console.log(
+    `\n${chalk.gray('NEXT_PUBLIC_API_URI')}=${chalk.yellow(`${url}/graphql`)}\n`
+  );
 
   console.log(
     'To complete the deployment, open the following link in your browser and continue there:'
