@@ -89,16 +89,14 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
       checkoutDeploymentId
     );
 
-    const appDashboardURL = encodeURIComponent(
-      `https://${domain}/dashboard/apps/${appId}/app`
-    );
+    const appDashboardURL = `https://${domain}/dashboard/apps/${encodeURIComponent(
+      appId
+    )}/app`;
     const checkoutURL = `https://${checkoutAlias[0]}`;
 
     const summary = `
    Saleor Dashboard: ${chalk.blue(`https://${domain}/dashboard`)}
  GraphQL Playground: ${chalk.blue(url)}
-Vercel checkout app: ${chalk.blue(checkoutAppURL)}
-    Vercel checkout: ${chalk.blue(checkoutURL)}
 
 Checkout App configuration page:
 ${chalk.blue(appDashboardURL)}
