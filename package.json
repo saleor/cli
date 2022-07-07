@@ -22,7 +22,8 @@
   },
   "files": [
     "build",
-    "template"
+    "template",
+    "scripts"
   ],
   "pkg": {
     "scripts": "build/**/*.js",
@@ -107,7 +108,7 @@
     "yargs": "^17.5.1"
   },
   "engines": {
-    "node": "^14.13.1 || >=16.0.0"
+    "node": ">=16.0.0"
   },
   "pnpm": {
     "overrides": {
