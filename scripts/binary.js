@@ -23,7 +23,7 @@ async function install() {
     return;
   }
 
-  const binaryDir = path.join(__dirname, '..', '..', 'vendor');
+  const binaryDir = path.join(__dirname, '..', 'vendor');
   await fs.ensureDir(binaryDir);
 
   const url = `https://binary.saleor.live/tunnel-${process.platform}-${process.arch}`;
