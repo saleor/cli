@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import Enquirer from 'enquirer';
 import got from 'got';
 import type { Arguments, CommandBuilder } from 'yargs';
@@ -19,8 +20,32 @@ export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
   const { environment, webhookID } = argv;
+  const { domain } = (await GET(API.Environment, argv)) as any;
+  const headers = await Config.getBearerHeader();
 
-  console.log(`Editing the webhook for the ${environment} environment`);
+  const query = `query getWebhook($id: ID!) {
+    webhook(id: $id) {
+      name
+      targetUrl
+      secretKey
+    }
+  }`;
+
+  const {
+    data: { webhook },
+  } = await got
+    .post(`https://${domain}/graphql`, {
+      headers,
+      json: {
+        query,
+        variables: {
+          id: webhookID,
+        },
+      },
+    })
+    .json();
+
+  console.log(`  Editing the webhook for the ${environment} environment`);
 
   const form = await Enquirer.prompt<{
     name: string;
@@ -31,7 +56,7 @@ export const handler = async (argv: Arguments<Options>) => {
       type: 'input',
       name: 'name',
       message: 'Name',
-      // initial: FIXME
+      initial: webhook.name,
       required: true,
       validate: (value) => validatePresence(value),
     },
@@ -39,7 +64,7 @@ export const handler = async (argv: Arguments<Options>) => {
       type: 'input',
       name: 'targetUrl',
       message: 'Target URL',
-      // initial: FIXME
+      initial: webhook.targetUrl,
       required: true,
       validate: (value) => validatePresence(value),
     },
@@ -47,12 +72,9 @@ export const handler = async (argv: Arguments<Options>) => {
       type: 'input',
       name: 'secretKey',
       message: 'Secret',
-      // initial: FIXME
+      initial: webhook.secretKey,
     },
   ]);
-
-  const { domain } = (await GET(API.Environment, argv)) as any;
-  const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
     .post(`https://${domain}/graphql`, {
@@ -69,7 +91,7 @@ export const handler = async (argv: Arguments<Options>) => {
     })
     .json();
 
-  console.log('webhook updated');
+  console.log(chalk(chalk.green('✔'), chalk.bold('Webhook updated')));
 
   process.exit(0);
 };
