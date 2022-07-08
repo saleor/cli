@@ -95,14 +95,17 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     const checkoutURL = `https://${checkoutAlias[0]}`;
 
     const summary = `
-   Saleor Dashboard: ${chalk.blue(`https://${domain}/dashboard`)}
- GraphQL Playground: ${chalk.blue(url)}
-
-Checkout App configuration page:
-${chalk.blue(appDashboardURL)}
-
-Update your react-storefront's environment variable
-${chalk.blue(`NEXT_PUBLIC_CHECKOUT_URL=${checkoutURL}`)}
+  Your deployment is ready. Some useful links:  
+  Saleor Dashboard: ${chalk.blue(`https://${domain}/dashboard`)}
+  GraphQL Playground: ${chalk.blue(url)}
+  Checkout App configuration page:
+  ${chalk.blue(appDashboardURL)}
+  
+  Now, integrate your storefront with the checkout SPA:
+  1. Copy the environment variable below. 
+  ${chalk.blue(`NEXT_PUBLIC_CHECKOUT_URL=${checkoutURL}`)}
+  2. Paste it into the .env file in your React storefront.
+  3. Re-run the development server.
 `;
 
     console.log(
