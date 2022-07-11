@@ -13,10 +13,10 @@ export const SaleorAppList = /* GraphQL */ `
           webhooks {
             id
           }
-        }
-        permissions {
-          code
-          name
+          permissions {
+            code
+            name
+          }
         }
       }
     }
