@@ -31,10 +31,32 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const apps = getAppsFromResult(data);
 
+  const webhookList = apps.map((app: any) => app.node.webhooks).flat();
+
+  if (webhookList.length === 0) {
+    console.log(
+      chalk.red('\n', ' No webhooks found for this environment', '\n')
+    );
+
+    console.log(
+      chalk(
+        '  Create webhook with',
+        chalk.green('saleor webhook create'),
+        'command'
+      )
+    );
+
+    process.exit(0);
+  }
+
   for (const {
     node: { name: appName, webhooks },
   } of apps) {
-    console.log(`\n App: ${appName}\n`);
+    if (webhooks.length === 0) {
+      continue;
+    }
+
+    console.log(chalk('\n App:', chalk.bold(appName), '\n'));
 
     cli.table(webhooks, {
       id: {
