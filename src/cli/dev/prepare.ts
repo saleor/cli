@@ -18,16 +18,38 @@ export const handler = async (argv: Arguments<Options>) => {
   const git = simpleGit();
 
   // check if repo is saleor-cli
-  const repo = (await git.remote(['get-url', 'origin'])) as string;
-  if (repo.trim().split('/').at(-1) !== 'saleor-cli.git') {
-    console.error(
-      chalk.red(
-        '\nThis script works only in',
-        chalk.bold('saleor-cli'),
-        'repository'
-      )
-    );
-    process.exit(1);
+  try {
+    const repo = (await git.remote(['get-url', 'origin'])) as string;
+    const repoName = repo.trim().split('/').at(-1);
+
+    if (repoName !== 'saleor-cli.git') {
+      console.error(
+        chalk.red(
+          '\nThis script works only in',
+          chalk.bold('saleor-cli'),
+          'repository.',
+          '\naYour current repository: ',
+          chalk.bold(repoName)
+        )
+      );
+      process.exit(1);
+    }
+  } catch (err: any) {
+    if (err.message.match('not a git repository')) {
+      console.error(
+        chalk.red(
+          '\nThis script works only in',
+          chalk.bold('saleor-cli'),
+          'repository',
+          '\nPlease navigate to your local',
+          chalk.bold('saleor-cli'),
+          'directory'
+        )
+      );
+      process.exit(1);
+    }
+
+    throw err;
   }
 
   await git.fetch('origin');
