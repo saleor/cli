@@ -556,6 +556,8 @@ export const getAppsFromResult = (result: any) => {
   return apps;
 };
 
+export const without = (name: string) => (record: any) => record.name !== name;
+
 export const countries: { [key: string]: string } = {
   '': '',
   AF: 'Afghanistan',
