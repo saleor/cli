@@ -87,7 +87,8 @@ export const handler = async (argv: Arguments<Options>) => {
     muliple: true,
     choices: choices2,
     initial,
-    message: 'Select one or more permissions (start typing) ',
+    message:
+      'Select one or more permissions\n  (use the arrows to navigate and the space bar to select)',
   });
 
   await got

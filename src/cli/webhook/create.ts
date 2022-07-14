@@ -69,20 +69,22 @@ export const handler = async (argv: Arguments<Options>) => {
     {
       type: 'input',
       name: 'secretKey',
-      message: 'Secret',
+      message: 'Secret (optional)',
       initial: argv.secretKey,
       skip: !!argv.secretKey,
     },
     {
       type: 'multiselect',
       name: 'asyncEvents',
-      message: 'Select asynchronous events',
+      message:
+        'Select asynchronous events\n  (use the arrows to navigate and the space bar to select)',
       choices: asyncEventsListChoices,
     },
     {
       type: 'multiselect',
       name: 'syncEvents',
-      message: 'Selec synchronous events',
+      message:
+        'Select synchronous events\n  (use the arrows to navigate and the space bar to select)',
       choices: syncEventsList,
     },
     {
@@ -95,7 +97,7 @@ export const handler = async (argv: Arguments<Options>) => {
     {
       type: 'input',
       name: 'query',
-      message: 'Subscription query',
+      message: 'Subscription query (optional)',
     },
   ]);
 
