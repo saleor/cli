@@ -7,8 +7,8 @@ specifiers:
   '@graphql-codegen/cli': ^2.8.1
   '@graphql-codegen/typescript-document-nodes': ^2.3.1
   '@mobily/ts-belt': ^3.12.0
-  '@oclif/core': ^1.9.5
-  '@sentry/node': ^7.6.0
+  '@oclif/core': ^1.9.10
+  '@sentry/node': ^7.7.0
   '@types/cli-progress': ^3.11.0
   '@types/debug': ^4.1.7
   '@types/detect-port': ^1.3.2
@@ -60,7 +60,7 @@ specifiers:
   prettier: 2.7.1
   prompt: ^1.3.0
   replace-in-file: ^6.3.5
-  retes: ^0.29.4
+  retes: ^0.30.1
   sanitize-filename: ^1.6.3
   simple-git: ^3.10.0
   slugify: ^1.6.5
@@ -74,8 +74,8 @@ specifiers:
 
 dependencies:
   '@mobily/ts-belt': 3.12.0
-  '@oclif/core': 1.9.5
-  '@sentry/node': 7.6.0
+  '@oclif/core': 1.9.10
+  '@sentry/node': 7.7.0
   '@types/detect-port': 1.3.2
   '@types/lodash.kebabcase': 4.1.7
   aws-amplify: 4.3.27_debug@4.3.4
@@ -104,7 +104,7 @@ dependencies:
   ora: 6.1.2
   prompt: 1.3.0
   replace-in-file: 6.3.5
-  retes: 0.29.4
+  retes: 0.30.1
   sanitize-filename: 1.6.3
   simple-git: 3.10.0
   slugify: 1.6.5
@@ -3255,8 +3255,8 @@ packages:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.13.0
 
-  /@oclif/core/1.9.5:
-    resolution: {integrity: sha512-C605Cr4RhHTMXYApLxdVt/PL6IA5cguN6MPvsMjxkvBppk2Fvcsj05dtRdDqShskRpZzHtu65emG1tHy8TWPWQ==}
+  /@oclif/core/1.9.10:
+    resolution: {integrity: sha512-0b32MZw4O99/Pn8uFoVux8HQC35GHR+fbVkjuohwq9GI3oOCsKar+feQFTWoCiRf6XvKFBGcOHzKNB1dKHiIOg==}
     engines: {node: '>=12.0.0'}
     dependencies:
       '@oclif/linewrap': 1.0.0
@@ -3313,33 +3313,33 @@ packages:
       config-chain: 1.1.13
     dev: false
 
-  /@sentry/core/7.6.0:
-    resolution: {integrity: sha512-vXIuUZbHVSAXh2xZ3NyXYXqVvVQSbGEpgtQxLutwocvD88JFK6aZqO+WQG69GY1b1fKSeE9faEDDS6WGAi46mQ==}
+  /@sentry/core/7.7.0:
+    resolution: {integrity: sha512-Z15ACiuiFINFcK4gbMrnejLn4AVjKBPJOWKrrmpIe8mh+Y9diOuswt5mMUABs+jhpZvqht3PBLLGBL0WMsYMYA==}
     engines: {node: '>=8'}
     dependencies:
-      '@sentry/hub': 7.6.0
-      '@sentry/types': 7.6.0
-      '@sentry/utils': 7.6.0
+      '@sentry/hub': 7.7.0
+      '@sentry/types': 7.7.0
+      '@sentry/utils': 7.7.0
       tslib: 1.14.1
     dev: false
 
-  /@sentry/hub/7.6.0:
-    resolution: {integrity: sha512-TbieNZInpnR5STXykT1zXoKVAsm8ju1RZyzMqYR8nzURbjlMVVEzFRglNY1Ap5MRkbEuYpAc6zUvgLQe8b6Q3w==}
+  /@sentry/hub/7.7.0:
+    resolution: {integrity: sha512-6gydK234+a0nKhBRDdIJ7Dp42CaiW2juTiHegUVDq+482balVzbZyEAmESCmuzKJhx5BhlCElVxs/cci1NjMpg==}
     engines: {node: '>=8'}
     dependencies:
-      '@sentry/types': 7.6.0
-      '@sentry/utils': 7.6.0
+      '@sentry/types': 7.7.0
+      '@sentry/utils': 7.7.0
       tslib: 1.14.1
     dev: false
 
-  /@sentry/node/7.6.0:
-    resolution: {integrity: sha512-B6DAle4xMUnmY1SlEyO+zAnS+HHae75GiD4zliYMA8plhd3+UcsYN3LpmhgYSfxvckYBjG/YcqQl9HWJV+s3tw==}
+  /@sentry/node/7.7.0:
+    resolution: {integrity: sha512-i62x23NHEhLe6CJ6l9E30uRCUMm0VMz9aUmmrjW+9uxS1mZhHTG2kpbU16ozyh9KTLswKDOSE75Z+MzQpGSQ/Q==}
     engines: {node: '>=8'}
     dependencies:
-      '@sentry/core': 7.6.0
-      '@sentry/hub': 7.6.0
-      '@sentry/types': 7.6.0
-      '@sentry/utils': 7.6.0
+      '@sentry/core': 7.7.0
+      '@sentry/hub': 7.7.0
+      '@sentry/types': 7.7.0
+      '@sentry/utils': 7.7.0
       cookie: 0.4.2
       https-proxy-agent: 5.0.1
       lru_map: 0.3.3
@@ -3348,16 +3348,16 @@ packages:
       - supports-color
     dev: false
 
-  /@sentry/types/7.6.0:
-    resolution: {integrity: sha512-POimbDwr9tmHSKksJTXe5VQpvjkFO4/UWUptigwqf8684rkS7Ie2BT2uyp5GD2EgYFf0BwUOWi98FTYTvUGT+Q==}
+  /@sentry/types/7.7.0:
+    resolution: {integrity: sha512-4x8O7uerSGLnYC10krHl9t8h7xXHn5FextqKYbTCXCnx2hC8D+9lz8wcbQAFo0d97wiUYqI8opmEgFVGx7c5hQ==}
     engines: {node: '>=8'}
     dev: false
 
-  /@sentry/utils/7.6.0:
-    resolution: {integrity: sha512-p0Byi6hgawp/sBMY88RY8OmkiAR2jxbjnl8gSo+y3YEu+KeXBUxXMBsI7YeW+1lSb6z8DGhUAOBszTeI4wAr2w==}
+  /@sentry/utils/7.7.0:
+    resolution: {integrity: sha512-fD+ROSFpeJlK7bEvUT2LOW7QqgjBpXJwVISKZ0P2fuzclRC3KoB2pbZgBM4PXMMTiSzRGWhvfRRjBiBvQJBBJQ==}
     engines: {node: '>=8'}
     dependencies:
-      '@sentry/types': 7.6.0
+      '@sentry/types': 7.7.0
       tslib: 1.14.1
     dev: false
 
@@ -4072,7 +4072,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001366
-      electron-to-chromium: 1.4.189
+      electron-to-chromium: 1.4.191
       node-releases: 2.0.6
       update-browserslist-db: 1.0.4_browserslist@4.21.2
     dev: true
@@ -4779,8 +4779,8 @@ packages:
       jake: 10.8.5
     dev: false
 
-  /electron-to-chromium/1.4.189:
-    resolution: {integrity: sha512-dQ6Zn4ll2NofGtxPXaDfY2laIa6NyCQdqXYHdwH90GJQW0LpJJib0ZU/ERtbb0XkBEmUD2eJtagbOie3pdMiPg==}
+  /electron-to-chromium/1.4.191:
+    resolution: {integrity: sha512-MeEaiuoSFh4G+rrN+Ilm1KJr8pTTZloeLurcZ+PRcthvdK1gWThje+E6baL7/7LoNctrzCncavAG/j/vpES9jg==}
     dev: true
 
   /emoji-regex/8.0.0:
@@ -7630,8 +7630,8 @@ packages:
       signal-exit: 3.0.7
     dev: false
 
-  /retes/0.29.4:
-    resolution: {integrity: sha512-c6Ji2oGfXN/abuLRVLUT0/eklLuAlargjBR0Ru/FAhgmL2TtEhNl2OQ3UnFSUYXa8a6v9qrEb6UvIp0A6KlJ5w==}
+  /retes/0.30.1:
+    resolution: {integrity: sha512-+zXCyrOT22WjM9ayT3riudhmFDJVTeGshfgKWSuyOPV+ez2R6Fi2OtM1hfGteGZrAv/gATEMgdiCPdJOaDvIEw==}
     dependencies:
       busboy: 1.6.0
     dev: false
