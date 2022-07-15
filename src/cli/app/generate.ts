@@ -11,7 +11,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { GetWebhookEventEnum } from '../../generated/graphql.js';
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
-import { capitalize, uncapitalize } from '../../lib/util.js';
+import { capitalize, uncapitalize, without } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -34,8 +34,6 @@ export const handler = async (argv: Arguments<Options>) => {
       const {
         __type: { enumValues },
       } = await request(DefaultSaleorEndpoint, GetWebhookEventEnum);
-
-      const without = (name: string) => (record: any) => record.name !== name;
       const choices = enumValues.filter(without('ANY_EVENTS'));
 
       const prompt = new (Enquirer as any).AutoComplete({

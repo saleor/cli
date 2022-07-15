@@ -11,6 +11,7 @@ import {
 import { doWebhookCreate } from '../../graphql/doWebhookCreate.js';
 import { Config } from '../../lib/config.js';
 import { API, DefaultSaleorEndpoint, GET } from '../../lib/index.js';
+import { without } from '../../lib/util.js';
 import { interactiveSaleorApp } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -24,6 +25,8 @@ export const handler = async (argv: Arguments<Options>) => {
   const {
     __type: { enumValues: asyncEventsList },
   } = await request(DefaultSaleorEndpoint, GetWebhookAsyncEventEnum);
+  const asyncEventsListChoices = asyncEventsList.filter(without('ANY_EVENTS'));
+
   const {
     __type: { enumValues: syncEventsList },
   } = await request(DefaultSaleorEndpoint, GetWebhookSyncEventEnum);
@@ -74,7 +77,7 @@ export const handler = async (argv: Arguments<Options>) => {
       type: 'multiselect',
       name: 'asyncEvents',
       message: 'Select asynchronous events',
-      choices: asyncEventsList,
+      choices: asyncEventsListChoices,
     },
     {
       type: 'multiselect',
