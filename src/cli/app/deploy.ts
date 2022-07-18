@@ -39,6 +39,46 @@ export const handler = async () => {
     owner,
     repoName
   );
+
+  const { vercel_token: vercelToken } = await Config.get();
+
+  // encrypt and store in .env
+  const value = JSON.stringify({
+    access_token: vercelToken.split(' ')[1],
+    project: projectId,
+  });
+
+  const response = await fetch('https://appraptor.deno.dev/encrypt', {
+    method: 'POST',
+    body: JSON.stringify({ value }),
+  });
+  const encrypted = await response.text();
+
+  // set ENV vars
+  await got.post(`https://api.vercel.com/v9/projects/${name}/env`, {
+    headers: {
+      Authorization: vercelToken,
+    },
+    json: {
+      key: 'SALEOR_MARKETPLACE_REGISTER_URL',
+      value: 'https://appraptor.deno.dev/register?cloud=vercel',
+      target: ['production', 'preview', 'development'],
+      type: 'plain',
+    },
+  });
+
+  await got.post(`https://api.vercel.com/v9/projects/${name}/env`, {
+    headers: {
+      Authorization: vercelToken,
+    },
+    json: {
+      key: 'SALEOR_MARKETPLACE_TOKEN',
+      value: encrypted,
+      target: ['production', 'preview', 'development'],
+      type: 'plain',
+    },
+  });
+
   // 3. Deploy the project in Vercel
   await triggerDeploymentInVercel(name, owner, projectId, newProject);
 
@@ -274,6 +314,7 @@ export const createProjectInVercel = async (
             type: provider,
             repo: `${owner}/${repoName}`,
           },
+          framework: 'nextjs',
         },
       })
       .json();
