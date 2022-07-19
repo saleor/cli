@@ -7,6 +7,7 @@ import got from 'got';
 import ora from 'ora';
 import path from 'path';
 import { simpleGit } from 'simple-git';
+import { Vercel } from 'vercel-sdk';
 import type { CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
@@ -54,32 +55,25 @@ export const handler = async () => {
   });
   const encrypted = await response.text();
 
-  // set ENV vars
-  await got.post(`https://api.vercel.com/v9/projects/${name}/env`, {
-    headers: {
-      Authorization: vercelToken,
-    },
-    json: {
+  const vercel = Vercel(vercelToken, projectId);
+
+  // 3. set ENV vars
+  vercel.setEnvironmentVariables([
+    {
       key: 'SALEOR_MARKETPLACE_REGISTER_URL',
       value: 'https://appraptor.deno.dev/register?cloud=vercel',
-      target: ['production', 'preview', 'development'],
+      target: ['production', 'preview'],
       type: 'plain',
     },
-  });
-
-  await got.post(`https://api.vercel.com/v9/projects/${name}/env`, {
-    headers: {
-      Authorization: vercelToken,
-    },
-    json: {
+    {
       key: 'SALEOR_MARKETPLACE_TOKEN',
       value: encrypted,
-      target: ['production', 'preview', 'development'],
+      target: ['production', 'preview'],
       type: 'plain',
     },
-  });
+  ]);
 
-  // 3. Deploy the project in Vercel
+  // 4. Deploy the project in Vercel
   await triggerDeploymentInVercel(name, owner, projectId, newProject);
 
   process.exit(0);
