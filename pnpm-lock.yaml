@@ -69,7 +69,6 @@ specifiers:
   tsm: ^2.2.2
   typescript: 4.7.4
   update-notifier: ^6.0.2
-  vercel-sdk: ^0.1.0
   yaml: ^2.1.1
   yargs: ^17.5.1
 
@@ -112,7 +111,6 @@ dependencies:
   tar: 6.1.11
   tplv: 1.0.0
   update-notifier: 6.0.2
-  vercel-sdk: 0.1.0
   yaml: 2.1.1
   yargs: 17.5.1
 
@@ -8360,10 +8358,6 @@ packages:
     resolution: {integrity: sha512-41BrgH+dIbCFXClcSapVs5M6GkENd3gQOJpEfPDNa71LsUGMXDL0jMWpI/Rh7WhX+Aalfz2TTS3Zt5pUsbnhLg==}
     engines: {node: '>=12'}
     dev: true
-
-  /vercel-sdk/0.1.0:
-    resolution: {integrity: sha512-0Q4vMHXmIXvbm/agjHxtCYCMPQkpNMoLBMMIpH2sUGZMOxjE8g66fWv0gud02PNIXRNMTceE6n9HFh85iyk9WQ==}
-    dev: false
 
   /wcwidth/1.0.1:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
