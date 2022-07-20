@@ -414,7 +414,9 @@ export const deploy = async ({ name, url }: { name: string; url: string }) => {
   );
 
   console.log(
-    `\n${chalk.gray('NEXT_PUBLIC_API_URI')}=${chalk.yellow(`${url}/graphql`)}\n`
+    `\n${chalk.gray('NEXT_PUBLIC_API_URI')}=${chalk.yellow(
+      `${url}/graphql/`
+    )}\n`
   );
 
   console.log(
