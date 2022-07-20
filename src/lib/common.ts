@@ -132,7 +132,7 @@ export const run = async (
     }
   }
   for await (const data of child.stderr || []) {
-    console.error(data);
+    console.error(data.toString());
   }
 };
 
