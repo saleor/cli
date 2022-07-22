@@ -62,9 +62,10 @@ You can create new API endpoints by running:
 saleor env create
 ```
 
-## Saleor Apps management
+## Saleor Apps management 🦄
 
-Coming soon 🦄
+Please check out the [Saleor App Template](https://github.com/saleor/saleor-app-template) [docs](https://github.com/saleor/saleor-app-template#readme) for the latest documentation.
+
 
 ## Webhooks management
 
