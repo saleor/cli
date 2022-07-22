@@ -29,7 +29,7 @@ specifiers:
   clean-publish: ^4.0.1
   cli-highlight: ^2.1.11
   cli-progress: ^3.11.2
-  date-fns: ^2.29.0
+  date-fns: ^2.29.1
   debug: ^4.3.4
   detect-port: ^1.3.0
   dotenv: ^16.0.1
@@ -83,7 +83,7 @@ dependencies:
   chalk: 5.0.1
   cli-highlight: 2.1.11
   cli-progress: 3.11.2
-  date-fns: 2.29.0
+  date-fns: 2.29.1
   debug: 4.3.4
   detect-port: 1.3.0
   dotenv: 16.0.1
@@ -4594,8 +4594,8 @@ packages:
     resolution: {integrity: sha512-qTcEYLen3r7ojZNgVUaRggOI+KM7jrKxXeSHhogh/TWxYMeONEMqY+hmkobiYQozsGIyg9OYVzO4ZIfoB4I0pQ==}
     dev: true
 
-  /date-fns/2.29.0:
-    resolution: {integrity: sha512-itxguwZHwBR0ats0VpYAVyY65dq1DEsDsfsGxFG11Rrho+zQJTCcjKbxQ7LiU5M2omLJ272bnn63yYFk/YGuVw==}
+  /date-fns/2.29.1:
+    resolution: {integrity: sha512-dlLD5rKaKxpFdnjrs+5azHDFOPEu4ANy/LTh04A1DTzMM7qoajmKCBc8pkKRFT41CNzw+4gQh79X5C+Jq27HAw==}
     engines: {node: '>=0.11'}
     dev: false
 

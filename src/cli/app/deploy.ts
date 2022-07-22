@@ -11,6 +11,7 @@ import type { CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { delay } from '../../lib/util.js';
+import { Vercel } from '../../lib/vercel.js';
 import { useVercel } from '../../middleware/index.js';
 
 export const command = 'deploy';
@@ -28,6 +29,9 @@ export const handler = async () => {
     )})`
   );
 
+  const { vercel_token: vercelToken } = await Config.get();
+  const vercel = new Vercel(vercelToken);
+
   // 1. Get or create hosted repository
   const repoUrl = await getRepoUrl(name);
   const { owner, name: repoName } = GitUrlParse(repoUrl);
@@ -35,12 +39,11 @@ export const handler = async () => {
   console.log('\nDeploying to Vercel');
   // 2. Create a project in Vercel
   const { projectId, newProject } = await createProjectInVercel(
+    vercel,
     name,
     owner,
     repoName
   );
-
-  const { vercel_token: vercelToken } = await Config.get();
 
   // encrypt and store in .env
   const value = JSON.stringify({
@@ -54,33 +57,24 @@ export const handler = async () => {
   });
   const encrypted = await response.text();
 
-  // set ENV vars
-  await got.post(`https://api.vercel.com/v9/projects/${name}/env`, {
-    headers: {
-      Authorization: vercelToken,
-    },
-    json: {
+  // 3. set ENV vars
+  vercel.setEnvironmentVariables(projectId, [
+    {
       key: 'SALEOR_MARKETPLACE_REGISTER_URL',
       value: 'https://appraptor.deno.dev/register?cloud=vercel',
-      target: ['production', 'preview', 'development'],
+      target: ['production', 'preview'],
       type: 'plain',
     },
-  });
-
-  await got.post(`https://api.vercel.com/v9/projects/${name}/env`, {
-    headers: {
-      Authorization: vercelToken,
-    },
-    json: {
+    {
       key: 'SALEOR_MARKETPLACE_TOKEN',
       value: encrypted,
-      target: ['production', 'preview', 'development'],
+      target: ['production', 'preview'],
       type: 'plain',
     },
-  });
+  ]);
 
-  // 3. Deploy the project in Vercel
-  await triggerDeploymentInVercel(name, owner, projectId, newProject);
+  // 4. Deploy the project in Vercel
+  await triggerDeploymentInVercel(vercel, name, owner, projectId, newProject);
 
   process.exit(0);
 };
@@ -204,73 +198,30 @@ const createProjectInGithub = async (name: string): Promise<string> => {
   return gitRepoUrl;
 };
 
-const updateEnvironmentVariables = async (name: string) => {
-  const { vercel_token: vercelToken } = await Config.get();
-
+const updateEnvironmentVariables = async (
+  vercel: Vercel,
+  projectId: string
+) => {
   const localEnvs = dotenv.parse(
     await fs.readFile(path.join(process.cwd(), '.env'))
   );
 
-  const { envs: vercelEnvs } = await got
-    .get(`https://api.vercel.com/v9/projects/${name}/env`, {
-      headers: {
-        Authorization: vercelToken,
-      },
-    })
-    .json();
+  const envs = Object.entries(localEnvs).map(([key, value]) => ({
+    key,
+    value,
+    target: ['production', 'preview'],
+    type: 'encrypted',
+  }));
 
-  for (const [localKey, localValue] of Object.entries(localEnvs)) {
-    // FIXME handle multiple envs with the same key
-    const [vercelEnv] = vercelEnvs.filter(
-      ({ key }: { key: string }) => key === localKey
-    );
-
-    // new env, create
-    if (vercelEnv === undefined) {
-      console.log(`Creating new environment variable - ${localKey}`);
-      await got.post(`https://api.vercel.com/v9/projects/${name}/env`, {
-        headers: {
-          Authorization: vercelToken,
-        },
-        json: {
-          key: localKey,
-          value: localValue,
-          target: ['production', 'preview', 'development'],
-          type: 'plain',
-        },
-      });
-
-      continue;
-    }
-
-    // value changed, update
-    if (vercelEnv.value !== localValue) {
-      console.log(`Updating environment variable - ${localKey}`);
-      await got.patch(
-        `https://api.vercel.com/v9/projects/${name}/env/${vercelEnv.id}`,
-        {
-          headers: {
-            Authorization: vercelToken,
-          },
-          json: {
-            value: localValue,
-          },
-        }
-      );
-
-      continue;
-    }
-  }
+  await vercel.setEnvironmentVariables(projectId, envs);
 };
 
 export const createProjectInVercel = async (
+  vercel: Vercel,
   name: string,
   owner: string,
-  repoName: string,
-  provider = 'github' // TODO allow gitlab & bitbucket
+  repoName: string
 ): Promise<Record<string, any>> => {
-  const { vercel_token: vercelToken } = await Config.get();
-
   const envs = dotenv.parse(
     await fs.readFile(path.join(process.cwd(), '.env'))
   );
@@ -290,37 +241,20 @@ export const createProjectInVercel = async (
   let projectId;
   let newProject = false;
 
-  try {
-    const { id }: any = await got
-      .get(`https://api.vercel.com/v9/projects/${name}`, {
-        headers: {
-          Authorization: vercelToken,
-        },
-      })
-      .json();
+  const project: any = await vercel.getProject(name);
 
-    projectId = id;
-  } catch (error) {
-    // TODO check if `ERR_NON_2XX_3XX_RESPONSE` for `error.code`
-    const { id } = await got
-      .post('https://api.vercel.com/v9/projects', {
-        headers: {
-          Authorization: vercelToken,
-        },
-        json: {
-          name,
-          environmentVariables,
-          gitRepository: {
-            type: provider,
-            repo: `${owner}/${repoName}`,
-          },
-          framework: 'nextjs',
-        },
-      })
-      .json();
+  if (!project.id) {
+    const { id } = await vercel.createProject(
+      name,
+      environmentVariables,
+      owner,
+      repoName
+    );
 
     newProject = true;
     projectId = id;
+  } else {
+    projectId = project.id;
   }
 
   return {
@@ -330,17 +264,17 @@ export const createProjectInVercel = async (
 };
 
 export const triggerDeploymentInVercel = async (
+  vercel: Vercel,
   name: string,
   owner: string,
   projectId: string,
   newProject: boolean,
   provider = 'github'
 ) => {
-  const { vercel_token: vercelToken } = await Config.get();
   const git = simpleGit();
 
   if (!newProject) {
-    await updateEnvironmentVariables(name);
+    await updateEnvironmentVariables(vercel, name);
   }
 
   const spinner = ora('Registering the changes in Vercel...').start();
@@ -353,7 +287,7 @@ export const triggerDeploymentInVercel = async (
       repository: { databaseId: repoId },
     } = await getGithubRepository(name, owner);
 
-    const { url } = await deployVercelProject(name, provider, repoId);
+    const { url } = await vercel.deploy(name, provider, repoId);
 
     spinner.succeed('Done');
     console.log(`\nYour Vercel URL: ${url}`);
@@ -364,48 +298,12 @@ export const triggerDeploymentInVercel = async (
   await delay(5000);
   spinner.succeed('Done');
 
-  const { deployments } = await got
-    .get(`https://api.vercel.com/v6/deployments?projectId=${projectId}`, {
-      headers: {
-        Authorization: vercelToken,
-      },
-    })
-    .json();
+  const { deployments } = await vercel.getDeployments(projectId);
 
   if (deployments.length > 0) {
     const { url } = deployments[0];
     console.log(`\nYour Vercel URL: ${url}`);
   }
-};
-
-const deployVercelProject = async (
-  name: string,
-  provider: string,
-  repoId: number
-) => {
-  const { vercel_token: vercelToken } = await Config.get();
-
-  const { url } = await got
-    .post('https://api.vercel.com/v13/deployments', {
-      headers: {
-        Authorization: vercelToken,
-      },
-      json: {
-        gitSource: {
-          type: provider,
-          ref: 'main',
-          repoId,
-        },
-        name,
-        target: 'production',
-        source: 'import',
-      },
-    })
-    .json();
-
-  return {
-    url,
-  };
 };
 
 export const middlewares = [useVercel];
