@@ -119,7 +119,7 @@ const dirExists = async (name: string): Promise<boolean> => {
 export const setupGitRepository = async (spinner: Ora) => {
   spinner.text = 'Setting up the Git repository...'; // eslint-disable-line no-param-reassign
   const git = simpleGit();
-  await git.init();
+  await git.init(['--initial-branch', 'main']);
   await git.add('.');
   await git.commit('Initial commit from Saleor CLI');
 };
