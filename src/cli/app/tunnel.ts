@@ -5,7 +5,6 @@ import fs from 'fs-extra';
 import fetch from 'node-fetch';
 import ora from 'ora';
 import path from 'path';
-import replace from 'replace-in-file';
 import { fileURLToPath } from 'url';
 import { Arguments, CommandBuilder } from 'yargs';
 
@@ -18,6 +17,7 @@ import {
 } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
+import { delay } from '../../lib/util.js';
 import {
   useEnvironment,
   useOrganization,
@@ -78,9 +78,10 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
   const winSuffix = process.platform === 'win32' ? '.cmd' : '';
 
   try {
-    await fetch(`https://id.saleor.live/add/${subdomain}/${port}`, {
+    await fetch(`http://95.179.221.135:5544/add/${subdomain}/${port}`, {
       method: 'POST',
     });
+    await delay(500);
 
     const p = spawn(
       `${vendorDir}/tunnel${winSuffix}`,
@@ -121,6 +122,8 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
       )
     );
 
+    await delay(1000);
+
     const _argv = argv;
     _argv.manifestURL = `https://${tunnelURL}/api/manifest`;
     _argv.appName = appName;
@@ -146,6 +149,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     console.log(
       'Press CTRL-C to stop the tunnel and uninstall this Saleor App...'
     );
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const key = await getKeypress();
       if (String(key) === '\u0003') {
