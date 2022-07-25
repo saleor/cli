@@ -17,12 +17,35 @@ export const builder: CommandBuilder = (_) =>
     desc: 'key of the environment',
   }).option('force', {
     type: 'boolean',
-    desc: 'skip confrimation prompt',
+    desc: 'skip confirmation prompt',
   });
 
 export const handler = async (argv: Arguments<Options>) => {
   const { environment } = argv;
-  const env = (await GET(API.Environment, argv)) as any;
+
+  let env;
+  try {
+    env = (await GET(API.Environment, argv)) as any;
+  } catch (error) {
+    const environments = (await GET(API.Environment, {
+      ...argv,
+      ...{ environment: undefined },
+    })) as any;
+    const { key } =
+      environments.filter(
+        ({ name }: { name: string }) => name === environment
+      )[0] || {};
+
+    if (key) {
+      env = (await GET(API.Environment, {
+        ...argv,
+        ...{ environment: key },
+      })) as any;
+    } else {
+      throw error;
+    }
+  }
+
   const proceed = await confirmRemoval(
     argv,
     `environment ${env.name} - ${env.key}`
