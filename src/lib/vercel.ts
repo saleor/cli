@@ -41,7 +41,7 @@ export class Vercel {
   async addEnvironmentVariables(projectId: string, envs: Env[]) {
     return this._client(
       'POST',
-      `/v8/projects/${projectId} /env`,
+      `/v8/projects/${projectId}/env`,
       envs.map((env) => ({ type: 'plain', target: ['production'], ...env }))
     );
   }
