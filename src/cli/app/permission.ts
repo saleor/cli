@@ -6,8 +6,8 @@ import { Arguments } from 'yargs';
 import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
-import POST from '../../lib/got.js';
 import { API, GET } from '../../lib/index.js';
+import POST from '../../lib/queryEnvironment.js';
 import { getAppsFromResult, printContext } from '../../lib/util.js';
 import {
   useEnvironment,
@@ -29,10 +29,15 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const endpoint = `https://${domain}/graphql/`;
 
-  const data = await POST(endpoint, headers, {
-    query: SaleorAppList,
-    variables: {},
-  });
+  const data = await POST(
+    endpoint,
+    headers,
+    {
+      query: SaleorAppList,
+      variables: {},
+    },
+    argv
+  );
 
   const apps = getAppsFromResult(data);
 
