@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --no-warnings
 
 import * as Sentry from '@sentry/node';
 import chalk from 'chalk';

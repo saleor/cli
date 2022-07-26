@@ -24,9 +24,9 @@ export const handler = async () => {
     await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
   );
   console.log(
-    `\nDeploying... ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
+    `\nDeploying ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
       'package.json'
-    )})`
+    )}) to Vercel`
   );
 
   const { vercel_token: vercelToken } = await Config.get();
@@ -36,9 +36,8 @@ export const handler = async () => {
   const repoUrl = await getRepoUrl(name);
   const { owner, name: repoName } = GitUrlParse(repoUrl);
 
-  console.log('\nDeploying to Vercel');
   // 2. Create a project in Vercel
-  const { projectId, newProject } = await createProjectInVercel(
+  const { projectId, newProject, envs } = await createProjectInVercel(
     vercel,
     name,
     owner,
@@ -74,7 +73,26 @@ export const handler = async () => {
   ]);
 
   // 4. Deploy the project in Vercel
-  await triggerDeploymentInVercel(vercel, name, owner, projectId, newProject);
+  const url = await triggerDeploymentInVercel(
+    vercel,
+    name,
+    owner,
+    projectId,
+    newProject
+  );
+
+  console.log(
+    '\nNext step - Install this Saleor App in your Saleor Dashboard\n'
+  );
+  console.log(`1. using Saleor Dashboard UI
+${chalk.cyan(
+  envs.NEXT_PUBLIC_SALEOR_HOST_URL
+)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
+    encodeURIComponent(`${url}/api/manifest`)
+  )}\n`);
+  console.log(`2. using the 'app install' command
+saleor app install
+`);
 
   process.exit(0);
 };
@@ -109,12 +127,12 @@ const getGithubRepository = async (
   }`
     : `query getRepository($name: String!) {
     viewer {
-      repository(name: $name) {
-        url
-        sshUrl
-        databaseId
-      }
+    repository(name: $name) {
+      url
+      sshUrl
+      databaseId
     }
+  }
   }`;
 
   const { data } = await got
@@ -156,13 +174,13 @@ const createProjectInGithub = async (name: string): Promise<string> => {
       },
       json: {
         query: `mutation doRepositoryCreate($name: String!) {
-        createRepository(input: {name: $name, visibility: PRIVATE }) {
+  createRepository(input: { name: $name, visibility: PRIVATE }) {
           repository {
-            url
-            sshUrl
-          }
-        }
-      }`,
+      url
+      sshUrl
+    }
+  }
+} `,
         variables: { name },
       },
     })
@@ -233,10 +251,15 @@ export const createProjectInVercel = async (
   }));
 
   const output = Object.entries(envs)
-    .map(([key, value]) => `${chalk.dim(key)}=${chalk.cyan(value)}`)
+    .map(([key, value]) => `${chalk.dim(key)}=${chalk.cyan(value)} `)
     .join('\n');
-  console.log('\n--- Setting the environment variables from `.env` in Vercel');
+  console.log(
+    `\nSetting the environment variables from ${chalk.yellow(
+      '.env'
+    )} in Vercel\n`
+  );
   console.log(output);
+  console.log('');
 
   let projectId;
   let newProject = false;
@@ -258,6 +281,7 @@ export const createProjectInVercel = async (
   }
 
   return {
+    envs,
     projectId,
     newProject,
   };
@@ -277,7 +301,7 @@ export const triggerDeploymentInVercel = async (
     await updateEnvironmentVariables(vercel, name);
   }
 
-  const spinner = ora('Registering the changes in Vercel...').start();
+  const spinner = ora('Starting a deployment in Vercel...').start();
 
   const {
     pushed: [{ alreadyUpdated }],
@@ -289,10 +313,15 @@ export const triggerDeploymentInVercel = async (
 
     const { url } = await vercel.deploy(name, provider, repoId);
 
-    spinner.succeed('Done');
-    console.log(`\nYour Vercel URL: ${url}`);
+    spinner.succeed('Deployment successfully started.');
+    console.log(
+      `\n${chalk.yellow(
+        'Warning'
+      )}: You may need to wait up to a few minutes for the deployment to finish.`
+    );
+    console.log(`\nYour Vercel URL: ${chalk.cyan(`https://${url}`)}`);
 
-    process.exit(0);
+    return `https://${url}`;
   }
 
   await delay(5000);
@@ -303,7 +332,11 @@ export const triggerDeploymentInVercel = async (
   if (deployments.length > 0) {
     const { url } = deployments[0];
     console.log(`\nYour Vercel URL: ${url}`);
+    return `https://${url}`;
   }
+
+  // FIXME properly handle this edge case
+  return '';
 };
 
 export const middlewares = [useVercel];
