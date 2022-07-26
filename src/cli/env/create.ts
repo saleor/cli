@@ -5,7 +5,7 @@ import { HTTPError, Response } from 'got';
 import slugify from 'slugify';
 import { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET, POST } from '../../lib/index.js';
+import { API, GET, POST, PUT } from '../../lib/index.js';
 import {
   deploy,
   validateEmail,
@@ -134,25 +134,16 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     },
   ])) as { name: string };
 
-  const { domain, access } = (await Enquirer.prompt([
-    {
-      type: 'input',
-      name: 'domain',
-      message: 'Environment domain',
-      initial: slugify(argv.domain || argv.name || name || ''),
-      required: true,
-      skip: !!argv.domain,
-      validate: (value) => validateLength(value, 40),
-    },
-    {
-      type: 'confirm',
-      name: 'access',
-      message: 'Would you like to enable dashboard access?',
-      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
-      skip: !!argv.email,
-      initial: true,
-    },
-  ])) as { domain: string; access: boolean };
+  const domain = await validateDomain(argv, name);
+
+  const { access } = await Enquirer.prompt<{ access: boolean }>({
+    type: 'confirm',
+    name: 'access',
+    message: 'Would you like to enable dashboard access?',
+    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    skip: !!argv.email,
+    initial: true,
+  });
 
   let { email } = argv;
 
@@ -269,6 +260,69 @@ export const middlewares = [
   interactiveDatabaseTemplate,
   interactiveSaleorVersion,
 ];
+
+const getDomain = async (
+  argv: Arguments<Options>,
+  name: string,
+  errorMsg: string,
+  initial: string | undefined = undefined
+) => {
+  const { domain } = await Enquirer.prompt<{ domain: string }>({
+    type: 'input',
+    name: 'domain',
+    message: 'Environment domain',
+    initial: initial || slugify(argv.domain || argv.name || name || ''),
+    required: true,
+    skip: !!argv.domain,
+    validate: (value) => {
+      if (initial && value === initial) {
+        return chalk.red(errorMsg);
+      }
+
+      validateLength(value, 40);
+
+      return true;
+    },
+  });
+
+  return domain;
+};
+
+const validateDomain = async (argv: Arguments<Options>, name: string) => {
+  let loop = true;
+  let domain;
+  const msg = '✖ The environment with this domain already exists.';
+
+  domain = await getDomain(argv, name, msg);
+  const json = { domain_label: domain };
+
+  while (loop) {
+    try {
+      await PUT(API.DomainCheck, argv, { json });
+      loop = false;
+      return domain;
+    } catch (error) {
+      if (error instanceof HTTPError) {
+        const { body } = error.response as Response<any>;
+        const errors: Record<string, string[]> = JSON.parse(body);
+        for (const [errorMsg] of Object.values(errors)) {
+          switch (errorMsg) {
+            case 'environment with this domain label already exists.': {
+              console.log(chalk.red(msg));
+              domain = await getDomain(argv, name, msg, json.domain_label);
+              json.domain_label = domain;
+              break;
+            }
+            default:
+              throw error;
+          }
+        }
+      }
+    }
+  }
+
+  return domain;
+};
 
 const getResult = async (
   json: Record<string, any>,
