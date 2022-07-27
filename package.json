@@ -37,7 +37,7 @@
   "author": "Saleor",
   "license": "ISC",
   "devDependencies": {
-    "@graphql-codegen/cli": "^2.9.1",
+    "@graphql-codegen/cli": "^2.10.0",
     "@graphql-codegen/typescript-document-nodes": "^2.3.2",
     "@types/cli-progress": "^3.11.0",
     "@types/debug": "^4.1.7",

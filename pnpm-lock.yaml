@@ -4,7 +4,7 @@ overrides:
   uuid: 8.3.2
 
 specifiers:
-  '@graphql-codegen/cli': ^2.9.1
+  '@graphql-codegen/cli': ^2.10.0
   '@graphql-codegen/typescript-document-nodes': ^2.3.2
   '@mobily/ts-belt': ^3.12.0
   '@oclif/core': ^1.12.1
@@ -115,7 +115,7 @@ dependencies:
   yargs: 17.5.1
 
 devDependencies:
-  '@graphql-codegen/cli': 2.9.1_b7w7bfnuaxlddyoujuxi7lpngu
+  '@graphql-codegen/cli': 2.10.0_b7w7bfnuaxlddyoujuxi7lpngu
   '@graphql-codegen/typescript-document-nodes': 2.3.2_graphql@16.5.0
   '@types/cli-progress': 3.11.0
   '@types/debug': 4.1.7
@@ -2217,7 +2217,7 @@ packages:
       '@babel/compat-data': 7.18.8
       '@babel/core': 7.18.9
       '@babel/helper-validator-option': 7.18.6
-      browserslist: 4.21.2
+      browserslist: 4.21.3
       semver: 6.3.0
     dev: true
 
@@ -2766,8 +2766,8 @@ packages:
       - supports-color
     dev: true
 
-  /@graphql-codegen/cli/2.9.1_b7w7bfnuaxlddyoujuxi7lpngu:
-    resolution: {integrity: sha512-RyGrJTKySi5irJjdgg/9GTnFSCJtKh1YGD9idh2CIsEbkbUx3M7aBk4A+W7Q1afLmC16l59KSXodG8Bqi2eJmg==}
+  /@graphql-codegen/cli/2.10.0_b7w7bfnuaxlddyoujuxi7lpngu:
+    resolution: {integrity: sha512-v87yzrQ4Q/PpGPC59O0xusQknWWKtUdITqahpUBDddT8ZWHNhadx2BjvPkinFoPZmCkG8yVoAHx7FJ2uLzqjww==}
     hasBin: true
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -2784,11 +2784,11 @@ packages:
       '@graphql-tools/prisma-loader': 7.2.5_hqxw6ys6gebafachq3spimetv4
       '@graphql-tools/url-loader': 7.13.0_hqxw6ys6gebafachq3spimetv4
       '@graphql-tools/utils': 8.8.0_graphql@16.5.0
+      '@whatwg-node/fetch': 0.0.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       chokidar: 3.5.3
       cosmiconfig: 7.0.1
-      cross-undici-fetch: 0.4.14
       debounce: 1.2.1
       detect-indent: 6.1.0
       graphql: 16.5.0
@@ -4080,15 +4080,15 @@ packages:
     dependencies:
       fill-range: 7.0.1
 
-  /browserslist/4.21.2:
-    resolution: {integrity: sha512-MonuOgAtUB46uP5CezYbRaYKBNt2LxP0yX+Pmj4LkcDFGkn9Cbpi83d9sCjwQDErXsIJSzY5oKGDbgOlF/LPAA==}
+  /browserslist/4.21.3:
+    resolution: {integrity: sha512-898rgRXLAyRkM1GryrrBHGkqA5hlpkV5MhtZwg9QXeiyLUYs2k00Un05aX5l2/yJIOObYKOpS2JNo8nJDE7fWQ==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001370
-      electron-to-chromium: 1.4.200
+      electron-to-chromium: 1.4.202
       node-releases: 2.0.6
-      update-browserslist-db: 1.0.5_browserslist@4.21.2
+      update-browserslist-db: 1.0.5_browserslist@4.21.3
     dev: true
 
   /bser/2.1.1:
@@ -4551,20 +4551,6 @@ packages:
       which: 2.0.2
     dev: true
 
-  /cross-undici-fetch/0.4.14:
-    resolution: {integrity: sha512-CCep44A/baoO8kYJBIR1cRO/tRAk29xzb/tH3O85OtgwZGkL5I0tJZ47ccZdrnAJxrl5tlaYhAOx09fJXMcUqQ==}
-    dependencies:
-      abort-controller: 3.0.0
-      busboy: 1.6.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.3.3
-      node-fetch: 2.6.7
-      undici: 5.5.1
-      web-streams-polyfill: 3.2.1
-    transitivePeerDependencies:
-      - encoding
-    dev: true
-
   /crypto-js/4.1.1:
     resolution: {integrity: sha512-o2JlM7ydqd3Qk9CA0L4NL6mTzU2sdx96a+oOfPu8Mkl/PK51vSyoi8/rQ8NknZtk44vq15lmhAj9CIAGwgeWKw==}
     dev: false
@@ -4793,8 +4779,8 @@ packages:
       jake: 10.8.5
     dev: false
 
-  /electron-to-chromium/1.4.200:
-    resolution: {integrity: sha512-nPyI7oHc8T64oSqRXrAt99gNMpk0SAgPHw/o+hkNKyb5+bcdnFtZcSO9FUJES5cVkVZvo8u4qiZ1gQILl8UXsA==}
+  /electron-to-chromium/1.4.202:
+    resolution: {integrity: sha512-JYsK2ex9lmQD27kj19fhXYxzFJ/phLAkLKHv49A5UY6kMRV2xED3qMMLg/voW/+0AR6wMiI+VxlmK9NDtdxlPA==}
     dev: true
 
   /emoji-regex/8.0.0:
@@ -8283,13 +8269,13 @@ packages:
       normalize-path: 2.1.1
     dev: true
 
-  /update-browserslist-db/1.0.5_browserslist@4.21.2:
+  /update-browserslist-db/1.0.5_browserslist@4.21.3:
     resolution: {integrity: sha512-dteFFpCyvuDdr9S/ff1ISkKt/9YZxKjI9WlRR99c180GaztJtRa/fn18FdxGVKVsnPY7/a/FDN68mcvUmP4U7Q==}
     hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
     dependencies:
-      browserslist: 4.21.2
+      browserslist: 4.21.3
       escalade: 3.1.1
       picocolors: 1.0.0
     dev: true
