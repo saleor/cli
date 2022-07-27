@@ -34,7 +34,7 @@ export const handler = async () => {
   // spinner.text = '\nLogging in...\n';
 
   const QueryParams = new URLSearchParams({ state: generatedState });
-  const url = `https://vercel.com/integrations/saleor/new?${QueryParams}`;
+  const url = `https://vercel.com/integrations/saleor-cli/new?${QueryParams}`;
   cli.open(url);
 
   const app = new ServerApp([
