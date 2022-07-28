@@ -10,10 +10,12 @@ interface Env {
   type?: string;
 }
 
-// interface Deployment {
-//   id: string
-//   url: string
-// }
+interface Deployment {
+  id: string;
+  url: string;
+  readyState: string;
+  alias: string;
+}
 
 // eslint-disable-next-line import/prefer-default-export
 export class Vercel {
@@ -118,11 +120,16 @@ export class Vercel {
   }
 
   async getDeployments(projectId: string) {
-    return this._client('GET', `/v6/deployments?projectId=${projectId}`);
+    return this._client('GET', `/v6/deployments?projectId=${projectId}`) as {
+      deployments: Deployment[];
+    };
   }
 
-  async getDeployment(deploymentId: string): Promise<any> {
-    return this._client('GET', `/v13/deployments/${deploymentId}`);
+  async getDeployment(deploymentId: string) {
+    return this._client(
+      'GET',
+      `/v13/deployments/${deploymentId}`
+    ) as Deployment;
   }
 
   async verifyDeployment(
@@ -131,35 +138,24 @@ export class Vercel {
     msg = 'Deployment of'
   ) {
     const spinner = ora(`${msg} ${chalk.cyan(name)} in progress...`).start();
-    let { readyState } = await this.getDeployment(deploymentId);
 
-    if (deploymentFailed(readyState)) {
-      process.exit(1);
-    }
+    let readyState;
+    do {
+      const deployment = await this.getDeployment(deploymentId);
+      readyState = deployment.readyState;
 
-    while (deploymentSucceeded(readyState)) {
+      if (hasDeploymentFailed(readyState)) {
+        console.log(`\nDeployment status: ${readyState}`);
+        process.exit(1);
+      }
+
       await delay(5000);
-      const { readyState: rs } = await this.getDeployment(deploymentId);
-      readyState = rs;
-      deploymentFailed(readyState);
-    }
+    } while (hasDeploymentSucceeded(readyState));
 
     spinner.succeed(`Deployed ${chalk.cyan(name)}\n`);
   }
 }
 
-const deploymentSucceeded = (readyState: string) => {
-  if (readyState === 'READY') {
-    return false;
-  }
-
-  return true;
-};
-
-const deploymentFailed = (readyState: string) => {
-  if (['ERROR', 'CANCELED'].includes(readyState)) {
-    console.log(`\nDeployment status: ${readyState}`);
-    return true;
-  }
-  return false;
-};
+const hasDeploymentSucceeded = (readyState: string) => readyState !== 'READY';
+const hasDeploymentFailed = (readyState: string) =>
+  ['ERROR', 'CANCELED'].includes(readyState);
