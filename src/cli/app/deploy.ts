@@ -1,3 +1,4 @@
+import boxen from 'boxen';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
 import Enquirer from 'enquirer';
@@ -7,27 +8,36 @@ import got from 'got';
 import ora from 'ora';
 import path from 'path';
 import { simpleGit } from 'simple-git';
-import type { CommandBuilder } from 'yargs';
+import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { delay } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import { useVercel } from '../../middleware/index.js';
+import { Options } from '../../types.js';
 
 export const command = 'deploy';
 export const desc = 'Deploy this Saleor App repository to Vercel';
 
-export const builder: CommandBuilder = (_) => _;
+export const builder: CommandBuilder = (_) =>
+  _.option('dispatch', {
+    type: 'boolean',
+    demandOption: false,
+    default: false,
+    desc: 'dispatch deployment and don\'t wait till it ends',
+  });
 
-export const handler = async () => {
+export const handler = async (argv: Arguments<Options>) => {
   const { name } = JSON.parse(
     await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
   );
   console.log(
-    `\nDeploying ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
+    `Deploying ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
       'package.json'
-    )}) to Vercel`
+    )})`
   );
+
+  console.log(`Deployment destination: ${chalk.magenta('Vercel')}\n`);
 
   const { vercel_token: vercelToken } = await Config.get();
   const vercel = new Vercel(vercelToken);
@@ -73,7 +83,7 @@ export const handler = async () => {
   ]);
 
   // 4. Deploy the project in Vercel
-  const url = await triggerDeploymentInVercel(
+  const deployment = await triggerDeploymentInVercel(
     vercel,
     name,
     owner,
@@ -81,18 +91,31 @@ export const handler = async () => {
     newProject
   );
 
-  console.log(
-    '\nNext step - Install this Saleor App in your Saleor Dashboard\n'
-  );
-  console.log(`1. using Saleor Dashboard UI
-${chalk.cyan(
+  if (!!process.env.CI || !argv.dispatch) {
+    await vercel.verifyDeployment(name, deployment.id);
+  }
+
+  const msg1 = `     ${chalk.dim('Using the CLI')}: ${chalk.green(
+    'saleor app install'
+  )}`;
+  const msg2 = `${chalk.dim(
+    'Using Dashboard UI'
+  )}: open the following URL in the browser 
+${chalk.blue(
   envs.NEXT_PUBLIC_SALEOR_HOST_URL
 )}/dashboard/apps/install?manifestUrl=${chalk.yellow(
-    encodeURIComponent(`${url}/api/manifest`)
-  )}\n`);
-  console.log(`2. using the 'app install' command
-saleor app install
-`);
+    encodeURIComponent(`https://${deployment.url}/api/manifest`)
+  )}`;
+
+  console.log(
+    boxen(`${msg1}\n${msg2}`, {
+      padding: 1,
+      margin: 0,
+      borderColor: 'blue',
+      borderStyle: 'round',
+      title: 'Next step: install this app in the Saleor Dashboard',
+    })
+  );
 
   process.exit(0);
 };
@@ -199,7 +222,7 @@ const createProjectInGithub = async (name: string): Promise<string> => {
         await git.addRemote('origin', sshUrl);
         gitRepoUrl = sshUrl;
       } else {
-        console.error(`\n ${chalk.red('ERROR')} ${error.message}`);
+        console.error(`\n ${chalk.red('ERROR')} ${error.message} `);
         process.exit(1);
       }
     }
@@ -251,14 +274,18 @@ export const createProjectInVercel = async (
   }));
 
   const output = Object.entries(envs)
-    .map(([key, value]) => `${chalk.dim(key)}=${chalk.cyan(value)} `)
+    .map(([key, value]) => `${chalk.dim(key)}: ${chalk.cyan(value)} `)
     .join('\n');
+
   console.log(
-    `\nSetting the environment variables from ${chalk.yellow(
-      '.env'
-    )} in Vercel\n`
+    boxen(output, {
+      padding: 1,
+      margin: 0,
+      borderColor: 'blue',
+      borderStyle: 'round',
+      title: 'Environment Variables',
+    })
   );
-  console.log(output);
   console.log('');
 
   let projectId;
@@ -301,7 +328,7 @@ export const triggerDeploymentInVercel = async (
     await updateEnvironmentVariables(vercel, name);
   }
 
-  const spinner = ora('Starting a deployment in Vercel...').start();
+  const spinner = ora('Preparing to deploy...').start();
 
   const {
     pushed: [{ alreadyUpdated }],
@@ -311,17 +338,30 @@ export const triggerDeploymentInVercel = async (
       repository: { databaseId: repoId },
     } = await getGithubRepository(name, owner);
 
-    const { url } = await vercel.deploy(name, provider, repoId);
+    const deployment = await vercel.deploy(name, provider, repoId);
 
-    spinner.succeed('Deployment successfully started.');
+    spinner.succeed('App successfully queued for deployment');
+    console.log('');
+
+    const msg1 = `         ${chalk.dim('App URL')}: ${chalk.blue(
+      `https://${deployment.url}`
+    )} `;
+    const msg2 = `${chalk.dim('Manifest App URL')}: ${chalk.blue(
+      `https://${deployment.url}/api/manifest`
+    )} `;
+
     console.log(
-      `\n${chalk.yellow(
-        'Warning'
-      )}: You may need to wait up to a few minutes for the deployment to finish.`
+      boxen(`${msg1} \n${msg2}`, {
+        padding: 1,
+        margin: 0,
+        borderColor: 'blue',
+        borderStyle: 'round',
+        title: 'Deployment URLs',
+      })
     );
-    console.log(`\nYour Vercel URL: ${chalk.cyan(`https://${url}`)}`);
+    console.log('');
 
-    return `https://${url}`;
+    return deployment;
   }
 
   await delay(5000);
@@ -330,13 +370,13 @@ export const triggerDeploymentInVercel = async (
   const { deployments } = await vercel.getDeployments(projectId);
 
   if (deployments.length > 0) {
-    const { url } = deployments[0];
-    console.log(`\nYour Vercel URL: ${url}`);
-    return `https://${url}`;
+    const deployment = deployments[0];
+    console.log(`\nYour Vercel URL: ${deployment.url} `);
+    return deployment;
   }
 
   // FIXME properly handle this edge case
-  return '';
+  return {};
 };
 
 export const middlewares = [useVercel];
