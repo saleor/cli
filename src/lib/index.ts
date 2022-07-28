@@ -102,6 +102,7 @@ export const API: Record<string, DefaultURLPath> = {
   Services: (_) => `regions/${_.region}/services/${_.serviceName || ''}`,
   Plan: (_) => `plans/${_.plan || ''}`,
   Token: () => 'tokens',
+  DomainCheck: () => 'env-domain-check',
 };
 
 export const Region = 'us-east-1';
