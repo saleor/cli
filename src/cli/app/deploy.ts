@@ -91,7 +91,8 @@ export const handler = async (argv: Arguments<Options>) => {
     newProject
   );
 
-  if (!!process.env.CI || !argv.dispatch) {
+  const shouldWaitUntilDeployed = !!process.env.CI || !argv.dispatch;
+  if (shouldWaitUntilDeployed) {
     await vercel.verifyDeployment(name, deployment.id);
   }
 
