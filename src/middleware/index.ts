@@ -8,6 +8,7 @@ import { Arguments } from 'yargs';
 import * as Configuration from '../config.js';
 import { Config } from '../lib/config.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
+import { isNotFound } from '../lib/response.js';
 import {
   AuthError,
   createProject,
@@ -20,7 +21,7 @@ import {
   promptSaleorApp,
   promptWebhook,
 } from '../lib/util.js';
-import { CreatePromptResult, Options } from '../types.js';
+import { CreatePromptResult, Environment, Options } from '../types.js';
 
 const debug = Debug('middleware');
 
@@ -87,6 +88,23 @@ export const useOrganization = async ({ token, organization }: Options) => {
   return opts;
 };
 
+const getEnvironmentByName = async (
+  token: string,
+  organization: string,
+  environment: string
+) => {
+  const environments = (await GET(API.Environment, {
+    token,
+    organization,
+  })) as Environment[];
+  const { key } =
+    environments.filter(
+      ({ name }: { name: string }) => name === environment
+    )[0] || {};
+
+  return key;
+};
+
 const verifyEnvironment = async (
   token: string,
   organization: string,
@@ -95,46 +113,33 @@ const verifyEnvironment = async (
   const spinner = ora(
     chalk(chalk.bold('Environment ·'), chalk.cyan(environment))
   ).start();
-  let env;
+  let env: Environment;
 
   try {
     env = (await GET(API.Environment, {
       token,
       organization,
       environment,
-    })) as any;
+    })) as Environment;
   } catch (error) {
-    const environments = (await GET(API.Environment, {
-      token,
-      organization,
-    })) as any;
-    const { key } =
-      environments.filter(
-        ({ name }: { name: string }) => name === environment
-      )[0] || {};
+    const key = await getEnvironmentByName(token, organization, environment);
 
     if (key) {
       env = (await GET(API.Environment, {
         token,
         organization,
         environment: key,
-      })) as any;
+      })) as Environment;
     } else {
-      if (error instanceof HTTPError) {
-        const { statusCode } = error.response;
-
-        if (statusCode === 404) {
-          spinner.fail(
-            chalk.red(
-              chalk.bold('Environment ·'),
-              environment,
-              '- not found in the Saleor Cloud'
-            )
-          );
-          process.exit(1);
-        }
-
-        throw error;
+      if (isNotFound(error)) {
+        spinner.fail(
+          chalk.red(
+            chalk.bold('Environment ·'),
+            environment,
+            '- not found in the Saleor Cloud'
+          )
+        );
+        process.exit(1);
       }
 
       throw error;
@@ -171,10 +176,12 @@ export const useEnvironment = async ({
     );
   }
 
-  let env;
-
   if (environment) {
-    env = await verifyEnvironment(token, organization, environment);
+    const env: Environment = await verifyEnvironment(
+      token,
+      organization,
+      environment
+    );
     opts = { ...opts, ...{ environment: env.key } };
   } else {
     const config = await Config.get();
@@ -184,10 +191,14 @@ export const useEnvironment = async ({
     if (environmentId) {
       debug('env read from file');
 
-      env = await verifyEnvironment(token, organization, environmentId);
+      const env: Environment = await verifyEnvironment(
+        token,
+        organization,
+        environmentId
+      );
       opts = { ...opts, ...{ environment: environmentId } };
     } else {
-      env = await promptEnvironment(opts);
+      const env = await promptEnvironment(opts);
       opts = { ...opts, ...{ environment: env.value } };
 
       console.log(

@@ -5,7 +5,7 @@ import { Config } from '../../lib/config.js';
 import { API, DELETE, GET } from '../../lib/index.js';
 import { confirmRemoval, waitForTask } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
-import { Options } from '../../types.js';
+import { Options, Task } from '../../types.js';
 
 export const command = 'remove [key|environment]';
 export const desc = 'Delete an environment';
@@ -29,7 +29,7 @@ export const handler = async (argv: Arguments<Options>) => {
     const result = (await DELETE(API.Environment, {
       ...argv,
       ...{ environment },
-    })) as any;
+    })) as Task;
     await waitForTask(
       argv,
       result.task_id,
