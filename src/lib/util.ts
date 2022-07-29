@@ -9,6 +9,7 @@ import ora from 'ora';
 import yaml from 'yaml';
 
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
+import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { API, GET, POST, Region } from '../lib/index.js';
 import { Options, ProjectCreate } from '../types.js';
 import { Config } from './config.js';
@@ -77,27 +78,6 @@ const createPrompt = async (
   return { name: result.name, value: result.value };
 };
 
-const AppList = `
-query AppsList {
-  apps(first: 100) {
-    totalCount
-    edges {
-      node {
-        id
-        name
-        isActive
-        type
-        webhooks {
-          id
-          name
-          targetUrl
-        }
-      }
-    }
-  }
-}
-`;
-
 export const makeRequestAppList = async (argv: any) => {
   const { domain } = (await GET(API.Environment, argv)) as any;
   const headers = await Config.getBearerHeader();
@@ -105,7 +85,7 @@ export const makeRequestAppList = async (argv: any) => {
   const { data, errors }: any = await got
     .post(`https://${domain}/graphql`, {
       headers,
-      json: { query: AppList },
+      json: { query: SaleorAppList },
     })
     .json();
 
