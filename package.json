@@ -37,7 +37,7 @@
   "author": "Saleor",
   "license": "ISC",
   "devDependencies": {
-    "@graphql-codegen/cli": "^2.11.0",
+    "@graphql-codegen/cli": "^2.11.2",
     "@graphql-codegen/typescript-document-nodes": "^2.3.2",
     "@types/cli-progress": "^3.11.0",
     "@types/debug": "^4.1.7",
@@ -67,11 +67,11 @@
   },
   "dependencies": {
     "@mobily/ts-belt": "^3.12.0",
-    "@oclif/core": "^1.12.1",
+    "@oclif/core": "^1.13.0",
     "@sentry/node": "^7.8.0",
     "@types/detect-port": "^1.3.2",
     "@types/lodash.kebabcase": "^4.1.7",
-    "aws-amplify": "^4.3.28",
+    "aws-amplify": "^4.3.29",
     "boxen": "^7.0.0",
     "chalk": "^5.0.1",
     "cli-highlight": "^2.1.11",
