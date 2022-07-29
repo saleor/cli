@@ -58,6 +58,15 @@ export interface StoreCreate extends BaseOptions {
   environment?: string;
 }
 
+export interface Environment {
+  name: string;
+  key: string;
+}
+
+export interface Task {
+  task_id: string;
+}
+
 export type Config = {
   cloudApiUrl: string;
   amplifyConfig: any;

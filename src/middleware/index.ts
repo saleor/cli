@@ -2,11 +2,13 @@ import chalk from 'chalk';
 import Debug from 'debug';
 import enquirer from 'enquirer';
 import got, { HTTPError } from 'got';
+import ora from 'ora';
 import { Arguments } from 'yargs';
 
 import * as Configuration from '../config.js';
 import { Config } from '../lib/config.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
+import { isNotFound } from '../lib/response.js';
 import {
   AuthError,
   createProject,
@@ -19,7 +21,7 @@ import {
   promptSaleorApp,
   promptWebhook,
 } from '../lib/util.js';
-import { CreatePromptResult, Options } from '../types.js';
+import { CreatePromptResult, Environment, Options } from '../types.js';
 
 const debug = Debug('middleware');
 
@@ -86,6 +88,71 @@ export const useOrganization = async ({ token, organization }: Options) => {
   return opts;
 };
 
+const getEnvironmentByName = async (
+  token: string,
+  organization: string,
+  environment: string
+) => {
+  const environments = (await GET(API.Environment, {
+    token,
+    organization,
+  })) as Environment[];
+  const { key } =
+    environments.filter(
+      ({ name }: { name: string }) => name === environment
+    )[0] || {};
+
+  return key;
+};
+
+const verifyEnvironment = async (
+  token: string,
+  organization: string,
+  environment: string
+) => {
+  const spinner = ora(
+    chalk(chalk.bold('Environment ·'), chalk.cyan(environment))
+  ).start();
+  let env: Environment;
+
+  try {
+    env = (await GET(API.Environment, {
+      token,
+      organization,
+      environment,
+    })) as Environment;
+  } catch (error) {
+    const key = await getEnvironmentByName(token, organization, environment);
+
+    if (key) {
+      env = (await GET(API.Environment, {
+        token,
+        organization,
+        environment: key,
+      })) as Environment;
+    } else {
+      if (isNotFound(error)) {
+        spinner.fail(
+          chalk.red(
+            chalk.bold('Environment ·'),
+            environment,
+            '- not found in the Saleor Cloud'
+          )
+        );
+        process.exit(1);
+      }
+
+      throw error;
+    }
+  }
+
+  spinner.succeed(
+    chalk(chalk.bold('Environment ·'), chalk.cyan(`${env.name} - ${env.key}`))
+  );
+
+  return env;
+};
+
 export const useEnvironment = async ({
   token,
   organization,
@@ -93,25 +160,54 @@ export const useEnvironment = async ({
 }: Options) => {
   let opts = { token, organization, environment };
 
-  if (!environment) {
+  if (!token) {
+    throw chalk(
+      'Missing auth token. Run',
+      chalk.green('saleor login'),
+      'to authenticate Saleor CLI to Saleor Cloud'
+    );
+  }
+
+  if (!organization) {
+    throw chalk(
+      'Missing organization. Run',
+      chalk.green('saleor organization switch'),
+      'to choose default one'
+    );
+  }
+
+  if (environment) {
+    const env: Environment = await verifyEnvironment(
+      token,
+      organization,
+      environment
+    );
+    opts = { ...opts, ...{ environment: env.key } };
+  } else {
     const config = await Config.get();
     debug('useDefault', config);
     const { environment_id: environmentId } = config;
 
     if (environmentId) {
       debug('env read from file');
+
+      const env: Environment = await verifyEnvironment(
+        token,
+        organization,
+        environmentId
+      );
       opts = { ...opts, ...{ environment: environmentId } };
     } else {
       const env = await promptEnvironment(opts);
       opts = { ...opts, ...{ environment: env.value } };
+
+      console.log(
+        chalk.green('✔'),
+        chalk.bold('Environment ·'),
+        chalk.cyan(`${env.name} - ${env.value}`)
+      );
     }
   }
-
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Environment ·'),
-    chalk.cyan(opts.environment)
-  );
 
   return opts;
 };
