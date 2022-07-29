@@ -23,36 +23,13 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<Options>) => {
   const { environment } = argv;
 
-  let env;
-  try {
-    env = (await GET(API.Environment, argv)) as any;
-  } catch (error) {
-    const environments = (await GET(API.Environment, {
-      ...argv,
-      ...{ environment: undefined },
-    })) as any;
-    const { key } =
-      environments.filter(
-        ({ name }: { name: string }) => name === environment
-      )[0] || {};
-
-    if (key) {
-      env = (await GET(API.Environment, {
-        ...argv,
-        ...{ environment: key },
-      })) as any;
-    } else {
-      throw error;
-    }
-  }
-
-  const proceed = await confirmRemoval(
-    argv,
-    `environment ${env.name} - ${env.key}`
-  );
+  const proceed = await confirmRemoval(argv, `environment ${environment}`);
 
   if (proceed && environment) {
-    const result = (await DELETE(API.Environment, argv)) as any;
+    const result = (await DELETE(API.Environment, {
+      ...argv,
+      ...{ environment },
+    })) as any;
     await waitForTask(
       argv,
       result.task_id,

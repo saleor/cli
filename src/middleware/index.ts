@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import Debug from 'debug';
 import enquirer from 'enquirer';
 import got, { HTTPError } from 'got';
+import ora from 'ora';
 import { Arguments } from 'yargs';
 
 import * as Configuration from '../config.js';
@@ -86,6 +87,67 @@ export const useOrganization = async ({ token, organization }: Options) => {
   return opts;
 };
 
+const verifyEnvironment = async (
+  token: string,
+  organization: string,
+  environment: string
+) => {
+  const spinner = ora(
+    chalk(chalk.bold('Environment ·'), chalk.cyan(environment))
+  ).start();
+  let env;
+
+  try {
+    env = (await GET(API.Environment, {
+      token,
+      organization,
+      environment,
+    })) as any;
+  } catch (error) {
+    const environments = (await GET(API.Environment, {
+      token,
+      organization,
+    })) as any;
+    const { key } =
+      environments.filter(
+        ({ name }: { name: string }) => name === environment
+      )[0] || {};
+
+    if (key) {
+      env = (await GET(API.Environment, {
+        token,
+        organization,
+        environment: key,
+      })) as any;
+    } else {
+      if (error instanceof HTTPError) {
+        const { statusCode } = error.response;
+
+        if (statusCode === 404) {
+          spinner.fail(
+            chalk.red(
+              chalk.bold('Environment ·'),
+              environment,
+              '- not found in the Saleor Cloud'
+            )
+          );
+          process.exit(1);
+        }
+
+        throw error;
+      }
+
+      throw error;
+    }
+  }
+
+  spinner.succeed(
+    chalk(chalk.bold('Environment ·'), chalk.cyan(`${env.name} - ${env.key}`))
+  );
+
+  return env;
+};
+
 export const useEnvironment = async ({
   token,
   organization,
@@ -93,25 +155,48 @@ export const useEnvironment = async ({
 }: Options) => {
   let opts = { token, organization, environment };
 
-  if (!environment) {
+  if (!token) {
+    throw chalk(
+      'Missing auth token. Run',
+      chalk.green('saleor login'),
+      'to authenticate Saleor CLI to Saleor Cloud'
+    );
+  }
+
+  if (!organization) {
+    throw chalk(
+      'Missing organization. Run',
+      chalk.green('saleor organization switch'),
+      'to choose default one'
+    );
+  }
+
+  let env;
+
+  if (environment) {
+    env = await verifyEnvironment(token, organization, environment);
+    opts = { ...opts, ...{ environment: env.key } };
+  } else {
     const config = await Config.get();
     debug('useDefault', config);
     const { environment_id: environmentId } = config;
 
     if (environmentId) {
       debug('env read from file');
+
+      env = await verifyEnvironment(token, organization, environmentId);
       opts = { ...opts, ...{ environment: environmentId } };
     } else {
-      const env = await promptEnvironment(opts);
+      env = await promptEnvironment(opts);
       opts = { ...opts, ...{ environment: env.value } };
+
+      console.log(
+        chalk.green('✔'),
+        chalk.bold('Environment ·'),
+        chalk.cyan(`${env.name} - ${env.value}`)
+      );
     }
   }
-
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Environment ·'),
-    chalk.cyan(opts.environment)
-  );
 
   return opts;
 };
