@@ -93,6 +93,12 @@ export class Vercel {
     repoName: string,
     provider = 'github'
   ) {
+    const { framework: slug } = await this.detectFramework(
+      owner,
+      repoName,
+      provider
+    );
+
     return this._client('POST', '/v9/projects', {
       name,
       environmentVariables: envs,
@@ -100,7 +106,7 @@ export class Vercel {
         type: provider,
         repo: `${owner}/${repoName}`,
       },
-      framework: 'nextjs',
+      framework: slug,
     });
   }
 
@@ -153,6 +159,12 @@ export class Vercel {
     } while (hasDeploymentSucceeded(readyState));
 
     spinner.succeed(`Deployed ${chalk.cyan(name)}\n`);
+  }
+
+  async detectFramework(owner: string, repoName: string, provider: string) {
+    const URL = `https://${provider}.com/${owner}/${repoName}`;
+
+    return this._client('GET', `/v1/integrations/detect-framework?url=${URL}`);
   }
 }
 
