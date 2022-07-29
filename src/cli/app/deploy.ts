@@ -101,7 +101,7 @@ export const handler = async (argv: Arguments<Options>) => {
   )}`;
   const msg2 = `${chalk.dim(
     'Using Dashboard UI'
-  )}: open the following URL in the browser 
+  )}: open the following URL in the browser
 ${chalk.blue(
   envs.NEXT_PUBLIC_SALEOR_HOST_URL
 )}/dashboard/apps/install?manifestUrl=${chalk.yellow(
