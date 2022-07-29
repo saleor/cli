@@ -1,8 +1,20 @@
+import chalk from 'chalk';
+import ora from 'ora';
+
+import { delay } from './util.js';
+
 interface Env {
   key: string;
   value: string;
   target?: string[];
   type?: string;
+}
+
+interface Deployment {
+  id: string;
+  url: string;
+  readyState: string;
+  alias: string;
 }
 
 // eslint-disable-next-line import/prefer-default-export
@@ -108,6 +120,42 @@ export class Vercel {
   }
 
   async getDeployments(projectId: string) {
-    return this._client('GET', `/v6/deployments?projectId=${projectId}`);
+    return this._client('GET', `/v6/deployments?projectId=${projectId}`) as {
+      deployments: Deployment[];
+    };
+  }
+
+  async getDeployment(deploymentId: string) {
+    return this._client(
+      'GET',
+      `/v13/deployments/${deploymentId}`
+    ) as Deployment;
+  }
+
+  async verifyDeployment(
+    name: string,
+    deploymentId: string,
+    msg = 'Deployment of'
+  ) {
+    const spinner = ora(`${msg} ${chalk.cyan(name)} in progress...`).start();
+
+    let readyState;
+    do {
+      const deployment = await this.getDeployment(deploymentId);
+      readyState = deployment.readyState;
+
+      if (hasDeploymentFailed(readyState)) {
+        console.log(`\nDeployment status: ${readyState}`);
+        process.exit(1);
+      }
+
+      await delay(5000);
+    } while (hasDeploymentSucceeded(readyState));
+
+    spinner.succeed(`Deployed ${chalk.cyan(name)}\n`);
   }
 }
+
+const hasDeploymentSucceeded = (readyState: string) => readyState !== 'READY';
+const hasDeploymentFailed = (readyState: string) =>
+  ['ERROR', 'CANCELED'].includes(readyState);

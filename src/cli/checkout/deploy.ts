@@ -11,6 +11,7 @@ import { doSaleorAppInstall } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
 import { delay } from '../../lib/util.js';
+import { Vercel } from '../../lib/vercel.js';
 import { Options } from '../../types.js';
 import { createAppToken } from '../app/token.js';
 
@@ -29,6 +30,8 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
   const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =
     await Config.get();
 
+  const vercel = new Vercel(vercelToken);
+
   if (!vercelToken) {
     // TODO vercel_team_id
   } else {
@@ -41,8 +44,8 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
       vercelToken,
       appName
     );
-    await verifyDeployment(vercelToken, appName, checkoutAppDeploymentId);
-    const { alias } = await getDeployment(vercelToken, checkoutAppDeploymentId);
+    await vercel.verifyDeployment(appName, checkoutAppDeploymentId);
+    const { alias } = await vercel.getDeployment(checkoutAppDeploymentId);
     const checkoutAppURL = `https://${alias[0]}`;
     const apiURL = `${checkoutAppURL}/api`;
 
@@ -73,8 +76,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
       vercelToken,
       appName
     );
-    await verifyDeployment(
-      vercelToken,
+    await vercel.verifyDeployment(
       appName,
       checkoutAppRedeploymentId,
       'Redeploying'
@@ -83,9 +85,8 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     // SETUP CHECKOUT CRA
     await createCheckout(vercelToken, name, checkoutAppURL, url);
     const checkoutDeploymentId = await deployVercelProject(vercelToken, name);
-    await verifyDeployment(vercelToken, name, checkoutDeploymentId);
-    const { alias: checkoutAlias } = await getDeployment(
-      vercelToken,
+    await vercel.verifyDeployment(name, checkoutDeploymentId);
+    const { alias: checkoutAlias } = await vercel.getDeployment(
       checkoutDeploymentId
     );
 
@@ -300,56 +301,6 @@ const getAppId = async (url: string) => {
   ] = edges.slice(-1);
 
   return id;
-};
-
-const getDeployment = async (
-  vercelToken: string,
-  deploymentId: string
-): Promise<any> => {
-  const data = await got
-    .get(`https://api.vercel.com/v13/deployments/${deploymentId}`, {
-      headers: {
-        Authorization: vercelToken,
-      },
-    })
-    .json();
-
-  return data;
-};
-
-const verifyDeployment = async (
-  vercelToken: string,
-  name: string,
-  deploymentId: string,
-  msg = 'Deploying'
-) => {
-  const spinner = ora(`${msg} ${name}...`).start();
-  let { readyState } = await getDeployment(vercelToken, deploymentId);
-  deploymentFailed(readyState);
-
-  while (deploymentSucceeded(readyState)) {
-    await delay(5000);
-    const { readyState: rs } = await getDeployment(vercelToken, deploymentId);
-    readyState = rs;
-    deploymentFailed(readyState);
-  }
-
-  spinner.succeed(`Deployed ${name}`);
-};
-
-const deploymentSucceeded = (readyState: string) => {
-  if (readyState === 'READY') {
-    return false;
-  }
-
-  return true;
-};
-
-const deploymentFailed = (readyState: string) => {
-  if (['ERROR', 'CANCELED'].includes(readyState)) {
-    console.log(`\nDeployment status: ${readyState}`);
-    process.exit(1);
-  }
 };
 
 const deployVercelProject = async (vercelToken: string, name: string) => {
