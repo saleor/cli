@@ -93,11 +93,9 @@ export class Vercel {
     repoName: string,
     provider = 'github'
   ) {
-    const { framework: slug } = await this.detectFramework(
-      owner,
-      repoName,
-      provider
-    );
+    const {
+      framework: { slug },
+    } = await this.detectFramework(owner, repoName, provider);
 
     return this._client('POST', '/v9/projects', {
       name,
