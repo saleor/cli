@@ -13,7 +13,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { Config } from '../../lib/config.js';
 import { delay } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
-import { useVercel } from '../../middleware/index.js';
+import { useGithub, useVercel } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 export const command = 'deploy';
@@ -380,4 +380,4 @@ export const triggerDeploymentInVercel = async (
   return {};
 };
 
-export const middlewares = [useVercel];
+export const middlewares = [useVercel, useGithub];
