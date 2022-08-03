@@ -34,7 +34,7 @@ const set = async (field: ConfigField, value: string) => {
   const content = await fs.readJSON(DefaultConfigFile, { throws: false });
 
   const newContent = { ...content, [field]: value };
-  await fs.outputJSON(DefaultConfigFile, newContent);
+  await fs.outputJSON(DefaultConfigFile, newContent, { spaces: '\t' });
 
   return newContent;
 };
