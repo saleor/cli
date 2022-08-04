@@ -10,7 +10,7 @@ interface Env {
   type?: string;
 }
 
-interface Deployment {
+export interface Deployment {
   id: string;
   url: string;
   readyState: string;
@@ -31,22 +31,25 @@ export class Vercel {
         teamId ? `?teamId=${teamId}` : ''
       }`;
 
-      try {
-        const r = await fetch(dest, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: accessToken,
-          },
-          body: JSON.stringify(body),
-        });
+      const r = await fetch(dest, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: accessToken,
+        },
+        body: JSON.stringify(body),
+      });
 
-        const result = await r.json();
-        return result;
-      } catch (error) {
-        console.error(error);
-        return null;
+      const result = await r.json();
+
+      if (!r.status.toString().startsWith('2')) {
+        const { error } = result;
+        if (error) {
+          throw new Error(error.message);
+        }
       }
+
+      return result;
     };
   }
 
@@ -104,7 +107,7 @@ export class Vercel {
         type: provider,
         repo: `${owner}/${repoName}`,
       },
-      framework: slug,
+      framework: slug || 'nextjs',
     });
   }
 

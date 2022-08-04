@@ -5,14 +5,14 @@ import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
 import got from 'got';
-import ora from 'ora';
+import ora, { Ora } from 'ora';
 import path from 'path';
 import { simpleGit } from 'simple-git';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { delay } from '../../lib/util.js';
-import { Vercel } from '../../lib/vercel.js';
+import { Deployment, Vercel } from '../../lib/vercel.js';
 import { useGithub, useVercel } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -93,7 +93,8 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const shouldWaitUntilDeployed = !!process.env.CI || !argv.dispatch;
   if (shouldWaitUntilDeployed) {
-    await vercel.verifyDeployment(name, deployment.id);
+    const deploymentId = deployment.id || deployment.uid;
+    await vercel.verifyDeployment(name, deploymentId);
   }
 
   const msg1 = `     ${chalk.dim('Using the CLI')}: ${chalk.green(
@@ -292,9 +293,10 @@ export const createProjectInVercel = async (
   let projectId;
   let newProject = false;
 
-  const project: any = await vercel.getProject(name);
-
-  if (!project.id) {
+  try {
+    const project: any = await vercel.getProject(name);
+    projectId = project.id;
+  } catch (error) {
     const { id } = await vercel.createProject(
       name,
       environmentVariables,
@@ -304,8 +306,6 @@ export const createProjectInVercel = async (
 
     newProject = true;
     projectId = id;
-  } else {
-    projectId = project.id;
   }
 
   return {
@@ -313,6 +313,29 @@ export const createProjectInVercel = async (
     projectId,
     newProject,
   };
+};
+
+const displayURLs = (spinner: Ora, deployment: Deployment) => {
+  spinner.succeed('App successfully queued for deployment');
+  console.log('');
+
+  const msg1 = `         ${chalk.dim('App URL')}: ${chalk.blue(
+    `https://${deployment.url}`
+  )} `;
+  const msg2 = `${chalk.dim('Manifest App URL')}: ${chalk.blue(
+    `https://${deployment.url}/api/manifest`
+  )} `;
+
+  console.log(
+    boxen(`${msg1} \n${msg2}`, {
+      padding: 1,
+      margin: 0,
+      borderColor: 'blue',
+      borderStyle: 'round',
+      title: 'Deployment URLs',
+    })
+  );
+  console.log('');
 };
 
 export const triggerDeploymentInVercel = async (
@@ -340,39 +363,17 @@ export const triggerDeploymentInVercel = async (
     } = await getGithubRepository(name, owner);
 
     const deployment = await vercel.deploy(name, provider, repoId);
-
-    spinner.succeed('App successfully queued for deployment');
-    console.log('');
-
-    const msg1 = `         ${chalk.dim('App URL')}: ${chalk.blue(
-      `https://${deployment.url}`
-    )} `;
-    const msg2 = `${chalk.dim('Manifest App URL')}: ${chalk.blue(
-      `https://${deployment.url}/api/manifest`
-    )} `;
-
-    console.log(
-      boxen(`${msg1} \n${msg2}`, {
-        padding: 1,
-        margin: 0,
-        borderColor: 'blue',
-        borderStyle: 'round',
-        title: 'Deployment URLs',
-      })
-    );
-    console.log('');
-
+    displayURLs(spinner, deployment);
     return deployment;
   }
 
   await delay(5000);
-  spinner.succeed('Done');
 
   const { deployments } = await vercel.getDeployments(projectId);
 
   if (deployments.length > 0) {
     const deployment = deployments[0];
-    console.log(`\nYour Vercel URL: ${deployment.url} `);
+    displayURLs(spinner, deployment);
     return deployment;
   }
 
