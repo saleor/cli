@@ -75,7 +75,19 @@ export const handler = async (argv: Arguments<Options>) => {
       type: 'plain',
     },
     {
+      key: 'SALEOR_REGISTER_APP_URL',
+      value: 'https://appraptor.deno.dev/register?cloud=vercel',
+      target: ['production', 'preview'],
+      type: 'plain',
+    },
+    {
       key: 'SALEOR_MARKETPLACE_TOKEN',
+      value: encrypted,
+      target: ['production', 'preview'],
+      type: 'plain',
+    },
+    {
+      key: 'SALEOR_DEPLOYMENT_TOKEN',
       value: encrypted,
       target: ['production', 'preview'],
       type: 'plain',
