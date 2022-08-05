@@ -7,13 +7,15 @@
   "homepage": "https://github.com/saleor/saleor-cli#readme",
   "bugs": "https://github.com/saleor/saleor-cli/issues",
   "bin": {
-    "saleor": "./build/cli.js"
+    "saleor": "./dist/saleor.js"
   },
   "scripts": {
-    "prepublishOnly": "tsc",
+    "prepublishOnly": "rm -rf ./package && pnpm build && clean-publish --fields dependencies",
+    "postpublish": "",
     "compile": "tsc",
+    "bundle": "esbuild src/cli.ts --bundle --minify --outfile=dist/saleor.js --platform=node --format=esm --target=node18 --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\" --out-extension:.js=.js",
+    "build": "pnpm bundle",
     "watch": "tsc -w",
-    "package": "pkg .",
     "lint": "prettier --write . && eslint src/**/*.ts --cache --fix",
     "generate": "graphql-codegen",
     "postinstall": "node ./scripts/binary.js install",
@@ -22,19 +24,9 @@
     "release": "release-it --dry-run"
   },
   "files": [
-    "build",
     "template",
     "scripts"
   ],
-  "pkg": {
-    "scripts": "build/**/*.js",
-    "targets": [
-      "node16-linux",
-      "node16-macos",
-      "node16-win"
-    ],
-    "outputPath": "release"
-  },
   "author": "Saleor",
   "license": "BSD 3-Clause",
   "devDependencies": {
@@ -52,6 +44,7 @@
     "@typescript-eslint/eslint-plugin": "^5.37.0",
     "@typescript-eslint/parser": "^5.37.0",
     "clean-publish": "^4.0.1",
+    "esbuild": "^0.15.7",
     "eslint": "^8.23.1",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^8.5.0",
@@ -111,7 +104,7 @@
     "yargs": "^17.5.1"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=16"
   },
   "pnpm": {
     "overrides": {
@@ -129,6 +122,11 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "directory": "package"
+  },
+  "clean-publish": {
+    "withoutPublish": true,
+    "tempDir": "package"
   }
 }
