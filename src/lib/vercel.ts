@@ -167,6 +167,16 @@ export class Vercel {
 
     return this._client('GET', `/v1/integrations/detect-framework?url=${URL}`);
   }
+
+  async getProjectDomains(projectID: string) {
+    return this._client('GET', `/v9/projects/${projectID}/domains`);
+  }
+
+  async getProjectDomain(projectID: string) {
+    const { domains } = await this.getProjectDomains(projectID);
+
+    return domains[0];
+  }
 }
 
 const hasDeploymentSucceeded = (readyState: string) => readyState !== 'READY';

@@ -109,27 +109,29 @@ export const handler = async (argv: Arguments<Options>) => {
     await vercel.verifyDeployment(name, deploymentId);
   }
 
+  const domain = await vercel.getProjectDomain(projectId);
+
+  const projectManifestURL = `https://${domain.name}/api/manifest`;
+
   const msg1 = `     ${chalk.dim('Using the CLI')}: ${chalk.green(
     'saleor app install'
-  )}`;
+  )} and pass the following domain ${chalk.yellow(
+    projectManifestURL
+  )} as Manifest URL`;
   const msg2 = `${chalk.dim(
     'Using Dashboard UI'
   )}: open the following URL in the browser
 ${chalk.blue(
   envs.NEXT_PUBLIC_SALEOR_HOST_URL
 )}/dashboard/apps/install?manifestUrl=${chalk.yellow(
-    encodeURIComponent(`https://${deployment.url}/api/manifest`)
+    encodeURIComponent(projectManifestURL)
   )}`;
 
-  console.log(
-    boxen(`${msg1}\n${msg2}`, {
-      padding: 1,
-      margin: 0,
-      borderColor: 'blue',
-      borderStyle: 'round',
-      title: 'Next step: install this app in the Saleor Dashboard',
-    })
-  );
+  console.log(chalk.blue('─').repeat(process.stdout.columns));
+  console.log('');
+  console.log(` ${msg1}\n\n ${msg2}`);
+  console.log('');
+  console.log(chalk.blue('─').repeat(process.stdout.columns));
 
   process.exit(0);
 };
@@ -331,20 +333,15 @@ const displayURLs = (spinner: Ora, deployment: Deployment) => {
   spinner.succeed('App successfully queued for deployment');
   console.log('');
 
-  const msg1 = `         ${chalk.dim('App URL')}: ${chalk.blue(
-    `https://${deployment.url}`
-  )} `;
-  const msg2 = `${chalk.dim('Manifest App URL')}: ${chalk.blue(
-    `https://${deployment.url}/api/manifest`
-  )} `;
+  const msg1 = chalk.blue(`https://${deployment.url}`);
 
   console.log(
-    boxen(`${msg1} \n${msg2}`, {
+    boxen(msg1, {
       padding: 1,
       margin: 0,
       borderColor: 'blue',
       borderStyle: 'round',
-      title: 'Deployment URLs',
+      title: 'Deployment URL',
     })
   );
   console.log('');
