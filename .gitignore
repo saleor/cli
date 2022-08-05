@@ -140,3 +140,4 @@ vendor/
 test.js
 dummy/
 ..bfg-report
+.idea/
