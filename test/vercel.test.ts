@@ -1,5 +1,6 @@
 import { rest } from 'msw';
 import { setupServer } from 'msw/node';
+import fetch from 'node-fetch';
 import {
   afterAll,
   afterEach,
@@ -42,13 +43,9 @@ afterEach(() => server.resetHandlers());
 
 describe('Vercel API', () => {
   it('returns `id` for single project', async () => {
-    // FIX not intercepted
-    const r = await fetch('https://rest.example/path/to/posts');
-    const result = await r.json();
+    const r = await vercel.getProject('my-project-1');
 
-    // FIX not intercepted
-    // const r = await vercel.getProject('my-project-1');
-    // console.log(r);
+    expect(r).toEqual({ name: 'my-project-1', slug: 'my-project-1' });
   });
 
   it('foo', () => {
