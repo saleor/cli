@@ -95,6 +95,8 @@ export class Vercel {
     envs: Env[],
     owner: string,
     repoName: string,
+    buildCommand: null | string = null,
+    rootDirectory: null | string = null,
     provider = 'github'
   ) {
     const {
@@ -109,6 +111,8 @@ export class Vercel {
         repo: `${owner}/${repoName}`,
       },
       framework: slug || 'nextjs',
+      buildCommand,
+      rootDirectory,
     });
   }
 
