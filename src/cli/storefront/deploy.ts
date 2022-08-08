@@ -40,7 +40,7 @@ export const handler = async () => {
     name,
     owner,
     repoName,
-    'cd ../.. && npx turbo run build --filter="storefront"',
+    'cd ../.. && npx turbo run build --filter="storefront..."',
     'apps/storefront'
   );
   // 3. Deploy the project in Vercel
