@@ -41,7 +41,8 @@ export class Vercel {
         body: JSON.stringify(body),
       });
 
-      const result = await r.json();
+      // FIXME rethink the approach
+      const result = (await r.json()) as any;
 
       if (!r.status.toString().startsWith('2')) {
         const { error } = result;
