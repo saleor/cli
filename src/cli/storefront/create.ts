@@ -10,7 +10,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
-import { API, GET, getEnvironment, POST } from '../../lib/index.js';
+import { API, GET, POST } from '../../lib/index.js';
 import {
   capitalize,
   checkPnpmPresence,
@@ -22,7 +22,7 @@ import { setupGitRepository } from '../app/create.js';
 import { createEnvironment } from '../env/create.js';
 
 export const command = 'create [name]';
-export const desc = 'Boostrap example [name]';
+export const desc = 'Bootstrap example [name]';
 
 const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);
 
@@ -189,7 +189,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   await replace.replaceInFile({
     files: '.env',
-    from: /NEXT_PUBLIC_API_URI=.*/g,
+    from: /SALEOR_API_URL=.*/g,
     to: `NEXT_PUBLIC_API_URI=${baseURL}`,
   });
 
@@ -204,12 +204,11 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
   spinner.succeed(chalk.bold('Storefront prepared \n'));
-  console.log('-'.repeat(process.stdout.columns));
-  const detectedPort = await detectPort(3005);
+  console.log('─'.repeat(process.stdout.columns));
   console.log(
     chalk(
       chalk.bold(
-        `\n  Starting server on 0.0.0.0:${detectedPort}, url: http://localhost:${detectedPort}`
+        '\n  Starting server on 0.0.0.0:3000, url: http://localhost:3000'
       ),
       '\n'
     )
@@ -217,7 +216,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   await run(
     'pnpm',
-    ['next', 'dev', '--port', detectedPort.toString()],
+    ['dev', '--filter=storefront...'],
     { stdio: 'inherit', cwd: process.cwd() },
     true
   );
