@@ -93,7 +93,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     chalk('  You can stop the process with', chalk.bold('ctrl-c'), '\n')
   );
 
-  console.log('-'.repeat(process.stdout.columns));
+  console.log('─'.repeat(process.stdout.columns));
   console.log(chalk('  Starting...', chalk.green('pnpm run dev')));
 
   await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() });
