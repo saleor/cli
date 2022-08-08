@@ -35,7 +35,7 @@
     "outputPath": "release"
   },
   "author": "Saleor",
-  "license": "ISC",
+  "license": "BSD 3-Clause",
   "devDependencies": {
     "@graphql-codegen/cli": "^2.11.4",
     "@graphql-codegen/typescript-document-nodes": "^2.3.3",
