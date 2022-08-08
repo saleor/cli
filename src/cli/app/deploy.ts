@@ -277,7 +277,9 @@ export const createProjectInVercel = async (
   vercel: Vercel,
   name: string,
   owner: string,
-  repoName: string
+  repoName: string,
+  buildCommand: null | string = null,
+  rootDirectory: null | string = null
 ): Promise<Record<string, any>> => {
   const envs = dotenv.parse(
     await fs.readFile(path.join(process.cwd(), '.env'))
@@ -315,7 +317,9 @@ export const createProjectInVercel = async (
       name,
       environmentVariables,
       owner,
-      repoName
+      repoName,
+      buildCommand,
+      rootDirectory
     );
 
     newProject = true;

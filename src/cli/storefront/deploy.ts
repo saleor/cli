@@ -6,7 +6,7 @@ import type { CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { Vercel } from '../../lib/vercel.js';
-import { useVercel } from '../../middleware/index.js';
+import { useGithub, useVercel } from '../../middleware/index.js';
 import {
   createProjectInVercel,
   getRepoUrl,
@@ -39,7 +39,9 @@ export const handler = async () => {
     vercel,
     name,
     owner,
-    repoName
+    repoName,
+    'cd ../.. && npx turbo run build --filter="storefront..."',
+    'apps/storefront'
   );
   // 3. Deploy the project in Vercel
   await triggerDeploymentInVercel(vercel, name, owner, projectId, newProject);
@@ -47,4 +49,4 @@ export const handler = async () => {
   process.exit(0);
 };
 
-export const middlewares = [useVercel];
+export const middlewares = [useVercel, useGithub];
