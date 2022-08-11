@@ -27,6 +27,8 @@ export interface Options extends BaseOptions {
   event?: string;
   port?: string;
   name?: string;
+  encryptUrl?: string;
+  registerUrl?: string;
 }
 
 export interface CreatePromptResult {
