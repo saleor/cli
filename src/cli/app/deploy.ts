@@ -81,20 +81,8 @@ export const handler = async (argv: Arguments<Options>) => {
   // 3. set ENV vars
   vercel.setEnvironmentVariables(projectId, [
     {
-      key: 'SALEOR_MARKETPLACE_REGISTER_URL',
-      value: argv.registerUrl!,
-      target: ['production', 'preview'],
-      type: 'plain',
-    },
-    {
       key: 'SALEOR_REGISTER_APP_URL',
       value: argv.registerUrl!,
-      target: ['production', 'preview'],
-      type: 'plain',
-    },
-    {
-      key: 'SALEOR_MARKETPLACE_TOKEN',
-      value: encrypted,
       target: ['production', 'preview'],
       type: 'plain',
     },
@@ -134,8 +122,8 @@ export const handler = async (argv: Arguments<Options>) => {
     'Using Dashboard UI'
   )}: open the following URL in the browser
 ${chalk.blue(
-  envs.NEXT_PUBLIC_SALEOR_HOST_URL
-)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
+    envs.NEXT_PUBLIC_SALEOR_HOST_URL
+  )}/dashboard/apps/install?manifestUrl=${chalk.yellow(
     encodeURIComponent(projectManifestURL)
   )}`;
 
