@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import detectPort from 'detect-port';
 import { access } from 'fs/promises';
 import kebabCase from 'lodash.kebabcase';
 import { customAlphabet } from 'nanoid';
@@ -190,7 +189,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await replace.replaceInFile({
     files: '.env',
     from: /SALEOR_API_URL=.*/g,
-    to: `NEXT_PUBLIC_API_URI=${baseURL}`,
+    to: `SALEOR_API_URL=${baseURL}`,
   });
 
   await replace.replaceInFile({

@@ -96,14 +96,14 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     const checkoutURL = `https://${checkoutAlias[0]}`;
 
     const summary = `
-  Your deployment is ready. Some useful links:  
+  Your deployment is ready. Some useful links:
   Saleor Dashboard: ${chalk.blue(`https://${domain}/dashboard`)}
   GraphQL Playground: ${chalk.blue(url)}
   Checkout App configuration page:
   ${chalk.blue(appDashboardURL)}
-  
+
   Now, integrate your storefront with the checkout SPA:
-  1. Copy the environment variable below. 
+  1. Copy the environment variable below.
   ${chalk.blue(`NEXT_PUBLIC_CHECKOUT_URL=${checkoutURL}`)}
   2. Paste it into the .env file in your React storefront.
   3. Re-run the development server.
@@ -179,12 +179,6 @@ const createCheckout = async (
           },
           {
             type: 'encrypted',
-            key: 'CHECKOUT_APP_URL',
-            value: checkoutAppUrl,
-            target: ['production', 'preview', 'development'],
-          },
-          {
-            type: 'encrypted',
             key: 'SALEOR_API_URL',
             value: url,
             target: ['production', 'preview', 'development'],
@@ -202,11 +196,8 @@ const createCheckout = async (
           sourceless: true,
         },
         framework: 'create-react-app',
-        devCommand: null,
-        rootDirectory: null,
-        outputDirectory: 'apps/checkout/build',
-        buildCommand: 'pnpm run build --scope="checkout-app"',
-        installCommand: null,
+        buildCommand: 'cd ../.. && npx turbo run build --filter="checkout..."',
+        rootDirectory: 'apps/checkout',
       },
     })
     .json();
@@ -259,11 +250,9 @@ const createCheckoutApp = async (
           sourceless: true,
         },
         framework: 'nextjs',
-        devCommand: null,
-        rootDirectory: 'apps/checkout-app',
-        outputDirectory: null,
-        buildCommand: 'pnpm run build',
-        installCommand: null,
+        buildCommand:
+          'cd ../.. && npx turbo run build --filter="saleor-app-checkout..."',
+        rootDirectory: 'apps/saleor-app-checkout',
       },
     })
     .json();
