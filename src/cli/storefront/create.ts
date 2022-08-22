@@ -215,10 +215,12 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   await run(
     'pnpm',
-    ['dev', '--filter=storefront...'],
+    ['build', '--filter=ui-kit...'],
     { stdio: 'inherit', cwd: process.cwd() },
     true
   );
+
+  await run('pnpm', ['dev'], { stdio: 'inherit', cwd: process.cwd() }, true);
 };
 
 const getFolderName = async (name: string): Promise<string> => {
