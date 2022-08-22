@@ -25,7 +25,19 @@ export const builder: CommandBuilder = (_) =>
     demandOption: false,
     default: false,
     desc: 'dispatch deployment and don\'t wait till it ends',
-  });
+  })
+    .option('register-url', {
+      type: 'string',
+      demandOption: false,
+      default: 'https://appraptor.vercel.app/api/register-app',
+      desc: 'specify your own endpoint for registering apps',
+    })
+    .option('encrypt-url', {
+      type: 'string',
+      default: 'https://appraptor.vercel.app/api/encrypt',
+      demandOption: false,
+      desc: 'specify your own endpoint for encrypting tokens',
+    });
 
 export const handler = async (argv: Arguments<Options>) => {
   const { name } = JSON.parse(
@@ -60,7 +72,7 @@ export const handler = async (argv: Arguments<Options>) => {
     project: projectId,
   });
 
-  const response = await fetch('https://appraptor.deno.dev/encrypt', {
+  const response = await fetch(argv.encryptUrl!, {
     method: 'POST',
     body: JSON.stringify({ value }),
   });
@@ -70,13 +82,13 @@ export const handler = async (argv: Arguments<Options>) => {
   vercel.setEnvironmentVariables(projectId, [
     {
       key: 'SALEOR_MARKETPLACE_REGISTER_URL',
-      value: 'https://appraptor.deno.dev/register?cloud=vercel',
+      value: argv.registerUrl!,
       target: ['production', 'preview'],
       type: 'plain',
     },
     {
       key: 'SALEOR_REGISTER_APP_URL',
-      value: 'https://appraptor.deno.dev/register?cloud=vercel',
+      value: argv.registerUrl!,
       target: ['production', 'preview'],
       type: 'plain',
     },
