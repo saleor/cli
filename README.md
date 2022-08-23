@@ -3,7 +3,7 @@
 To install the latest version of Saleor CLI, run the following command:
 
 ```
-npm i -g saleor@latest
+npm i -g @saleor/cli
 ```
 
 You can also use `npx` to execute the Saleor CLI commands on the spot without installing the package.
