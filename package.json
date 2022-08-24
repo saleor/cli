@@ -1,5 +1,5 @@
 {
-  "name": "saleor-cli",
+  "name": "@saleor/cli",
   "version": "1.13.1",
   "description": "",
   "type": "module",
