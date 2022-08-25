@@ -1,0 +1,34 @@
+name: Release on GitHub & Publish to NPM
+on: 
+  workflow_dispatch:
+    inputs:
+      version:
+        type: choice
+        description: Which version to release?
+        options: 
+          - major 
+          - minor 
+          - patch
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.2
+        with:
+          version: 7.9.0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: pnpm
+      - name: Install the dependencies
+        run: pnpm install
+      - name: Setup the NPM Registry
+        run: pnpm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Release
+        run: pnpm release ${{ inputs.version }} --ci --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
