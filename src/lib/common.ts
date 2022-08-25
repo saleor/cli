@@ -137,7 +137,7 @@ export const run = async (
 };
 
 export const verifyIsSaleorAppDirectory = async (argv: any) => {
-  const isTunnel = ['tunnel', 'generate'].includes(argv._[1]);
+  const isTunnel = ['tunnel', 'generate', 'deploy'].includes(argv._[1]);
 
   // check if this is a Next.js app
   const isNodeApp = await fs.pathExists('package.json');
