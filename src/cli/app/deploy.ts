@@ -10,6 +10,7 @@ import path from 'path';
 import { simpleGit } from 'simple-git';
 import type { Arguments, CommandBuilder } from 'yargs';
 
+import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import { delay } from '../../lib/util.js';
 import { Deployment, Vercel } from '../../lib/vercel.js';
@@ -122,8 +123,8 @@ export const handler = async (argv: Arguments<Options>) => {
     'Using Dashboard UI'
   )}: open the following URL in the browser
 ${chalk.blue(
-    envs.NEXT_PUBLIC_SALEOR_HOST_URL
-  )}/dashboard/apps/install?manifestUrl=${chalk.yellow(
+  envs.NEXT_PUBLIC_SALEOR_HOST_URL
+)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
     encodeURIComponent(projectManifestURL)
   )}`;
 
@@ -394,4 +395,4 @@ export const triggerDeploymentInVercel = async (
   return {};
 };
 
-export const middlewares = [useVercel, useGithub];
+export const middlewares = [verifyIsSaleorAppDirectory, useVercel, useGithub];
