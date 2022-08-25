@@ -77,26 +77,15 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   spinner.succeed(
     chalk(
-      'Saleor App Template prepared in',
-      chalk.bold(target),
-      'directory',
-      '\n'
+      'Your Saleor app is ready in the',
+      chalk.yellow(target),
+      'directory\n'
     )
   );
 
-  console.log(
-    chalk('  The saleor-cli will start the'),
-    chalk.bold(argv.name),
-    'app for you'
-  );
-  console.log(
-    chalk('  You can stop the process with', chalk.bold('ctrl-c'), '\n')
-  );
-
-  console.log('─'.repeat(process.stdout.columns));
-  console.log(chalk('  Starting...', chalk.green('pnpm run dev')));
-
-  await run('pnpm', ['run', 'dev'], { stdio: 'inherit', cwd: process.cwd() });
+  console.log('  To start your application:\n');
+  console.log(`    cd ${target}`);
+  console.log('    pnpm dev');
 };
 
 const getFolderName = async (name: string): Promise<string> => {
