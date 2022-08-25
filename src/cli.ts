@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import { emphasize } from 'emphasize';
 import { HTTPError, Response, TimeoutError } from 'got';
 import { createRequire } from 'module';
+import semver from 'semver';
 import updateNotifier from 'update-notifier';
 import yaml from 'yaml';
 import yargs from 'yargs';
@@ -41,6 +42,13 @@ import { useTelemetry } from './middleware/index.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
+
+if (!semver.satisfies(process.versions.node, pkg.engines.node)) {
+  console.error(
+    `${chalk.red('ERROR')}: Saleor CLI requires Node.js 16.x or later`
+  );
+  process.exit(1);
+}
 
 // console.log(boxen('Update available\nsomething', { padding: 1, margin: 1, float: 'center', borderColor: 'yellow' }));
 

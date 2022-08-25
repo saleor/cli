@@ -4,7 +4,7 @@ overrides:
   uuid: 8.3.2
 
 specifiers:
-  '@graphql-codegen/cli': ^2.11.6
+  '@graphql-codegen/cli': ^2.11.7
   '@graphql-codegen/typescript-document-nodes': ^2.3.3
   '@mobily/ts-belt': ^3.13.1
   '@oclif/core': ^1.16.0
@@ -18,6 +18,7 @@ specifiers:
   '@types/lodash.kebabcase': ^4.1.7
   '@types/node': ^18.7.13
   '@types/prompt': ^1.1.2
+  '@types/semver': ^7.3.12
   '@types/tar': ^6.1.2
   '@types/update-notifier': ^6.0.1
   '@types/yargs': ^17.0.11
@@ -64,6 +65,7 @@ specifiers:
   replace-in-file: ^6.3.5
   retes: ^0.32.0
   sanitize-filename: ^1.6.3
+  semver: ^7.3.7
   simple-git: ^3.13.0
   slugify: ^1.6.5
   tar: ^6.1.11
@@ -109,6 +111,7 @@ dependencies:
   replace-in-file: 6.3.5
   retes: 0.32.0
   sanitize-filename: 1.6.3
+  semver: 7.3.7
   simple-git: 3.13.0
   slugify: 1.6.5
   tar: 6.1.11
@@ -118,7 +121,7 @@ dependencies:
   yargs: 17.5.1
 
 devDependencies:
-  '@graphql-codegen/cli': 2.11.6_na5gl57yjoi7vv7nglvvnkrsea
+  '@graphql-codegen/cli': 2.11.7_na5gl57yjoi7vv7nglvvnkrsea
   '@graphql-codegen/typescript-document-nodes': 2.3.3_graphql@16.6.0
   '@types/cli-progress': 3.11.0
   '@types/debug': 4.1.7
@@ -127,6 +130,7 @@ devDependencies:
   '@types/git-url-parse': 9.0.1
   '@types/node': 18.7.13
   '@types/prompt': 1.1.2
+  '@types/semver': 7.3.12
   '@types/tar': 6.1.2
   '@types/update-notifier': 6.0.1
   '@types/yargs': 17.0.11
@@ -2788,8 +2792,8 @@ packages:
       - supports-color
     dev: true
 
-  /@graphql-codegen/cli/2.11.6_na5gl57yjoi7vv7nglvvnkrsea:
-    resolution: {integrity: sha512-0R2Bhgjt3XZTSdsn8MGGuJjDEN2z+KCo7920zLZz9boy6bQ0EyuxS9AUATePS9aC3djy2POAIPCHz8iHK68IlQ==}
+  /@graphql-codegen/cli/2.11.7_na5gl57yjoi7vv7nglvvnkrsea:
+    resolution: {integrity: sha512-Ldh9gRfmRL2ulMfEOGr3nuIv3s0YMnmJZ52Q1Z/eQoiW+x8KLwNIJNCS/O++YyoEO975WA5GLjfBoNzJ5qUQYw==}
     hasBin: true
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -2806,7 +2810,7 @@ packages:
       '@graphql-tools/prisma-loader': 7.2.15_dl2cuat2ggg5ijqivffzwdwoxm
       '@graphql-tools/url-loader': 7.14.0_dl2cuat2ggg5ijqivffzwdwoxm
       '@graphql-tools/utils': 8.10.0_graphql@16.6.0
-      '@whatwg-node/fetch': 0.2.9
+      '@whatwg-node/fetch': 0.3.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       chokidar: 3.5.3
@@ -3704,6 +3708,10 @@ packages:
     resolution: {integrity: sha512-q6KSi3PklLGQ0CesZ/XuLwly4DXXlnJuucYOG9lrBqrP8rKiuPZThav2h2+pFjaheNpnT0qKK3i304QWIePeJw==}
     dev: true
 
+  /@types/semver/7.3.12:
+    resolution: {integrity: sha512-WwA1MW0++RfXmCr12xeYOOC5baSC9mSb0ZqCquFzKhcoF4TvHu5MKOuXsncgZcpVFhB1pXd5hZmM0ryAoCp12A==}
+    dev: true
+
   /@types/set-cookie-parser/2.4.2:
     resolution: {integrity: sha512-fBZgytwhYAUkj/jC/FAV4RQ5EerRup1YQsXQCh8rZfiHkc4UahC192oH0smGwsXol3cL3A5oETuAHeQHmhXM4w==}
     dependencies:
@@ -3872,6 +3880,22 @@ packages:
 
   /@whatwg-node/fetch/0.2.9:
     resolution: {integrity: sha512-h+ehuqE/ZqJdRy+xywHyKpBIPmST0ms8Itgf4gGSu10pJrmod3/t9DbG/GlATvLBE4pvqYHrxKAKo3NNQVJc3g==}
+    dependencies:
+      '@peculiar/webcrypto': 1.4.0
+      abort-controller: 3.0.0
+      busboy: 1.6.0
+      event-target-polyfill: 0.0.3
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.6.7
+      undici: 5.10.0
+      web-streams-polyfill: 3.2.1
+    transitivePeerDependencies:
+      - encoding
+    dev: true
+
+  /@whatwg-node/fetch/0.3.2:
+    resolution: {integrity: sha512-Bs5zAWQs0tXsLa4mRmLw7Psps1EN78vPtgcLpw3qPY8s6UYPUM67zFZ9cy+7tZ64PXhfwzxJn+m7RH2Lq48RNQ==}
     dependencies:
       '@peculiar/webcrypto': 1.4.0
       abort-controller: 3.0.0
