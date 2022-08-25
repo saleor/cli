@@ -175,7 +175,7 @@ export const getRepoUrl = async (name: string): Promise<string> => {
   return gitUrl;
 };
 
-const getGithubRepository = async (
+export const getGithubRepository = async (
   name: string,
   owner: string | undefined = undefined
 ): Promise<any> => {

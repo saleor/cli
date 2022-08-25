@@ -48,59 +48,20 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     const appName = `${name}-app`;
     debug(`App name in Vercel: ${appName}`);
 
-    // SETUP CHECKOUT APP
-    await createCheckoutApp(vercelToken, appName, url);
-    const checkoutAppDeploymentId = await deployVercelProject(
+    const { checkoutAppURL, appId } = await setupSaleorAppCheckout(
       vercelToken,
-      appName
-    );
-    await vercel.verifyDeployment(appName, checkoutAppDeploymentId);
-    const { alias } = await vercel.getDeployment(checkoutAppDeploymentId);
-    const checkoutAppURL = `https://${alias[0]}`;
-    debug(`Checkout App URL: ${checkoutAppURL}`);
-    const apiURL = `${checkoutAppURL}/api`;
-
-    // INSTALL APP IN CLOUD ENVIRONMENT
-    await doCheckoutAppInstall(argv, apiURL, appName);
-    const appId = await getAppId(url);
-    const authToken = await createAppToken(url, appId);
-
-    // CREATE SALEOR_APP_ID & SALEOR_APP_TOKEN variables in CHECKOUT APP
-    debug('Setting `SALEOR_APP_ID` and `SALEOR_APP_TOKEN`');
-    const appVars = [
-      {
-        type: 'encrypted',
-        key: 'SALEOR_APP_ID',
-        value: appId,
-        target: ['production', 'preview', 'development'],
-      },
-      {
-        type: 'encrypted',
-        key: 'SALEOR_APP_TOKEN',
-        value: authToken,
-        target: ['production', 'preview', 'development'],
-      },
-    ];
-    await createVercelEnv(vercelToken, appName, appVars);
-
-    // REDEPLOY
-    debug('Re-deploying the checkout');
-    const checkoutAppRedeploymentId = await deployVercelProject(
-      vercelToken,
-      appName
-    );
-    await vercel.verifyDeployment(
       appName,
-      checkoutAppRedeploymentId,
-      'Redeploying'
+      url,
+      vercel,
+      argv
     );
 
-    // SETUP CHECKOUT CRA
-    await createCheckout(vercelToken, name, checkoutAppURL, url);
-    const checkoutDeploymentId = await deployVercelProject(vercelToken, name);
-    await vercel.verifyDeployment(name, checkoutDeploymentId);
-    const { alias: checkoutAlias } = await vercel.getDeployment(
-      checkoutDeploymentId
+    const { checkoutAlias } = await setupCheckout(
+      vercelToken,
+      name,
+      checkoutAppURL,
+      url,
+      vercel
     );
 
     const appDashboardURL = `https://${domain}/dashboard/apps/${encodeURIComponent(
@@ -133,6 +94,84 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
   }
 
   process.exit(0);
+};
+
+export const setupSaleorAppCheckout = async (
+  vercelToken: string,
+  appName: string,
+  url: string,
+  vercel: Vercel,
+  argv: Arguments<Options>
+) => {
+  // SETUP CHECKOUT APP
+  await createCheckoutApp(vercelToken, appName, url);
+  const checkoutAppDeploymentId = await deployVercelProject(
+    vercelToken,
+    appName
+  );
+  await vercel.verifyDeployment(appName, checkoutAppDeploymentId);
+  const { alias } = await vercel.getDeployment(checkoutAppDeploymentId);
+  const checkoutAppURL = `https://${alias[0]}`;
+  const apiURL = `${checkoutAppURL}/api`;
+
+  // INSTALL APP IN CLOUD ENVIRONMENT
+  await doCheckoutAppInstall(argv, apiURL, appName);
+  const appId = await getAppId(url);
+  const authToken = await createAppToken(url, appId);
+
+  // CREATE SALEOR_APP_ID & SALEOR_APP_TOKEN variables in CHECKOUT APP
+  const appVars = [
+    {
+      type: 'encrypted',
+      key: 'SALEOR_APP_ID',
+      value: appId,
+      target: ['production', 'preview', 'development'],
+    },
+    {
+      type: 'encrypted',
+      key: 'SALEOR_APP_TOKEN',
+      value: authToken,
+      target: ['production', 'preview', 'development'],
+    },
+  ];
+  await createVercelEnv(vercelToken, appName, appVars);
+
+  // REDEPLOY
+  const checkoutAppRedeploymentId = await deployVercelProject(
+    vercelToken,
+    appName
+  );
+  await vercel.verifyDeployment(
+    appName,
+    checkoutAppRedeploymentId,
+    'Redeploying'
+  );
+
+  return {
+    checkoutAppURL,
+    appId,
+    authToken,
+  };
+};
+
+export const setupCheckout = async (
+  vercelToken: string,
+  name: string,
+  checkoutAppURL: string,
+  url: string,
+  vercel: Vercel
+) => {
+  // SETUP CHECKOUT CRA
+  await createCheckout(vercelToken, name, checkoutAppURL, url);
+  const checkoutDeploymentId = await deployVercelProject(vercelToken, name);
+  await vercel.verifyDeployment(name, checkoutDeploymentId);
+  const { alias: checkoutAlias } = await vercel.getDeployment(
+    checkoutDeploymentId
+  );
+
+  return {
+    checkoutAlias,
+  };
 };
 
 const createFork = async () => {
@@ -220,7 +259,7 @@ const createCheckout = async (
   return response;
 };
 
-const createCheckoutApp = async (
+export const createCheckoutApp = async (
   vercelToken: string,
   name: string,
   url: string

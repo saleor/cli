@@ -60,7 +60,7 @@ export const builder: CommandBuilder = (_) =>
     })
     .option('domain', {
       type: 'string',
-      desc: 'specify the domain for the envronment',
+      desc: 'specify the domain for the environment',
     })
     .option('email', {
       type: 'string',
@@ -78,7 +78,8 @@ export const builder: CommandBuilder = (_) =>
       type: 'boolean',
       desc: 'specify Vercel deployment',
     })
-    .option('restore_from', {
+    .option('restore-from', {
+      alias: 'restore_from',
       type: 'string',
       desc: 'specify snapshot id to restore database from',
     });

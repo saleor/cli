@@ -205,7 +205,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   await replace.replaceInFile({
     files: 'package.json',
-    from: /"name": "react-storefront".*/g,
+    from: /("name": "(react|saleor)-storefront").*/g,
     to: `"name": "${kebabCase(target)}",`,
   });
 
@@ -213,25 +213,24 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   spinner.text = 'Installing dependencies...';
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
-  spinner.succeed(chalk.bold('Storefront prepared \n'));
-  console.log('─'.repeat(process.stdout.columns));
-  console.log(
-    chalk(
-      chalk.bold(
-        '\n  Starting server on 0.0.0.0:3000, url: http://localhost:3000'
-      ),
-      '\n'
-    )
-  );
 
   await run(
     'pnpm',
-    ['build', '--filter=ui-kit...'],
-    { stdio: 'inherit', cwd: process.cwd() },
-    true
+    ['build', '--filter=ui-kit...', '--filter=checkout-storefront...'],
+    { cwd: process.cwd() }
   );
 
-  await run('pnpm', ['dev'], { stdio: 'inherit', cwd: process.cwd() }, true);
+  spinner.succeed(
+    chalk(
+      'Your Saleor Storefront is ready in the',
+      chalk.yellow(target),
+      'directory\n'
+    )
+  );
+
+  console.log('  To start your application:\n');
+  console.log(`    cd ${target}`);
+  console.log('    pnpm dev');
 };
 
 const getFolderName = async (name: string): Promise<string> => {
