@@ -75,6 +75,9 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const response = await fetch(argv.encryptUrl!, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ value }),
   });
   const encrypted = await response.text();
