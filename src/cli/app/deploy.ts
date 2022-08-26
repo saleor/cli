@@ -68,7 +68,7 @@ export const handler = async (argv: Arguments<Options>) => {
   );
 
   // encrypt and store in .env
-  const value = JSON.stringify({
+  const body = JSON.stringify({
     access_token: vercelToken.split(' ')[1],
     project: projectId,
   });
@@ -78,7 +78,7 @@ export const handler = async (argv: Arguments<Options>) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ value }),
+    body,
   });
   const encrypted = await response.text();
 
@@ -126,8 +126,8 @@ export const handler = async (argv: Arguments<Options>) => {
     'Using Dashboard UI'
   )}: open the following URL in the browser
 ${chalk.blue(
-  envs.NEXT_PUBLIC_SALEOR_HOST_URL
-)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
+    envs.NEXT_PUBLIC_SALEOR_HOST_URL
+  )}/dashboard/apps/install?manifestUrl=${chalk.yellow(
     encodeURIComponent(projectManifestURL)
   )}`;
 
