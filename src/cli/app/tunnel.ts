@@ -147,7 +147,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     } = apps.filter(byName(appName)).shift();
 
     console.log(
-      `Tunnel is listening to you local machine on port: ${chalk.blue(
+      `Tunnel is listening to your local machine on port: ${chalk.blue(
         localPort
       )}\n`
     );
