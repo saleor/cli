@@ -141,3 +141,4 @@ test.js
 dummy/
 ..bfg-report
 .idea/
+.DS_Store
