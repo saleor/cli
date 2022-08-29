@@ -147,6 +147,11 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     } = apps.filter(byName(appName)).shift();
 
     console.log(
+      `Tunnel is listening to you local machine on port: ${chalk.blue(
+        localPort
+      )}\n`
+    );
+    console.log(
       'Press CTRL-C to stop the tunnel and uninstall this Saleor App...'
     );
     // eslint-disable-next-line no-constant-condition
