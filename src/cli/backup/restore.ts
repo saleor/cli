@@ -1,7 +1,8 @@
 import Enquirer from 'enquirer';
 import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET, PUT } from '../../lib/index.js';
+import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
+import { API, PUT } from '../../lib/index.js';
 import { promptOrganizationBackup, waitForTask } from '../../lib/util.js';
 import { Options } from '../../types.js';
 import { updateWebhook } from '../webhook/update.js';
@@ -44,8 +45,8 @@ export const handler = async (argv: Arguments<Options>) => {
   });
 
   if (update) {
-    const { domain } = (await GET(API.Environment, argv)) as any;
-    await updateWebhook(domain);
+    const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+    await updateWebhook(endpoint);
   }
 };
 

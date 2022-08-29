@@ -5,7 +5,7 @@ import { Arguments } from 'yargs';
 
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
-import { API, GET } from '../../lib/index.js';
+import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import {
   formatDateTime,
   getAppsFromResult,
@@ -28,11 +28,11 @@ export const handler = async (argv: Arguments<Options>) => {
 
   printContext(organization, environment);
 
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
   const { data }: any = await got
-    .post(`https://${domain}/graphql`, {
+    .post(endpoint, {
       headers,
       json: {
         query: SaleorAppList,

@@ -9,7 +9,7 @@ import { Config } from './config.js';
 
 const debug = Debug('lib:index');
 
-const configs: ConfigMap = {
+export const configs: ConfigMap = {
   staging: {
     cloudApiUrl: 'https://staging-cloud.saleor.io/api',
     amplifyConfig: amplifyStagingConfig,

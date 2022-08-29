@@ -9,6 +9,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
+import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { API, GET, POST } from '../../lib/index.js';
 import {
   capitalize,
@@ -176,7 +177,7 @@ const prepareEnvironment = async (
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await checkPnpmPresence('react-storefront project');
 
-  const env = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
 
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(argv.name));
@@ -184,12 +185,11 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   process.chdir(target);
   spinner.text = 'Creating .env...';
-  const baseURL = `https://${env.domain}/graphql/`;
 
   await replace.replaceInFile({
     files: '.env',
     from: /SALEOR_API_URL=.*/g,
-    to: `SALEOR_API_URL=${baseURL}`,
+    to: `SALEOR_API_URL=${endpoint}`,
   });
 
   await replace.replaceInFile({

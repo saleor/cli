@@ -5,6 +5,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
 import { Config } from '../../lib/config.js';
+import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { API, GET } from '../../lib/index.js';
 import { validatePresence } from '../../lib/util.js';
 import {
@@ -20,7 +21,7 @@ export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
   const { environment, webhookID } = argv;
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
   const query = `query getWebhook($id: ID!) {
@@ -34,7 +35,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const {
     data: { webhook },
   } = await got
-    .post(`https://${domain}/graphql`, {
+    .post(endpoint, {
       headers,
       json: {
         query,
@@ -77,7 +78,7 @@ export const handler = async (argv: Arguments<Options>) => {
   ]);
 
   const { data, errors }: any = await got
-    .post(`https://${domain}/graphql`, {
+    .post(endpoint, {
       headers,
       json: {
         query: doWebhookUpdate,

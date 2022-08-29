@@ -5,7 +5,7 @@ import { Arguments } from 'yargs';
 
 import { WebhookList } from '../../graphql/WebhookList.js';
 import { Config } from '../../lib/config.js';
-import { API, GET } from '../../lib/index.js';
+import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { getAppsFromResult } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
@@ -15,13 +15,11 @@ export const command = 'list';
 export const desc = 'List webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
-  const url = `https://${domain}/graphql`;
-
   const { data }: any = await got
-    .post(url, {
+    .post(endpoint, {
       headers,
       json: {
         query: WebhookList,

@@ -91,7 +91,8 @@ export const handler = async (argv: Arguments<Options>) => {
     });
 
     if (update) {
-      await updateWebhook(result.domain);
+      const endpoint = `https://${result.domain}/graphql/`;
+      await updateWebhook(endpoint);
     }
   }
 

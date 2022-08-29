@@ -13,6 +13,7 @@ import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { API, GET, POST, Region } from '../lib/index.js';
 import { Options, ProjectCreate } from '../types.js';
 import { Config } from './config.js';
+import { getEnvironmentGraphqlEndpoint } from './environment.js';
 
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms)); // eslint-disable-line no-promise-executor-return
@@ -79,11 +80,11 @@ const createPrompt = async (
 };
 
 export const makeRequestAppList = async (argv: any) => {
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
-    .post(`https://${domain}/graphql`, {
+    .post(endpoint, {
       headers,
       json: { query: SaleorAppList },
     })
@@ -117,13 +118,13 @@ export const promptWebhook = async (argv: any) =>
     'webhookID',
     'Select a Webhook',
     async () => {
-      const { domain } = (await GET(API.Environment, argv)) as any;
+      const endpoint = await getEnvironmentGraphqlEndpoint(argv);
       const headers = await Config.getBearerHeader();
 
       const { app: appID } = argv;
 
       const { data, errors }: any = await got
-        .post(`https://${domain}/graphql`, {
+        .post(endpoint, {
           headers,
           json: {
             query: SaleorAppByID,

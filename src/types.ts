@@ -63,6 +63,7 @@ export interface StoreCreate extends BaseOptions {
 export interface Environment {
   name: string;
   key: string;
+  domain: string;
 }
 
 export interface Task {

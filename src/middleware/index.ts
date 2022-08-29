@@ -7,6 +7,7 @@ import { Arguments } from 'yargs';
 
 import * as Configuration from '../config.js';
 import { Config } from '../lib/config.js';
+import { getEnvironmentGraphqlEndpoint } from '../lib/environment.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
 import { isNotFound } from '../lib/response.js';
 import {
@@ -249,7 +250,7 @@ export const interactiveSaleorVersion = async (argv: Options) => {
   return {};
 };
 
-export const interactiveDashboardLogin = async (argv: Options) => {
+export const interactiveDashboardLogin = async (argv: Arguments<Options>) => {
   const doLogin = `
 mutation login($email: String!, $password: String!) {
   tokenCreate(email: $email, password: $password) {
@@ -272,10 +273,10 @@ mutation login($email: String!, $password: String!) {
       message: 'Your password?',
     });
 
-    const { domain } = (await GET(API.Environment, argv)) as any;
+    const endpoint = await getEnvironmentGraphqlEndpoint(argv);
 
     const { data, errors }: any = await got
-      .post(`https://${domain}/graphql`, {
+      .post(endpoint, {
         json: {
           query: doLogin,
           variables: { email, password },

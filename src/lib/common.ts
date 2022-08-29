@@ -10,7 +10,7 @@ import { AppInstall } from '../graphql/AppInstall.js';
 import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Config } from './config.js';
 import { isPortAvailable } from './detectPort.js';
-import { API, GET } from './index.js';
+import { getEnvironmentGraphqlEndpoint } from './environment.js';
 import { NotSaleorAppDirectoryError, SaleorAppInstallError } from './util.js';
 
 interface Manifest {
@@ -19,11 +19,11 @@ interface Manifest {
 }
 
 export const doSaleorAppDelete = async (argv: any) => {
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
-    .post(`https://${domain}/graphql`, {
+    .post(endpoint, {
       headers,
       json: {
         query: print(AppDelete),
@@ -42,7 +42,7 @@ export const doSaleorAppDelete = async (argv: any) => {
 };
 
 export const doSaleorAppInstall = async (argv: any) => {
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
   if (!argv.manifestURL) {
@@ -76,7 +76,7 @@ export const doSaleorAppInstall = async (argv: any) => {
   });
 
   const { data, errors }: any = await got
-    .post(`https://${domain}/graphql`, {
+    .post(endpoint, {
       headers,
       json: {
         query: AppInstall,
@@ -98,11 +98,11 @@ export const doSaleorAppInstall = async (argv: any) => {
 };
 
 export const fetchSaleorAppList = async (argv: any) => {
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
-    .post(`https://${domain}/graphql`, {
+    .post(endpoint, {
       headers,
       json: {
         query: SaleorAppList,
