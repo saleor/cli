@@ -6,6 +6,10 @@
 
 - 
 
+## Steps to test feature
+
+- 
+
 ## I have:
 
 - [ ] Tested it locally and it doesn't break existing features
