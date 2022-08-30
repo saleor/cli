@@ -11,7 +11,7 @@ on:
           - patch
           - preminor
 jobs:
-  release:
+  prepare:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -28,24 +28,7 @@ jobs:
         run: pnpm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  publish:
+    name: Publish
+    uses: ./.github/workflows/publish-to-npm
 
-      - name: Regular Release (Reusable)
-        if: inputs.version != 'preminor'
-        uses: ./.github/workflows/publish-to-npm
-        with:
-          version: ${{ inputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Regular Release
-        if: inputs.version != 'preminor'
-        run: pnpm release ${{ inputs.version }} --ci --dry-run
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: RC Release
-        if: inputs.version == 'preminor'
-        run: pnpm release ${{ inputs.version }} --preRelease=rc --npm.tag=next --ci --dry-run
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
