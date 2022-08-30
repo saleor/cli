@@ -64,6 +64,14 @@ export interface Environment {
   name: string;
   key: string;
   domain: string;
+  service: {
+    region: string;
+    url: string;
+    name: string;
+    display: string;
+    version: string;
+    service_type: string;
+  };
 }
 
 export interface Task {

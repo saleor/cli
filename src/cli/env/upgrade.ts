@@ -1,6 +1,7 @@
 import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET, PUT } from '../../lib/index.js';
+import { getEnvironment } from '../../lib/environment.js';
+import { API, PUT } from '../../lib/index.js';
 import { promptCompatibleVersion, waitForTask } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options } from '../../types.js';
@@ -16,7 +17,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  const env = (await GET(API.Environment, argv)) as any;
+  const env = await getEnvironment(argv);
   const service = await promptCompatibleVersion({
     ...argv,
     region: env.service.region,

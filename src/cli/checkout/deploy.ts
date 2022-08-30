@@ -9,7 +9,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { doSaleorAppInstall } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { API, GET } from '../../lib/index.js';
+import { getEnvironment } from '../../lib/environment.js';
 import { delay } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import { Options } from '../../types.js';
@@ -24,7 +24,7 @@ export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options & { name: string }>) => {
   const name = argv.name || `saleor-checkout-${nanoid(8).toLocaleLowerCase()}`;
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const { domain } = await getEnvironment(argv);
   const url = `https://${domain}/graphql/`;
 
   const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =

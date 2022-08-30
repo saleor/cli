@@ -11,7 +11,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
-import { API, GET } from '../../lib/index.js';
+import { getEnvironment } from '../../lib/environment.js';
 import { checkPnpmPresence } from '../../lib/util.js';
 import {
   useEnvironment,
@@ -35,7 +35,7 @@ export const builder: CommandBuilder<Record<string, never>, StoreCreate> = (
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   await checkPnpmPresence('This Saleor App template');
 
-  const env = (await GET(API.Environment, argv)) as any;
+  const env = await getEnvironment(argv);
   const baseURL = `https://${env.domain}`;
   const graphqlURL = `${baseURL}/graphql/`;
   const target = await getFolderName(sanitize(argv.name));

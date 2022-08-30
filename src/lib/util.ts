@@ -11,7 +11,7 @@ import yaml from 'yaml';
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
 import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { API, GET, POST, Region } from '../lib/index.js';
-import { Options, ProjectCreate } from '../types.js';
+import { Environment, Options, ProjectCreate } from '../types.js';
 import { Config } from './config.js';
 import { getEnvironmentGraphqlEndpoint } from './environment.js';
 
@@ -484,7 +484,7 @@ export const waitForTask = async (
 };
 
 export const showResult = (
-  result: Record<string, unknown>,
+  result: Record<string, unknown> | Environment,
   { json }: ResultFormat = { json: false }
 ) => {
   if (json) {
