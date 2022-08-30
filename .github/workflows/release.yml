@@ -11,7 +11,7 @@ on:
           - patch
           - preminor
 jobs:
-  prepare:
+  publish:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -28,7 +28,22 @@ jobs:
         run: pnpm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-  publish:
-    name: Publish
-    uses: ./.github/workflows/publish-to-npm
+      - name: Release for `@saleor/cli`
+        run: pnpm release ${{ inputs.version }} --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: node -e "let pkg=require('./package.json'); pkg.name='saleor'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+      - name: Release for `saleor`
+        run: pnpm release ${{ inputs.version }} --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: node -e "let pkg=require('./package.json'); pkg.name='saleor-cli'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+      - name: Release for `saleor-cli`
+        run: pnpm release ${{ inputs.version }} --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: node -e "let pkg=require('./package.json'); pkg.name='@saleor/cli'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
 
