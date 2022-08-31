@@ -1,4 +1,4 @@
-name: Release on GitHub & Publish to NPM
+name: Release 
 on: 
   workflow_dispatch:
     inputs:
@@ -15,6 +15,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
+      - name: Configure a Git to commit & tag back to the remote 
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
       - uses: pnpm/action-setup@v2.2.2
         with:
           version: 7.9.0
@@ -29,21 +33,29 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Release for `@saleor/cli`
-        run: pnpm release ${{ inputs.version }} --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --dry-run
+        run: pnpm release ${{ inputs.version }} --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --dry-run ${{ secrets.DRY_RUN || true }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: node -e "let pkg=require('./package.json'); pkg.name='saleor'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+      - name: Change package name to `saleor`
+        run: node -e "let pkg=require('./package.json'); pkg.name='saleor'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
       - name: Release for `saleor`
-        run: pnpm release ${{ inputs.version }} --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --dry-run
+        run: pnpm release --no-increment --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --no-git --dry-run ${{ secrets.DRY_RUN || true }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: node -e "let pkg=require('./package.json'); pkg.name='saleor-cli'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+      - name: Change package name to `saleor-cli`
+        run: node -e "let pkg=require('./package.json'); pkg.name='saleor-cli'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
       - name: Release for `saleor-cli`
-        run: pnpm release ${{ inputs.version }} --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --dry-run
+        run: pnpm release --no-increment --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --no-git --dry-run ${{ secrets.DRY_RUN || true }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: node -e "let pkg=require('./package.json'); pkg.name='@saleor/cli'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+      - name: Revert the name in `package.json`
+        run: node -e "let pkg=require('./package.json'); pkg.name='@saleor/cli'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+      - name: Create a draft release on GitHub
+        run: pnpm release-it --no-increment --no-git --no-npm --github.release  --github.draft --github.autoGenerate --github.releaseName='v${version}' --ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
