@@ -1,3 +1,4 @@
+import * as attach from './attach.js';
 import * as create from './create.js';
 import * as deploy from './deploy.js';
 import * as generate from './generate.js';
@@ -9,13 +10,14 @@ import * as tunnel from './tunnel.js';
 
 export default function (_: any) {
   _.command([
+    attach,
+    create,
+    deploy,
     list,
     install,
-    create,
-    tunnel,
-    token,
     permission,
-    deploy,
+    token,
+    tunnel,
 
     // no auth needed
     generate,

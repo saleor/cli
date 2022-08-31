@@ -31,6 +31,11 @@ export interface Options extends BaseOptions {
   registerUrl?: string;
 }
 
+export interface AppAttachOptions extends BaseOptions {
+  name: string;
+  value?: string;
+}
+
 export interface CreatePromptResult {
   name: string;
   value: string | number;
