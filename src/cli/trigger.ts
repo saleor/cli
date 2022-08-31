@@ -5,7 +5,8 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import * as SaleorGraphQL from '../generated/graphql.js';
 import { Config } from '../lib/config.js';
-import { API, DefaultSaleorEndpoint, GET } from '../lib/index.js';
+import { getEnvironmentGraphqlEndpoint } from '../lib/environment.js';
+import { DefaultSaleorEndpoint } from '../lib/index.js';
 import { capitalize } from '../lib/util.js';
 import {
   useEnvironment,
@@ -60,7 +61,8 @@ export const handler = async (argv: Arguments<Options>) => {
   console.log(
     `\n  GraphQL Operation for ${chalk.underline(event)} available\n`
   );
-  const { domain } = (await GET(API.Environment, argv)) as any;
+
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
   // FIXME
@@ -69,7 +71,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   try {
     const result = await request(
-      `https://${domain}/graphql/`,
+      endpoint,
       (SaleorGraphQL as any)[operationName],
       {
         id,

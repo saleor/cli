@@ -7,7 +7,7 @@ import { Arguments } from 'yargs';
 import { AppTokenCreate } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
-import { API, GET } from '../../lib/index.js';
+import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { getAppsFromResult, printContext } from '../../lib/util.js';
 import {
   useEnvironment,
@@ -24,10 +24,8 @@ export const handler = async (argv: Arguments<Options>) => {
 
   printContext(organization, environment);
 
-  const { domain } = (await GET(API.Environment, argv)) as any;
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
-
-  const endpoint = `https://${domain}/graphql/`;
 
   const { data }: any = await got
     .post(endpoint, {

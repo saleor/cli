@@ -16,7 +16,7 @@ import {
   verifyIsSaleorAppDirectory,
 } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { API, GET } from '../../lib/index.js';
+import { getEnvironment } from '../../lib/environment.js';
 import { delay } from '../../lib/util.js';
 import {
   useEnvironment,
@@ -70,7 +70,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
 
   const port = random(1025, 65535);
 
-  const env = (await GET(API.Environment, argv)) as any;
+  const env = await getEnvironment(argv);
   const baseURL = `https://${env.domain}`;
 
   const subdomain = `${appName}-${environment}-${organization}`.toLowerCase();

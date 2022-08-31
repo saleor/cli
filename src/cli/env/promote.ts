@@ -1,6 +1,7 @@
 import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET, PUT } from '../../lib/index.js';
+import { getEnvironment } from '../../lib/environment.js';
+import { API, PUT } from '../../lib/index.js';
 import { promptCompatibleVersion, showResult } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options } from '../../types.js';
@@ -31,7 +32,7 @@ const getService = async (argv: Arguments<Options>) => {
     return { key: argv.saleor, value: argv.saleor };
   }
 
-  const env = (await GET(API.Environment, argv)) as any;
+  const env = await getEnvironment(argv);
   const data = await promptCompatibleVersion(
     {
       ...argv,

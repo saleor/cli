@@ -1,6 +1,6 @@
 import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET } from '../../lib/index.js';
+import { getEnvironment } from '../../lib/environment.js';
 import { showResult } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options } from '../../types.js';
@@ -16,7 +16,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  const result = (await GET(API.Environment, argv)) as any;
+  const result = await getEnvironment(argv);
 
   showResult(result, argv);
 };
