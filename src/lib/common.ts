@@ -1,9 +1,11 @@
 import chalk from 'chalk';
 import { spawn } from 'child_process';
+import dotenv from 'dotenv';
 import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import got from 'got';
 import { print } from 'graphql';
+import path from 'path';
 
 import { AppDelete } from '../generated/graphql.js';
 import { AppInstall } from '../graphql/AppInstall.js';
@@ -11,7 +13,11 @@ import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Config } from './config.js';
 import { isPortAvailable } from './detectPort.js';
 import { getEnvironmentGraphqlEndpoint } from './environment.js';
-import { NotSaleorAppDirectoryError, SaleorAppInstallError } from './util.js';
+import {
+  MissingEnvVarError,
+  NotSaleorAppDirectoryError,
+  SaleorAppInstallError,
+} from './util.js';
 
 interface Manifest {
   name: string;
@@ -134,6 +140,70 @@ export const run = async (
   for await (const data of child.stderr || []) {
     console.error(data.toString());
   }
+};
+
+export const verifyEnvVarPresence = async () => {
+  const hasDotEnvFile = await fs.pathExists('.env');
+
+  // no .env
+  if (!hasDotEnvFile) {
+    const msg = chalk(
+      chalk.red('No .env file found \n\n'),
+      chalk(
+        'Create .env file using',
+        chalk.green('saleor app attach'),
+        'command'
+      )
+    );
+
+    throw new MissingEnvVarError(msg);
+  }
+
+  // check if valid NEXT_PUBLIC_SALEOR_HOST_URL present in .env
+  if (hasDotEnvFile) {
+    const { NEXT_PUBLIC_SALEOR_HOST_URL } = dotenv.parse(
+      await fs.readFile(path.join(process.cwd(), '.env'))
+    );
+
+    // no NEXT_PUBLIC_SALEOR_HOST_URL
+    if (!NEXT_PUBLIC_SALEOR_HOST_URL) {
+      const msg = chalk(
+        chalk.red(
+          'No NEXT_PUBLIC_SALEOR_HOST_URL variable found in the .env file \n\n'
+        ),
+        chalk(
+          'Update .env file using',
+          chalk.green('saleor app attach'),
+          'command'
+        )
+      );
+
+      throw new MissingEnvVarError(msg);
+    }
+
+    // verify NEXT_PUBLIC_SALEOR_HOST_URL
+    if (NEXT_PUBLIC_SALEOR_HOST_URL) {
+      const endpoint = `${NEXT_PUBLIC_SALEOR_HOST_URL}/graphql/`;
+      try {
+        await fetch(endpoint);
+      } catch (err) {
+        const msg = chalk(
+          chalk.red(
+            `Cannot verify the environment's graphql endpoint \n  ${endpoint}\n\n`
+          ),
+          chalk(
+            'Update .env file using',
+            chalk.green('saleor app attach'),
+            'command'
+          )
+        );
+
+        throw new MissingEnvVarError(msg);
+      }
+    }
+  }
+
+  return {};
 };
 
 export const verifyIsSaleorAppDirectory = async (argv: any) => {

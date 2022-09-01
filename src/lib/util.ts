@@ -33,6 +33,13 @@ export class AuthError extends Error {
   }
 }
 
+export class MissingEnvVarError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'MissingEnvVarError';
+  }
+}
+
 export class NotSaleorAppDirectoryError extends Error {
   constructor(message = '') {
     super(message);
