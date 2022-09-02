@@ -1,7 +1,6 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
 import { access } from 'fs/promises';
-import fs from 'fs-extra';
 import kebabCase from 'lodash.kebabcase';
 import ora, { Ora } from 'ora';
 import replace from 'replace-in-file';
@@ -11,13 +10,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
-import { getEnvironment } from '../../lib/environment.js';
 import { checkPnpmPresence } from '../../lib/util.js';
-import {
-  useEnvironment,
-  useOrganization,
-  useToken,
-} from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 
 export const command = 'create [name]';
@@ -35,19 +28,12 @@ export const builder: CommandBuilder<Record<string, never>, StoreCreate> = (
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   await checkPnpmPresence('This Saleor App template');
 
-  const env = await getEnvironment(argv);
-  const baseURL = `https://${env.domain}`;
-  const graphqlURL = `${baseURL}/graphql/`;
   const target = await getFolderName(sanitize(argv.name));
   const packageName = kebabCase(target);
-  const dashboardMsg = `  Saleor Dashboard: ${chalk.blue(
-    `${baseURL}/dashboard/`
-  )}`;
-  const gqlMsg = `GraphQL Playground: ${chalk.blue(graphqlURL)}`;
-  const dirMsg = `     App directory: ${chalk.blue(target)}`;
-  const appMsg = `      Package name: ${chalk.blue(packageName)}`;
+  const dirMsg = `App directory: ${chalk.blue(target)}`;
+  const appMsg = ` Package name: ${chalk.blue(packageName)}`;
   console.log(
-    boxen(`${dashboardMsg}\n${gqlMsg}\n${dirMsg}\n${appMsg}`, {
+    boxen(`${dirMsg}\n${appMsg}`, {
       padding: 1,
       margin: 1,
       borderColor: 'yellow',
@@ -59,8 +45,6 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   await downloadFromGitHub('saleor/saleor-app-template', target);
 
   process.chdir(target);
-  spinner.text = 'Creating .env...';
-  await fs.outputFile('.env', `NEXT_PUBLIC_SALEOR_HOST_URL=${baseURL}`);
 
   spinner.text = 'Updating package.json...';
   await replace.replaceInFile({
@@ -112,5 +96,3 @@ export const setupGitRepository = async (spinner: Ora) => {
   await git.add('.');
   await git.commit('Initial commit from Saleor CLI');
 };
-
-export const middlewares = [useToken, useOrganization, useEnvironment];

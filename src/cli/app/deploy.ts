@@ -13,7 +13,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import { delay } from '../../lib/util.js';
-import { Deployment, Vercel } from '../../lib/vercel.js';
+import { Deployment, Env, Vercel } from '../../lib/vercel.js';
 import { useGithub, useVercel } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -124,10 +124,8 @@ export const handler = async (argv: Arguments<Options>) => {
   )} as Manifest URL`;
   const msg2 = `${chalk.dim(
     'Using Dashboard UI'
-  )}: open the following URL in the browser
-${chalk.blue(
-    envs.NEXT_PUBLIC_SALEOR_HOST_URL
-  )}/dashboard/apps/install?manifestUrl=${chalk.yellow(
+  )}: open the following URL in the browser and replace SALEOR-DOMAIN in the URL
+https://SALEOR-DOMAIN/dashboard/apps/install?manifestUrl=${chalk.yellow(
     encodeURIComponent(projectManifestURL)
   )}`;
 
@@ -263,16 +261,17 @@ const updateEnvironmentVariables = async (
   vercel: Vercel,
   projectId: string
 ) => {
-  const localEnvs = dotenv.parse(
-    await fs.readFile(path.join(process.cwd(), '.env'))
-  );
+  const localEnvs = await getLocalEnvs();
 
-  const envs = Object.entries(localEnvs).map(([key, value]) => ({
-    key,
-    value,
-    target: ['production', 'preview'],
-    type: 'encrypted',
-  }));
+  const envs = Object.entries(localEnvs).map(
+    ([key, value]) =>
+      ({
+        key,
+        value,
+        target: ['production', 'preview'],
+        type: 'encrypted',
+      } as Env)
+  );
 
   await vercel.setEnvironmentVariables(projectId, envs);
 };
@@ -285,29 +284,33 @@ export const createProjectInVercel = async (
   buildCommand: null | string = null,
   rootDirectory: null | string = null
 ): Promise<Record<string, any>> => {
-  const envs = dotenv.parse(
-    await fs.readFile(path.join(process.cwd(), '.env'))
+  const envs = await getLocalEnvs();
+  const environmentVariables = Object.entries(envs).map(
+    ([key, value]) =>
+      ({
+        key,
+        value,
+        target: ['production', 'preview', 'development'],
+        type: 'plain',
+      } as Env)
   );
-  const environmentVariables = Object.entries(envs).map(([key, value]) => ({
-    key,
-    value,
-    target: ['production', 'preview', 'development'],
-    type: 'plain',
-  }));
 
   const output = Object.entries(envs)
     .map(([key, value]) => `${chalk.dim(key)}: ${chalk.cyan(value)} `)
     .join('\n');
 
-  console.log(
-    boxen(output, {
-      padding: 1,
-      margin: 0,
-      borderColor: 'blue',
-      borderStyle: 'round',
-      title: 'Environment Variables',
-    })
-  );
+  if (Object.keys.length > 0) {
+    console.log(
+      boxen(output, {
+        padding: 1,
+        margin: 0,
+        borderColor: 'blue',
+        borderStyle: 'round',
+        title: 'Environment Variables',
+      })
+    );
+  }
+
   console.log('');
 
   let projectId;
@@ -396,6 +399,15 @@ export const triggerDeploymentInVercel = async (
 
   // FIXME properly handle this edge case
   return {};
+};
+
+const getLocalEnvs = async () => {
+  const hasDotEnvFile = await fs.pathExists('.env');
+  const file = hasDotEnvFile
+    ? await fs.readFile(path.join(process.cwd(), '.env'))
+    : '';
+
+  return dotenv.parse(file);
 };
 
 export const middlewares = [verifyIsSaleorAppDirectory, useVercel, useGithub];
