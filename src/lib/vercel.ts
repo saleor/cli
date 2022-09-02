@@ -4,7 +4,7 @@ import ora from 'ora';
 
 import { delay } from './util.js';
 
-interface Env {
+export interface Env {
   key: string;
   value: string;
   target?: string[];

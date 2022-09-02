@@ -142,13 +142,12 @@ export const verifyIsSaleorAppDirectory = async (argv: any) => {
   // check if this is a Next.js app
   const isNodeApp = await fs.pathExists('package.json');
   const isNextApp = await fs.pathExists('next.config.js');
-  const hasDotEnvFile = await fs.pathExists('.env');
 
   if (!isTunnel) {
     return {};
   }
 
-  if (!isNextApp || !isNodeApp || !hasDotEnvFile) {
+  if (!isNextApp || !isNodeApp) {
     throw new NotSaleorAppDirectoryError(
       `'app ${argv._[1]}' must be run from the directory of your Saleor app`
     );
