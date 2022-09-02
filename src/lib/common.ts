@@ -1,3 +1,4 @@
+import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import { spawn } from 'child_process';
 import Enquirer from 'enquirer';
@@ -10,13 +11,18 @@ import { AppInstall } from '../graphql/AppInstall.js';
 import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Config } from './config.js';
 import { isPortAvailable } from './detectPort.js';
-import { getEnvironmentGraphqlEndpoint } from './environment.js';
+import {
+  getEnvironment,
+  getEnvironmentGraphqlEndpoint,
+} from './environment.js';
 import { NotSaleorAppDirectoryError, SaleorAppInstallError } from './util.js';
 
 interface Manifest {
   name: string;
   permissions: string[];
 }
+
+const { ux: cli } = CliUx;
 
 export const doSaleorAppDelete = async (argv: any) => {
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
@@ -75,26 +81,35 @@ export const doSaleorAppInstall = async (argv: any) => {
     initial: argv.appName ?? manifest.name,
   });
 
-  const { data, errors }: any = await got
-    .post(endpoint, {
-      headers,
-      json: {
-        query: AppInstall,
-        variables: {
-          manifestURL,
-          name,
-          permissions: manifest.permissions,
+  if (!argv.viaDashboard) {
+    const { data, errors }: any = await got
+      .post(endpoint, {
+        headers,
+        json: {
+          query: AppInstall,
+          variables: {
+            manifestURL,
+            name,
+            permissions: manifest.permissions,
+          },
         },
-      },
-    })
-    .json();
+      })
+      .json();
 
-  // TODO
-  if (errors || data.appInstall.errors.length > 0) {
-    throw new SaleorAppInstallError();
+    // TODO
+    if (errors || data.appInstall.errors.length > 0) {
+      throw new SaleorAppInstallError();
+    }
+  } else {
+    // open browser
+    console.log('\nOpening the browser...');
+    const { domain } = await getEnvironment(argv);
+    const QueryParams = new URLSearchParams({ manifestUrl: manifestURL });
+    const url = `https://${domain}/dashboard/apps/install?${QueryParams}`;
+    console.log(url);
+
+    cli.open(url);
   }
-
-  return data;
 };
 
 export const fetchSaleorAppList = async (argv: any) => {
