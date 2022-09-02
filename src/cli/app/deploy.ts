@@ -1,6 +1,5 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
-import dotenv from 'dotenv';
 import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
@@ -12,9 +11,16 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { delay } from '../../lib/util.js';
+import { getEnvironment } from '../../lib/environment.js';
+import { delay, readEnvFile } from '../../lib/util.js';
 import { Deployment, Env, Vercel } from '../../lib/vercel.js';
-import { useGithub, useVercel } from '../../middleware/index.js';
+import {
+  useEnvironment,
+  useGithub,
+  useOrganization,
+  useToken,
+  useVercel,
+} from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 export const command = 'deploy';
@@ -44,6 +50,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const { name } = JSON.parse(
     await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
   );
+
   console.log(
     `Deploying ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
       'package.json'
@@ -60,7 +67,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const { owner, name: repoName } = GitUrlParse(repoUrl);
 
   // 2. Create a project in Vercel
-  const { projectId, newProject, envs } = await createProjectInVercel(
+  const { projectId, newProject } = await createProjectInVercel(
     vercel,
     name,
     owner,
@@ -117,6 +124,9 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const projectManifestURL = `https://${domain.name}/api/manifest`;
 
+  const environment = await getEnvironment(argv);
+  const baseURL = `https://${environment.domain}`;
+
   const msg1 = `     ${chalk.dim('Using the CLI')}: ${chalk.green(
     'saleor app install'
   )} and pass the following domain ${chalk.yellow(
@@ -124,8 +134,8 @@ export const handler = async (argv: Arguments<Options>) => {
   )} as Manifest URL`;
   const msg2 = `${chalk.dim(
     'Using Dashboard UI'
-  )}: open the following URL in the browser and replace SALEOR-DOMAIN in the URL
-https://SALEOR-DOMAIN/dashboard/apps/install?manifestUrl=${chalk.yellow(
+  )}: open the following URL in the browser\n
+${chalk.blue(baseURL)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
     encodeURIComponent(projectManifestURL)
   )}`;
 
@@ -261,16 +271,16 @@ const updateEnvironmentVariables = async (
   vercel: Vercel,
   projectId: string
 ) => {
-  const localEnvs = await getLocalEnvs();
+  const localEnvs = await readEnvFile();
 
   const envs = Object.entries(localEnvs).map(
     ([key, value]) =>
-      ({
-        key,
-        value,
-        target: ['production', 'preview'],
-        type: 'encrypted',
-      } as Env)
+    ({
+      key,
+      value,
+      target: ['production', 'preview'],
+      type: 'encrypted',
+    } as Env)
   );
 
   await vercel.setEnvironmentVariables(projectId, envs);
@@ -284,16 +294,13 @@ export const createProjectInVercel = async (
   buildCommand: null | string = null,
   rootDirectory: null | string = null
 ): Promise<Record<string, any>> => {
-  const envs = await getLocalEnvs();
-  const environmentVariables = Object.entries(envs).map(
-    ([key, value]) =>
-      ({
-        key,
-        value,
-        target: ['production', 'preview', 'development'],
-        type: 'plain',
-      } as Env)
-  );
+  const envs = await readEnvFile();
+  const environmentVariables = Object.entries(envs).map(([key, value]) => ({
+    key,
+    value,
+    target: ['production', 'preview', 'development'],
+    type: 'plain',
+  }));
 
   const output = Object.entries(envs)
     .map(([key, value]) => `${chalk.dim(key)}: ${chalk.cyan(value)} `)
@@ -401,13 +408,11 @@ export const triggerDeploymentInVercel = async (
   return {};
 };
 
-const getLocalEnvs = async () => {
-  const hasDotEnvFile = await fs.pathExists('.env');
-  const file = hasDotEnvFile
-    ? await fs.readFile(path.join(process.cwd(), '.env'))
-    : '';
-
-  return dotenv.parse(file);
-};
-
-export const middlewares = [verifyIsSaleorAppDirectory, useVercel, useGithub];
+export const middlewares = [
+  verifyIsSaleorAppDirectory,
+  useVercel,
+  useGithub,
+  useToken,
+  useOrganization,
+  useEnvironment,
+];

@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { access } from 'fs/promises';
 import kebabCase from 'lodash.kebabcase';
 import ora, { Ora } from 'ora';
+import path from 'path';
 import replace from 'replace-in-file';
 import sanitize from 'sanitize-filename';
 import { simpleGit } from 'simple-git';
@@ -11,18 +12,21 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
 import { checkPnpmPresence } from '../../lib/util.js';
+import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 
 export const command = 'create [name]';
 export const desc = 'Create a Saleor App template';
 
-export const builder: CommandBuilder<Record<string, never>, StoreCreate> = (
-  _
-) =>
+export const builder: CommandBuilder = (_) =>
   _.positional('name', {
     type: 'string',
     demandOption: true,
     default: 'my-saleor-app',
+  }).option('dependencies', {
+    type: 'boolean',
+    default: true,
+    alias: 'deps',
   });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -30,7 +34,9 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   const target = await getFolderName(sanitize(argv.name));
   const packageName = kebabCase(target);
-  const dirMsg = `App directory: ${chalk.blue(target)}`;
+  const dirMsg = `App directory: ${chalk.blue(
+    path.join(process.env.PWD || '.', target)
+  )}`;
   const appMsg = ` Package name: ${chalk.blue(packageName)}`;
   console.log(
     boxen(`${dirMsg}\n${appMsg}`, {
@@ -96,3 +102,5 @@ export const setupGitRepository = async (spinner: Ora) => {
   await git.add('.');
   await git.commit('Initial commit from Saleor CLI');
 };
+
+export const middlewares = [useToken];
