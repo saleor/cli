@@ -142,7 +142,7 @@ const createFork = async () => {
         Authorization: githubToken,
       },
     })
-    .json();
+    .json<{ id: string; full_name: string }>();
 
   return {
     id,
@@ -320,7 +320,7 @@ const deployVercelProject = async (vercelToken: string, name: string) => {
         source: 'import',
       },
     })
-    .json();
+    .json<{ id: string }>();
 
   return id;
 };

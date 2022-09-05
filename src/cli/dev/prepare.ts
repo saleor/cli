@@ -71,6 +71,14 @@ export const handler = async (argv: Arguments<Options>) => {
       }
     }`;
 
+    interface GitHubRepository {
+      repository: {
+        pullRequest: {
+          headRefName: string;
+        };
+      };
+    }
+
     const { data } = await got
       .post('https://api.github.com/graphql', {
         headers: { Authorization: GitHubToken },
@@ -83,7 +91,7 @@ export const handler = async (argv: Arguments<Options>) => {
           },
         },
       })
-      .json();
+      .json<{ data: GitHubRepository }>();
 
     const {
       repository: {

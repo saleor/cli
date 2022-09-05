@@ -81,7 +81,7 @@ export const POST = async (
       },
       json,
     })
-    .json();
+    .json<{ data: unknown; errors: Error[] }>();
 
   // FIXME handle errors
 
