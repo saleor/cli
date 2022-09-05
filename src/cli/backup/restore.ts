@@ -1,3 +1,4 @@
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import type { Arguments, CommandBuilder } from 'yargs';
 
@@ -6,6 +7,8 @@ import { API, PUT } from '../../lib/index.js';
 import { promptOrganizationBackup, waitForTask } from '../../lib/util.js';
 import { Options } from '../../types.js';
 import { updateWebhook } from '../webhook/update.js';
+
+const debug = Debug('backup:restore');
 
 export const command = 'restore [from]';
 export const desc = 'Restore a specific backup';
@@ -22,8 +25,13 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(
+    `Started with --from=${argv.from} and --skip-webhooks-update=${argv.skipWebhooksUpdate}`
+  );
+
   const from = await getBackup(argv);
 
+  debug('Triggering the restore process');
   const result = (await PUT(API.Restore, argv, {
     json: {
       restore_from: from.value,
@@ -46,6 +54,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   if (update) {
     const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+    debug(`Saleor endpoint: ${endpoint}`);
     await updateWebhook(endpoint);
   }
 };

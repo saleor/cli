@@ -1,7 +1,10 @@
+import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { API, POST } from '../../lib/index.js';
 import { showResult, waitForTask } from '../../lib/util.js';
+
+const debug = Debug('backup:create');
 
 export const command = 'create <name>';
 export const desc = 'Create a new backup';
@@ -14,13 +17,16 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<any>) => {
-  const { name, env } = argv;
+  const { name } = argv;
+
+  debug(`Using the name: ${name}`);
 
   const result = (await POST(API.Backup, argv, {
     json: {
       name,
     },
   })) as any;
+  debug('Backup creation triggered');
 
   await waitForTask(
     argv,

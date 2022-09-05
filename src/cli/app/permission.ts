@@ -1,3 +1,4 @@
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
 import { print } from 'graphql';
@@ -16,6 +17,8 @@ import {
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
+const debug = Debug('app:permission');
+
 export const command = 'permission';
 export const desc = 'Add or remove permission for a Saleor App';
 
@@ -25,8 +28,10 @@ export const handler = async (argv: Arguments<Options>) => {
   printContext(organization, environment);
 
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  debug(`Saleor endpoint: ${endpoint}`);
   const headers = await Config.getBearerHeader();
 
+  debug('Fetching Saleor Apps');
   const data = await POST(
     endpoint,
     headers,
@@ -52,6 +57,7 @@ export const handler = async (argv: Arguments<Options>) => {
     message: 'Select a Saleor App (start typing) ',
   });
 
+  debug('Fetching permission enum list');
   const {
     data: {
       __type: { enumValues },
@@ -90,6 +96,7 @@ export const handler = async (argv: Arguments<Options>) => {
       'Select one or more permissions\n  (use the arrows to navigate and the space bar to select)',
   });
 
+  debug(`Attempting to update the permissions for the app: ${app}`);
   await got
     .post(endpoint, {
       headers,

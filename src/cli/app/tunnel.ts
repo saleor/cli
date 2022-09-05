@@ -1,6 +1,7 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
 import { spawn } from 'child_process';
+import Debug from 'debug';
 import fs from 'fs-extra';
 import fetch from 'node-fetch';
 import ora from 'ora';
@@ -41,6 +42,8 @@ async function getKeypress() {
   });
 }
 
+const debug = Debug('app:tunnel');
+
 export const command = 'tunnel [port]';
 export const desc = 'Expose your Saleor app remotely via tunnel';
 
@@ -50,9 +53,11 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {
+  debug(`Starting the tunnel with the port: ${argv.port}`);
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const vendorDir = path.join(__dirname, '..', '..', '..', 'vendor');
 
+  debug('Extracting the Saleor app name');
   let appName;
   if (argv.name) {
     appName = argv.name;
@@ -69,6 +74,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
   const { organization, environment, port: localPort } = argv;
 
   const port = random(1025, 65535);
+  debug(`Remote port: ${port}`);
 
   const env = await getEnvironment(argv);
   const baseURL = `https://${env.domain}`;
@@ -78,11 +84,13 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
   const winSuffix = process.platform === 'win32' ? '.cmd' : '';
 
   try {
+    debug(`Linking the subdomain with a port: ${subdomain} <-> ${port}`);
     await fetch(`http://95.179.221.135:5544/add/${subdomain}/${port}`, {
       method: 'POST',
     });
     await delay(500);
 
+    debug('Spawning the tunnel process');
     const p = spawn(
       `${vendorDir}/tunnel${winSuffix}`,
       [

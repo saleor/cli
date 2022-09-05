@@ -1,5 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import Debug from 'debug';
 import got from 'got';
 import { Arguments } from 'yargs';
 
@@ -20,6 +21,8 @@ import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
+const debug = Debug('app:list');
+
 export const command = 'list';
 export const desc = 'List installed Saleor Apps for an environment';
 
@@ -29,8 +32,10 @@ export const handler = async (argv: Arguments<Options>) => {
   printContext(organization, environment);
 
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  debug(`Saleor endpoint: ${endpoint}`);
   const headers = await Config.getBearerHeader();
 
+  debug('Fetching Saleor Apps');
   const { data }: any = await got
     .post(endpoint, {
       headers,
