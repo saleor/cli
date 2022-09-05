@@ -1,5 +1,6 @@
 // FIXME
 /* eslint-disable no-case-declarations */
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import { request } from 'graphql-request';
@@ -16,6 +17,8 @@ import { Options } from '../../types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const debug = Debug('app:generate');
+
 export const command = 'generate <resource>';
 export const desc = 'Generate a resource for a Saleor App';
 
@@ -31,6 +34,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   switch (resource) {
     case 'webhook':
+      debug(`Getting enum values from Saleor API: ${DefaultSaleorEndpoint}`);
       const {
         __type: { enumValues },
       } = await request(DefaultSaleorEndpoint, GetWebhookEventEnum);
@@ -45,6 +49,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
       const form: string = await prompt.run();
 
+      debug('Converting the event name to file name');
       const webhookName = form.toLowerCase().replaceAll('_', '-');
       const camelcaseName = webhookName.split('-').map(capitalize).join('');
 

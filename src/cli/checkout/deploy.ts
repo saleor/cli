@@ -1,6 +1,7 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
 import crypto from 'crypto';
+import Debug from 'debug';
 import got from 'got';
 import { customAlphabet } from 'nanoid';
 import ora from 'ora';
@@ -10,26 +11,32 @@ import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { doSaleorAppInstall } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironment } from '../../lib/environment.js';
+import { NoCommandBuilderSetup } from '../../lib/index.js';
 import { delay } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import { Options } from '../../types.js';
 import { createAppToken } from '../app/token.js';
+
+const debug = Debug('checkout:deploy');
 
 export const command = 'deploy [name]';
 export const desc = 'Deploy `saleor-checkout` to Vercel';
 
 const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);
 
-export const builder: CommandBuilder = (_) => _;
+export const builder: CommandBuilder = NoCommandBuilderSetup;
 
 export const handler = async (argv: Arguments<Options & { name: string }>) => {
   const name = argv.name || `saleor-checkout-${nanoid(8).toLocaleLowerCase()}`;
+  debug(`Using the name: ${name}`);
   const { domain } = await getEnvironment(argv);
   const url = `https://${domain}/graphql/`;
+  debug(`Saleor endpoint: ${url}`);
 
   const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =
     await Config.get();
 
+  debug(`Your Vercel token: ${vercelToken}`);
   const vercel = new Vercel(vercelToken);
 
   if (!vercelToken) {
@@ -37,6 +44,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
   } else {
     // console.log("Using Vercel API")
     const appName = `${name}-app`;
+    debug(`App name in Vercel: ${appName}`);
 
     // SETUP CHECKOUT APP
     await createCheckoutApp(vercelToken, appName, url);
@@ -47,6 +55,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     await vercel.verifyDeployment(appName, checkoutAppDeploymentId);
     const { alias } = await vercel.getDeployment(checkoutAppDeploymentId);
     const checkoutAppURL = `https://${alias[0]}`;
+    debug(`Checkout App URL: ${checkoutAppURL}`);
     const apiURL = `${checkoutAppURL}/api`;
 
     // INSTALL APP IN CLOUD ENVIRONMENT
@@ -55,6 +64,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     const authToken = await createAppToken(url, appId);
 
     // CREATE SALEOR_APP_ID & SALEOR_APP_TOKEN variables in CHECKOUT APP
+    debug('Setting `SALEOR_APP_ID` and `SALEOR_APP_TOKEN`');
     const appVars = [
       {
         type: 'encrypted',
@@ -72,6 +82,7 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
     await createVercelEnv(vercelToken, appName, appVars);
 
     // REDEPLOY
+    debug('Re-deploying the checkout');
     const checkoutAppRedeploymentId = await deployVercelProject(
       vercelToken,
       appName

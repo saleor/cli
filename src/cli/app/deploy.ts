@@ -1,5 +1,6 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
@@ -22,6 +23,8 @@ import {
   useVercel,
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
+
+const debug = Debug('app:deploy');
 
 export const command = 'deploy';
 export const desc = 'Deploy this Saleor App repository to Vercel';
@@ -47,6 +50,7 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug('extracting the `name` from `package.json` of this Saleor App');
   const { name } = JSON.parse(
     await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
   );
@@ -60,11 +64,13 @@ export const handler = async (argv: Arguments<Options>) => {
   console.log(`Deployment destination: ${chalk.magenta('Vercel')}\n`);
 
   const { vercel_token: vercelToken } = await Config.get();
+  debug(`Your Vercel token: ${vercelToken}`);
   const vercel = new Vercel(vercelToken);
 
   // 1. Get or create hosted repository
-  const repoUrl = await getRepoUrl(name);
-  const { owner, name: repoName } = GitUrlParse(repoUrl);
+  const repoURL = await getRepoUrl(name);
+  debug(`Remote Git repository: ${repoURL}`);
+  const { owner, name: repoName } = GitUrlParse(repoURL);
 
   // 2. Create a project in Vercel
   const { projectId, newProject } = await createProjectInVercel(
@@ -73,8 +79,8 @@ export const handler = async (argv: Arguments<Options>) => {
     owner,
     repoName
   );
+  debug(`Create a Vercel project: ${projectId}`);
 
-  // encrypt and store in .env
   const body = JSON.stringify({
     access_token: vercelToken.split(' ')[1],
     project: projectId,
@@ -88,8 +94,12 @@ export const handler = async (argv: Arguments<Options>) => {
     body,
   });
   const encrypted = await response.text();
+  debug('Encrypted the Vercel credentials');
 
   // 3. set ENV vars
+  debug(
+    'Setting `SALEOR_REGISTER_APP_URL` and `SALEOR_DEPLOYMENT_TOKEN` variables'
+  );
   vercel.setEnvironmentVariables(projectId, [
     {
       key: 'SALEOR_REGISTER_APP_URL',
@@ -106,6 +116,7 @@ export const handler = async (argv: Arguments<Options>) => {
   ]);
 
   // 4. Deploy the project in Vercel
+  debug(`Triggering the deploy in Vercel for ${name} with ID: ${projectId}`);
   const deployment = await triggerDeploymentInVercel(
     vercel,
     name,
@@ -275,12 +286,12 @@ const updateEnvironmentVariables = async (
 
   const envs = Object.entries(localEnvs).map(
     ([key, value]) =>
-    ({
-      key,
-      value,
-      target: ['production', 'preview'],
-      type: 'encrypted',
-    } as Env)
+      ({
+        key,
+        value,
+        target: ['production', 'preview'],
+        type: 'encrypted',
+      } as Env)
   );
 
   await vercel.setEnvironmentVariables(projectId, envs);

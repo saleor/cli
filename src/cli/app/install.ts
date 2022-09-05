@@ -1,3 +1,4 @@
+import Debug from 'debug';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { doSaleorAppInstall } from '../../lib/common.js';
@@ -8,6 +9,8 @@ import {
   useToken,
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
+
+const debug = Debug('app:install');
 
 export const command = 'install';
 export const desc = 'Install a Saleor App by URL';
@@ -20,6 +23,7 @@ export const builder: CommandBuilder = (_) =>
 
 export const handler = async (argv: Arguments<Options>) => {
   const { organization, environment } = argv;
+  debug(`start with --via-dashboard=${argv.viaDashboard}`);
 
   printContext(organization, environment);
 

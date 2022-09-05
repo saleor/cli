@@ -1,4 +1,5 @@
 import boxen from 'boxen';
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
 import { print } from 'graphql';
@@ -16,6 +17,8 @@ import {
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
+const debug = Debug('app:token');
+
 export const command = 'token';
 export const desc = 'Create a Saleor App token';
 
@@ -25,8 +28,10 @@ export const handler = async (argv: Arguments<Options>) => {
   printContext(organization, environment);
 
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  debug(`Saleor endpoint: ${endpoint}`);
   const headers = await Config.getBearerHeader();
 
+  debug('Fetching Saleor Apps');
   const { data }: any = await got
     .post(endpoint, {
       headers,
@@ -52,6 +57,7 @@ export const handler = async (argv: Arguments<Options>) => {
     message: 'Select a Saleor App (start typing) ',
   });
 
+  debug(`Creating auth token for ${app}`);
   try {
     const authToken = await createAppToken(endpoint, app);
     console.log();

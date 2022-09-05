@@ -1,5 +1,6 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
+import Debug from 'debug';
 import { access } from 'fs/promises';
 import kebabCase from 'lodash.kebabcase';
 import ora, { Ora } from 'ora';
@@ -14,6 +15,8 @@ import { downloadFromGitHub } from '../../lib/download.js';
 import { checkPnpmPresence } from '../../lib/util.js';
 import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
+
+const debug = Debug('app:create');
 
 export const command = 'create [name]';
 export const desc = 'Create a Saleor App template';
@@ -30,8 +33,10 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
+  debug('check PNPM presence');
   await checkPnpmPresence('This Saleor App template');
 
+  debug('construct the folder name');
   const target = await getFolderName(sanitize(argv.name));
   const packageName = kebabCase(target);
   const dirMsg = `App directory: ${chalk.blue(
@@ -47,7 +52,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   );
 
   const spinner = ora('Downloading...').start();
-
+  debug('downloading the `master` app template');
   await downloadFromGitHub('saleor/saleor-app-template', target);
 
   process.chdir(target);
