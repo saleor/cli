@@ -6,7 +6,6 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
-import { API, GET } from '../../lib/index.js';
 import { validatePresence } from '../../lib/util.js';
 import {
   interactiveSaleorApp,
@@ -32,6 +31,14 @@ export const handler = async (argv: Arguments<Options>) => {
     }
   }`;
 
+  interface WebHook {
+    webhook: {
+      name: string;
+      targetUrl: string;
+      secretKey: string;
+    };
+  }
+
   const {
     data: { webhook },
   } = await got
@@ -44,7 +51,7 @@ export const handler = async (argv: Arguments<Options>) => {
         },
       },
     })
-    .json();
+    .json<{ data: WebHook }>();
 
   console.log(`  Editing the webhook for the ${environment} environment`);
 
@@ -77,7 +84,7 @@ export const handler = async (argv: Arguments<Options>) => {
     },
   ]);
 
-  const { data, errors }: any = await got
+  await got
     .post(endpoint, {
       headers,
       json: {

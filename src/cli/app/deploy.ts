@@ -205,7 +205,7 @@ const getGithubRepository = async (
         variables: { name, owner },
       },
     })
-    .json();
+    .json<{ data: unknown }>();
 
   return data;
 };
@@ -229,6 +229,14 @@ const createProjectInGithub = async (name: string): Promise<string> => {
 
   let gitRepoUrl;
 
+  interface CreateRepository {
+    createRepository: {
+      repository: {
+        sshUrl: string;
+      };
+    };
+  }
+
   const { data, errors } = await got
     .post('https://api.github.com/graphql', {
       headers: {
@@ -246,7 +254,7 @@ const createProjectInGithub = async (name: string): Promise<string> => {
         variables: { name },
       },
     })
-    .json();
+    .json<{ data: CreateRepository; errors: Error[] }>();
 
   if (errors) {
     for (const error of errors) {
