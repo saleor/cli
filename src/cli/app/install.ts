@@ -10,7 +10,7 @@ import {
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
-const debug = Debug('app:install');
+const debug = Debug('saleor-cli:app:install');
 
 export const command = 'install';
 export const desc = 'Install a Saleor App by URL';
@@ -22,8 +22,9 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { organization, environment } = argv;
-  debug(`start with --via-dashboard=${argv.viaDashboard}`);
 
   printContext(organization, environment);
 

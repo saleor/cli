@@ -42,7 +42,7 @@ async function getKeypress() {
   });
 }
 
-const debug = Debug('app:tunnel');
+const debug = Debug('saleor-cli:app:tunnel');
 
 export const command = 'tunnel [port]';
 export const desc = 'Expose your Saleor app remotely via tunnel';
@@ -53,6 +53,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   debug(`Starting the tunnel with the port: ${argv.port}`);
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const vendorDir = path.join(__dirname, '..', '..', '..', 'vendor');

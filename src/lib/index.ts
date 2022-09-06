@@ -1,7 +1,7 @@
 import Debug from 'debug';
 import type { CancelableRequest } from 'got';
 import got from 'got';
-import { Argv } from 'yargs';
+import { Argv, CommandBuilder } from 'yargs';
 
 import amplifyProdConfig from '../aws-exports-prod.js';
 import amplifyStagingConfig from '../aws-exports-staging.js'; // esl
@@ -106,7 +106,7 @@ export const API: Record<string, DefaultURLPath> = {
   DomainCheck: () => 'env-domain-check',
 };
 
-export const NoCommandBuilderSetup = (_: Argv) => _;
+export const NoCommandBuilderSetup: CommandBuilder = (_: Argv) => _;
 
 export const Region = 'us-east-1';
 export type Plan = 'startup' | 'pro' | 'dev' | 'enterprise' | 'staging';

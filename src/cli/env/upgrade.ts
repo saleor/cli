@@ -1,3 +1,4 @@
+import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { getEnvironment } from '../../lib/environment.js';
@@ -5,6 +6,8 @@ import { API, PUT } from '../../lib/index.js';
 import { promptCompatibleVersion, waitForTask } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options } from '../../types.js';
+
+const debug = Debug('saleor-cli:env:upgrade');
 
 export const command = 'upgrade [key|environment]';
 export const desc = 'Upgrade a Saleor version in a specific environment';
@@ -17,6 +20,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const env = await getEnvironment(argv);
   const service = await promptCompatibleVersion({
     ...argv,

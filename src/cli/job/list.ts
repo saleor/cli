@@ -1,5 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import Debug from 'debug';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
@@ -16,6 +17,8 @@ const parseJobName = (name: string) => {
 
 // TODO environment required in config or as param!!!!!!
 
+const debug = Debug('saleor-cli:job:list');
+
 export const command = 'list';
 export const desc = 'List jobs';
 
@@ -23,6 +26,7 @@ export const builder: CommandBuilder = (_) =>
   _.option('env', { type: 'string' });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
   const result = (await GET(API.Job, argv)) as any[];
 
   cli.table(result, {

@@ -1,9 +1,12 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { API, DELETE } from '../../lib/index.js';
 import { confirmRemoval, promptProject } from '../../lib/util.js';
 import { Options } from '../../types.js';
+
+const debug = Debug('saleor-cli:project:remove');
 
 export const command = 'remove [slug]';
 export const desc = 'Remove the project';
@@ -19,6 +22,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
   const project = argv.slug
     ? { name: argv.slug, value: argv.slug }
     : await promptProject(argv);

@@ -16,7 +16,7 @@ import { checkPnpmPresence } from '../../lib/util.js';
 import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 
-const debug = Debug('app:create');
+const debug = Debug('saleor-cli:app:create');
 
 export const command = 'create [name]';
 export const desc = 'Create a Saleor App template';
@@ -33,6 +33,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   debug('check PNPM presence');
   await checkPnpmPresence('This Saleor App template');
 

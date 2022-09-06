@@ -1,12 +1,12 @@
 import { CliUx } from '@oclif/core';
 import crypto from 'crypto';
+import Debug from 'debug';
 import EventEmitter from 'events';
 import got from 'got';
 import { nanoid } from 'nanoid';
 import { ServerApp } from 'retes';
 import { Response } from 'retes/response';
 import { GET } from 'retes/route';
-import type { CommandBuilder } from 'yargs';
 
 import { Config, ConfigField, SaleorCLIPort } from '../lib/config.js';
 import { checkPort } from '../lib/detectPort.js';
@@ -17,18 +17,20 @@ const { ux: cli } = CliUx;
 
 const RedirectURI = `http://localhost:${SaleorCLIPort}/`;
 
+const debug = Debug('saleor-cli:login');
+
 export const command = 'login';
 export const desc = 'Log in to the Saleor Cloud';
-
-export const builder: CommandBuilder = (_) => _;
 
 export const handler = async () => {
   await doLogin();
 };
 
 export const doLogin = async () => {
+  debug('check if port for the temporary HTTP server is free');
   await checkPort(SaleorCLIPort);
 
+  debug('get AWS Amplify Configuration');
   const amplifyConfig = await getAmplifyConfig();
 
   const Params = {
@@ -47,11 +49,14 @@ export const doLogin = async () => {
   // spinner.text = '\nLogging in...\n';
 
   const QueryParams = new URLSearchParams({ ...Params, state: generatedState });
+  debug(`prepare the OAuth params: ${JSON.stringify(QueryParams, null, 2)}`);
+
   const url = `https://${amplifyConfig.oauth.domain}/login?${QueryParams}`;
   cli.open(url);
 
   const app = new ServerApp([
     GET('/', async ({ params }) => {
+      debug('getting request from the OAuth provider');
       const { state, code } = params;
 
       if (state !== generatedState) {
@@ -79,6 +84,7 @@ export const doLogin = async () => {
         const environment = await getEnvironment();
         const userSession = crypto.randomUUID();
 
+        debug('verify the token');
         const secrets: Record<ConfigField, string> = await got
           .post('https://id.saleor.live/verify', {
             json: {

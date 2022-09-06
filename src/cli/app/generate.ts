@@ -17,7 +17,7 @@ import { Options } from '../../types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const debug = Debug('app:generate');
+const debug = Debug('saleor-cli:app:generate');
 
 export const command = 'generate <resource>';
 export const desc = 'Generate a resource for a Saleor App';
@@ -30,6 +30,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { resource } = argv;
 
   switch (resource) {

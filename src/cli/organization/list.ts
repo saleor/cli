@@ -1,5 +1,6 @@
 import { CliUx } from '@oclif/core';
 import { format } from 'date-fns';
+import Debug from 'debug';
 import { Arguments } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
@@ -8,10 +9,14 @@ import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
+const debug = Debug('saleor-cli:org:list');
+
 export const command = 'list';
 export const desc = 'List organizations';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const result = (await GET(API.Organization, {
     ...argv,
     organization: '',

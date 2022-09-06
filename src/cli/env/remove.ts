@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
@@ -6,6 +7,8 @@ import { API, DELETE, GET } from '../../lib/index.js';
 import { confirmRemoval, waitForTask } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options, Task } from '../../types.js';
+
+const debug = Debug('saleor-cli:env:remove');
 
 export const command = 'remove [key|environment]';
 export const desc = 'Delete an environment';
@@ -21,6 +24,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { environment } = argv;
 
   const proceed = await confirmRemoval(argv, `environment ${environment}`);

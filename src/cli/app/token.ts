@@ -17,12 +17,14 @@ import {
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
-const debug = Debug('app:token');
+const debug = Debug('saleor-cli:app:token');
 
 export const command = 'token';
 export const desc = 'Create a Saleor App token';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { organization, environment } = argv;
 
   printContext(organization, environment);

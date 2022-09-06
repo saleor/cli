@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
 import { request } from 'graphql-request';
@@ -16,12 +17,16 @@ import { without } from '../../lib/util.js';
 import { interactiveSaleorApp } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
+const debug = Debug('saleor-cli:webhook:create');
+
 export const command = 'create';
 export const desc = 'Create a new webhook';
 
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { environment, app } = argv;
   const {
     __type: { enumValues: asyncEventsList },

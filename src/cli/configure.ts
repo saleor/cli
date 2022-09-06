@@ -1,5 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import type { Arguments, CommandBuilder } from 'yargs';
 
@@ -9,6 +10,8 @@ import { promptEnvironment, promptOrganization } from '../lib/util.js';
 import { Options } from '../types.js';
 
 const { ux: cli } = CliUx;
+
+const debug = Debug('saleor-cli:configure');
 
 export const command = 'configure [token]';
 export const desc = 'Configure Saleor CLI';
@@ -23,6 +26,8 @@ export const builder: CommandBuilder = (_) =>
   );
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { token, force } = argv;
   const legitToken = await configure(token);
 

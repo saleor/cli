@@ -21,12 +21,14 @@ import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
-const debug = Debug('app:list');
+const debug = Debug('saleor-cli:app:list');
 
 export const command = 'list';
 export const desc = 'List installed Saleor Apps for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { organization, environment } = argv;
 
   printContext(organization, environment);

@@ -1,5 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import Debug from 'debug';
 import { Arguments } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
@@ -8,10 +9,13 @@ import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
+const debug = Debug('saleor-cli:project:list');
+
 export const command = 'list';
 export const desc = 'List projects';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
   const result = (await GET(API.Project, argv)) as any[];
 
   cli.table(result, {

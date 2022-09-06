@@ -1,6 +1,7 @@
 import { CliUx } from '@oclif/core';
 import { Amplify, Auth } from 'aws-amplify';
 import chalk from 'chalk';
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { Arguments, CommandBuilder } from 'yargs';
 
@@ -9,6 +10,8 @@ import { validateEmail } from '../lib/util.js';
 import { doLogin } from './login.js';
 
 const { ux: cli } = CliUx;
+
+const debug = Debug('saleor-cli:register');
 
 export const command = 'register';
 export const desc = 'Create Saleor account';
@@ -21,6 +24,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   await doRegister(argv.fromCli as boolean);
 };
 

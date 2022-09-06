@@ -1,11 +1,13 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
-import type { Arguments, CommandBuilder } from 'yargs';
+import type { Arguments } from 'yargs';
 
 import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
+import { NoCommandBuilderSetup } from '../../lib/index.js';
 import { validatePresence } from '../../lib/util.js';
 import {
   interactiveSaleorApp,
@@ -13,12 +15,15 @@ import {
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
+const debug = Debug('saleor-cli:webhook:edit');
+
 export const command = 'edit';
 export const desc = 'Edit a webhook';
 
-export const builder: CommandBuilder = (_) => _;
+export const builder = NoCommandBuilderSetup;
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
   const { environment, webhookID } = argv;
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();

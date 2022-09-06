@@ -1,3 +1,4 @@
+import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { getEnvironment } from '../../lib/environment.js';
@@ -5,6 +6,8 @@ import { API, PUT } from '../../lib/index.js';
 import { promptCompatibleVersion, showResult } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options } from '../../types.js';
+
+const debug = Debug('saleor-cli:env:promote');
 
 export const command = 'promote [key|environment]';
 export const desc = 'Promote environment to production';
@@ -20,6 +23,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const service = await getService(argv);
   const result = (await PUT(API.UpgradeEnvironment, argv, {
     json: { service: service.value },

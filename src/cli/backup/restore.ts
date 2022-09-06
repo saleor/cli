@@ -8,7 +8,7 @@ import { promptOrganizationBackup, waitForTask } from '../../lib/util.js';
 import { Options } from '../../types.js';
 import { updateWebhook } from '../webhook/update.js';
 
-const debug = Debug('backup:restore');
+const debug = Debug('saleor-cli:backup:restore');
 
 export const command = 'restore [from]';
 export const desc = 'Restore a specific backup';
@@ -25,9 +25,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(
-    `Started with --from=${argv.from} and --skip-webhooks-update=${argv.skipWebhooksUpdate}`
-  );
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
 
   const from = await getBackup(argv);
 

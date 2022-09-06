@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import { access } from 'fs/promises';
 import kebabCase from 'lodash.kebabcase';
 import { customAlphabet } from 'nanoid';
@@ -20,6 +21,8 @@ import { useEnvironment } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 import { setupGitRepository } from '../app/create.js';
 import { createEnvironment } from '../env/create.js';
+
+const debug = Debug('saleor-cli:storefront:create');
 
 export const command = 'create [name]';
 export const desc = 'Bootstrap example [name]';
@@ -43,7 +46,10 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   if (argv.environment) {
+    debug(`creating storefront for ${argv.environment}`);
     await createStorefront({
       ...argv,
       ...{ environment: argv.environment },
@@ -53,8 +59,13 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   }
 
   if (argv.demo) {
+    debug('demo mode');
+
+    debug('creating project');
     const project = await createProject(argv);
+    debug('preparing the environment');
     const environment = await prepareEnvironment(argv, project);
+    debug('creating storefront');
     await createStorefront({
       ...argv,
       ...{ environment: environment.key },
