@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
@@ -7,6 +8,8 @@ import { promptEnvironment } from '../../lib/util.js';
 type Options = {
   key?: string;
 };
+
+const debug = Debug('saleor-cli:env:switch');
 
 export const command = 'switch [key|environment]';
 export const desc = 'Make the provided environment the default one';
@@ -19,6 +22,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const environment = await getEnvironment(argv);
 
   await Config.set('environment_id', environment.value);

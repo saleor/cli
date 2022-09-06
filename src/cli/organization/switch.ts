@@ -1,10 +1,13 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
 import { promptOrganization } from '../../lib/util.js';
 import { Options } from '../../types.js';
+
+const debug = Debug('saleor-cli:org:switch');
 
 export const command = 'switch [slug]';
 export const desc = 'Make the provided organization the default one';
@@ -17,6 +20,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
   const organization = await getOrganization(argv);
 
   await Config.set('organization_slug', organization.value);

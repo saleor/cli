@@ -1,25 +1,28 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import Debug from 'debug';
 import EventEmitter from 'events';
 import got from 'got';
 import { nanoid } from 'nanoid';
 import { ServerApp } from 'retes';
 import { Response } from 'retes/response';
 import { GET } from 'retes/route';
-import type { CommandBuilder } from 'yargs';
 
 import { Config, SaleorCLIPort } from '../../lib/config.js';
 import { checkPort } from '../../lib/detectPort.js';
+import { NoCommandBuilderSetup } from '../../lib/index.js';
 import { delay } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
 const RedirectURI = `http://localhost:${SaleorCLIPort}/vercel/callback`;
 
+const debug = Debug('saleor-cli:vercel:login');
+
 export const command = 'login';
 export const desc = 'Add integration for Saleor CLI';
 
-export const builder: CommandBuilder = (_) => _;
+export const builder = NoCommandBuilderSetup;
 
 export const handler = async () => {
   await checkPort(SaleorCLIPort);

@@ -1,11 +1,14 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import Debug from 'debug';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
 import { formatDateTime, verifyResultLength } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
+
+const debug = Debug('saleor-cli:env:list');
 
 export const command = 'list';
 export const desc = 'List environments';
@@ -18,6 +21,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { extended } = argv;
   const result = (await GET(API.Environment, {
     ...argv,

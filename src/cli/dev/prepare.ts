@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import got from 'got';
 import { simpleGit } from 'simple-git';
 import { Arguments } from 'yargs';
@@ -11,13 +12,18 @@ interface Options {
   branch?: string;
 }
 
+const debug = Debug('saleor-cli:dev:prepare');
+
 export const command = 'prepare [branch|prURL]';
 export const desc = 'Build cli from branch or pull request URL';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const git = simpleGit();
 
   // check if repo is saleor-cli
+  debug('check if `prepare` is run from the `saleor-cli` repository');
   try {
     const repo = (await git.remote(['get-url', 'origin'])) as string;
     const repoName = repo.trim().split('/').at(-1);
@@ -79,6 +85,7 @@ export const handler = async (argv: Arguments<Options>) => {
       };
     }
 
+    debug('Get the SHA of the PR using GitHub GraphQL API');
     const { data } = await got
       .post('https://api.github.com/graphql', {
         headers: { Authorization: GitHubToken },

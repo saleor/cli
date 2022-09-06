@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { request } from 'graphql-request';
 import type { Arguments, CommandBuilder } from 'yargs';
@@ -15,6 +16,8 @@ import {
 } from '../middleware/index.js';
 import { Options } from '../types.js';
 
+const debug = Debug('saleor-cli:trigger');
+
 export const command = 'trigger [event]';
 export const desc = 'This triggers a Saleor event';
 
@@ -22,6 +25,8 @@ export const builder: CommandBuilder = (_) =>
   _.option('event', { type: 'string' }).option('id', { type: 'string' });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { id } = argv;
   let { event } = argv;
 

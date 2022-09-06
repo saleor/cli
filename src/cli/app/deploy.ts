@@ -24,7 +24,7 @@ import {
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
-const debug = Debug('app:deploy');
+const debug = Debug('saleor-cli:app:deploy');
 
 export const command = 'deploy';
 export const desc = 'Deploy this Saleor App repository to Vercel';
@@ -50,6 +50,8 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   debug('extracting the `name` from `package.json` of this Saleor App');
   const { name } = JSON.parse(
     await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')

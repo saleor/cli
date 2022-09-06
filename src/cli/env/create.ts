@@ -1,5 +1,6 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { HTTPError, Response } from 'got';
 import slugify from 'slugify';
@@ -32,6 +33,8 @@ interface Options {
   restore_from: string;
   skipRestrict: boolean;
 }
+
+const debug = Debug('saleor-cli:env:create');
 
 export const command = 'create [name]';
 export const desc = 'Create a new environment';
@@ -81,6 +84,9 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
+  debug('creating environment');
   const result = await createEnvironment(argv);
 
   if (argv.restore_from) {
@@ -90,6 +96,7 @@ export const handler = async (argv: Arguments<Options>) => {
       message: 'Would you like to update webhooks targetUrl',
     });
 
+    debug('updating the webhooks');
     if (update) {
       const endpoint = `https://${result.domain}/graphql/`;
       await updateWebhook(endpoint);
@@ -106,12 +113,15 @@ export const handler = async (argv: Arguments<Options>) => {
   })) as { deployPrompt: boolean };
 
   if (deployPrompt) {
+    debug('deploying `react-storefront` to Vercel');
     await deploy({ name: result.name, url: `https://${result.domain}` });
   }
 };
 
 export const createEnvironment = async (argv: Arguments<Options>) => {
   const { project, saleor, database } = argv;
+
+  debug('getting user from Saleor API');
   const user = (await GET(API.User, argv)) as any;
 
   if (argv.restore && !argv.restore_from) {

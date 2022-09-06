@@ -17,12 +17,14 @@ import {
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
-const debug = Debug('app:permission');
+const debug = Debug('saleor-cli:app:permission');
 
 export const command = 'permission';
 export const desc = 'Add or remove permission for a Saleor App';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { organization, environment } = argv;
 
   printContext(organization, environment);

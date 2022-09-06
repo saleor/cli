@@ -1,3 +1,4 @@
+import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
 import ora from 'ora';
@@ -10,10 +11,13 @@ import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { getAppsFromResult } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
+const debug = Debug('saleor-cli:webhook:update');
+
 export const command = 'update';
 export const desc = 'Update webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   await updateWebhook(endpoint);
 };

@@ -1,5 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import Debug from 'debug';
 import figlet from 'figlet';
 import { createRequire } from 'module';
 import type { CommandBuilder } from 'yargs';
@@ -10,6 +11,9 @@ const require = createRequire(import.meta.url);
 const pkg = require('../../package.json');
 
 const { ux: cli } = CliUx;
+
+const debug = Debug('saleor-cli:info');
+
 export const command = 'info';
 export const desc = 'Hello from Saleor';
 

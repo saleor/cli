@@ -4,7 +4,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { API, POST } from '../../lib/index.js';
 import { showResult, waitForTask } from '../../lib/util.js';
 
-const debug = Debug('backup:create');
+const debug = Debug('saleor-cli:backup:create');
 
 export const command = 'create <name>';
 export const desc = 'Create a new backup';
@@ -17,6 +17,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<any>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const { name } = argv;
 
   debug(`Using the name: ${name}`);

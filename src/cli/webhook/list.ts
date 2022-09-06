@@ -1,5 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
+import Debug from 'debug';
 import got from 'got';
 import { Arguments } from 'yargs';
 
@@ -11,10 +12,13 @@ import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
+const debug = Debug('saleor-cli:webhook:list');
+
 export const command = 'list';
 export const desc = 'List webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 

@@ -1,4 +1,5 @@
 import { CliUx } from '@oclif/core';
+import Debug from 'debug';
 import detectPort from 'detect-port';
 import EventEmitter from 'events';
 import got from 'got';
@@ -12,6 +13,8 @@ import { Config } from '../../lib/config.js';
 import { delay } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
+
+const debug = Debug('saleor-cli:github:login');
 
 export const command = 'login';
 export const desc = 'Add integration for Saleor CLI';

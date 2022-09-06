@@ -9,12 +9,14 @@ import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
-const debug = Debug('backup:list');
+const debug = Debug('saleor-cli:backup:list');
 
 export const command = 'list [key|environment]';
 export const desc = 'List backups of the environment';
 
 export const handler = async (argv: Arguments<Options>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   debug(`Listing for ${argv.key}`);
   const result = (await GET(API.Backup, argv)) as any[];
 

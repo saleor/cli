@@ -17,7 +17,7 @@ import { Vercel } from '../../lib/vercel.js';
 import { Options } from '../../types.js';
 import { createAppToken } from '../app/token.js';
 
-const debug = Debug('checkout:deploy');
+const debug = Debug('saleor-cli:checkout:deploy');
 
 export const command = 'deploy [name]';
 export const desc = 'Deploy `saleor-checkout` to Vercel';
@@ -27,6 +27,8 @@ const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);
 export const builder: CommandBuilder = NoCommandBuilderSetup;
 
 export const handler = async (argv: Arguments<Options & { name: string }>) => {
+  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+
   const name = argv.name || `saleor-checkout-${nanoid(8).toLocaleLowerCase()}`;
   debug(`Using the name: ${name}`);
   const { domain } = await getEnvironment(argv);

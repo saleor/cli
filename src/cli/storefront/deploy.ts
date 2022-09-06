@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import Debug from 'debug';
 import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
 import path from 'path';
@@ -12,6 +13,8 @@ import {
   getRepoUrl,
   triggerDeploymentInVercel,
 } from '../app/deploy.js';
+
+const debug = Debug('saleor-cli:storefront:deploy');
 
 export const command = 'deploy';
 export const desc = 'Deploy this `react-storefront` to Vercel';
@@ -32,8 +35,11 @@ export const handler = async () => {
   const { owner, name: repoName } = GitUrlParse(repoUrl);
 
   const { vercel_token: vercelToken } = await Config.get();
+  debug(`Your Vercel token: ${vercelToken}`);
+
   const vercel = new Vercel(vercelToken);
   console.log('\nDeploying to Vercel');
+
   // 2. Create a project in Vercel
   const { projectId, newProject } = await createProjectInVercel(
     vercel,
@@ -43,7 +49,10 @@ export const handler = async () => {
     'cd ../.. && npx turbo run build --filter="storefront..."',
     'apps/storefront'
   );
+  debug(`created a project in Vercel: ${projectId}`);
+
   // 3. Deploy the project in Vercel
+  debug('triggering the deployment');
   await triggerDeploymentInVercel(vercel, name, owner, projectId, newProject);
 
   process.exit(0);
