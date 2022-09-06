@@ -78,7 +78,10 @@ Usage: saleor <command> [options]
 Commands:
   saleor info                    Hello from Saleor
   saleor login                   Log in to the Saleor Cloud
+  saleor logout                  Log out from the Saleor Cloud
   saleor configure [token]       Configure Saleor CLI
+  saleor register                Create Saleor account
+  saleor trigger [event]         This triggers a Saleor event
   saleor organization [command]                                   [aliases: org]
   saleor environment [command]                                    [aliases: env]
   saleor backup [command]
@@ -89,8 +92,11 @@ Commands:
   saleor webhook [command]                                       [aliases: hook]
   saleor app [command]
   saleor vercel [command]
+  saleor github [command]
+  saleor checkout [command]
 
 Options:
+      --json     Output the data as JSON                               [boolean]
   -V, --version  Show version number                                   [boolean]
   -h, --help     Show help                                             [boolean]
 
