@@ -16,11 +16,19 @@ import {
   useToken,
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
+import { getSaleorApp } from './token.js';
 
 const debug = Debug('saleor-cli:app:permission');
 
 export const command = 'permission';
 export const desc = 'Add or remove permission for a Saleor App';
+
+export const builder: CommandBuilder = (_) =>
+  _.option('app-id', {
+    type: 'string',
+    demandOption: false,
+    desc: 'The Saleor App id',
+  });
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', argv);
@@ -31,34 +39,10 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   debug(`Saleor endpoint: ${endpoint}`);
+
+  const { app, apps } = await getSaleorApp(endpoint);
+
   const headers = await Config.getBearerHeader();
-
-  debug('Fetching Saleor Apps');
-  const data = await POST(
-    endpoint,
-    headers,
-    {
-      query: SaleorAppList,
-      variables: {},
-    },
-    argv
-  );
-
-  const apps = getAppsFromResult(data);
-
-  const choices = apps.map(({ node }: any) => ({
-    name: node.name,
-    value: node.id,
-    hint: node.id,
-  }));
-
-  const { app } = await Enquirer.prompt<{ app: string }>({
-    type: 'autocomplete',
-    name: 'app',
-    choices,
-    message: 'Select a Saleor App (start typing) ',
-  });
-
   debug('Fetching permission enum list');
   const {
     data: {

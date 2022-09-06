@@ -50,6 +50,8 @@ export const desc = 'Expose your Saleor app remotely via tunnel';
 export const builder: CommandBuilder = (_) =>
   _.positional('port', { type: 'number', default: 3000 }).option('name', {
     type: 'string',
+    demandOption: false,
+    desc: 'The application name for installation in the Dashboard',
   });
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {

@@ -3,7 +3,7 @@ import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
 import { print } from 'graphql';
-import { Arguments } from 'yargs';
+import { Arguments,CommandBuilder  } from 'yargs';
 
 import { AppTokenCreate } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
@@ -22,6 +22,13 @@ const debug = Debug('saleor-cli:app:token');
 export const command = 'token';
 export const desc = 'Create a Saleor App token';
 
+export const builder: CommandBuilder = (_) =>
+  _.option('app-id', {
+    type: 'string',
+    demandOption: false,
+    desc: 'The Saleor App id',
+  });
+
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', argv);
 
@@ -31,6 +38,48 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   debug(`Saleor endpoint: ${endpoint}`);
+
+  let appId;
+
+  if (!argv.appId) {
+    const { app } = await getSaleorApp(endpoint);
+    appId = app;
+  } else {
+    appId = argv.appId;
+  }
+
+  debug(`Creating auth token for ${appId}`);
+  try {
+    const authToken = await createAppToken(endpoint, appId);
+    console.log();
+    console.log(boxen(`Your Token: ${authToken}`, { padding: 1 }));
+  } catch (error) {
+    console.log(error);
+  }
+
+  process.exit(0);
+};
+
+export const createAppToken = async (url: string, app: string) => {
+  const headers = await Config.getBearerHeader();
+
+  const { data }: any = await got
+    .post(url, {
+      headers,
+      json: {
+        query: print(AppTokenCreate),
+        variables: { app },
+      },
+    })
+    .json();
+
+  const {
+    appTokenCreate: { authToken },
+  } = data;
+  return authToken;
+};
+
+export const getSaleorApp = async (endpoint: string) => {
   const headers = await Config.getBearerHeader();
 
   debug('Fetching Saleor Apps');
@@ -59,35 +108,7 @@ export const handler = async (argv: Arguments<Options>) => {
     message: 'Select a Saleor App (start typing) ',
   });
 
-  debug(`Creating auth token for ${app}`);
-  try {
-    const authToken = await createAppToken(endpoint, app);
-    console.log();
-    console.log(boxen(`Your Token: ${authToken}`, { padding: 1 }));
-  } catch (error) {
-    console.log(error);
-  }
-
-  process.exit(0);
-};
-
-export const createAppToken = async (url: string, app: string) => {
-  const headers = await Config.getBearerHeader();
-
-  const { data }: any = await got
-    .post(url, {
-      headers,
-      json: {
-        query: print(AppTokenCreate),
-        variables: { app },
-      },
-    })
-    .json();
-
-  const {
-    appTokenCreate: { authToken },
-  } = data;
-  return authToken;
+  return { app, apps };
 };
 
 export const middlewares = [useToken, useOrganization, useEnvironment];

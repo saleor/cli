@@ -19,7 +19,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'slug of the organization',
   }).option('force', {
     type: 'boolean',
-    desc: 'skip confrimation prompt',
+    desc: 'skip confirmation prompt',
   });
 
 export const handler = async (argv: Arguments<Options>) => {
