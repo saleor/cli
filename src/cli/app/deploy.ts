@@ -169,10 +169,10 @@ export const getRepoUrl = async (name: string): Promise<string> => {
   if (remotes.length > 0) {
     gitUrl = (await git.remote(['get-url', 'origin'])) as string;
   } else {
-    gitUrl = createProjectInGithub(name);
+    gitUrl = await createProjectInGithub(name);
   }
 
-  return gitUrl;
+  return gitUrl.trim();
 };
 
 const getGithubRepository = async (
