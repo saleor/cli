@@ -402,10 +402,9 @@ export const triggerDeploymentInVercel = async (
 
   const spinner = ora('Preparing to deploy...').start();
 
-  const {
-    pushed: [{ alreadyUpdated }],
-  } = await git.push('origin', 'main');
-  if (alreadyUpdated) {
+  const { pushed } = await git.push('origin', 'main');
+
+  if (pushed[0]?.alreadyUpdated) {
     const {
       repository: { databaseId: repoId },
     } = await getGithubRepository(name, owner);
