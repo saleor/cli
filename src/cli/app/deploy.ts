@@ -13,7 +13,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironment } from '../../lib/environment.js';
-import { delay, readEnvFile } from '../../lib/util.js';
+import { delay, NameMismatchError, readEnvFile } from '../../lib/util.js';
 import { Deployment, Env, Vercel } from '../../lib/vercel.js';
 import {
   useEnvironment,
@@ -73,6 +73,15 @@ export const handler = async (argv: Arguments<Options>) => {
   const repoURL = await getRepoUrl(name);
   debug(`Remote Git repository: ${repoURL}`);
   const { owner, name: repoName } = GitUrlParse(repoURL);
+
+  debug(`Detected package name - "${name}". Repository name - "${repoName}"`);
+  if (name !== repoName) {
+    throw new NameMismatchError(
+      `Name from package.json - ${chalk.red(
+        name
+      )} - must be the same as the repository name - ${chalk.red(repoName)}`
+    );
+  }
 
   // 2. Create a project in Vercel
   const { projectId, newProject } = await createProjectInVercel(
