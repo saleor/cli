@@ -27,7 +27,7 @@ const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);
 export const builder: CommandBuilder = NoCommandBuilderSetup;
 
 export const handler = async (argv: Arguments<Options & { name: string }>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   const name = argv.name || `saleor-checkout-${nanoid(8).toLocaleLowerCase()}`;
   debug(`Using the name: ${name}`);

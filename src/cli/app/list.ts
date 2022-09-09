@@ -27,7 +27,7 @@ export const command = 'list';
 export const desc = 'List installed Saleor Apps for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   const { organization, environment } = argv;
 

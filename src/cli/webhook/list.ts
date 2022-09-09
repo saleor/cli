@@ -18,7 +18,7 @@ export const command = 'list';
 export const desc = 'List webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 

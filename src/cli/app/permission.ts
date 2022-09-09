@@ -23,7 +23,7 @@ export const command = 'permission';
 export const desc = 'Add or remove permission for a Saleor App';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   const { organization, environment } = argv;
 

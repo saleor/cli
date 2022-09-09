@@ -50,7 +50,7 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   debug('extracting the `name` from `package.json` of this Saleor App');
   const { name } = JSON.parse(

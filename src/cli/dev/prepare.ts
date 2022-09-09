@@ -18,7 +18,7 @@ export const command = 'prepare [branch|prURL]';
 export const desc = 'Build cli from branch or pull request URL';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   const git = simpleGit();
 

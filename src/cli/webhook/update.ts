@@ -17,7 +17,7 @@ export const command = 'update';
 export const desc = 'Update webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   await updateWebhook(endpoint);
 };

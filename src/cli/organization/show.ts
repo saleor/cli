@@ -14,7 +14,7 @@ export const desc = 'Show a specific organization';
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
   const result = (await GET(API.Organization, argv)) as any;
 
   showResult(result, argv);

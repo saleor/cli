@@ -25,7 +25,7 @@ export const desc = 'Create a new webhook';
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   const { environment, app } = argv;
   const {

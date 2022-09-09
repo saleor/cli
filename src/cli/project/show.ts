@@ -15,7 +15,7 @@ export const builder: CommandBuilder = (_) =>
   _.positional('project', { type: 'string', demandOption: false });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
   const result = (await GET(API.Project, argv)) as any;
   showResult(result, argv);
 };
