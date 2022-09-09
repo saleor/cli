@@ -28,3 +28,8 @@ If applicable, add screenshots to help explain your problem.
 
 **Additional context**
 Add any other context about the problem here.
+
+**Add info from system**
+Run `DEBUG=saleor-cli:*` before running a command
+
+Run `saleor dev info` and paste the results here
