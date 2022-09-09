@@ -50,6 +50,13 @@ export class SaleorAppInstallError extends Error {
   }
 }
 
+export class NameMismatchError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'NameMismatchError';
+  }
+}
+
 // Higher-Order Creator for Prompts
 const createPrompt = async (
   name: string,
