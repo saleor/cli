@@ -23,7 +23,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   const service = await getService(argv);
   const result = (await PUT(API.UpgradeEnvironment, argv, {

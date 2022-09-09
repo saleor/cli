@@ -53,7 +53,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   debug(`Starting the tunnel with the port: ${argv.port}`);
   const __dirname = path.dirname(fileURLToPath(import.meta.url));

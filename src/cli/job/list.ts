@@ -26,7 +26,7 @@ export const builder: CommandBuilder = (_) =>
   _.option('env', { type: 'string' });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
   const result = (await GET(API.Job, argv)) as any[];
 
   cli.table(result, {

@@ -15,7 +15,7 @@ export const command = 'list [key|environment]';
 export const desc = 'List backups of the environment';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   debug(`Listing for ${argv.key}`);
   const result = (await GET(API.Backup, argv)) as any[];

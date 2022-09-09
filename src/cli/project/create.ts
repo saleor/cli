@@ -25,6 +25,6 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<ProjectCreate>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
   await createProject(argv);
 };

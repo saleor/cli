@@ -23,7 +23,7 @@ export const command = 'token';
 export const desc = 'Create a Saleor App token';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   const { organization, environment } = argv;
 

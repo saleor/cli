@@ -23,7 +23,7 @@ export const desc = 'Edit a webhook';
 export const builder = NoCommandBuilderSetup;
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
   const { environment, webhookID } = argv;
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();

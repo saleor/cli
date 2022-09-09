@@ -13,7 +13,7 @@ export const desc = 'Show a specific backup';
 export const builder: CommandBuilder = NoCommandBuilderSetup;
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug(`command arguments: ${JSON.stringify(argv, null, 2)}`);
+  debug('command arguments: %O', argv);
 
   const result = (await GET(API.Backup, argv)) as any;
   showResult(result, argv);
