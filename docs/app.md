@@ -1,4 +1,4 @@
-## saleor app
+## saleor app command
 
 ```
 saleor app [command]
@@ -30,12 +30,6 @@ Options:
       --json     Output the data as JSON                               [boolean]
   -V, --version  Show version number                                   [boolean]
   -h, --help     Show help                                             [boolean]
-```
-
-Example usage in batch mode
-
-```
-saleor app list
 ```
 
 ### saleor app install
@@ -77,12 +71,6 @@ Options:
   -h, --help                  Show help                                [boolean]
 ```
 
-Example usage in batch mode
-
-```
-saleor app create my-app-name
-```
-
 ### saleor app tunnel
 
 ```
@@ -103,7 +91,7 @@ Options:
 Example usage in batch mode
 
 ```
-saleor app tunnel 5000
+<!-- TODO -->
 ```
 
 ### saleor app token
@@ -118,12 +106,6 @@ Options:
       --app-id   The Saleor App id                                      [string]
   -V, --version  Show version number                                   [boolean]
   -h, --help     Show help                                             [boolean]
-```
-
-Example usage in batch mode
-
-```
-saleor app token
 ```
 
 ### saleor app permission
