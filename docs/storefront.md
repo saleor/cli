@@ -1,4 +1,4 @@
-## saleor storefront
+## `saleor storefront` command
 
 ```
 saleor storefront [command]

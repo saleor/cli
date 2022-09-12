@@ -1,4 +1,4 @@
-## saleor telemetry
+## `saleor telemetry` command
 
 ```
 saleor telemetry [command]

@@ -1,3 +1,5 @@
+## List of available commands with description
+
 ### saleor info
 
 ```

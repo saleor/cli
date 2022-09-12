@@ -1,4 +1,4 @@
-## saleor organization
+## `saleor organization` command
 
 ```
 saleor organization [command]

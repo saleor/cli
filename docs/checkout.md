@@ -1,4 +1,4 @@
-## saleor checkout
+## `saleor checkout` command
 
 ```
 saleor checkout [command]

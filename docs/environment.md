@@ -1,4 +1,4 @@
-## saleor environment
+## `saleor environment` command
 
 ```
 saleor environment [command]

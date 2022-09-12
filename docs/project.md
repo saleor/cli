@@ -1,4 +1,4 @@
-## saleor project
+## `saleor project` command
 
 ```
 saleor project [command]

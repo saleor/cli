@@ -1,4 +1,4 @@
-## saleor webhook
+## `saleor webhook` command
 
 ```
 saleor webhook [command]

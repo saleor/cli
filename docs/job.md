@@ -1,4 +1,4 @@
-## saleor job
+## `saleor job` command
 
 ```
 saleor job [command]

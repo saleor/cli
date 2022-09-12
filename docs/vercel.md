@@ -1,4 +1,4 @@
-## saleor vercel
+## `saleor vercel` command
 
 ```
 saleor vercel [command]

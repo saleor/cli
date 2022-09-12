@@ -1,4 +1,4 @@
-## saleor backup
+## `saleor backup` command
 
 ```
 saleor backup [command]

@@ -1,4 +1,4 @@
-## saleor app command
+## `saleor app` command
 
 ```
 saleor app [command]

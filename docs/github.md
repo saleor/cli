@@ -1,4 +1,4 @@
-## saleor github
+## `saleor github` command
 
 ```
 saleor github [command]
