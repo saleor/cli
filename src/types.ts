@@ -29,6 +29,7 @@ export interface Options extends BaseOptions {
   name?: string;
   encryptUrl?: string;
   registerUrl?: string;
+  saleorApiUrl?: string;
 }
 
 export interface CreatePromptResult {
@@ -58,6 +59,10 @@ export interface StoreCreate extends BaseOptions {
   name: string;
   auto?: boolean;
   environment?: string;
+}
+
+export interface StoreDeploy extends BaseOptions {
+  withCheckout: boolean;
 }
 
 export interface Environment {

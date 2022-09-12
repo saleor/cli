@@ -91,10 +91,6 @@ export class Vercel {
     await this.addEnvironmentVariables(projectId, envs);
   }
 
-  async getProject(name: string) {
-    return this._client('GET', `/v9/projects/${name}`);
-  }
-
   async createProject(
     name: string,
     envs: Env[],
@@ -114,6 +110,7 @@ export class Vercel {
       gitRepository: {
         type: provider,
         repo: `${owner}/${repoName}`,
+        sourceless: true, // FIXME
       },
       framework: slug || 'nextjs',
       buildCommand,
@@ -176,6 +173,10 @@ export class Vercel {
     const URL = `https://${provider}.com/${owner}/${repoName}`;
 
     return this._client('GET', `/v1/integrations/detect-framework?url=${URL}`);
+  }
+
+  async getProject(name: string) {
+    return this._client('GET', `/v9/projects/${name}`);
   }
 
   async getProjectDomains(projectID: string) {

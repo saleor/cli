@@ -1,10 +1,8 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
 import Debug from 'debug';
-import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
-import got from 'got';
 import ora, { Ora } from 'ora';
 import path from 'path';
 import { simpleGit } from 'simple-git';
@@ -12,6 +10,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
+import { getGithubRepository, getRepoUrl } from '../../lib/deploy.js';
 import { getEnvironment } from '../../lib/environment.js';
 import { delay, NameMismatchError, readEnvFile } from '../../lib/util.js';
 import { Deployment, Env, Vercel } from '../../lib/vercel.js';
@@ -170,140 +169,9 @@ ${chalk.blue(baseURL)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
   process.exit(0);
 };
 
-export const getRepoUrl = async (name: string): Promise<string> => {
-  const git = simpleGit();
-  const remotes = await git.getRemotes(true);
-  let gitUrl;
-
-  if (remotes.length > 0) {
-    gitUrl = (await git.remote(['get-url', 'origin'])) as string;
-  } else {
-    gitUrl = await createProjectInGithub(name);
-  }
-
-  return gitUrl.trim();
-};
-
-const getGithubRepository = async (
-  name: string,
-  owner: string | undefined = undefined
-): Promise<any> => {
-  const { github_token: GitHubToken } = await Config.get();
-
-  const query = owner
-    ? `query getRepository($name: String!, $owner: String!) {
-    repository(name: $name, owner: $owner) {
-      url
-      sshUrl
-      databaseId
-    }
-  }`
-    : `query getRepository($name: String!) {
-    viewer {
-    repository(name: $name) {
-      url
-      sshUrl
-      databaseId
-    }
-  }
-  }`;
-
-  const { data } = await got
-    .post('https://api.github.com/graphql', {
-      headers: { Authorization: GitHubToken },
-      json: {
-        query,
-        variables: { name, owner },
-      },
-    })
-    .json<{ data: unknown }>();
-
-  return data;
-};
-
-const createProjectInGithub = async (name: string): Promise<string> => {
-  const git = simpleGit();
-  const { github_token: GitHubToken } = await Config.get();
-
-  const { githubProjectCreate } = (await Enquirer.prompt({
-    type: 'confirm',
-    name: 'githubProjectCreate',
-    initial: 'yes',
-    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
-    message: 'Creating a project on your GitHub. Do you want to continue?',
-  })) as { githubProjectCreate: boolean };
-
-  if (!githubProjectCreate) {
-    console.error('Saleor App deployment cancelled by the user');
-    process.exit(1);
-  }
-
-  let gitRepoUrl;
-
-  interface CreateRepository {
-    createRepository: {
-      repository: {
-        sshUrl: string;
-      };
-    };
-  }
-
-  const { data, errors } = await got
-    .post('https://api.github.com/graphql', {
-      headers: {
-        Authorization: GitHubToken,
-      },
-      json: {
-        query: `mutation doRepositoryCreate($name: String!) {
-  createRepository(input: { name: $name, visibility: PRIVATE }) {
-          repository {
-      url
-      sshUrl
-    }
-  }
-} `,
-        variables: { name },
-      },
-    })
-    .json<{ data: CreateRepository; errors: Error[] }>();
-
-  if (errors) {
-    for (const error of errors) {
-      if (error.message === 'Name already exists on this account') {
-        console.log(`Pushing to the existing repository '${name}'`);
-        const repo = await getGithubRepository(name);
-        const {
-          viewer: {
-            repository: { sshUrl },
-          },
-        } = repo;
-        await git.addRemote('origin', sshUrl);
-        gitRepoUrl = sshUrl;
-      } else {
-        console.error(`\n ${chalk.red('ERROR')} ${error.message} `);
-        process.exit(1);
-      }
-    }
-  } else {
-    const {
-      createRepository: {
-        repository: { sshUrl },
-      },
-    } = data;
-    await git.addRemote('origin', sshUrl);
-    gitRepoUrl = sshUrl;
-  }
-
-  return gitRepoUrl;
-};
-
-const updateEnvironmentVariables = async (
-  vercel: Vercel,
-  projectId: string
-) => {
-  const localEnvs = await readEnvFile();
-
-  const envs = Object.entries(localEnvs).map(
+// FIXME
+export const formatEnvs = (envs: {}) =>
+  Object.entries(envs).map(
     ([key, value]) =>
       ({
         key,
@@ -313,9 +181,16 @@ const updateEnvironmentVariables = async (
       } as Env)
   );
 
+const updateEnvironmentVariables = async (
+  vercel: Vercel,
+  projectId: string
+) => {
+  const localEnvs = await readEnvFile();
+  const envs = formatEnvs(localEnvs);
   await vercel.setEnvironmentVariables(projectId, envs);
 };
 
+// TODO verify
 export const createProjectInVercel = async (
   vercel: Vercel,
   name: string,
@@ -325,12 +200,7 @@ export const createProjectInVercel = async (
   rootDirectory: null | string = null
 ): Promise<Record<string, any>> => {
   const envs = await readEnvFile();
-  const environmentVariables = Object.entries(envs).map(([key, value]) => ({
-    key,
-    value,
-    target: ['production', 'preview', 'development'],
-    type: 'plain',
-  }));
+  const environmentVariables = formatEnvs(envs);
 
   const output = Object.entries(envs)
     .map(([key, value]) => `${chalk.dim(key)}: ${chalk.cyan(value)} `)
@@ -394,6 +264,7 @@ const displayURLs = (spinner: Ora, deployment: Deployment) => {
   console.log('');
 };
 
+// TODO verify
 export const triggerDeploymentInVercel = async (
   vercel: Vercel,
   name: string,
@@ -404,11 +275,11 @@ export const triggerDeploymentInVercel = async (
 ) => {
   const git = simpleGit();
 
+  const spinner = ora('Preparing to deploy...').start();
+
   if (!newProject) {
     await updateEnvironmentVariables(vercel, name);
   }
-
-  const spinner = ora('Preparing to deploy...').start();
 
   const { pushed } = await git.push('origin', 'main');
 
@@ -422,17 +293,25 @@ export const triggerDeploymentInVercel = async (
     return deployment;
   }
 
-  await delay(5000);
+  let loop = true;
 
-  const { deployments } = await vercel.getDeployments(projectId);
+  while (loop) {
+    await delay(1000);
 
-  if (deployments.length > 0) {
-    const deployment = deployments[0];
-    displayURLs(spinner, deployment);
-    return deployment;
+    try {
+      const { deployments } = await vercel.getDeployments(projectId);
+
+      if (deployments.length > 0) {
+        const deployment = deployments[0];
+        displayURLs(spinner, deployment);
+        loop = false;
+        return deployment;
+      }
+    } catch {
+      return {};
+    }
   }
 
-  // FIXME properly handle this edge case
   return {};
 };
 
