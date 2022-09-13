@@ -1,10 +1,11 @@
+import boxen from 'boxen';
 import chalk from 'chalk';
 import crypto from 'crypto';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import GitUrlParse from 'git-url-parse';
 import got from 'got';
-import ora from 'ora';
+import ora, { Ora } from 'ora';
 import simpleGit from 'simple-git';
 import { Arguments } from 'yargs';
 
@@ -13,15 +14,14 @@ import { SaleorAppList } from '../graphql/SaleorAppList';
 import { Options } from '../types';
 import { doSaleorAppInstall } from './common';
 import { Config } from './config';
-import { delay } from './util';
-import { Env, Vercel } from './vercel';
+import { delay, readEnvFile } from './util';
+import { Deployment, Env, Vercel } from './vercel';
 
 const debug = Debug('saleor-cli:lib:deploy');
 
 export const getAppId = async (url: string) => {
   const headers = await Config.getBearerHeader();
 
-  // TODO use queryEnvironment
   const {
     data: {
       apps: { edges },
@@ -335,3 +335,84 @@ const doCheckoutAppInstall = async (
   spinner.succeed(`Installed ${appName} in the ${environment} environment`);
   await delay(2000);
 };
+
+export const triggerDeploymentInVercel = async (
+  vercel: Vercel,
+  name: string,
+  owner: string,
+  projectId: string,
+  newProject: boolean,
+  provider = 'github'
+) => {
+  const git = simpleGit();
+
+  const spinner = ora('Preparing to deploy...').start();
+
+  if (!newProject) {
+    const localEnvs = await readEnvFile();
+    const envs = formatEnvironmentVariables(localEnvs);
+    await vercel.setEnvironmentVariables(projectId, envs);
+  }
+
+  const { pushed } = await git.push('origin', 'main');
+
+  if (pushed[0]?.alreadyUpdated) {
+    const {
+      repository: { databaseId: repoId },
+    } = await getGithubRepository(name, owner);
+
+    const deployment = await vercel.deploy(name, provider, repoId);
+    displayURLs(spinner, deployment);
+    return deployment;
+  }
+
+  // wait for the deployment to be created
+  let loop = true;
+  do {
+    await delay(1000);
+
+    try {
+      const { deployments } = await vercel.getDeployments(projectId);
+
+      if (deployments.length > 0) {
+        const deployment = deployments[0];
+        displayURLs(spinner, deployment);
+        loop = false;
+        return deployment;
+      }
+    } catch {
+      return {};
+    }
+  } while (loop);
+
+  return {};
+};
+
+const displayURLs = (spinner: Ora, deployment: Deployment) => {
+  spinner.succeed('App successfully queued for deployment');
+  console.log('');
+
+  const msg1 = chalk.blue(`https://${deployment.url}`);
+
+  console.log(
+    boxen(msg1, {
+      padding: 1,
+      margin: 0,
+      borderColor: 'blue',
+      borderStyle: 'round',
+      title: 'Deployment URL',
+    })
+  );
+  console.log('');
+};
+
+export const formatEnvironmentVariables = (envs: {}) =>
+  Object.entries(envs).map(
+    ([key, value]) =>
+      ({
+        key,
+        value,
+        target: ['production', 'preview'],
+        type: 'encrypted',
+      } as Env)
+  );

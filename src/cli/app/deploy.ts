@@ -1,19 +1,20 @@
-import boxen from 'boxen';
 import chalk from 'chalk';
 import Debug from 'debug';
 import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
-import ora, { Ora } from 'ora';
 import path from 'path';
-import { simpleGit } from 'simple-git';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { getGithubRepository, getRepoUrl } from '../../lib/deploy.js';
+import {
+  formatEnvironmentVariables,
+  getRepoUrl,
+  triggerDeploymentInVercel,
+} from '../../lib/deploy.js';
 import { getEnvironment } from '../../lib/environment.js';
-import { delay, NameMismatchError, readEnvFile } from '../../lib/util.js';
-import { Deployment, Env, Vercel } from '../../lib/vercel.js';
+import { NameMismatchError, readEnvFile } from '../../lib/util.js';
+import { Vercel } from '../../lib/vercel.js';
 import {
   useEnvironment,
   useGithub,
@@ -83,25 +84,25 @@ export const handler = async (argv: Arguments<Options>) => {
   }
 
   // 2. Create a project in Vercel
-  const { projectId, newProject } = await createProjectInVercel(
-    vercel,
+  const localEnvs = await readEnvFile();
+  const { id: projectId, newProject } = await vercel.createProject(
     name,
+    formatEnvironmentVariables(localEnvs),
     owner,
     repoName
   );
-  debug(`Create a Vercel project: ${projectId}`);
 
-  const body = JSON.stringify({
-    access_token: vercelToken.split(' ')[1],
-    project: projectId,
-  });
+  debug(`Create a Vercel project: ${projectId}`);
 
   const response = await fetch(argv.encryptUrl!, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body,
+    body: JSON.stringify({
+      access_token: vercelToken.split(' ')[1],
+      project: projectId,
+    }),
   });
   const encrypted = await response.text();
   debug('Encrypted the Vercel credentials');
@@ -167,152 +168,6 @@ ${chalk.blue(baseURL)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
   console.log(chalk.blue('─').repeat(process.stdout.columns));
 
   process.exit(0);
-};
-
-// FIXME
-export const formatEnvs = (envs: {}) =>
-  Object.entries(envs).map(
-    ([key, value]) =>
-      ({
-        key,
-        value,
-        target: ['production', 'preview'],
-        type: 'encrypted',
-      } as Env)
-  );
-
-const updateEnvironmentVariables = async (
-  vercel: Vercel,
-  projectId: string
-) => {
-  const localEnvs = await readEnvFile();
-  const envs = formatEnvs(localEnvs);
-  await vercel.setEnvironmentVariables(projectId, envs);
-};
-
-// TODO verify
-export const createProjectInVercel = async (
-  vercel: Vercel,
-  name: string,
-  owner: string,
-  repoName: string,
-  buildCommand: null | string = null,
-  rootDirectory: null | string = null
-): Promise<Record<string, any>> => {
-  const envs = await readEnvFile();
-  const environmentVariables = formatEnvs(envs);
-
-  const output = Object.entries(envs)
-    .map(([key, value]) => `${chalk.dim(key)}: ${chalk.cyan(value)} `)
-    .join('\n');
-
-  if (Object.keys(envs).length > 0) {
-    console.log(
-      boxen(output, {
-        padding: 1,
-        margin: 0,
-        borderColor: 'blue',
-        borderStyle: 'round',
-        title: 'Environment Variables',
-      })
-    );
-    console.log('');
-  }
-
-  let projectId;
-  let newProject = false;
-
-  try {
-    const project: any = await vercel.getProject(name);
-    projectId = project.id;
-  } catch (error) {
-    const { id } = await vercel.createProject(
-      name,
-      environmentVariables,
-      owner,
-      repoName,
-      buildCommand,
-      rootDirectory
-    );
-
-    newProject = true;
-    projectId = id;
-  }
-
-  return {
-    envs,
-    projectId,
-    newProject,
-  };
-};
-
-const displayURLs = (spinner: Ora, deployment: Deployment) => {
-  spinner.succeed('App successfully queued for deployment');
-  console.log('');
-
-  const msg1 = chalk.blue(`https://${deployment.url}`);
-
-  console.log(
-    boxen(msg1, {
-      padding: 1,
-      margin: 0,
-      borderColor: 'blue',
-      borderStyle: 'round',
-      title: 'Deployment URL',
-    })
-  );
-  console.log('');
-};
-
-// TODO verify
-export const triggerDeploymentInVercel = async (
-  vercel: Vercel,
-  name: string,
-  owner: string,
-  projectId: string,
-  newProject: boolean,
-  provider = 'github'
-) => {
-  const git = simpleGit();
-
-  const spinner = ora('Preparing to deploy...').start();
-
-  if (!newProject) {
-    await updateEnvironmentVariables(vercel, name);
-  }
-
-  const { pushed } = await git.push('origin', 'main');
-
-  if (pushed[0]?.alreadyUpdated) {
-    const {
-      repository: { databaseId: repoId },
-    } = await getGithubRepository(name, owner);
-
-    const deployment = await vercel.deploy(name, provider, repoId);
-    displayURLs(spinner, deployment);
-    return deployment;
-  }
-
-  let loop = true;
-
-  while (loop) {
-    await delay(1000);
-
-    try {
-      const { deployments } = await vercel.getDeployments(projectId);
-
-      if (deployments.length > 0) {
-        const deployment = deployments[0];
-        displayURLs(spinner, deployment);
-        loop = false;
-        return deployment;
-      }
-    } catch {
-      return {};
-    }
-  }
-
-  return {};
 };
 
 export const middlewares = [

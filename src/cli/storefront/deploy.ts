@@ -9,14 +9,15 @@ import { Arguments } from 'yargs';
 import { Config } from '../../lib/config.js';
 import {
   createProject,
+  formatEnvironmentVariables,
   getRepoUrl,
   setupSaleorAppCheckout,
+  triggerDeploymentInVercel,
 } from '../../lib/deploy.js';
 import { readEnvFile } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import { useGithub, useVercel } from '../../middleware/index.js';
 import { StoreDeploy } from '../../types.js';
-import { formatEnvs, triggerDeploymentInVercel } from '../app/deploy.js';
 
 const debug = Debug('saleor-cli:storefront:deploy');
 
@@ -74,7 +75,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   const { id, newProject } = await createProject(
     name,
     vercel,
-    formatEnvs(localEnvs),
+    formatEnvironmentVariables(localEnvs),
     'storefront'
   );
   debug(`created a project in Vercel: ${id}`);
