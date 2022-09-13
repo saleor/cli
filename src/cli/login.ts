@@ -1,9 +1,11 @@
 import { CliUx } from '@oclif/core';
+import chalk from 'chalk';
 import crypto from 'crypto';
 import Debug from 'debug';
 import EventEmitter from 'events';
 import got from 'got';
 import { nanoid } from 'nanoid';
+import ora from 'ora';
 import { ServerApp } from 'retes';
 import { Response } from 'retes/response';
 import { GET } from 'retes/route';
@@ -44,9 +46,8 @@ export const doLogin = async () => {
   const generatedState = nanoid();
   const emitter = new EventEmitter();
 
-  // const spinner = ora('\nLogging in...').start();
-  await delay(1500);
-  // spinner.text = '\nLogging in...\n';
+  const spinner = ora('\nLogging in...').start();
+  spinner.text = '\nLogging in...\nFollow the instructions in your browser';
 
   const QueryParams = new URLSearchParams({ ...Params, state: generatedState });
   debug(`prepare the OAuth params: ${JSON.stringify(QueryParams, null, 2)}`);
@@ -104,7 +105,13 @@ export const doLogin = async () => {
         console.log(error);
       }
 
-      // spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
+      spinner.succeed(
+        chalk.green('You\'ve successfully logged into Saleor Cloud!')
+      );
+      console.log(
+        'Your access token has been safely stored, and you\'re ready to go'
+      );
+      console.log('');
       emitter.emit('finish');
 
       return Response.Redirect(amplifyConfig.oauth.redirectSignIn);
