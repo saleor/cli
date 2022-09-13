@@ -19,7 +19,17 @@ export const builder: CommandBuilder = (_) =>
   _.option('via-dashboard', {
     type: 'boolean',
     default: false,
-  });
+  })
+    .option('app-name', {
+      demandOption: false,
+      type: 'string',
+      desc: 'Application name',
+    })
+    .option('manifest-URL', {
+      demandOption: false,
+      type: 'string',
+      desc: 'Application Manifest URL',
+    });
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', argv);
