@@ -336,7 +336,7 @@ export const createProjectInVercel = async (
     .map(([key, value]) => `${chalk.dim(key)}: ${chalk.cyan(value)} `)
     .join('\n');
 
-  if (Object.keys.length > 0) {
+  if (Object.keys(envs).length > 0) {
     console.log(
       boxen(output, {
         padding: 1,
@@ -346,9 +346,8 @@ export const createProjectInVercel = async (
         title: 'Environment Variables',
       })
     );
+    console.log('');
   }
-
-  console.log('');
 
   let projectId;
   let newProject = false;
