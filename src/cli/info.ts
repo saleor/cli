@@ -4,7 +4,9 @@ import Debug from 'debug';
 import type { CommandBuilder } from 'yargs';
 
 import pkg from '../../package.json';
+import { Config } from '../lib/config.js';
 import { header } from '../lib/images.js';
+import { API, GET } from '../lib/index.js';
 
 const { ux: cli } = CliUx;
 
@@ -45,4 +47,19 @@ export const handler = async (): Promise<void> => {
     chalk.blue('Github  - https://github.com/saleor/'),
     'https://github.com/saleor/'
   );
+
+  console.log('');
+
+  try {
+    const { token } = await Config.get();
+    const user = (await GET(API.User, { token })) as any;
+
+    console.log(chalk.green(`Hello ${user.email}, you're logged in`));
+  } catch (e) {
+    console.log(chalk.blue("You're not logged in"));
+    console.log('  To log in run:');
+    console.log('    saleor login');
+  }
+
+  console.log('');
 };
