@@ -16,7 +16,7 @@ Options:
 
 ```
 
- saleor backup list [key|environment]  List backups of the environment
+  saleor backup list [key|environment]  List backups of the environment
   saleor backup create <name>           Create a new backup
   saleor backup show [backup]           Show a specific backup
   saleor backup restore [from]          Restore a specific backup

@@ -48,7 +48,7 @@ Options:
   -h, --help           Show help                                       [boolean]
 ```
 
-Example usage in batch mode
+Example usage in non-interactive mode
 
 ```
 saleor app install --app-name="Saleor app" --manifest-URL="https://my-saleor-app.com/api/manifest"
@@ -88,12 +88,6 @@ Options:
   -h, --help     Show help                                             [boolean]
 ```
 
-Example usage in batch mode
-
-```
-<!-- TODO -->
-```
-
 ### saleor app token
 
 ```
@@ -119,12 +113,6 @@ Options:
       --json     Output the data as JSON                               [boolean]
   -V, --version  Show version number                                   [boolean]
   -h, --help     Show help                                             [boolean]
-```
-
-Example usage in batch mode
-
-```
-<!-- TODO -->
 ```
 
 ### saleor app deploy
@@ -163,7 +151,7 @@ Options:
   -h, --help     Show help                                             [boolean]
 ```
 
-Example usage in batch mode
+Example usage in non-interactive mode
 
 ```
 <!-- TODO -->
