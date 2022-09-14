@@ -13,7 +13,7 @@
     "prepublishOnly": "rm -rf ./package && pnpm build && clean-publish --fields dependencies",
     "postpublish": "",
     "compile": "tsc",
-    "bundle": "esbuild src/cli.ts --bundle --minify --outfile=dist/saleor.js --platform=node --format=esm --target=node18 --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\" --out-extension:.js=.js",
+    "bundle": "esbuild src/cli.ts --bundle --minify --outfile=dist/saleor.js --platform=node --format=esm --target=node16 --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\" --out-extension:.js=.js",
     "build": "pnpm bundle",
     "watch": "tsc -w",
     "lint": "prettier --write . && eslint src/**/*.ts --cache --fix",
