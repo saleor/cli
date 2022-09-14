@@ -2,14 +2,12 @@ import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
 import { print } from 'graphql';
-import { Arguments } from 'yargs';
+import { Arguments, CommandBuilder } from 'yargs';
 
 import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
-import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
-import POST from '../../lib/queryEnvironment.js';
-import { getAppsFromResult, printContext } from '../../lib/util.js';
+import { printContext } from '../../lib/util.js';
 import {
   useEnvironment,
   useOrganization,

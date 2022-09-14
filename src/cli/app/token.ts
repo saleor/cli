@@ -3,7 +3,7 @@ import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
 import { print } from 'graphql';
-import { Arguments,CommandBuilder  } from 'yargs';
+import { Arguments, CommandBuilder } from 'yargs';
 
 import { AppTokenCreate } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
@@ -39,13 +39,13 @@ export const handler = async (argv: Arguments<Options>) => {
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   debug(`Saleor endpoint: ${endpoint}`);
 
-  let appId;
+  let appId: string;
 
   if (!argv.appId) {
     const { app } = await getSaleorApp(endpoint);
     appId = app;
   } else {
-    appId = argv.appId;
+    appId = argv.appId as string;
   }
 
   debug(`Creating auth token for ${appId}`);
