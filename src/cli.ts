@@ -1,4 +1,4 @@
-#!/usr/bin/env env NODE_OPTIONS=--no-warnings node
+#!/usr/bin/env node
 
 import * as Sentry from '@sentry/node';
 import boxen from 'boxen';
