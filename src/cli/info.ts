@@ -12,6 +12,10 @@ const { ux: cli } = CliUx;
 
 const debug = Debug('saleor-cli:info');
 
+function hasEmail(unknown: unknown): unknown is { email: string } {
+  return typeof unknown === 'object' && unknown !== null && 'email' in unknown;
+}
+
 export const command = 'info';
 export const desc = 'Hello from Saleor';
 
@@ -52,9 +56,11 @@ export const handler = async (): Promise<void> => {
 
   try {
     const { token } = await Config.get();
-    const user = (await GET(API.User, { token })) as any;
+    const user = (await GET(API.User, { token })) as unknown;
 
-    console.log(chalk.green(`Hello ${user.email}, you're logged in`));
+    if (hasEmail(user)) {
+      console.log(chalk.green(`Hello ${user.email}, you're logged in`));
+    }
   } catch (e) {
     console.log(chalk.blue("You're not logged in"));
     console.log('  To log in run:');
