@@ -24,6 +24,7 @@
     "release": "release-it --dry-run"
   },
   "files": [
+    "dist",
     "template",
     "scripts"
   ],
