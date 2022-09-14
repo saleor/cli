@@ -31,7 +31,7 @@ export const handler = async (argv: Arguments) => {
 
 export const doRegister = async (fromCli: boolean | undefined) => {
   if (!fromCli) {
-    cli.open('https://cloud.saleor.io/register');
+    cli.open('https://cloud.saleor.io/signup');
     process.exit(0);
   }
 
