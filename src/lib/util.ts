@@ -57,6 +57,13 @@ export class NameMismatchError extends Error {
   }
 }
 
+export const fetchLatestPackageVersion = async (name: string) => {
+  const { version } = await got
+    .get(`https://registry.npmjs.org/${name}/latest`)
+    .json<{ version: string }>();
+  return version;
+};
+
 // Higher-Order Creator for Prompts
 const createPrompt = async (
   name: string,

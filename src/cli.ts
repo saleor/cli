@@ -1,12 +1,13 @@
 #!/usr/bin/env env NODE_OPTIONS=--no-warnings node
 
 import * as Sentry from '@sentry/node';
+import boxen from 'boxen';
 import chalk from 'chalk';
+import Debug from 'debug';
 import { emphasize } from 'emphasize';
 import { HTTPError, Response, TimeoutError } from 'got';
 import { createRequire } from 'module';
 import semver from 'semver';
-import updateNotifier from 'update-notifier';
 import yaml from 'yaml';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -35,10 +36,13 @@ import { header } from './lib/images.js';
 import { API, GET, getEnvironment } from './lib/index.js';
 import {
   AuthError,
+  fetchLatestPackageVersion,
   NotSaleorAppDirectoryError,
   SaleorAppInstallError,
 } from './lib/util.js';
 import { useTelemetry } from './middleware/index.js';
+
+const debug = Debug('saleor-cli');
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -50,16 +54,39 @@ if (!semver.satisfies(process.versions.node, pkg.engines.node)) {
   process.exit(1);
 }
 
-// console.log(boxen('Update available\nsomething', { padding: 1, margin: 1, float: 'center', borderColor: 'yellow' }));
+const {
+  user_session: userSession,
+  SentryDSN,
+  lastUpdateCheck,
+} = await Config.get();
 
-const notifier = updateNotifier({
-  pkg,
-  updateCheckInterval: 1000 * 60 * 15, // 15 minutes
-});
-notifier.notify({ isGlobal: true });
+if (
+  !lastUpdateCheck ||
+  Date.now() - new Date(lastUpdateCheck).valueOf() > 1000 * 60 * 60 * 24 // 1 day
+) {
+  debug(`checking for a new version of '${pkg.name}'...`);
+  const latestVersion = await fetchLatestPackageVersion(pkg.name);
+  await Config.set('lastUpdateCheck', new Date().toUTCString());
+
+  if (semver.compare(latestVersion, pkg.version) > 0) {
+    const updateCommand = `npm i -g ${pkg.name}`;
+    const message = `Update available ${chalk.dim(pkg.version)} ${chalk.reset(
+      ' → '
+    )} ${chalk.green(latestVersion)}
+    Run ${chalk.cyan(updateCommand)} to update`;
+
+    console.log(
+      boxen(message, {
+        padding: 1,
+        margin: 1,
+        textAlignment: 'center',
+        borderColor: 'yellow',
+      })
+    );
+  }
+}
 
 const env = await getEnvironment();
-const { user_session: userSession, SentryDSN } = await Config.get();
 
 if (SentryDSN) {
   const release = `saleor-cli@${pkg.version}`;
