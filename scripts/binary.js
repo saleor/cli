@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { exec as execRegular } from 'child_process';
-import fs from 'fs-extra';
+import fs, { promises as fsPromises } from 'fs';
 import got from 'got';
 import path from 'path';
 import stream from 'stream';
@@ -24,7 +24,7 @@ async function install() {
   }
 
   const binaryDir = path.join(__dirname, '..', 'vendor');
-  await fs.ensureDir(binaryDir);
+  await fsPromises.mkdir(binaryDir, { recursive: true });
 
   const url = `https://binary.saleor.live/tunnel-${process.platform}-${process.arch}`;
 
