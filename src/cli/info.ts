@@ -1,7 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
-import figlet from 'figlet';
 import { createRequire } from 'module';
 import type { CommandBuilder } from 'yargs';
 
@@ -21,20 +20,15 @@ export const builder: CommandBuilder = (_) => _;
 export const handler = async (): Promise<void> => {
   header(pkg.version);
 
-  console.log(`
-
-
-   `);
   console.log(
-    chalk.blue(
-      figlet.textSync('             saleor', {
-        font: 'Standard',
-        horizontalLayout: 'default',
-        width: 120,
-        verticalLayout: 'default',
-        whitespaceBreak: true,
-      })
-    )
+    chalk.blue(`
+                 _____              _        ______    ____    _____
+                / ____|     /\\     | |      |  ____|  / __ \\  |  __ \\
+               | (___      /  \\    | |      | |__    | |  | | | |__) |
+                \\___ \\    / /\\ \\   | |      |  __|   | |  | | |  _  /
+                ____) |  / ____ \\  | |____  | |____  | |__| | | | \\ \\
+               |_____/  /_/    \\_\\ |______| |______|  \\____/  |_|  \\_\\
+    `)
   );
 
   console.log(
@@ -42,6 +36,8 @@ export const handler = async (): Promise<void> => {
                      The commerce API that puts developers first
    `)
   );
+
+  console.log('\n');
 
   cli.url(chalk.blue('Website - https://saleor.io/'), 'https://saleor.io/');
   cli.url(
