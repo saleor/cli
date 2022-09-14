@@ -10,7 +10,7 @@
     "saleor": "./dist/saleor.js"
   },
   "scripts": {
-    "prepublishOnly": "rm -rf ./package && pnpm build && clean-publish --fields dependencies",
+    "prepublishOnly": "rm -rf ./package && pnpm build && clean-publish --fields dependencies && node -e \"let pkg=require('./package/package.json'); pkg.dependencies = { 'got': '^12.4.1' }; require('fs').writeFileSync('./package/package.json', JSON.stringify(pkg, null, 2));\"",
     "postpublish": "",
     "compile": "tsc",
     "bundle": "esbuild src/cli.ts --bundle --minify --outfile=dist/saleor.js --platform=node --format=esm --target=node16 --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\" --out-extension:.js=.js",
