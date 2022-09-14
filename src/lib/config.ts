@@ -25,7 +25,8 @@ export type ConfigField =
   | 'SentryDSN'
   | 'GithubClientID'
   | 'GithubClientSecret'
-  | 'github_token';
+  | 'github_token'
+  | 'lastUpdateCheck';
 
 type ConfigProps = Record<ConfigField, string>;
 
