@@ -4,10 +4,10 @@ import Debug from 'debug';
 import { createRequire } from 'module';
 import type { CommandBuilder } from 'yargs';
 
-import packageJson from '../../package.json';
 import { header } from '../lib/images.js';
 
-const pkg = packageJson;
+const require = createRequire(import.meta.url);
+const pkg = require('../../package.json');
 
 const { ux: cli } = CliUx;
 
