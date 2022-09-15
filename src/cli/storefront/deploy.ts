@@ -1,8 +1,6 @@
 import chalk from 'chalk';
 import Debug from 'debug';
-import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
-import path from 'path';
 import type { CommandBuilder } from 'yargs';
 import { Arguments } from 'yargs';
 
@@ -10,6 +8,7 @@ import { Config } from '../../lib/config.js';
 import {
   createProject,
   formatEnvironmentVariables,
+  getPackageName,
   getRepoUrl,
   setupSaleorAppCheckout,
   triggerDeploymentInVercel,
@@ -37,9 +36,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<StoreDeploy>) => {
-  const { name } = JSON.parse(
-    await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
-  );
+  const name = await getPackageName();
+
   console.log(
     `\nDeploying... ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
       'package.json'
@@ -54,10 +52,8 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   const repoUrl = await getRepoUrl(name);
 
   if (argv.withCheckout) {
-    // Deploy checkout
     console.log('\nDeploying Checkout to Vercel');
     const { checkoutAppURL, authToken, appId } = await setupSaleorAppCheckout(
-      `${name}-app-checkout`,
       localEnvs.SALEOR_API_URL,
       vercel,
       argv
@@ -83,9 +79,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   const { name: domain } = await vercel.getProjectDomain(id);
   localEnvs.STOREFRONT_URL = `https://${domain}`;
 
-  // 2. Deploy the project in Vercel
   debug('triggering the deployment');
-
   const { owner } = GitUrlParse(repoUrl);
   const deployment = await triggerDeploymentInVercel(
     vercel,

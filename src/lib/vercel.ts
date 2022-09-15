@@ -13,6 +13,7 @@ export interface Env {
 
 export interface Deployment {
   id: string;
+  uid: string;
   url: string;
   readyState: string;
   alias: string;
@@ -110,7 +111,7 @@ export class Vercel {
       gitRepository: {
         type: provider,
         repo: `${owner}/${repoName}`,
-        sourceless: true, // FIXME
+        // sourceless: true, // FIXME
       },
       framework: slug || 'nextjs',
       buildCommand,

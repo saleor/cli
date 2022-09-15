@@ -3,23 +3,26 @@ import chalk from 'chalk';
 import crypto from 'crypto';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
+import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
 import got from 'got';
 import ora, { Ora } from 'ora';
+import path from 'path';
 import simpleGit from 'simple-git';
 import { Arguments } from 'yargs';
 
-import { createAppToken } from '../cli/app/token';
-import { SaleorAppList } from '../graphql/SaleorAppList';
-import { Options } from '../types';
-import { doSaleorAppInstall } from './common';
-import { Config } from './config';
-import { delay, readEnvFile } from './util';
-import { Deployment, Env, Vercel } from './vercel';
+import { createAppToken } from '../cli/app/token.js';
+import { SaleorAppList } from '../graphql/SaleorAppList.js';
+import { Options } from '../types.js';
+import { doSaleorAppInstall } from './common.js';
+import { Config } from './config.js';
+import { delay } from './util.js';
+import { Deployment, Env, Vercel } from './vercel.js';
 
 const debug = Debug('saleor-cli:lib:deploy');
 
 export const getAppId = async (url: string) => {
+  debug(`Getting app id - ${url}`);
   const headers = await Config.getBearerHeader();
 
   const {
@@ -45,6 +48,8 @@ export const getAppId = async (url: string) => {
       node: { id },
     },
   ] = edges.slice(-1);
+
+  debug(`App id ${id}`);
 
   return id;
 };
@@ -98,10 +103,13 @@ export const getRepoUrl = async (name: string): Promise<string> => {
 
   if (remotes.length > 0) {
     gitUrl = (await git.remote(['get-url', 'origin'])) as string;
+    debug(`Using origin: ${gitUrl}`);
   } else {
     debug('Local repo doesn\'t exist, creating...');
     gitUrl = await createProjectInGithub(name);
   }
+
+  debug(`Repo url ${gitUrl}`);
 
   return gitUrl.trim();
 };
@@ -206,6 +214,8 @@ export const getGithubRepository = async (
   }
   }`;
 
+  debug(`Getting repository details for ${name} - ${owner}`);
+
   const { data } = await got
     .post('https://api.github.com/graphql', {
       headers: { Authorization: GitHubToken },
@@ -220,12 +230,15 @@ export const getGithubRepository = async (
 };
 
 export const setupSaleorAppCheckout = async (
-  appName: string,
   url: string,
   vercel: Vercel,
   argv: Arguments<Options>
 ) => {
-  // SETUP CHECKOUT APP
+  const pkgName = await getPackageName();
+
+  const checkoutName = `${pkgName}-app-checkout`;
+  debug(`App name in Vercel: ${checkoutName}`);
+
   const secret = crypto.randomBytes(256).toString('hex');
   const envs = [
     {
@@ -248,15 +261,26 @@ export const setupSaleorAppCheckout = async (
     },
   ];
 
+  const repoUrl = await getRepoUrl(pkgName);
+  const { owner, name: repoName } = GitUrlParse(repoUrl);
+
+  const {
+    repository: { databaseId: repoId },
+  } = await getGithubRepository(repoName, owner);
+  debug(`Repository id ${repoId}`);
+
   debug('Creating Checkout in Vercel');
-  const { env: vercelEnvs, id: projectId } = <{ env: Env[]; id: string }>(
-    await createProject(appName, vercel, envs, 'saleor-app-checkout')
+  const {
+    env: vercelEnvs,
+    id: projectId,
+    newProject,
+  } = <{ env: Env[]; id: string; newProject: boolean }>(
+    await createProject(checkoutName, vercel, envs, 'saleor-app-checkout')
   );
 
-  // Verify if app already installed
+  debug('Verifying if app already installed');
   if (vercelEnvs.map(({ key }) => key).includes('SALEOR_APP_ID')) {
-    debug('Checkout already exists');
-    // app already installed
+    debug('Checkout app already installed in the environment');
 
     const appId = vercelEnvs.filter(({ key }) => key === 'SALEOR_APP_ID')[0]
       ?.value;
@@ -273,22 +297,29 @@ export const setupSaleorAppCheckout = async (
     };
   }
 
-  const repoUrl = await getRepoUrl(appName);
-  const { owner, name: repoName } = GitUrlParse(repoUrl);
+  debug('Checkout app not installed in the environment');
 
-  const {
-    repository: { databaseId: repoId },
-  } = await getGithubRepository(repoName, owner);
+  const deployment = await triggerDeploymentInVercel(
+    vercel,
+    checkoutName,
+    owner,
+    projectId,
+    newProject
+  );
 
-  const { id: deploymentId } = await vercel.deploy(appName, 'github', repoId);
-  await vercel.verifyDeployment(appName, deploymentId);
+  const deploymentId = deployment.id || deployment.uid;
+  await vercel.verifyDeployment(checkoutName, deploymentId);
 
   const { alias } = await vercel.getDeployment(deploymentId);
   const checkoutAppURL = `https://${alias[0]}`;
   const apiURL = `${checkoutAppURL}/api`;
 
   // INSTALL APP IN CLOUD ENVIRONMENT
-  await doCheckoutAppInstall({ ...argv, saleorApiUrl: url }, apiURL, appName);
+  await doCheckoutAppInstall(
+    { ...argv, saleorApiUrl: url },
+    apiURL,
+    checkoutName
+  );
   const appId = await getAppId(url);
   const authToken = await createAppToken(url, appId);
 
@@ -308,11 +339,17 @@ export const setupSaleorAppCheckout = async (
     },
   ];
 
+  debug('Setting SALEOR_APP_ID & SALEOR_APP_TOKEN in Vercel');
   await vercel.addEnvironmentVariables(projectId, appVars);
 
   // REDEPLOY
-  const { id: redeploymentId } = await vercel.deploy(appName, 'github', repoId);
-  await vercel.verifyDeployment(appName, redeploymentId, 'Redeploying');
+  debug('Redeploying');
+  const { id: redeploymentId } = await vercel.deploy(
+    checkoutName,
+    'github',
+    repoId
+  );
+  await vercel.verifyDeployment(checkoutName, redeploymentId, 'Redeploying');
 
   return {
     checkoutAppURL,
@@ -348,25 +385,31 @@ export const triggerDeploymentInVercel = async (
 
   const spinner = ora('Preparing to deploy...').start();
 
-  if (!newProject) {
-    const localEnvs = await readEnvFile();
-    const envs = formatEnvironmentVariables(localEnvs);
-    await vercel.setEnvironmentVariables(projectId, envs);
-  }
+  // if (!newProject) {
+  //   debug('Updating environment variables')
+  //   const localEnvs = await readEnvFile();
+  //   const envs = formatEnvironmentVariables(localEnvs);
+  //   console.log(envs)
+  //   await vercel.setEnvironmentVariables(projectId, envs);
+  // }
 
+  debug('Pushing code to repository');
   const { pushed } = await git.push('origin', 'main');
 
   if (pushed[0]?.alreadyUpdated) {
+    const repoUrl = await getRepoUrl(name);
+    const { name: repoName } = GitUrlParse(repoUrl);
+
     const {
       repository: { databaseId: repoId },
-    } = await getGithubRepository(name, owner);
+    } = await getGithubRepository(repoName, owner);
 
     const deployment = await vercel.deploy(name, provider, repoId);
     displayURLs(spinner, deployment);
     return deployment;
   }
 
-  // wait for the deployment to be created
+  debug('Waiting for the deployment to be created');
   let loop = true;
   do {
     await delay(1000);
@@ -378,6 +421,7 @@ export const triggerDeploymentInVercel = async (
         const deployment = deployments[0];
         displayURLs(spinner, deployment);
         loop = false;
+        debug(`Deployment created ${deployment.uid}`);
         return deployment;
       }
     } catch {
@@ -416,3 +460,13 @@ export const formatEnvironmentVariables = (envs: {}) =>
         type: 'encrypted',
       } as Env)
   );
+
+export const getPackageName = async () => {
+  debug('extracting the `name` from `package.json`');
+
+  const { name } = JSON.parse(
+    await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
+  );
+
+  return name;
+};

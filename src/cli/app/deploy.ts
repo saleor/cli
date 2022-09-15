@@ -1,14 +1,13 @@
 import chalk from 'chalk';
 import Debug from 'debug';
-import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
-import path from 'path';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import {
   formatEnvironmentVariables,
+  getPackageName,
   getRepoUrl,
   triggerDeploymentInVercel,
 } from '../../lib/deploy.js';
@@ -52,10 +51,7 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', argv);
 
-  debug('extracting the `name` from `package.json` of this Saleor App');
-  const { name } = JSON.parse(
-    await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
-  );
+  const name = await getPackageName();
 
   console.log(
     `Deploying ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(

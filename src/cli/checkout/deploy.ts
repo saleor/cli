@@ -1,7 +1,6 @@
 import boxen from 'boxen';
 import chalk from 'chalk';
 import Debug from 'debug';
-import { customAlphabet } from 'nanoid';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
@@ -14,18 +13,15 @@ import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:checkout:deploy');
 
-export const command = 'deploy [name]';
+export const command = 'deploy';
 export const desc = 'Deploy `saleor-checkout` to Vercel';
-
-const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);
 
 export const builder: CommandBuilder = NoCommandBuilderSetup;
 
-export const handler = async (argv: Arguments<Options & { name: string }>) => {
+export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', argv);
 
-  const name = argv.name || `saleor-checkout-${nanoid(8).toLocaleLowerCase()}`;
-  debug(`Using the name: ${name}`);
+  // TODO prefill from .env
   const { domain } = await getEnvironment(argv);
   const url = `https://${domain}/graphql/`;
   debug(`Saleor endpoint: ${url}`);
@@ -39,14 +35,11 @@ export const handler = async (argv: Arguments<Options & { name: string }>) => {
   if (!vercelToken) {
     // TODO vercel_team_id
   } else {
-    const appName = `${name}-app-checkout`;
-    debug(`App name in Vercel: ${appName}`);
     const localEnvs = await readEnvFile();
 
     console.log('\nDeploying Checkout to Vercel');
     const { checkoutAppURL, authToken, appId } = await setupSaleorAppCheckout(
-      `${name}-app-checkout`,
-      localEnvs.SALEOR_API_URL,
+      localEnvs.SALEOR_API_URL, // FIXME url or localEnvs ?
       vercel,
       argv
     );

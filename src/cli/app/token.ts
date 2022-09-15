@@ -63,6 +63,7 @@ export const handler = async (argv: Arguments<Options>) => {
 export const createAppToken = async (url: string, app: string) => {
   const headers = await Config.getBearerHeader();
 
+  debug(`Getting app token for ${app}`);
   const { data }: any = await got
     .post(url, {
       headers,
