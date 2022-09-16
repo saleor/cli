@@ -8,8 +8,6 @@ import { Options } from '../types';
 import { getEnvironment, getEnvironmentGraphqlEndpoint } from './environment';
 import { configs } from './index';
 
-const CloudApiUrl = configs.staging.cloudApiUrl;
-
 const environment = {
   name: 'Test environment',
   slug: 'test-environment',
@@ -29,7 +27,11 @@ const handlers = [
     res(ctx.status(200), ctx.json(environment))
   ),
   rest.get(
-    `${CloudApiUrl}/organizations/${argv.organization}/environments/${argv.environment}`,
+    `${configs.production.cloudApiUrl}/organizations/${argv.organization}/environments/${argv.environment}`,
+    (req, res, ctx) => res(ctx.status(200), ctx.json(environment))
+  ),
+  rest.get(
+    `${configs.staging.cloudApiUrl}/organizations/${argv.organization}/environments/${argv.environment}`,
     (req, res, ctx) => res(ctx.status(200), ctx.json(environment))
   ),
 ];
