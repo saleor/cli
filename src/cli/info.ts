@@ -1,7 +1,6 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
-import { createRequire } from 'module';
 import type { CommandBuilder } from 'yargs';
 
 import pkg from '../../package.json';

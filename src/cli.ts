@@ -26,6 +26,7 @@ import * as logout from './cli/logout.js';
 import organization from './cli/organization/index.js';
 import project from './cli/project/index.js';
 import * as register from './cli/register.js';
+import * as status from './cli/status.js';
 import storefront from './cli/storefront/index.js';
 import telemetry from './cli/telemetry/index.js';
 import * as trigger from './cli/trigger.js';
@@ -102,6 +103,7 @@ const parser = yargs(hideBin(process.argv))
   .alias('V', 'version')
   .usage('Usage: $0 <command> [options]')
   .command(info)
+  .command(status)
   .command(login)
   .command(logout)
   .command(configure)
