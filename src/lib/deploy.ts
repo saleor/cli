@@ -1,4 +1,3 @@
-import boxen from 'boxen';
 import chalk from 'chalk';
 import crypto from 'crypto';
 import Debug from 'debug';
@@ -16,7 +15,7 @@ import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Options } from '../types.js';
 import { doSaleorAppInstall } from './common.js';
 import { Config } from './config.js';
-import { delay } from './util.js';
+import { contentBox, delay } from './util.js';
 import { Deployment, Env, Vercel } from './vercel.js';
 
 const debug = Debug('saleor-cli:lib:deploy');
@@ -64,7 +63,6 @@ export const createProject = async (
     debug('Verify if project exists in Vercel');
     const project = await vercel.getProject(name);
 
-    project.newProject = false;
     const spinner = ora(`Creating ${name}...`).start();
     spinner.succeed(`Project ${name} already exists.`);
 
@@ -88,7 +86,6 @@ export const createProject = async (
       `apps/${app}`,
       'github'
     );
-    project.newProject = true;
 
     spinner.succeed(`Created ${name}`);
     return project;
@@ -270,11 +267,7 @@ export const setupSaleorAppCheckout = async (
   debug(`Repository id ${repoId}`);
 
   debug('Creating Checkout in Vercel');
-  const {
-    env: vercelEnvs,
-    id: projectId,
-    newProject,
-  } = <{ env: Env[]; id: string; newProject: boolean }>(
+  const { env: vercelEnvs, id: projectId } = <{ env: Env[]; id: string }>(
     await createProject(checkoutName, vercel, envs, 'saleor-app-checkout')
   );
 
@@ -303,8 +296,7 @@ export const setupSaleorAppCheckout = async (
     vercel,
     checkoutName,
     owner,
-    projectId,
-    newProject
+    projectId
   );
 
   const deploymentId = deployment.id || deployment.uid;
@@ -378,20 +370,11 @@ export const triggerDeploymentInVercel = async (
   name: string,
   owner: string,
   projectId: string,
-  newProject: boolean,
   provider = 'github'
 ) => {
   const git = simpleGit();
 
   const spinner = ora('Preparing to deploy...').start();
-
-  // if (!newProject) {
-  //   debug('Updating environment variables')
-  //   const localEnvs = await readEnvFile();
-  //   const envs = formatEnvironmentVariables(localEnvs);
-  //   console.log(envs)
-  //   await vercel.setEnvironmentVariables(projectId, envs);
-  // }
 
   debug('Pushing code to repository');
   const { pushed } = await git.push('origin', 'main');
@@ -438,15 +421,7 @@ const displayURLs = (spinner: Ora, deployment: Deployment) => {
 
   const msg1 = chalk.blue(`https://${deployment.url}`);
 
-  console.log(
-    boxen(msg1, {
-      padding: 1,
-      margin: 0,
-      borderColor: 'blue',
-      borderStyle: 'round',
-      title: 'Deployment URL',
-    })
-  );
+  contentBox(msg1, 'Deployment URL');
   console.log('');
 };
 

@@ -13,9 +13,13 @@ import {
   setupSaleorAppCheckout,
   triggerDeploymentInVercel,
 } from '../../lib/deploy.js';
-import { readEnvFile } from '../../lib/util.js';
+import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { Vercel } from '../../lib/vercel.js';
-import { useGithub, useVercel } from '../../middleware/index.js';
+import {
+  useEnvironment,
+  useGithub,
+  useVercel,
+} from '../../middleware/index.js';
 import { StoreDeploy } from '../../types.js';
 
 const debug = Debug('saleor-cli:storefront:deploy');
@@ -48,46 +52,48 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   debug(`Your Vercel token: ${vercelToken}`);
 
   const vercel = new Vercel(vercelToken);
-  const localEnvs = await readEnvFile();
   const repoUrl = await getRepoUrl(name);
+
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  debug(`Saleor endpoint: ${endpoint}`);
+
+  const envs = {
+    SALEOR_API_URL: endpoint,
+  };
 
   if (argv.withCheckout) {
     console.log('\nDeploying Checkout to Vercel');
     const { checkoutAppURL, authToken, appId } = await setupSaleorAppCheckout(
-      localEnvs.SALEOR_API_URL,
+      endpoint,
       vercel,
       argv
     );
 
-    localEnvs.CHECKOUT_APP_URL = checkoutAppURL;
-    localEnvs.CHECKOUT_STOREFRONT_URL = `${checkoutAppURL}/checkout-spa`;
-    localEnvs.SALEOR_APP_TOKEN = authToken;
-    localEnvs.SALEOR_APP_ID = appId;
-
-    // TODO save localEnvs to local .env
+    Object.assign(envs, {
+      CHECKOUT_APP_URL: checkoutAppURL,
+      CHECKOUT_STOREFRONT_URL: `${checkoutAppURL}/checkout-spa`,
+      SALEOR_APP_TOKEN: authToken,
+      SALEOR_APP_ID: appId,
+    });
   }
 
   console.log('\nDeploying Storefront to Vercel');
-  const { id, newProject } = await createProject(
+  const { id } = await createProject(
     name,
     vercel,
-    formatEnvironmentVariables(localEnvs),
+    formatEnvironmentVariables(envs),
     'storefront'
   );
   debug(`created a project in Vercel: ${id}`);
 
   const { name: domain } = await vercel.getProjectDomain(id);
-  localEnvs.STOREFRONT_URL = `https://${domain}`;
+  Object.assign(envs, {
+    STOREFRONT_URL: `https://${domain}`,
+  });
 
   debug('triggering the deployment');
   const { owner } = GitUrlParse(repoUrl);
-  const deployment = await triggerDeploymentInVercel(
-    vercel,
-    name,
-    owner,
-    id,
-    newProject
-  );
+  const deployment = await triggerDeploymentInVercel(vercel, name, owner, id);
 
   const shouldWaitUntilDeployed = !!process.env.CI || !argv.dispatch;
   if (shouldWaitUntilDeployed) {
@@ -96,4 +102,4 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   }
 };
 
-export const middlewares = [useVercel, useGithub];
+export const middlewares = [useVercel, useGithub, useEnvironment];

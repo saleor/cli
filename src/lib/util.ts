@@ -1,14 +1,11 @@
 /* eslint-disable max-classes-per-file */
 import chalk from 'chalk';
 import { format } from 'date-fns';
-import dotenv from 'dotenv';
 import { emphasize } from 'emphasize';
 import Enquirer from 'enquirer';
-import fs from 'fs-extra';
 import got from 'got';
 import { lookpath } from 'lookpath';
 import ora from 'ora';
-import path from 'path';
 import yaml from 'yaml';
 
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
@@ -549,19 +546,25 @@ export const verifyResultLength = (result: any[], entity: string) => {
   process.exit(0);
 };
 
-export const readEnvFile = async () => {
-  try {
-    return dotenv.parse(await fs.readFile(path.join(process.cwd(), '.env')));
-  } catch (error) {
-    return {};
-  }
-};
-
 export const getAppsFromResult = (result: any) => {
   const apps = result.apps?.edges;
   verifyResultLength(apps || [], 'app');
 
   return apps;
+};
+
+export const contentBox = (content: string, title = '') => {
+  const width = process.stdout.columns;
+  const wrappedTitle = title.length === 0 ? '' : chalk.blue(' ', title, ' ');
+  const headerLine = `──${wrappedTitle}${chalk
+    .blue('─')
+    .repeat(width - wrappedTitle.length - 2)}`;
+
+  console.log(headerLine);
+  console.log('');
+  console.log(content);
+  console.log('');
+  console.log(chalk.blue('─').repeat(width));
 };
 
 export const without = (name: string) => (record: any) => record.name !== name;

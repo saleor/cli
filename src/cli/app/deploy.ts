@@ -11,8 +11,11 @@ import {
   getRepoUrl,
   triggerDeploymentInVercel,
 } from '../../lib/deploy.js';
-import { getEnvironment } from '../../lib/environment.js';
-import { NameMismatchError, readEnvFile } from '../../lib/util.js';
+import {
+  getEnvironment,
+  getEnvironmentGraphqlEndpoint,
+} from '../../lib/environment.js';
+import { contentBox, NameMismatchError } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import {
   useEnvironment,
@@ -65,7 +68,6 @@ export const handler = async (argv: Arguments<Options>) => {
   debug(`Your Vercel token: ${vercelToken}`);
   const vercel = new Vercel(vercelToken);
 
-  // 1. Get or create hosted repository
   const repoURL = await getRepoUrl(name);
   debug(`Remote Git repository: ${repoURL}`);
   const { owner, name: repoName } = GitUrlParse(repoURL);
@@ -79,17 +81,18 @@ export const handler = async (argv: Arguments<Options>) => {
     );
   }
 
-  // 2. Create a project in Vercel
-  const localEnvs = await readEnvFile();
-  const { id: projectId, newProject } = await vercel.createProject(
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  debug(`Saleor endpoint: ${endpoint}`);
+  debug('Creating a Vercel project');
+  const { id: projectId } = await vercel.createProject(
     name,
-    formatEnvironmentVariables(localEnvs),
+    formatEnvironmentVariables({ NEXT_PUBLIC_SALEOR_HOST_URL: endpoint }),
     owner,
     repoName
   );
+  debug(`Created Vercel project: ${projectId}`);
 
-  debug(`Create a Vercel project: ${projectId}`);
-
+  debug('Encrypting Vercel credentials');
   const response = await fetch(argv.encryptUrl!, {
     method: 'POST',
     headers: {
@@ -103,7 +106,6 @@ export const handler = async (argv: Arguments<Options>) => {
   const encrypted = await response.text();
   debug('Encrypted the Vercel credentials');
 
-  // 3. set ENV vars
   debug(
     'Setting `SALEOR_REGISTER_APP_URL` and `SALEOR_DEPLOYMENT_TOKEN` variables'
   );
@@ -122,19 +124,18 @@ export const handler = async (argv: Arguments<Options>) => {
     },
   ]);
 
-  // 4. Deploy the project in Vercel
-  debug(`Triggering the deploy in Vercel for ${name} with ID: ${projectId}`);
+  debug(`Triggering deployment in Vercel for ${name} with ID: ${projectId}`);
   const deployment = await triggerDeploymentInVercel(
     vercel,
     name,
     owner,
-    projectId,
-    newProject
+    projectId
   );
 
   const shouldWaitUntilDeployed = !!process.env.CI || !argv.dispatch;
   if (shouldWaitUntilDeployed) {
     const deploymentId = deployment.id || deployment.uid;
+    debug(`Waiting for deployment ${deploymentId}`);
     await vercel.verifyDeployment(name, deploymentId);
   }
 
@@ -157,11 +158,7 @@ ${chalk.blue(baseURL)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
     encodeURIComponent(projectManifestURL)
   )}`;
 
-  console.log(chalk.blue('─').repeat(process.stdout.columns));
-  console.log('');
-  console.log(` ${msg1}\n\n ${msg2}`);
-  console.log('');
-  console.log(chalk.blue('─').repeat(process.stdout.columns));
+  contentBox(` ${msg1}\n\n ${msg2}`);
 
   process.exit(0);
 };

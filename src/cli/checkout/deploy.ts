@@ -1,13 +1,15 @@
-import boxen from 'boxen';
 import chalk from 'chalk';
 import Debug from 'debug';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { setupSaleorAppCheckout } from '../../lib/deploy.js';
-import { getEnvironment } from '../../lib/environment.js';
+import {
+  getEnvironment,
+  getEnvironmentGraphqlEndpoint,
+} from '../../lib/environment.js';
 import { NoCommandBuilderSetup } from '../../lib/index.js';
-import { readEnvFile } from '../../lib/util.js';
+import { contentBox } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import { Options } from '../../types.js';
 
@@ -21,10 +23,8 @@ export const builder: CommandBuilder = NoCommandBuilderSetup;
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', argv);
 
-  // TODO prefill from .env
-  const { domain } = await getEnvironment(argv);
-  const url = `https://${domain}/graphql/`;
-  debug(`Saleor endpoint: ${url}`);
+  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  debug(`Saleor endpoint: ${endpoint}`);
 
   const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =
     await Config.get();
@@ -35,19 +35,14 @@ export const handler = async (argv: Arguments<Options>) => {
   if (!vercelToken) {
     // TODO vercel_team_id
   } else {
-    const localEnvs = await readEnvFile();
-
     console.log('\nDeploying Checkout to Vercel');
-    const { checkoutAppURL, authToken, appId } = await setupSaleorAppCheckout(
-      localEnvs.SALEOR_API_URL, // FIXME url or localEnvs ?
+    const { checkoutAppURL, appId } = await setupSaleorAppCheckout(
+      endpoint,
       vercel,
       argv
     );
 
-    localEnvs.CHECKOUT_APP_URL = checkoutAppURL;
-    localEnvs.CHECKOUT_STOREFRONT_URL = `${checkoutAppURL}/checkout-spa`;
-    localEnvs.SALEOR_APP_TOKEN = authToken;
-    localEnvs.SALEOR_APP_ID = appId;
+    const { domain } = await getEnvironment(argv);
 
     const appDashboardURL = `https://${domain}/dashboard/apps/${encodeURIComponent(
       appId
@@ -56,7 +51,7 @@ export const handler = async (argv: Arguments<Options>) => {
     const summary = `
   Your deployment is ready. Some useful links:
   Saleor Dashboard: ${chalk.blue(`https://${domain}/dashboard`)}
-  GraphQL Playground: ${chalk.blue(url)}
+  GraphQL Playground: ${chalk.blue(endpoint)}
   Checkout App configuration page:
   ${chalk.blue(appDashboardURL)}
 
@@ -67,13 +62,6 @@ export const handler = async (argv: Arguments<Options>) => {
   3. Re-run the development server.
 `;
 
-    console.log(
-      boxen(summary, {
-        padding: 1,
-        margin: 1,
-        borderStyle: 'round',
-        borderColor: 'yellow',
-      })
-    );
+    contentBox(summary);
   }
 };
