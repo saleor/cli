@@ -16,10 +16,9 @@ import { getEnvironment } from '../../lib/environment.js';
 import { delay, NameMismatchError, readEnvFile } from '../../lib/util.js';
 import { Deployment, Env, Vercel } from '../../lib/vercel.js';
 import {
-  useEnvironment,
+  useAppConfig,
   useGithub,
-  useOrganization,
-  useToken,
+  useInstanceConnector,
   useVercel,
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
@@ -146,9 +145,6 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const projectManifestURL = `https://${domain.name}/api/manifest`;
 
-  const environment = await getEnvironment(argv);
-  const baseURL = `https://${environment.domain}`;
-
   const msg1 = `     ${chalk.dim('Using the CLI')}: ${chalk.green(
     'saleor app install'
   )} and pass the following domain ${chalk.yellow(
@@ -157,7 +153,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const msg2 = `${chalk.dim(
     'Using Dashboard UI'
   )}: open the following URL in the browser\n
-${chalk.blue(baseURL)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
+${chalk.blue(argv.instance)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
     encodeURIComponent(projectManifestURL)
   )}`;
 
@@ -438,9 +434,8 @@ export const triggerDeploymentInVercel = async (
 
 export const middlewares = [
   verifyIsSaleorAppDirectory,
+  useAppConfig,
   useVercel,
   useGithub,
-  useToken,
-  useOrganization,
-  useEnvironment,
+  useInstanceConnector,
 ];

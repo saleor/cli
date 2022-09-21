@@ -1,13 +1,18 @@
 import chalk from 'chalk';
 import Debug from 'debug';
 import enquirer from 'enquirer';
+import fs from 'fs-extra';
 import got, { HTTPError } from 'got';
 import ora from 'ora';
+import path from 'path';
 import { Arguments } from 'yargs';
 
 import * as Configuration from '../config.js';
 import { Config } from '../lib/config.js';
-import { getEnvironmentGraphqlEndpoint } from '../lib/environment.js';
+import {
+  getEnvironment as getEnv,
+  getEnvironmentGraphqlEndpoint,
+} from '../lib/environment.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
 import { isNotFound } from '../lib/response.js';
 import {
@@ -24,9 +29,7 @@ import {
 } from '../lib/util.js';
 import { CreatePromptResult, Environment, Options } from '../types.js';
 
-const debug = Debug('middleware');
-
-type Handler = (opts: Options) => Options | Promise<Options>;
+const debug = Debug('saleor-cli:middleware');
 
 export const useToken = async ({ token }: Options) => {
   let opts = {};
@@ -61,11 +64,43 @@ export const useToken = async ({ token }: Options) => {
   return opts;
 };
 
-export const useOrganization = async ({
-  token,
-  organization,
-  json,
-}: Options) => {
+export const useInstanceConnector = async (argv: Options) => {
+  const { instance } = argv;
+
+  if (instance) {
+    const instanceURL = instance.startsWith('http')
+      ? instance
+      : `https://${instance}`;
+    return { instance: instanceURL };
+  }
+
+  return useInstanceAttacher(
+    await useEnvironment(await useOrganization(await useToken(argv)))
+  );
+};
+
+export const useInstanceAttacher = async (argv: Options) => {
+  const instance = await getEnv(argv as Arguments);
+
+  return { instance: `https://${instance.domain}` };
+};
+
+export const useAppConfig = async (argv: Options) => {
+  try {
+    const content = await fs.readFile(
+      path.join(process.cwd(), 'saleor.config.json'),
+      'utf-8'
+    );
+    const config = JSON.parse(content);
+    const instance = config.SaleorInstanceURL;
+
+    return { instance };
+  } catch (error) {
+    return {};
+  }
+};
+
+export const useOrganization = async ({ token, organization, json }: Options) => {
   let opts = { token, organization };
 
   if (!organization) {
