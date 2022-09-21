@@ -61,7 +61,11 @@ export const useToken = async ({ token }: Options) => {
   return opts;
 };
 
-export const useOrganization = async ({ token, organization }: Options) => {
+export const useOrganization = async ({
+  token,
+  organization,
+  json,
+}: Options) => {
   let opts = { token, organization };
 
   if (!organization) {
@@ -80,11 +84,13 @@ export const useOrganization = async ({ token, organization }: Options) => {
     }
   }
 
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Organization ·'),
-    chalk.cyan(opts.organization)
-  );
+  if (!json) {
+    console.log(
+      chalk.green('✔'),
+      chalk.bold('Organization ·'),
+      chalk.cyan(opts.organization)
+    );
+  }
 
   return opts;
 };
@@ -158,6 +164,7 @@ export const useEnvironment = async ({
   token,
   organization,
   environment,
+  json,
 }: Options) => {
   let opts = { token, organization, environment };
 
@@ -202,11 +209,13 @@ export const useEnvironment = async ({
       const env = await promptEnvironment(opts);
       opts = { ...opts, ...{ environment: env.value } };
 
-      console.log(
-        chalk.green('✔'),
-        chalk.bold('Environment ·'),
-        chalk.cyan(`${env.name} - ${env.value}`)
-      );
+      if (!json) {
+        console.log(
+          chalk.green('✔'),
+          chalk.bold('Environment ·'),
+          chalk.cyan(`${env.name} - ${env.value}`)
+        );
+      }
     }
   }
 
