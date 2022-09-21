@@ -123,12 +123,12 @@ export const handler = async (argv: Arguments<Options>) => {
 
   console.log('  pnpm i');
   await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
-  console.log('  pnpm compile');
-  await run('pnpm', ['compile'], { cwd: process.cwd() });
+  console.log('  pnpm build');
+  await run('pnpm', ['build'], { cwd: process.cwd() });
 
   console.log(chalk.green('✔️ prepared'));
   console.log('\n  run the saleor cli from project root with:');
-  console.log(chalk.green('\n  node ./build/cli.js command-name'));
+  console.log(chalk.green('\n  node ./dist/saleor.js command-name'));
 };
 
 export const middlewares = [useGithub];
