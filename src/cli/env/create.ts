@@ -60,7 +60,7 @@ export const builder: CommandBuilder = (_) =>
     })
     .option('domain', {
       type: 'string',
-      desc: 'specify the domain for the envronment',
+      desc: 'specify the domain for the environment',
     })
     .option('email', {
       type: 'string',

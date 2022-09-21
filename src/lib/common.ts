@@ -48,7 +48,8 @@ export const doSaleorAppDelete = async (argv: any) => {
 };
 
 export const doSaleorAppInstall = async (argv: any) => {
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const endpoint =
+    argv.saleorApiUrl || (await getEnvironmentGraphqlEndpoint(argv));
   const headers = await Config.getBearerHeader();
 
   if (!argv.manifestURL) {
