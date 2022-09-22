@@ -555,10 +555,12 @@ export const getAppsFromResult = (result: any) => {
 
 export const contentBox = (content: string, title = '') => {
   const width = process.stdout.columns;
-  const wrappedTitle = title.length === 0 ? '' : chalk.blue(' ', title, ' ');
-  const headerLine = `──${wrappedTitle}${chalk
-    .blue('─')
-    .repeat(width - wrappedTitle.length - 2)}`;
+  const wrappedTitle = title.length === 0 ? '' : title;
+  const headerLine = chalk.blue(
+    '──',
+    wrappedTitle,
+    '─'.repeat(width - wrappedTitle.length - 4)
+  );
 
   console.log(headerLine);
   console.log('');
