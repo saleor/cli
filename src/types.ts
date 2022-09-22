@@ -31,6 +31,7 @@ export interface Options extends BaseOptions {
   encryptUrl?: string;
   registerUrl?: string;
   saleorApiUrl?: string;
+  githubPrompt?: boolean;
 }
 
 export interface CreatePromptResult {
@@ -64,6 +65,7 @@ export interface StoreCreate extends BaseOptions {
 
 export interface StoreDeploy extends BaseOptions {
   withCheckout: boolean;
+  githubPrompt?: boolean;
 }
 
 export interface Environment {

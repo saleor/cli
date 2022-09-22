@@ -8,7 +8,6 @@ import {
   getEnvironment,
   getEnvironmentGraphqlEndpoint,
 } from '../../lib/environment.js';
-import { NoCommandBuilderSetup } from '../../lib/index.js';
 import { contentBox } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import { Options } from '../../types.js';
@@ -18,7 +17,13 @@ const debug = Debug('saleor-cli:checkout:deploy');
 export const command = 'deploy';
 export const desc = 'Deploy `saleor-checkout` to Vercel';
 
-export const builder: CommandBuilder = NoCommandBuilderSetup;
+export const builder: CommandBuilder = (_) =>
+  _.option('github-prompt', {
+    type: 'boolean',
+    default: 'true',
+    demandOption: false,
+    desc: 'specify prompt presence for repository creation on Github',
+  });
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', argv);
