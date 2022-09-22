@@ -80,12 +80,14 @@ export const handler = async (argv: Arguments<Options>) => {
     );
   }
 
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
-  debug(`Saleor endpoint: ${endpoint}`);
+  debug(`Saleor API instance endpoint: ${argv.instance}/graphql/`);
+
   debug('Creating a Vercel project');
   const { id: projectId } = await vercel.createProject(
     name,
-    formatEnvironmentVariables({ NEXT_PUBLIC_SALEOR_HOST_URL: endpoint }),
+    formatEnvironmentVariables({
+      NEXT_PUBLIC_SALEOR_HOST_URL: `${argv.instance}/graphql/`,
+    }),
     owner,
     repoName
   );
