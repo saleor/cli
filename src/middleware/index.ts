@@ -74,9 +74,16 @@ export const useInstanceConnector = async (argv: Options) => {
     return { instance: instanceURL };
   }
 
-  return useInstanceAttacher(
-    await useEnvironment(await useOrganization(await useToken(argv)))
-  );
+  return useInstanceAttacher({
+    ...argv,
+    ...(await useEnvironment({
+      ...argv,
+      ...(await useOrganization({
+        ...argv,
+        ...(await useToken(argv)),
+      })),
+    })),
+  });
 };
 
 export const useInstanceAttacher = async (argv: Options) => {
@@ -100,7 +107,11 @@ export const useAppConfig = async (argv: Options) => {
   }
 };
 
-export const useOrganization = async ({ token, organization, json }: Options) => {
+export const useOrganization = async ({
+  token,
+  organization,
+  json,
+}: Options) => {
   let opts = { token, organization };
 
   if (!organization) {
