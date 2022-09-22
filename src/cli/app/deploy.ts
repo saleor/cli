@@ -45,6 +45,12 @@ export const builder: CommandBuilder = (_) =>
       default: 'https://appraptor.vercel.app/api/encrypt',
       demandOption: false,
       desc: 'specify your own endpoint for encrypting tokens',
+    })
+    .option('github-prompt', {
+      type: 'boolean',
+      default: 'true',
+      demandOption: false,
+      desc: 'specify prompt presence for repository creation on Github',
     });
 
 export const handler = async (argv: Arguments<Options>) => {
@@ -64,7 +70,7 @@ export const handler = async (argv: Arguments<Options>) => {
   debug(`Your Vercel token: ${vercelToken}`);
   const vercel = new Vercel(vercelToken);
 
-  const repoURL = await getRepoUrl(name);
+  const repoURL = await getRepoUrl(name, argv.githubPrompt);
   debug(`Remote Git repository: ${repoURL}`);
   const { owner, name: repoName } = GitUrlParse(repoURL);
 

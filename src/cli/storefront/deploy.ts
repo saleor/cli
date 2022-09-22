@@ -33,11 +33,18 @@ export const builder: CommandBuilder = (_) =>
     demandOption: false,
     default: false,
     desc: 'dispatch deployment and don\'t wait till it ends',
-  }).option('with-checkout', {
-    type: 'boolean',
-    default: false,
-    desc: 'Deploy with checkout',
-  });
+  })
+    .option('with-checkout', {
+      type: 'boolean',
+      default: false,
+      desc: 'Deploy with checkout',
+    })
+    .option('github-prompt', {
+      type: 'boolean',
+      default: 'true',
+      demandOption: false,
+      desc: 'specify prompt presence for repository creation on Github',
+    });
 
 export const handler = async (argv: Arguments<StoreDeploy>) => {
   debug('command arguments: %O', argv);
@@ -54,7 +61,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   debug(`Your Vercel token: ${vercelToken}`);
 
   const vercel = new Vercel(vercelToken);
-  const repoUrl = await getRepoUrl(name);
+  const repoUrl = await getRepoUrl(name, argv.githubPrompt);
 
   const endpoint = `${argv.instance!}/graphql/`;
   debug(`Saleor endpoint: ${endpoint}`);
