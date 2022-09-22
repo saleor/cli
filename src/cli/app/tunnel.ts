@@ -59,7 +59,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
 
   debug(`Starting the tunnel with the port: ${argv.port}`);
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const vendorDir = path.join(__dirname, '..', '..', '..', 'vendor');
+  const vendorDir = path.join(__dirname, '..', 'vendor');
 
   debug('Extracting the Saleor app name');
   let appName;
