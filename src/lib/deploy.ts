@@ -53,7 +53,7 @@ export const getAppId = async (url: string) => {
   return id;
 };
 
-export const createProject = async (
+export const createProjectInVercel = async (
   name: string,
   vercel: Vercel,
   envs: Env[],
@@ -92,7 +92,10 @@ export const createProject = async (
   }
 };
 
-export const getRepoUrl = async (name: string): Promise<string> => {
+export const getRepoUrl = async (
+  name: string,
+  githubPrompt = true
+): Promise<string> => {
   const git = simpleGit();
   const remotes = await git.getRemotes(true);
   debug(`No of found remotes: ${remotes.length}`);
@@ -103,7 +106,7 @@ export const getRepoUrl = async (name: string): Promise<string> => {
     debug(`Using origin: ${gitUrl}`);
   } else {
     debug('Local repo doesn\'t exist, creating...');
-    gitUrl = await createProjectInGithub(name);
+    gitUrl = await createProjectInGithub(name, githubPrompt);
   }
 
   debug(`Repo url ${gitUrl}`);
@@ -111,7 +114,10 @@ export const getRepoUrl = async (name: string): Promise<string> => {
   return gitUrl.trim();
 };
 
-const createProjectInGithub = async (name: string): Promise<string> => {
+const createProjectInGithub = async (
+  name: string,
+  prompt = true
+): Promise<string> => {
   const git = simpleGit();
   const { github_token: GitHubToken } = await Config.get();
 
@@ -120,6 +126,7 @@ const createProjectInGithub = async (name: string): Promise<string> => {
     name: 'githubProjectCreate',
     initial: 'yes',
     format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    skip: !prompt,
     message: 'Creating a project on your GitHub. Do you want to continue?',
   })) as { githubProjectCreate: boolean };
 
@@ -258,7 +265,7 @@ export const setupSaleorAppCheckout = async (
     },
   ];
 
-  const repoUrl = await getRepoUrl(pkgName);
+  const repoUrl = await getRepoUrl(pkgName, argv.githubPrompt);
   const { owner, name: repoName } = GitUrlParse(repoUrl);
 
   const {
@@ -268,7 +275,12 @@ export const setupSaleorAppCheckout = async (
 
   debug('Creating Checkout in Vercel');
   const { env: vercelEnvs, id: projectId } = <{ env: Env[]; id: string }>(
-    await createProject(checkoutName, vercel, envs, 'saleor-app-checkout')
+    await createProjectInVercel(
+      checkoutName,
+      vercel,
+      envs,
+      'saleor-app-checkout'
+    )
   );
 
   debug('Verifying if app already installed');
