@@ -57,7 +57,8 @@ export const createProjectInVercel = async (
   name: string,
   vercel: Vercel,
   envs: Env[],
-  app: string
+  buildCommand: null | string = null,
+  rootDirectory: null | string = null
 ) => {
   try {
     debug('Verify if project exists in Vercel');
@@ -82,8 +83,8 @@ export const createProjectInVercel = async (
       envs,
       owner,
       repoName,
-      `cd ../.. && npx turbo run build --filter="${app}..."`,
-      `apps/${app}`,
+      buildCommand,
+      rootDirectory,
       'github'
     );
 
@@ -279,7 +280,8 @@ export const setupSaleorAppCheckout = async (
       checkoutName,
       vercel,
       envs,
-      'saleor-app-checkout'
+      'cd ../.. && npx turbo run build --filter="saleor-app-checkout..."',
+      'apps/saleor-app-checkout'
     )
   );
 
