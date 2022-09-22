@@ -6,6 +6,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import {
+  createProjectInVercel,
   formatEnvironmentVariables,
   getPackageName,
   getRepoUrl,
@@ -83,14 +84,14 @@ export const handler = async (argv: Arguments<Options>) => {
   debug(`Saleor API instance endpoint: ${argv.instance}/graphql/`);
 
   debug('Creating a Vercel project');
-  const { id: projectId } = await vercel.createProject(
+  const { id: projectId } = await createProjectInVercel(
     name,
+    vercel,
     formatEnvironmentVariables({
       NEXT_PUBLIC_SALEOR_HOST_URL: `${argv.instance}/graphql/`,
-    }),
-    owner,
-    repoName
+    })
   );
+
   debug(`Created Vercel project: ${projectId}`);
 
   debug('Encrypting Vercel credentials');
