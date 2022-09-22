@@ -1,14 +1,10 @@
-import { createRequire } from 'module';
-
+import pkg from '../../../package.json';
 import { run } from '../../lib/common.js';
 
 export const command = 'info';
 export const desc = 'Show env info for debugging';
 
 export const handler = async () => {
-  const require = createRequire(import.meta.url);
-  const pkg = require('../../../package.json');
-
   console.log(`Saleor CLI v${pkg.version}`);
 
   await run(
