@@ -89,7 +89,8 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
     name,
     vercel,
     formatEnvironmentVariables(envs),
-    'storefront'
+    'cd ../.. && npx turbo run build --filter="storefront..."',
+    'apps/storefront'
   );
   debug(`created a project in Vercel: ${id}`);
 
