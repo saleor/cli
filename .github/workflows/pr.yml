@@ -56,3 +56,25 @@ jobs:
         run: pnpm install
       - name: Build project
         run: pnpm build
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.2
+        with:
+          version: 7.5.0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: 'pnpm'
+      - name: Clone devtools-integration-tests
+        uses: actions/checkout@v3
+        with:
+          repository: saleor/devtools-integration-tests
+          path: integration-tests
+      - name: Install integration tests dependencies
+        working-directory: ./integration-tests
+        run: pnpm install
+      - name: Run integration tests
+        working-directory: ./integration-tests
+        run: SALEOR_CLI_PATH=../dist.saleor.js pnpm run test
