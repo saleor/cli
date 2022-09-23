@@ -17,6 +17,8 @@ export interface Deployment {
   url: string;
   readyState: string;
   alias: string;
+  errorCode?: string;
+  inspectorUrl: string;
 }
 
 // eslint-disable-next-line import/prefer-default-export
@@ -160,7 +162,12 @@ export class Vercel {
       readyState = deployment.readyState;
 
       if (hasDeploymentFailed(readyState)) {
-        console.log(`\nDeployment status: ${readyState}`);
+        const { errorCode, inspectorUrl } = deployment;
+        console.log(
+          `\nVercel deployment status : ${readyState} - ${errorCode}`
+        );
+        console.log('Verify deployment using the following link:');
+        console.log(inspectorUrl);
         process.exit(1);
       }
 
