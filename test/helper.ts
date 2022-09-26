@@ -1,4 +1,7 @@
 import { spawn } from 'child_process';
+import crypto from 'crypto';
+
+export const randomString = () => crypto.randomBytes(256).toString('hex').substring(0, 7);
 
 export const trigger = async (
   cmd: string,
