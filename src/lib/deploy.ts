@@ -53,7 +53,7 @@ export const getAppId = async (url: string) => {
   return id;
 };
 
-export const createProject = async (
+export const createProjectInVercel = async (
   name: string,
   vercel: Vercel,
   envs: Env[],

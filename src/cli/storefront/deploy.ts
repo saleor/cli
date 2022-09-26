@@ -6,7 +6,7 @@ import { Arguments } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import {
-  createProject,
+  createProjectInVercel,
   formatEnvironmentVariables,
   getPackageName,
   getRepoUrl,
@@ -79,7 +79,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   }
 
   console.log('\nDeploying Storefront to Vercel');
-  const { id } = await createProject(
+  const { id } = await createProjectInVercel(
     name,
     vercel,
     formatEnvironmentVariables(envs),
