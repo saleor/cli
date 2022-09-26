@@ -16,8 +16,9 @@ import {
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { Vercel } from '../../lib/vercel.js';
 import {
-  useEnvironment,
+  useAppConfig,
   useGithub,
+  useInstanceConnector,
   useVercel,
 } from '../../middleware/index.js';
 import { StoreDeploy } from '../../types.js';
@@ -110,4 +111,9 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   }
 };
 
-export const middlewares = [useVercel, useGithub, useEnvironment];
+export const middlewares = [
+  useAppConfig,
+  useVercel,
+  useGithub,
+  useInstanceConnector,
+];

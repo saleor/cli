@@ -10,14 +10,12 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { API, GET, POST } from '../../lib/index.js';
 import {
   capitalize,
   checkPnpmPresence,
   getSortedServices,
 } from '../../lib/util.js';
-import { useEnvironment } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 import { setupGitRepository } from '../app/create.js';
 import { createEnvironment } from '../env/create.js';
@@ -48,16 +46,6 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   debug('command arguments: %O', argv);
 
-  if (argv.environment) {
-    debug(`creating storefront for ${argv.environment}`);
-    await createStorefront({
-      ...argv,
-      ...{ environment: argv.environment },
-    });
-
-    return;
-  }
-
   if (argv.demo) {
     debug('demo mode');
 
@@ -66,16 +54,11 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     debug('preparing the environment');
     const environment = await prepareEnvironment(argv, project);
     debug('creating storefront');
-    await createStorefront({
-      ...argv,
-      ...{ environment: environment.key },
-    });
-
-    return;
+    await createStorefront(argv);
+  } else {
+    debug('creating storefront');
+    await createStorefront(argv);
   }
-
-  const _argv = await useEnvironment(argv);
-  await createStorefront({ ...argv, ..._argv });
 };
 
 const createProject = async (argv: Arguments<StoreCreate>) => {
@@ -188,20 +171,12 @@ const prepareEnvironment = async (
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await checkPnpmPresence('react-storefront project');
 
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
-
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(argv.name));
   await downloadFromGitHub('saleor/react-storefront', target);
 
   process.chdir(target);
   spinner.text = 'Creating .env...';
-
-  await replace.replaceInFile({
-    files: '.env',
-    from: /SALEOR_API_URL=.*/g,
-    to: `SALEOR_API_URL=${endpoint}`,
-  });
 
   await replace.replaceInFile({
     files: 'package.json',
