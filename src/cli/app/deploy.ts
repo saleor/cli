@@ -12,10 +12,6 @@ import {
   getRepoUrl,
   triggerDeploymentInVercel,
 } from '../../lib/deploy.js';
-import {
-  getEnvironment,
-  getEnvironmentGraphqlEndpoint,
-} from '../../lib/environment.js';
 import { contentBox, NameMismatchError } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import {
