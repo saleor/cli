@@ -16,6 +16,12 @@ import {
   checkPnpmPresence,
   getSortedServices,
 } from '../../lib/util.js';
+import {
+  useEnvironment,
+  useInstanceAttacher,
+  useOrganization,
+  useToken,
+} from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 import { setupGitRepository } from '../app/create.js';
 import { createEnvironment } from '../env/create.js';
@@ -49,12 +55,20 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   if (argv.demo) {
     debug('demo mode');
 
+    const _argv = {
+      ...argv,
+      ...(await useOrganization({
+        ...argv,
+        ...(await useToken(argv)),
+      })),
+    };
+
     debug('creating project');
-    const project = await createProject(argv);
+    const project = await createProject(_argv);
     debug('preparing the environment');
-    const environment = await prepareEnvironment(argv, project);
+    const environment = await prepareEnvironment(_argv, project);
     debug('creating storefront');
-    await createStorefront(argv);
+    await createStorefront(_argv);
   } else {
     debug('creating storefront');
     await createStorefront(argv);
