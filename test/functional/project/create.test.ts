@@ -1,6 +1,12 @@
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { command, randomString, testOrganization, trigger } from '../../helper';
+import {
+  command,
+  DefaultTriggerResponse,
+  randomString,
+  testOrganization,
+  trigger,
+} from '../../helper';
 
 describe('create new project', async () => {
   const projectName = `test-project-${randomString()}`;
@@ -16,7 +22,7 @@ describe('create new project', async () => {
         `--region=${region}`,
         `--organization=${testOrganization}`,
       ];
-      const { exitCode } = await trigger(command, params, {}, 0);
+      const { exitCode } = await trigger(command, params, {});
       expect(exitCode).toBe(0);
     },
     1000 * 60 * 1
@@ -27,7 +33,17 @@ describe('create new project', async () => {
     async () => {
       const params = ['project', 'list', `--organization=${testOrganization}`];
 
-      const { exitCode, output } = await trigger(command, params, {}, 0);
+      const { exitCode, output } = await trigger(
+        command,
+        params,
+        {},
+        {
+          ...DefaultTriggerResponse,
+          ...{
+            output: [projectName],
+          },
+        }
+      );
       expect(exitCode).toBe(0);
       expect(output.join()).toContain(projectName);
     },
@@ -42,7 +58,21 @@ describe('create new project', async () => {
       `--organization=${testOrganization}`,
     ];
 
-    const { exitCode, output } = await trigger(command, params, {}, 0);
+    const { exitCode, output } = await trigger(
+      command,
+      params,
+      {},
+      {
+        ...DefaultTriggerResponse,
+        ...{
+          output: [
+            `name: ${projectName}`,
+            `slug: ${projectName}`,
+            `region: ${region}`,
+          ],
+        },
+      }
+    );
     expect(exitCode).toBe(0);
     expect(output.join()).toContain(`name: ${projectName}`);
     expect(output.join()).toContain(`slug: ${projectName}`);
@@ -57,6 +87,6 @@ describe('create new project', async () => {
       projectName,
       '--force',
     ];
-    await trigger(command, params, {}, 0);
+    await trigger(command, params, {});
   });
 });
