@@ -164,6 +164,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
       name: 'emailPrompt',
       message: 'Dashboard admin email',
       initial: argv.email || user.email,
+      skip: !!argv.email,
       validate: (value) => validateEmail(value),
     })) as { emailPrompt: string };
 
