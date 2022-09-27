@@ -1,20 +1,29 @@
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 
-export const randomString = () => crypto.randomBytes(256).toString('hex').substring(0, 7);
+export const randomString = () =>
+  crypto.randomBytes(256).toString('hex').substring(0, 7);
+
+interface DefaultTriggerResponse {
+  output: string[];
+  err: string[];
+  exitCode: number;
+}
+
+export const DefaultTriggerResponse = <DefaultTriggerResponse>{
+  output: [],
+  err: [],
+  exitCode: 0,
+};
 
 export const trigger = async (
   cmd: string,
   params: string[],
   options: {},
-  defaultCode = 0
+  defaults = DefaultTriggerResponse
 ) => {
   if (!shouldRunCommand) {
-    return {
-      output: [],
-      err: [],
-      exitCode: defaultCode,
-    };
+    return defaults;
   }
 
   const child = spawn('saleor', params, options);
@@ -58,7 +67,7 @@ export const getEnvironmentId = async (organization = testOrganization) => {
     `--organization=${organization}`,
     '--json',
   ];
-  const { output } = await trigger(command, params, {}, 0);
+  const { output } = await trigger(command, params, {});
   const { key } = <{ key: string }>(
     JSON.parse(output.length > 0 ? output.join() : '{}')
   );
