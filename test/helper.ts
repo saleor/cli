@@ -59,11 +59,14 @@ export const testOrganization = 'cli-dev';
 export const testEnvironmentName = 'saleor-test';
 export const testProjectName = 'cli-test';
 
-export const getEnvironmentId = async (organization = testOrganization) => {
+export const getEnvironmentId = async (
+  organization = testOrganization,
+  environmentName = testEnvironmentName
+) => {
   const params = [
     'env',
     'show',
-    testEnvironmentName,
+    environmentName,
     `--organization=${organization}`,
     '--json',
   ];
