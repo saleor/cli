@@ -6,11 +6,13 @@ import * as list from './list.js';
 import * as permission from './permission.js';
 import * as token from './token.js';
 import * as tunnel from './tunnel.js';
+import * as uninstall from './uninstall.js';
 
 export default function (_: any) {
   _.command([
     list,
     install,
+    uninstall,
     create,
     tunnel,
     token,

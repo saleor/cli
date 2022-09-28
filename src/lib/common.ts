@@ -5,6 +5,7 @@ import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import got from 'got';
 import { print } from 'graphql';
+import { Arguments } from 'yargs';
 
 import { AppDelete } from '../generated/graphql.js';
 import { AppInstall } from '../graphql/AppInstall.js';
@@ -28,20 +29,20 @@ export const doSaleorAppDelete = async (argv: any) => {
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
+  const app = await findSaleorAppByName(argv.app, argv);
+
   const { data, errors }: any = await got
     .post(endpoint, {
       headers,
       json: {
         query: print(AppDelete),
-        variables: {
-          app: argv.app,
-        },
+        variables: { app },
       },
     })
     .json();
 
-  if (errors) {
-    console.log(errors);
+  if (errors || data.appDelete.errors.length > 0) {
+    console.error(errors || data.appDelete.errors);
   }
 
   return data;
@@ -181,4 +182,27 @@ export const verifyIfSaleorAppRunning = async (argv: any) => {
   }
 
   return {};
+};
+
+export const findSaleorAppByName = async (appName: string, argv: Arguments) => {
+  const {
+    apps: { edges: apps },
+  } = await fetchSaleorAppList(argv);
+
+  const byName =
+    (name: string) =>
+    ({ node }: any) =>
+      name === node.name;
+
+  const result = apps.filter(byName(appName)).shift();
+
+  if (result) {
+    const {
+      node: { id: app },
+    } = result;
+    return app as string;
+  }
+
+  // not found
+  return null;
 };

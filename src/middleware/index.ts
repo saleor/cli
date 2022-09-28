@@ -71,10 +71,16 @@ export const useInstanceConnector = async (argv: Options) => {
     const instanceURL = instance.startsWith('http')
       ? instance
       : `https://${instance}`;
-    return { instance: instanceURL };
+
+    // TODO API Call for org & env
+
+    return {
+      ...(await useToken(argv)),
+      instance: instanceURL,
+    };
   }
 
-  return useInstanceAttacher({
+  const stacked = useInstanceAttacher({
     ...argv,
     ...(await useEnvironment({
       ...argv,
@@ -84,12 +90,17 @@ export const useInstanceConnector = async (argv: Options) => {
       })),
     })),
   });
+
+  return stacked;
 };
 
 export const useInstanceAttacher = async (argv: Options) => {
   const instance = await getEnv(argv as Arguments);
 
-  return { instance: `https://${instance.domain}` };
+  return {
+    ...argv,
+    instance: `https://${instance.domain}`,
+  };
 };
 
 export const useAppConfig = async (argv: Options) => {

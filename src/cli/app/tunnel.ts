@@ -10,37 +10,18 @@ import { fileURLToPath } from 'url';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import {
-  doSaleorAppDelete,
   doSaleorAppInstall,
-  fetchSaleorAppList,
+  findSaleorAppByName,
   verifyIfSaleorAppRunning,
   verifyIsSaleorAppDirectory,
 } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { getEnvironment } from '../../lib/environment.js';
 import { delay } from '../../lib/util.js';
-import {
-  useEnvironment,
-  useOrganization,
-  useToken,
-} from '../../middleware/index.js';
+import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1) + min);
-
-async function getKeypress() {
-  return new Promise((resolve) => {
-    const { stdin } = process;
-    stdin.setRawMode(true); // so get each keypress
-    stdin.resume(); // resume stdin in the parent process
-    stdin.once('data', onData); // like on but removes listener also
-    function onData(buffer: any) {
-      stdin.setRawMode(false);
-      resolve(buffer.toString());
-    }
-  });
-}
 
 const debug = Debug('saleor-cli:app:tunnel');
 
@@ -48,11 +29,13 @@ export const command = 'tunnel [port]';
 export const desc = 'Expose your Saleor app remotely via tunnel';
 
 export const builder: CommandBuilder = (_) =>
-  _.positional('port', { type: 'number', default: 3000 }).option('name', {
-    type: 'string',
-    demandOption: false,
-    desc: 'The application name for installation in the Dashboard',
-  });
+  _.positional('port', { type: 'number', default: 3000 })
+    .option('name', {
+      type: 'string',
+      demandOption: false,
+      desc: 'The application name for installation in the Dashboard',
+    })
+    .option('force-install', { type: 'boolean', default: false });
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {
   debug('command arguments: %O', argv);
@@ -62,7 +45,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
   const vendorDir = path.join(__dirname, '..', 'vendor');
 
   debug('Extracting the Saleor app name');
-  let appName;
+  let appName: string;
   if (argv.name) {
     appName = argv.name;
   } else {
@@ -80,8 +63,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
   const port = random(1025, 65535);
   debug(`Remote port: ${port}`);
 
-  const env = await getEnvironment(argv);
-  const baseURL = `https://${env.domain}`;
+  const baseURL = argv.instance!;
 
   const subdomain = `${appName}-${environment}-${organization}`.toLowerCase();
   const tunnelURL = `${subdomain}.saleor.live`;
@@ -110,10 +92,6 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
       { cwd: process.cwd(), stdio: 'ignore' }
     );
 
-    p.on('exit', () => {
-      console.log('Closing the tunnel...');
-    });
-
     const saleorAppName = `    Saleor App Name: ${chalk.yellow(appName)}`;
     const saleorAppURLMessage = `     Saleor App URL: ${chalk.blue(
       `https://${tunnelURL}`
@@ -140,48 +118,25 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     _argv.manifestURL = `https://${tunnelURL}/api/manifest`;
     _argv.appName = appName;
 
-    const spinner = ora('Installing... \n').start();
-    // TODO this should return App ID, now it returns an ID of a job installing the app
-    await doSaleorAppInstall(_argv);
-    spinner.succeed();
-
     // Find the App ID
-    const {
-      apps: { edges: apps },
-    } = await fetchSaleorAppList(_argv);
+    debug('Searching for a Saleor app named:', appName);
+    const app = await findSaleorAppByName(appName, _argv);
+    debug('Saleor App found?', !app);
 
-    const byName =
-      (name: string) =>
-      ({ node }: any) =>
-        name === node.name;
-    const {
-      node: { id: app },
-    } = apps.filter(byName(appName)).shift();
+    if (!app || argv.forceInstall) {
+      const spinner = ora('Installing... \n').start();
+
+      // TODO this should return App ID, now it returns an ID of a job installing the app
+      await doSaleorAppInstall(_argv);
+      spinner.succeed();
+    }
 
     console.log(
       `Tunnel is listening to your local machine on port: ${chalk.blue(
         localPort
       )}\n`
     );
-    console.log(
-      'Press CTRL-C to stop the tunnel and uninstall this Saleor App...'
-    );
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const key = await getKeypress();
-      if (String(key) === '\u0003') {
-        process.stdout.write(
-          'Uninstalling the Saleor App from your Dashboard...'
-        );
-        _argv.app = app;
-
-        await doSaleorAppDelete(_argv);
-        p.kill('SIGINT');
-
-        console.log(` ${chalk.green('success')}`);
-        process.exit(0);
-      }
-    }
+    console.log('Press CTRL-C to stop the tunnel');
   } catch (error) {
     console.log('error');
     console.error(error);
@@ -191,7 +146,6 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
 export const middlewares = [
   verifyIsSaleorAppDirectory,
   verifyIfSaleorAppRunning,
-  useToken,
-  useOrganization,
-  useEnvironment,
+  useAppConfig,
+  useInstanceConnector,
 ];
