@@ -13,7 +13,6 @@ import {
   setupSaleorAppCheckout,
   triggerDeploymentInVercel,
 } from '../../lib/deploy.js';
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { Vercel } from '../../lib/vercel.js';
 import {
   useAppConfig,
@@ -41,6 +40,8 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<StoreDeploy>) => {
+  debug('command arguments: %O', argv);
+
   const name = await getPackageName();
 
   console.log(
@@ -55,7 +56,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   const vercel = new Vercel(vercelToken);
   const repoUrl = await getRepoUrl(name);
 
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const endpoint = `${argv.instance!}/graphql/`;
   debug(`Saleor endpoint: ${endpoint}`);
 
   const envs = {
