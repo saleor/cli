@@ -1,3 +1,6 @@
+import { exec } from 'node:child_process';
+import util from 'node:util';
+
 import chalk from 'chalk';
 import Debug from 'debug';
 import enquirer from 'enquirer';
@@ -379,6 +382,19 @@ export const interactiveWebhook = async (argv: Options) => {
   }
 
   return {};
+};
+
+export const useOnlineChecker = async (argv: Arguments) => {
+  try {
+    await util.promisify(exec)('ping -c 1 -t 1 1.1.1.1');
+  } catch (error) {
+    console.error(
+      `You are ${chalk.red(
+        'offline'
+      )}. Saleor CLI requires Internet access to operate. Check your connection.`
+    );
+    process.exit(1);
+  }
 };
 
 export const useTelemetry = (version: string) => async (argv: Arguments) => {

@@ -41,7 +41,7 @@ import {
   NotSaleorAppDirectoryError,
   SaleorAppInstallError,
 } from './lib/util.js';
-import { useTelemetry } from './middleware/index.js';
+import { useOnlineChecker, useTelemetry } from './middleware/index.js';
 
 const debug = Debug('saleor-cli');
 
@@ -129,7 +129,7 @@ const parser = yargs(hideBin(process.argv))
   .option('json', { type: 'boolean', desc: 'Output the data as JSON' })
   .option('instance', { alias: ['u', 'url'], type: 'string', desc: '' })
   .strictCommands()
-  .middleware(useTelemetry(pkg.version))
+  .middleware([useOnlineChecker, useTelemetry(pkg.version)])
   .demandCommand(1, 'You need at least one command before moving on')
   .alias('h', 'help')
   .epilogue('for more information, find the documentation at https://saleor.io')
