@@ -3,11 +3,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { doSaleorAppInstall } from '../../lib/common.js';
 import { printContext } from '../../lib/util.js';
-import {
-  useEnvironment,
-  useOrganization,
-  useToken,
-} from '../../middleware/index.js';
+import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:app:install');
@@ -43,4 +39,4 @@ export const handler = async (argv: Arguments<Options>) => {
   process.exit(0);
 };
 
-export const middlewares = [useToken, useOrganization, useEnvironment];
+export const middlewares = [useAppConfig, useInstanceConnector];
