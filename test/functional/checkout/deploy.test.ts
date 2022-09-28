@@ -44,12 +44,9 @@ describe('checkout deploy', async () => {
         `--environment=${testEnvironmentName}`,
         `--organization=${testOrganization}`,
       ];
-      const { exitCode } = await trigger(
-        command,
-        params,
-        { cwd: storefrontCwd },
-        0
-      );
+      const { exitCode } = await trigger(command, params, {
+        cwd: storefrontCwd,
+      });
 
       expect(exitCode).toBe(0);
     },
@@ -66,12 +63,9 @@ describe('checkout deploy', async () => {
         `--environment=${testEnvironmentName}`,
         `--organization=${testOrganization}`,
       ];
-      const { exitCode } = await trigger(
-        command,
-        params,
-        { cwd: storefrontCwd },
-        0
-      );
+      const { exitCode } = await trigger(command, params, {
+        cwd: storefrontCwd,
+      });
 
       expect(exitCode).toBe(0);
     },
