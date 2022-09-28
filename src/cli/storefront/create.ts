@@ -187,7 +187,11 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(argv.name));
-  await downloadFromGitHub('saleor/react-storefront', target);
+  await downloadFromGitHub(
+    'saleor/react-storefront',
+    target,
+    'a5caa3f2580ad075faeee9d4a2125e77bc60f6d8'
+  );
 
   process.chdir(target);
   spinner.text = 'Creating .env...';

@@ -55,7 +55,11 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   const spinner = ora('Downloading...').start();
   debug('downloading the `master` app template');
-  await downloadFromGitHub('saleor/saleor-app-template', target);
+  await downloadFromGitHub(
+    'saleor/saleor-app-template',
+    target,
+    '659ed312a4930e38150276e0ea714efc6ccc22e3'
+  );
 
   process.chdir(target);
 
