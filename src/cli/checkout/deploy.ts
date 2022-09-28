@@ -4,10 +4,6 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { setupSaleorAppCheckout } from '../../lib/deploy.js';
-import {
-  getEnvironment,
-  getEnvironmentGraphqlEndpoint,
-} from '../../lib/environment.js';
 import { contentBox } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import { Options } from '../../types.js';
@@ -28,8 +24,10 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', argv);
 
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
-  debug(`Saleor endpoint: ${endpoint}`);
+  const domain = argv.instance;
+  const endpoint = `${domain}/graphql/`;
+
+  debug(`Saleor API URL: ${domain}`);
 
   const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =
     await Config.get();
@@ -47,15 +45,12 @@ export const handler = async (argv: Arguments<Options>) => {
       argv
     );
 
-    const { domain } = await getEnvironment(argv);
-
-    const appDashboardURL = `https://${domain}/dashboard/apps/${encodeURIComponent(
-      appId
-    )}/app`;
+    const app = encodeURIComponent(appId);
+    const appDashboardURL = `${domain}/dashboard/apps/${app}/app`;
 
     const summary = `
   Your deployment is ready. Some useful links:
-  Saleor Dashboard: ${chalk.blue(`https://${domain}/dashboard`)}
+  Saleor Dashboard: ${chalk.blue(`${domain}/dashboard`)}
   GraphQL Playground: ${chalk.blue(endpoint)}
   Checkout App configuration page:
   ${chalk.blue(appDashboardURL)}
