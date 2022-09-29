@@ -22,7 +22,7 @@ export const trigger = async (
   options: {},
   defaults = DefaultTriggerResponse
 ) => {
-  if (!shouldRunCommand) {
+  if (shouldMockTests) {
     return defaults;
   }
 
@@ -53,7 +53,7 @@ export const trigger = async (
   };
 };
 
-export const shouldRunCommand = !process.env.CI;
+export const shouldMockTests = !process.env.RUN_FUNCTIONAL_TESTS;
 export const command = 'saleor';
 export const testOrganization = 'cli-dev';
 export const testEnvironmentName = 'saleor-test';

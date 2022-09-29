@@ -46,7 +46,8 @@ jobs:
       - name: run tests
         env:
           SALEOR_CLI_ENV: staging
-        run: pnpm test test/functional --threads=false
+          RUN_FUNCTIONAL_TESTS: true
+        run: pnpm test-functional
 
       - name: Notify Slack
         if: ${{ failure() }}
