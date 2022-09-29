@@ -1,4 +1,3 @@
-import boxen from 'boxen';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
@@ -9,7 +8,7 @@ import { AppTokenCreate } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
-import { getAppsFromResult, printContext } from '../../lib/util.js';
+import { contentBox, getAppsFromResult, printContext } from '../../lib/util.js';
 import {
   useEnvironment,
   useOrganization,
@@ -52,7 +51,7 @@ export const handler = async (argv: Arguments<Options>) => {
   try {
     const authToken = await createAppToken(endpoint, appId);
     console.log();
-    console.log(boxen(`Your Token: ${authToken}`, { padding: 1 }));
+    contentBox(`  ${authToken}`, 'Your Token');
   } catch (error) {
     console.log(error);
   }

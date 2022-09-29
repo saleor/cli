@@ -433,9 +433,9 @@ const displayURLs = (spinner: Ora, deployment: Deployment) => {
   spinner.succeed('App successfully queued for deployment');
   console.log('');
 
-  const msg1 = chalk.blue(`https://${deployment.url}`);
+  const msg1 = chalk.blue(`  https://${deployment.url}`);
 
-  contentBox(msg1, 'Deployment URL');
+  contentBox(msg1, 'Deployment URL', false);
   console.log('');
 };
 

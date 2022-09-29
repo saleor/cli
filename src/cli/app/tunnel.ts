@@ -1,4 +1,3 @@
-import boxen from 'boxen';
 import chalk from 'chalk';
 import { spawn } from 'child_process';
 import Debug from 'debug';
@@ -16,7 +15,7 @@ import {
   verifyIsSaleorAppDirectory,
 } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { delay } from '../../lib/util.js';
+import { contentBox, delay } from '../../lib/util.js';
 import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -96,20 +95,13 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     const saleorAppURLMessage = `     Saleor App URL: ${chalk.blue(
       `https://${tunnelURL}`
     )}`;
-    const dashboaardMsg = `   Saleor Dashboard: ${chalk.blue(
+    const dashboardMsg = `   Saleor Dashboard: ${chalk.blue(
       `${baseURL}/dashboard/`
     )}`;
     const gqlMsg = ` GraphQL Playground: ${chalk.blue(`${baseURL}/graphql/`)}`;
 
-    console.log(
-      boxen(
-        `${saleorAppName}\n${saleorAppURLMessage}\n\n${dashboaardMsg}\n${gqlMsg}`,
-        {
-          padding: 1,
-          margin: 1,
-          borderColor: 'yellow',
-        }
-      )
+    contentBox(
+      `${saleorAppName}\n${saleorAppURLMessage}\n\n${dashboardMsg}\n${gqlMsg}`
     );
 
     await delay(1000);

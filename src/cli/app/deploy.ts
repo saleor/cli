@@ -147,19 +147,20 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const projectManifestURL = `https://${domain.name}/api/manifest`;
 
-  const msg1 = `     ${chalk.dim('Using the CLI')}: ${chalk.green(
+  const msg1 = ` ${chalk.dim('Using the CLI')}: ${chalk.green(
     'saleor app install'
-  )} and pass the following domain ${chalk.yellow(
-    projectManifestURL
-  )} as Manifest URL`;
+  )} and pass the following domain as Manifest URL\n
+  ${chalk.yellow(projectManifestURL)}`;
   const msg2 = `${chalk.dim(
     'Using Dashboard UI'
   )}: open the following URL in the browser\n
-${chalk.blue(argv.instance)}/dashboard/apps/install?manifestUrl=${chalk.yellow(
+  ${chalk.blue(
+    argv.instance
+  )}/dashboard/apps/install?manifestUrl=${chalk.yellow(
     encodeURIComponent(projectManifestURL)
   )}`;
 
-  contentBox(` ${msg1}\n\n ${msg2}`);
+  contentBox(`${msg1}\n\n ${msg2}`, 'Install the app');
 
   process.exit(0);
 };

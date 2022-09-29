@@ -1,4 +1,3 @@
-import boxen from 'boxen';
 import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
@@ -8,6 +7,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET, POST, PUT } from '../../lib/index.js';
 import {
+  contentBox,
   deploy,
   validateEmail,
   validateLength,
@@ -242,20 +242,20 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   );
 
   const baseUrl = `https://${result.domain}`;
-  const dashboardMsg = chalk.blue(`Dashboard - ${baseUrl}/dashboard`);
+  const dashboardMsg = chalk(
+    '           Dashboard:',
+    chalk.blue(`${baseUrl}/dashboard`)
+  );
   const accessMsg =
     access || !!argv.email
-      ? `Please check your email - ${email} - to setup your dashboard access.`
+      ? `\n\n  Please check your email - ${email} - to setup your dashboard access.`
       : '';
-  const gqlMsg = chalk.blue(`GraphQL Playground - ${baseUrl}/graphql/`);
-  console.log(
-    boxen(
-      `${dashboardMsg}
-  ${accessMsg}
-${gqlMsg}`,
-      { padding: 1, borderStyle: 'round' }
-    )
+  const gqlMsg = chalk(
+    '  GraphQL Playground:',
+    chalk.blue(`${baseUrl}/graphql/`)
   );
+
+  contentBox(`${dashboardMsg}\n${gqlMsg}${accessMsg}`);
 
   if (access || !!argv.email) {
     (await GET(API.SetAdminAccount, {
