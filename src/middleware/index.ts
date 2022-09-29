@@ -71,16 +71,20 @@ export const useInstanceConnector = async (argv: Options) => {
   const { instance } = argv;
 
   if (instance) {
-    const instanceURL = instance.startsWith('http')
-      ? instance
-      : `https://${instance}`;
+    try {
+      const { protocol, host } = new URL(instance);
+      const instanceURL = `${protocol}//${host}`;
 
-    // TODO API Call for org & env
+      // TODO API Call for org & env
 
-    return {
-      ...(await useToken(argv)),
-      instance: instanceURL,
-    };
+      return {
+        ...(await useToken(argv)),
+        instance: instanceURL,
+      };
+    } catch (error) {
+      console.error('Provided URL is invalid');
+      process.exit(1);
+    }
   }
 
   const stacked = useInstanceAttacher({
