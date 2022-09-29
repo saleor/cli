@@ -435,7 +435,7 @@ const displayURLs = (spinner: Ora, deployment: Deployment) => {
 
   const msg1 = chalk.blue(`  https://${deployment.url}`);
 
-  contentBox(msg1, 'Deployment URL', false);
+  contentBox(msg1, { title: 'Deployment URL', borderBottom: false });
   console.log('');
 };
 

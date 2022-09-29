@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import chalk from 'chalk';
+import chalk, { Chalk } from 'chalk';
 import { format } from 'date-fns';
 import { emphasize } from 'emphasize';
 import Enquirer from 'enquirer';
@@ -542,15 +542,21 @@ export const getAppsFromResult = (result: any) => {
   return apps;
 };
 
+// eslint-disable-next-line no-shadow
+export enum ChalkColor {
+  Green = 'green',
+  Yellow = 'yellow',
+  Blue = 'blue',
+}
+
 export const contentBox = (
   lines: string | string[],
-  title = '',
-  borderBottom = true
+  { title = '', borderBottom = true, color = ChalkColor.Blue } = {}
 ) => {
   const content = Array.isArray(lines) ? lines.join(' ') : lines;
   const width = process.stdout.columns;
   const wrappedTitle = title.length === 0 ? '' : ` ${title} `;
-  const headerLine = chalk.blue(
+  const headerLine = chalk[color](
     `──${wrappedTitle}${'─'.repeat(width - wrappedTitle.length - 2)}`
   );
 
@@ -560,7 +566,7 @@ export const contentBox = (
   console.log('');
 
   if (borderBottom) {
-    console.log(chalk.blue('─').repeat(width));
+    console.log(chalk[color]('─').repeat(width));
   }
 };
 
