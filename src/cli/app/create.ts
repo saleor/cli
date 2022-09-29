@@ -1,4 +1,3 @@
-import boxen from 'boxen';
 import chalk from 'chalk';
 import Debug from 'debug';
 import { access } from 'fs/promises';
@@ -12,7 +11,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
-import { checkPnpmPresence } from '../../lib/util.js';
+import { checkPnpmPresence, contentBox } from '../../lib/util.js';
 import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 
@@ -45,13 +44,8 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     path.join(process.env.PWD || '.', target)
   )}`;
   const appMsg = ` Package name: ${chalk.blue(packageName)}`;
-  console.log(
-    boxen(`${dirMsg}\n${appMsg}`, {
-      padding: 1,
-      margin: 1,
-      borderColor: 'yellow',
-    })
-  );
+
+  contentBox(`    ${dirMsg}\n    ${appMsg}`);
 
   const spinner = ora('Downloading...').start();
   debug('downloading the `master` app template');

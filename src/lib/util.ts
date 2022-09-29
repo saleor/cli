@@ -398,27 +398,16 @@ export const deploy = async ({ name, url }: { name: string; url: string }) => {
 
   const queryParams = new URLSearchParams(params);
 
-  console.log('');
-  console.log(
-    'You will be redirected to Vercel\'s deployment page to finish the process'
-  );
-  console.log(
-    `Use the following ${chalk.underline(
+  contentBox([
+    '  To complete the deployment, open the following link in your browser and continue there: \n\n',
+    chalk.blue(`https://vercel.com/new/clone?${queryParams}\n\n`),
+    ` Use the following ${chalk.underline(
       'Environment Variables'
-    )} for configuration:`
-  );
-
-  console.log(
-    `\n${chalk.gray('NEXT_PUBLIC_API_URI')}=${chalk.yellow(
+    )} for configuration:`,
+    `\n\n  ${chalk.gray('NEXT_PUBLIC_API_URI')}=${chalk.yellow(
       `${url}/graphql/`
-    )}\n`
-  );
-
-  console.log(
-    'To complete the deployment, open the following link in your browser and continue there:'
-  );
-  console.log(`
-https://vercel.com/new/clone?${queryParams}`);
+    )}`,
+  ]);
 };
 
 export const checkIfJobSucceeded = async (taskId: string): Promise<boolean> => {
@@ -553,20 +542,26 @@ export const getAppsFromResult = (result: any) => {
   return apps;
 };
 
-export const contentBox = (content: string, title = '') => {
+export const contentBox = (
+  lines: string | string[],
+  title = '',
+  borderBottom = true
+) => {
+  const content = Array.isArray(lines) ? lines.join(' ') : lines;
   const width = process.stdout.columns;
-  const wrappedTitle = title.length === 0 ? '' : title;
+  const wrappedTitle = title.length === 0 ? '' : ` ${title} `;
   const headerLine = chalk.blue(
-    '──',
-    wrappedTitle,
-    '─'.repeat(width - wrappedTitle.length - 4)
+    `──${wrappedTitle}${'─'.repeat(width - wrappedTitle.length - 2)}`
   );
 
   console.log(headerLine);
   console.log('');
   console.log(content);
   console.log('');
-  console.log(chalk.blue('─').repeat(width));
+
+  if (borderBottom) {
+    console.log(chalk.blue('─').repeat(width));
+  }
 };
 
 export const without = (name: string) => (record: any) => record.name !== name;
