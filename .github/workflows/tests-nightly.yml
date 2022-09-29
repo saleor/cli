@@ -1,0 +1,60 @@
+name: Execute nightly tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        required: true
+        description: 'Select tag to run'
+        default: '@next'
+        type: choice
+        options:
+        - '@next'
+        - '@latest'
+
+  schedule:
+    - cron: '00 12 * * 1-5'
+
+  repository_dispatch:
+    types: [automation-tests-event]
+
+jobs:
+  run-functional-tests:
+    if: ${{ github.event_name != 'repository_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.2
+        with:
+          version: 7.5.0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Write config file
+        id: write-config-file
+        env:
+          CLI_ACCESS_TOKEN: ${{ secrets.CLOUD_ACCESS_TOKEN }}
+          CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLI_VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: echo '{"token":"Token ${{ secrets.CLI_CLOUD_ACCESS_TOKEN }}","telemetry":"false", "github_token":"${{ secrets.CLI_GITHUB_TOKEN }}", "vercel_token":"${{ secrets.CLI_VERCEL_TOKEN }}"  }' > ~/.config/saleor.json
+
+      - name: run tests
+        env:
+          SALEOR_CLI_ENV: staging
+        run: pnpm test test/functional --threads=false
+
+      - name: Notify Slack
+        if: ${{ failure() }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_SNAP_RESTORE }}
+          SLACK_USERNAME: FunctionalTestsBot
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_TITLE: "Functional tests failed"
+          SLACK_MESSAGE: "https://github.com/saleor/saleor-cli/actions/workflows/tests-nightly.yml"
+          MSG_MINIMAL: true
