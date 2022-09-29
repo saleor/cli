@@ -51,7 +51,7 @@ export const handler = async (argv: Arguments<Options>) => {
   try {
     const authToken = await createAppToken(endpoint, appId);
     console.log();
-    contentBox(`  ${authToken}`, 'Your Token');
+    contentBox(`  ${authToken}`, { title: 'Your Token' });
   } catch (error) {
     console.log(error);
   }

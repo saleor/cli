@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import * as Sentry from '@sentry/node';
-import boxen from 'boxen';
 import chalk from 'chalk';
 import Debug from 'debug';
 import { emphasize } from 'emphasize';
@@ -37,6 +36,8 @@ import { header } from './lib/images.js';
 import { API, GET, getEnvironment } from './lib/index.js';
 import {
   AuthError,
+  ChalkColor,
+  contentBox,
   fetchLatestPackageVersion,
   NotSaleorAppDirectoryError,
   SaleorAppInstallError,
@@ -62,8 +63,9 @@ const {
 } = await Config.get();
 
 if (
-  !lastUpdateCheck ||
-  Date.now() - new Date(lastUpdateCheck).valueOf() > 1000 * 60 * 60 * 24 // 1 day
+  pkg.verion !== 'DEV' &&
+  (!lastUpdateCheck ||
+    Date.now() - new Date(lastUpdateCheck).valueOf() > 1000 * 60 * 60 * 24) // 1 day
 ) {
   debug(`checking for a new version of '${pkg.name}'...`);
   const latestVersion = await fetchLatestPackageVersion(pkg.name);
@@ -71,19 +73,13 @@ if (
 
   if (semver.compare(latestVersion, pkg.version) > 0) {
     const updateCommand = `npm i -g ${pkg.name}`;
-    const message = `Update available ${chalk.dim(pkg.version)} ${chalk.reset(
+    const message = `  Update available ${chalk.dim(pkg.version)} ${chalk.reset(
       ' → '
     )} ${chalk.green(latestVersion)}
-    Run ${chalk.cyan(updateCommand)} to update`;
+  Run ${chalk.cyan(updateCommand)} to update`;
 
-    console.log(
-      boxen(message, {
-        padding: 1,
-        margin: 1,
-        textAlignment: 'center',
-        borderColor: 'yellow',
-      })
-    );
+    console.log('');
+    console.log(contentBox(message, { color: ChalkColor.Yellow }));
   }
 }
 

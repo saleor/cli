@@ -160,7 +160,7 @@ export const handler = async (argv: Arguments<Options>) => {
     encodeURIComponent(projectManifestURL)
   )}`;
 
-  contentBox(`${msg1}\n\n ${msg2}`, 'Install the app');
+  contentBox(`${msg1}\n\n ${msg2}`, { title: 'Install the app' });
 
   process.exit(0);
 };
