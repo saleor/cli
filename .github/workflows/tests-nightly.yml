@@ -3,7 +3,7 @@ name: Execute nightly tests
 on:
   workflow_dispatch:
     inputs:
-      tags:
+      tag:
         required: true
         description: 'Select tag to run'
         default: '@next'
@@ -34,6 +34,10 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install
+
+      - name: Install saleor cli
+        id: install-saleor-cli
+        run: pnpm i -g @saleor/cli${{ github.event.inputs.tag }}
 
       - name: Write config file
         id: write-config-file
