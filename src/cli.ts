@@ -103,11 +103,7 @@ const parser = yargs(hideBin(process.argv))
   .command(login)
   .command(logout)
   .command(configure)
-  .command({
-    command: 'register',
-    aliases: ['signup'],
-    handler: (argv) => register.handler(argv),
-  })
+  .command(register)
   .command(trigger)
   .command(['organization [command]', 'org'], '', organization)
   .command(['environment [command]', 'env'], '', environment)
