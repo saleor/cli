@@ -388,9 +388,9 @@ export const interactiveWebhook = async (argv: Options) => {
   return {};
 };
 
-export const useOnlineChecker = async (argv: Arguments) => {
+export const useOnlineChecker = async () => {
   try {
-    await util.promisify(exec)('ping -c 1 -t 1 1.1.1.1');
+    await util.promisify(exec)('ping -c 1 1.1.1.1');
   } catch (error) {
     console.error(
       `You are ${chalk.red(
