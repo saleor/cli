@@ -3,7 +3,7 @@ import Debug from 'debug';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { doSaleorAppDelete } from '../../lib/common.js';
-import { printContext } from '../../lib/util.js';
+import { obfuscateArgv, printContext } from '../../lib/util.js';
 import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -15,7 +15,7 @@ export const desc = 'Uninstall a Saleor App by name';
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { organization, environment } = argv;
 

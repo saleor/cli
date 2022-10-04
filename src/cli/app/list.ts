@@ -10,6 +10,7 @@ import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import {
   formatDateTime,
   getAppsFromResult,
+  obfuscateArgv,
   printContext,
 } from '../../lib/util.js';
 import {
@@ -27,7 +28,7 @@ export const command = 'list';
 export const desc = 'List installed Saleor Apps for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { organization, environment } = argv;
 

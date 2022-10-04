@@ -39,7 +39,6 @@ export const useToken = async ({ token }: Options) => {
 
   if (!token) {
     const config = await Config.get();
-    debug('useDefault', config);
     const { token: configToken } = config;
 
     if (configToken) {
@@ -134,7 +133,6 @@ export const useOrganization = async ({
 
   if (!organization) {
     const config = await Config.get();
-    debug('useDefault', config);
     const { organization_slug: organizationSlug } = config;
 
     if (organizationSlug) {
@@ -257,7 +255,6 @@ export const useEnvironment = async ({
     opts = { ...opts, ...{ environment: env.key } };
   } else {
     const config = await Config.get();
-    debug('useDefault', config);
     const { environment_id: environmentId } = config;
 
     if (environmentId) {

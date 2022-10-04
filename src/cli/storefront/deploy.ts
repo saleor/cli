@@ -13,6 +13,7 @@ import {
   setupSaleorAppCheckout,
   triggerDeploymentInVercel,
 } from '../../lib/deploy.js';
+import { obfuscate, obfuscateArgv } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import {
   useAppConfig,
@@ -47,7 +48,7 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<StoreDeploy>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const name = await getPackageName();
 
@@ -58,7 +59,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   );
 
   const { vercel_token: vercelToken } = await Config.get();
-  debug(`Your Vercel token: ${vercelToken}`);
+  debug(`Your Vercel token: ${obfuscate(vercelToken)}`);
 
   const vercel = new Vercel(vercelToken);
   const repoUrl = await getRepoUrl(name, argv.githubPrompt);

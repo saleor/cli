@@ -15,7 +15,7 @@ import {
   verifyIsSaleorAppDirectory,
 } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { contentBox, delay } from '../../lib/util.js';
+import { contentBox, delay, obfuscateArgv } from '../../lib/util.js';
 import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -37,7 +37,7 @@ export const builder: CommandBuilder = (_) =>
     .option('force-install', { type: 'boolean', default: false });
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   debug(`Starting the tunnel with the port: ${argv.port}`);
   const __dirname = path.dirname(fileURLToPath(import.meta.url));

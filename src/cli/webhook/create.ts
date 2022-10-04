@@ -13,7 +13,7 @@ import { doWebhookCreate } from '../../graphql/doWebhookCreate.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
-import { without } from '../../lib/util.js';
+import { obfuscateArgv, without } from '../../lib/util.js';
 import { interactiveSaleorApp } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -25,7 +25,7 @@ export const desc = 'Create a new webhook';
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { environment, app } = argv;
   const {

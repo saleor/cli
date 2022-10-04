@@ -12,7 +12,12 @@ import {
   getRepoUrl,
   triggerDeploymentInVercel,
 } from '../../lib/deploy.js';
-import { contentBox, NameMismatchError } from '../../lib/util.js';
+import {
+  contentBox,
+  NameMismatchError,
+  obfuscate,
+  obfuscateArgv,
+} from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import {
   useAppConfig,
@@ -54,7 +59,7 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const name = await getPackageName();
 
@@ -67,7 +72,7 @@ export const handler = async (argv: Arguments<Options>) => {
   console.log(`Deployment destination: ${chalk.magenta('Vercel')}\n`);
 
   const { vercel_token: vercelToken } = await Config.get();
-  debug(`Your Vercel token: ${vercelToken}`);
+  debug(`Your Vercel token: ${obfuscate(vercelToken)}`);
   const vercel = new Vercel(vercelToken);
 
   const repoURL = await getRepoUrl(name, argv.githubPrompt);

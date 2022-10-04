@@ -2,7 +2,7 @@ import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { API, POST } from '../../lib/index.js';
-import { showResult, waitForTask } from '../../lib/util.js';
+import { obfuscateArgv, showResult, waitForTask } from '../../lib/util.js';
 
 const debug = Debug('saleor-cli:backup:create');
 
@@ -17,7 +17,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<any>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { name } = argv;
 

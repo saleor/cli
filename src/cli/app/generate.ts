@@ -12,7 +12,12 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { GetWebhookEventEnum } from '../../generated/graphql.js';
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
-import { capitalize, uncapitalize, without } from '../../lib/util.js';
+import {
+  capitalize,
+  obfuscateArgv,
+  uncapitalize,
+  without,
+} from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -30,7 +35,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { resource } = argv;
 

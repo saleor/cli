@@ -8,7 +8,12 @@ import { AppTokenCreate } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
-import { contentBox, getAppsFromResult, printContext } from '../../lib/util.js';
+import {
+  contentBox,
+  getAppsFromResult,
+  obfuscateArgv,
+  printContext,
+} from '../../lib/util.js';
 import {
   useEnvironment,
   useOrganization,
@@ -29,7 +34,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { organization, environment } = argv;
 

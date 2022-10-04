@@ -4,7 +4,11 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { API, DELETE } from '../../lib/index.js';
-import { confirmRemoval, promptOrganization } from '../../lib/util.js';
+import {
+  confirmRemoval,
+  obfuscateArgv,
+  promptOrganization,
+} from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:org:remove');
@@ -23,7 +27,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
   const organization = argv.slug
     ? { name: argv.slug, value: argv.slug }
     : await promptOrganization(argv);

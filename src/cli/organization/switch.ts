@@ -4,7 +4,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
-import { promptOrganization } from '../../lib/util.js';
+import { obfuscateArgv, promptOrganization } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:org:switch');
@@ -20,7 +20,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
   const organization = await getOrganization(argv);
 
   await Config.set('organization_slug', organization.value);

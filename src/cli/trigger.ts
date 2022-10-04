@@ -8,7 +8,7 @@ import * as SaleorGraphQL from '../generated/graphql.js';
 import { Config } from '../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../lib/environment.js';
 import { DefaultSaleorEndpoint } from '../lib/index.js';
-import { capitalize } from '../lib/util.js';
+import { capitalize, obfuscateArgv } from '../lib/util.js';
 import {
   useEnvironment,
   useOrganization,
@@ -25,7 +25,7 @@ export const builder: CommandBuilder = (_) =>
   _.option('event', { type: 'string' }).option('id', { type: 'string' });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { id } = argv;
   let { event } = argv;

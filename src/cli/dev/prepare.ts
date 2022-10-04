@@ -6,6 +6,7 @@ import { Arguments } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
+import { obfuscateArgv } from '../../lib/util.js';
 import { useGithub } from '../../middleware/index.js';
 
 interface Options {
@@ -18,7 +19,7 @@ export const command = 'prepare [branch|prURL]';
 export const desc = 'Build cli from branch or pull request URL';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const git = simpleGit();
 

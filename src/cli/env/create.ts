@@ -9,6 +9,7 @@ import { API, GET, POST, PUT } from '../../lib/index.js';
 import {
   contentBox,
   deploy,
+  obfuscateArgv,
   validateEmail,
   validateLength,
   waitForTask,
@@ -84,7 +85,7 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   debug('creating environment');
   const result = await createEnvironment(argv);

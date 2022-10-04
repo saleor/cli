@@ -4,7 +4,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { setupSaleorAppCheckout } from '../../lib/deploy.js';
-import { contentBox } from '../../lib/util.js';
+import { contentBox, obfuscate, obfuscateArgv } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
 import { Options } from '../../types.js';
 
@@ -22,7 +22,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const domain = argv.instance;
   const endpoint = `${domain}/graphql/`;
@@ -32,7 +32,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const { vercel_token: vercelToken, vercel_team_id: vercelTeamId } =
     await Config.get();
 
-  debug(`Your Vercel token: ${vercelToken}`);
+  debug(`Your Vercel token: ${obfuscate(vercelToken)}`);
   const vercel = new Vercel(vercelToken);
 
   if (!vercelToken) {
