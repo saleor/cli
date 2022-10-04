@@ -4,7 +4,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { API, DELETE, GET } from '../../lib/index.js';
-import { confirmRemoval, waitForTask } from '../../lib/util.js';
+import { confirmRemoval, obfuscateArgv, waitForTask } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options, Task } from '../../types.js';
 
@@ -24,7 +24,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { environment } = argv;
 

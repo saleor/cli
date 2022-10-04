@@ -7,7 +7,7 @@ import { Arguments } from 'yargs';
 import { WebhookList } from '../../graphql/WebhookList.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
-import { getAppsFromResult } from '../../lib/util.js';
+import { getAppsFromResult, obfuscateArgv } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
@@ -18,7 +18,7 @@ export const command = 'list';
 export const desc = 'List webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 

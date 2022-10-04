@@ -4,7 +4,11 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { API, PUT } from '../../lib/index.js';
-import { promptOrganizationBackup, waitForTask } from '../../lib/util.js';
+import {
+  obfuscateArgv,
+  promptOrganizationBackup,
+  waitForTask,
+} from '../../lib/util.js';
 import { Options } from '../../types.js';
 import { updateWebhook } from '../webhook/update.js';
 
@@ -25,7 +29,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const from = await getBackup(argv);
 

@@ -8,7 +8,7 @@ import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { NoCommandBuilderSetup } from '../../lib/index.js';
-import { validatePresence } from '../../lib/util.js';
+import { obfuscateArgv, validatePresence } from '../../lib/util.js';
 import {
   interactiveSaleorApp,
   interactiveWebhook,
@@ -23,7 +23,7 @@ export const desc = 'Edit a webhook';
 export const builder = NoCommandBuilderSetup;
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
   const { environment, webhookID } = argv;
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();

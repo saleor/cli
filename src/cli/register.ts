@@ -4,6 +4,8 @@ import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { Arguments, CommandBuilder } from 'yargs';
 
+import { obfuscateArgv } from '../lib/util';
+
 const { ux: cli } = CliUx;
 
 const debug = Debug('saleor-cli:register');
@@ -19,7 +21,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const link = 'https://cloud.saleor.io/signup';
 

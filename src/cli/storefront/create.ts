@@ -15,6 +15,7 @@ import {
   capitalize,
   checkPnpmPresence,
   getSortedServices,
+  obfuscateArgv,
 } from '../../lib/util.js';
 import {
   useEnvironment,
@@ -50,7 +51,7 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   if (argv.demo) {
     debug('demo mode');

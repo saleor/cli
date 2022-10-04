@@ -4,7 +4,11 @@ import Debug from 'debug';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
-import { formatDateTime, verifyResultLength } from '../../lib/util.js';
+import {
+  formatDateTime,
+  obfuscateArgv,
+  verifyResultLength,
+} from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
@@ -21,7 +25,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const { extended } = argv;
   const result = (await GET(API.Environment, {

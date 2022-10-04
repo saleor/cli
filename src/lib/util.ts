@@ -7,6 +7,7 @@ import got from 'got';
 import { lookpath } from 'lookpath';
 import ora from 'ora';
 import yaml from 'yaml';
+import { Arguments } from 'yargs';
 
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
 import { SaleorAppList } from '../graphql/SaleorAppList.js';
@@ -114,6 +115,19 @@ export const makeRequestAppList = async (argv: any) => {
 //
 // P U B L I C
 //
+
+export const obfuscate = (value: string) => `${value.slice(0, 12)} ****`;
+export const obfuscateArgv = (argv: Arguments<Options>) => {
+  // immutable
+  // structuredClone, available from Node.js 17
+  const argvCopy = Object.fromEntries(Object.entries(argv));
+
+  if (argv.token) {
+    argvCopy.token = obfuscate(argv.token);
+  }
+
+  return argvCopy;
+};
 
 export const checkPnpmPresence = async (entity: string) => {
   const pnpm = await lookpath('pnpm');

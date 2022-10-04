@@ -11,7 +11,11 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
-import { checkPnpmPresence, contentBox } from '../../lib/util.js';
+import {
+  checkPnpmPresence,
+  contentBox,
+  obfuscateArgv,
+} from '../../lib/util.js';
 import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 
@@ -32,7 +36,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   debug('check PNPM presence');
   await checkPnpmPresence('This Saleor App template');

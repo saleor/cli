@@ -4,7 +4,7 @@ import Debug from 'debug';
 import { Arguments } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
-import { formatDateTime } from '../../lib/util.js';
+import { formatDateTime, obfuscateArgv } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
@@ -15,7 +15,7 @@ export const command = 'list';
 export const desc = 'List projects';
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
   const result = (await GET(API.Project, argv)) as any[];
 
   cli.table(result, {

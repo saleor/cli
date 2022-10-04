@@ -3,7 +3,7 @@ import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
-import { promptEnvironment } from '../../lib/util.js';
+import { obfuscateArgv, promptEnvironment } from '../../lib/util.js';
 
 type Options = {
   key?: string;
@@ -22,7 +22,7 @@ export const builder: CommandBuilder = (_) =>
   });
 
 export const handler = async (argv: Arguments<Options>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
 
   const environment = await getEnvironment(argv);
 

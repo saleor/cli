@@ -1,7 +1,7 @@
 import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
-import { createProject } from '../../lib/util.js';
+import { createProject, obfuscateArgv } from '../../lib/util.js';
 import { ProjectCreate } from '../../types.js';
 
 const debug = Debug('saleor-cli:project:create');
@@ -25,6 +25,6 @@ export const builder: CommandBuilder = (_) =>
     });
 
 export const handler = async (argv: Arguments<ProjectCreate>) => {
-  debug('command arguments: %O', argv);
+  debug('command arguments: %O', obfuscateArgv(argv));
   await createProject(argv);
 };
