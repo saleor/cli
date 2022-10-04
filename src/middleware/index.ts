@@ -389,15 +389,20 @@ export const interactiveWebhook = async (argv: Options) => {
 };
 
 export const useOnlineChecker = async () => {
-  try {
-    await util.promisify(exec)('ping -c 1 1.1.1.1');
-  } catch (error) {
-    console.error(
-      `You are ${chalk.red(
-        'offline'
-      )}. Saleor CLI requires Internet access to operate. Check your connection.`
-    );
-    process.exit(1);
+  // check only if not in CI
+  // `ping` doesn't work in GitHub Actions
+  // ref. https://github.com/actions/runner-images/issues/1519#issuecomment-683790054
+  if (!process.env.CI) {
+    try {
+      await util.promisify(exec)('ping -c 1 1.1.1.1');
+    } catch (error) {
+      console.error(
+        `You are ${chalk.red(
+          'offline'
+        )}. Saleor CLI requires Internet access to operate. Check your connection.`
+      );
+      process.exit(1);
+    }
   }
 };
 
