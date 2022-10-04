@@ -17,12 +17,7 @@ import {
   getSortedServices,
   obfuscateArgv,
 } from '../../lib/util.js';
-import {
-  useEnvironment,
-  useInstanceAttacher,
-  useOrganization,
-  useToken,
-} from '../../middleware/index.js';
+import { useOrganization, useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 import { setupGitRepository } from '../app/create.js';
 import { createEnvironment } from '../env/create.js';
@@ -33,6 +28,8 @@ export const command = 'create [name]';
 export const desc = 'Bootstrap example [name]';
 
 const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);
+
+const SaleorReactStorefrontRepo = 'saleor/react-storefront';
 
 export const builder: CommandBuilder = (_) =>
   _.positional('name', {
@@ -48,6 +45,11 @@ export const builder: CommandBuilder = (_) =>
     .option('environment', {
       type: 'string',
       desc: 'specify environment id',
+    })
+    .option('commit', {
+      type: 'string',
+      default: 'a5caa3f2580ad075faeee9d4a2125e77bc60f6d8',
+      alias: 'c',
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -186,13 +188,11 @@ const prepareEnvironment = async (
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await checkPnpmPresence('react-storefront project');
 
+  const { name, commit } = argv;
+
   const spinner = ora('Downloading...').start();
-  const target = await getFolderName(sanitize(argv.name));
-  await downloadFromGitHub(
-    'saleor/react-storefront',
-    target,
-    'a5caa3f2580ad075faeee9d4a2125e77bc60f6d8'
-  );
+  const target = await getFolderName(sanitize(name));
+  await downloadFromGitHub(SaleorReactStorefrontRepo, target, commit);
 
   process.chdir(target);
   spinner.text = 'Creating .env...';

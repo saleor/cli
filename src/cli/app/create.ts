@@ -16,7 +16,7 @@ import {
   contentBox,
   obfuscateArgv,
 } from '../../lib/util.js';
-import { useToken } from '../../middleware/index.js';
+import { useAppConfig, useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 
 const debug = Debug('saleor-cli:app:create');
@@ -29,11 +29,19 @@ export const builder: CommandBuilder = (_) =>
     type: 'string',
     demandOption: true,
     default: 'my-saleor-app',
-  }).option('dependencies', {
-    type: 'boolean',
-    default: true,
-    alias: 'deps',
-  });
+  })
+    .option('dependencies', {
+      type: 'boolean',
+      default: true,
+      alias: 'deps',
+    })
+    .option('commit', {
+      type: 'string',
+      default: '1e3de9d775f2715d988c4ef90aee9101ea30fb16',
+      alias: 'c',
+    });
+
+const SaleorAppTemplateRepo = 'saleor/saleor-app-template';
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -53,11 +61,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   const spinner = ora('Downloading...').start();
   debug('downloading the `master` app template');
-  await downloadFromGitHub(
-    'saleor/saleor-app-template',
-    target,
-    '659ed312a4930e38150276e0ea714efc6ccc22e3'
-  );
+  await downloadFromGitHub(SaleorAppTemplateRepo, target, argv.commit);
 
   process.chdir(target);
 
