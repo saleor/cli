@@ -9,6 +9,7 @@ import sanitize from 'sanitize-filename';
 import { simpleGit } from 'simple-git';
 import { Arguments, CommandBuilder } from 'yargs';
 
+import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
 import {
@@ -29,11 +30,17 @@ export const builder: CommandBuilder = (_) =>
     type: 'string',
     demandOption: true,
     default: 'my-saleor-app',
-  }).option('dependencies', {
-    type: 'boolean',
-    default: true,
-    alias: 'deps',
-  });
+  })
+    .option('dependencies', {
+      type: 'boolean',
+      default: true,
+      alias: 'deps',
+    })
+    .option('commit', {
+      type: 'string',
+      default: Config.SaleorAppHash,
+      alias: 'c',
+    });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -53,11 +60,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   const spinner = ora('Downloading...').start();
   debug('downloading the `master` app template');
-  await downloadFromGitHub(
-    'saleor/saleor-app-template',
-    target,
-    '659ed312a4930e38150276e0ea714efc6ccc22e3'
-  );
+  await downloadFromGitHub(Config.SaleorAppRepo, target, argv.commit);
 
   process.chdir(target);
 

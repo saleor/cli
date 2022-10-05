@@ -8,6 +8,7 @@ import replace from 'replace-in-file';
 import sanitize from 'sanitize-filename';
 import { Arguments, CommandBuilder } from 'yargs';
 
+import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
 import { API, GET, POST } from '../../lib/index.js';
@@ -17,12 +18,7 @@ import {
   getSortedServices,
   obfuscateArgv,
 } from '../../lib/util.js';
-import {
-  useEnvironment,
-  useInstanceAttacher,
-  useOrganization,
-  useToken,
-} from '../../middleware/index.js';
+import { useOrganization, useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 import { setupGitRepository } from '../app/create.js';
 import { createEnvironment } from '../env/create.js';
@@ -48,6 +44,11 @@ export const builder: CommandBuilder = (_) =>
     .option('environment', {
       type: 'string',
       desc: 'specify environment id',
+    })
+    .option('commit', {
+      type: 'string',
+      default: Config.SaleorStorefrontHash,
+      alias: 'c',
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -186,13 +187,11 @@ const prepareEnvironment = async (
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await checkPnpmPresence('react-storefront project');
 
+  const { name, commit } = argv;
+
   const spinner = ora('Downloading...').start();
-  const target = await getFolderName(sanitize(argv.name));
-  await downloadFromGitHub(
-    'saleor/react-storefront',
-    target,
-    'a5caa3f2580ad075faeee9d4a2125e77bc60f6d8'
-  );
+  const target = await getFolderName(sanitize(name));
+  await downloadFromGitHub(Config.SaleorStorefrontRepo, target, commit);
 
   process.chdir(target);
   spinner.text = 'Creating .env...';
