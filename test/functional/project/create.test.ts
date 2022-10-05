@@ -2,14 +2,14 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import {
   command,
+  currentDate,
   DefaultTriggerResponse,
-  randomString,
   testOrganization,
   trigger,
 } from '../../helper';
 
 describe('create new project', async () => {
-  const projectName = `test-project-${randomString()}`;
+  const projectName = `test-project-${currentDate()}`;
   const region = 'us-east-1';
   it(
     'creates a new project',
@@ -83,8 +83,8 @@ describe('create new project', async () => {
     const params = [
       'project',
       'remove',
-      `--organization=${testOrganization}`,
       projectName,
+      `--organization=${testOrganization}`,
       '--force',
     ];
     await trigger(command, params, {});
