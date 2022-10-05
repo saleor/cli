@@ -35,31 +35,44 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Install saleor cli
-        id: install-saleor-cli
-        run: pnpm i -g @saleor/cli${{ github.event.inputs.tag }}
+      - name: Prepare saleor CLI
+        run: pnpm build
 
       - name: Write config file
         id: write-config-file
         env:
-          CLI_ACCESS_TOKEN: ${{ secrets.CLOUD_ACCESS_TOKEN }}
-          CLI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLI_VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: echo '{"token":"Token ${{ secrets.CLI_CLOUD_ACCESS_TOKEN }}","telemetry":"false", "github_token":"${{ secrets.CLI_GITHUB_TOKEN }}", "vercel_token":"${{ secrets.CLI_VERCEL_TOKEN }}"  }' > ~/.config/saleor.json
+          CLI_ACCESS_TOKEN: ${{ secrets.CLI_ACCESS_TOKEN }}
+          CLI_GITHUB_TOKEN: ${{ secrets.CLI_GITHUB_TOKEN }}
+          CLI_VERCEL_TOKEN: ${{ secrets.CLI_VERCEL_TOKEN }}
+          TEST_COMMAND: 'node dist/saleor.js'
+        run: echo '{"token":"Token ${{ secrets.CLI_ACCESS_TOKEN }}","telemetry":"false", "github_token":"${{ secrets.CLI_GITHUB_TOKEN }}", "vercel_token":"${{ secrets.CLI_VERCEL_TOKEN }}"  }' > ~/.config/saleor.json
+
+      - name: pre run
+        env:
+          SALEOR_CLI_ENV: staging
+          RUN_FUNCTIONAL_TESTS: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          node dist/saleor.js info
+          node dist/saleor.js status
 
       - name: run tests
         env:
           SALEOR_CLI_ENV: staging
           RUN_FUNCTIONAL_TESTS: true
-        run: pnpm test-functional
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git config --global user.name 'GA-saleor-cli'
+          git config --global user.email 'GA-saleor-cli@users.noreply.github.com'
+          pnpm test-functional
 
-      - name: Notify Slack
-        if: ${{ failure() }}
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_SNAP_RESTORE }}
-          SLACK_USERNAME: FunctionalTestsBot
-          SLACK_COLOR: ${{ job.status }}
-          SLACK_TITLE: "Functional tests failed"
-          SLACK_MESSAGE: "https://github.com/saleor/saleor-cli/actions/workflows/tests-nightly.yml"
-          MSG_MINIMAL: true
+      # - name: Notify Slack
+      #   if: ${{ failure() }}
+      #   uses: rtCamp/action-slack-notify@v2
+      #   env:
+      #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_SNAP_RESTORE }}
+      #     SLACK_USERNAME: FunctionalTestsBot
+      #     SLACK_COLOR: ${{ job.status }}
+      #     SLACK_TITLE: "Functional tests failed"
+      #     SLACK_MESSAGE: "https://github.com/saleor/saleor-cli/actions/workflows/tests-nightly.yml"
+      #     MSG_MINIMAL: true

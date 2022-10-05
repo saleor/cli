@@ -1,26 +1,31 @@
-import crypto from 'crypto';
 import fs from 'fs-extra';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   command,
+  currentDate,
+  prepareEnvironment,
+  removeGithubRepository,
+  removeVercelProject,
   testEnvironmentName,
   testOrganization,
   trigger,
 } from '../../helper';
 
-const rand = crypto.randomBytes(256).toString('hex').substring(0, 7);
-const appName = `test-app-${rand}`;
-const storefrontCwd = `${process.cwd()}/${appName}`;
+const appName = `test-app-${currentDate()}`;
+const appCwd = `${process.cwd()}/${appName}`;
 
 beforeAll(async () => {
+  await prepareEnvironment();
   const params = ['app', 'create', appName];
   console.log(`creating an app ${appName}`);
   await trigger(command, params, {});
 }, 1000 * 600);
 
 afterAll(async () => {
-  await fs.remove(storefrontCwd);
+  await removeGithubRepository(appName, appCwd);
+  await removeVercelProject(appName);
+  await fs.remove(appCwd);
 });
 
 describe('app deploy', async () => {
@@ -35,7 +40,7 @@ describe('app deploy', async () => {
         `--organization=${testOrganization}`,
       ];
       const { exitCode } = await trigger(command, params, {
-        cwd: storefrontCwd,
+        cwd: appCwd,
       });
 
       expect(exitCode).toBe(0);
@@ -53,7 +58,7 @@ describe('app deploy', async () => {
         `--organization=${testOrganization}`,
       ];
       const { exitCode } = await trigger(command, params, {
-        cwd: storefrontCwd,
+        cwd: appCwd,
       });
 
       expect(exitCode).toBe(0);
