@@ -9,6 +9,7 @@ import sanitize from 'sanitize-filename';
 import { simpleGit } from 'simple-git';
 import { Arguments, CommandBuilder } from 'yargs';
 
+import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
 import {
@@ -16,7 +17,7 @@ import {
   contentBox,
   obfuscateArgv,
 } from '../../lib/util.js';
-import { useAppConfig, useToken } from '../../middleware/index.js';
+import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
 
 const debug = Debug('saleor-cli:app:create');
@@ -37,11 +38,9 @@ export const builder: CommandBuilder = (_) =>
     })
     .option('commit', {
       type: 'string',
-      default: '1e3de9d775f2715d988c4ef90aee9101ea30fb16',
+      default: Config.SaleorAppHash,
       alias: 'c',
     });
-
-const SaleorAppTemplateRepo = 'saleor/saleor-app-template';
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -61,7 +60,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   const spinner = ora('Downloading...').start();
   debug('downloading the `master` app template');
-  await downloadFromGitHub(SaleorAppTemplateRepo, target, argv.commit);
+  await downloadFromGitHub(Config.SaleorAppRepo, target, argv.commit);
 
   process.chdir(target);
 

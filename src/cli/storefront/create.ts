@@ -8,6 +8,7 @@ import replace from 'replace-in-file';
 import sanitize from 'sanitize-filename';
 import { Arguments, CommandBuilder } from 'yargs';
 
+import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
 import { downloadFromGitHub } from '../../lib/download.js';
 import { API, GET, POST } from '../../lib/index.js';
@@ -29,8 +30,6 @@ export const desc = 'Bootstrap example [name]';
 
 const nanoid = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyz', 10);
 
-const SaleorReactStorefrontRepo = 'saleor/react-storefront';
-
 export const builder: CommandBuilder = (_) =>
   _.positional('name', {
     type: 'string',
@@ -48,7 +47,7 @@ export const builder: CommandBuilder = (_) =>
     })
     .option('commit', {
       type: 'string',
-      default: 'a5caa3f2580ad075faeee9d4a2125e77bc60f6d8',
+      default: Config.SaleorStorefrontHash,
       alias: 'c',
     });
 
@@ -192,7 +191,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(name));
-  await downloadFromGitHub(SaleorReactStorefrontRepo, target, commit);
+  await downloadFromGitHub(Config.SaleorStorefrontRepo, target, commit);
 
   process.chdir(target);
   spinner.text = 'Creating .env...';

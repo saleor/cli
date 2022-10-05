@@ -110,7 +110,6 @@ export const useInstanceAttacher = async (argv: Options) => {
 };
 
 export const useAppConfig = async (argv: Options) => {
-  console.log('before', argv);
   try {
     const content = await fs.readFile(
       path.join(process.cwd(), 'saleor.config.json'),
