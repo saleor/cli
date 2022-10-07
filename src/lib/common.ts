@@ -75,13 +75,10 @@ export const doSaleorAppInstall = async (argv: any) => {
     process.exit(1);
   }
 
-  const { name } = await Enquirer.prompt<{ name: string }>({
-    type: 'input',
-    name: 'name',
-    message: 'App name',
-    skip: !!argv.appName,
-    initial: argv.appName ?? manifest.name,
-  });
+  const name = argv.appName ?? manifest.name;
+  console.log(
+    chalk(chalk.green('✔'), chalk.bold('Name'), '·', chalk.green(name))
+  );
 
   if (!argv.viaDashboard) {
     const { data, errors }: any = await got
