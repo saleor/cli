@@ -1,0 +1,32 @@
+name: Prepare a Release on GitHub
+on: 
+  workflow_dispatch:
+    inputs:
+      version:
+        type: choice
+        description: Which version to prepare a release?
+        options: 
+          - major 
+          - minor 
+          - patch
+          - preminor
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.2
+        with:
+          version: 7
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: pnpm
+      - name: Install the dependencies
+        run: pnpm install
+      - name: Create a draft release on GitHub
+        run: pnpm release-it --no-increment --no-git --no-npm --github.release  --github.draft --github.autoGenerate --github.releaseName='v${version}' --ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
