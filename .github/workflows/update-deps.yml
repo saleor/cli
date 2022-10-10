@@ -1,0 +1,35 @@
+name: Update dependencies 
+on: 
+  workflow_dispatch:
+    inputs:
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v2.2.2
+        with:
+          version: 7
+          run_install: |
+            - args: [--global, npm-check-updates]
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: pnpm
+      - name: Setup Git 
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+      - name: Install the dependencies
+        run: pnpm install
+      - name: Update dependencies 
+        run: ncu -u 
+      - name: Try to commit
+        run: git commit -am "Update dependencies"
+      - name: Push if update deps
+        if: ${{ success() }}
+        run: git push origin main
+
