@@ -6,15 +6,21 @@ on:
         type: choice
         description: Which version to prepare a release?
         options: 
-          - major 
+          - nextrc
+          - preminor
           - minor 
           - patch
-          - preminor
 jobs:
   publish:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Configure the user for Git  
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
       - uses: pnpm/action-setup@v2.2.2
         with:
           version: 7
@@ -24,8 +30,21 @@ jobs:
           cache: pnpm
       - name: Install the dependencies
         run: pnpm install
-      - name: Create a draft release on GitHub
-        run: pnpm release-it --no-increment --no-git --no-npm --github.release  --github.draft --github.autoGenerate --github.releaseName='v${version}' --ci
+      - name: Create a release 
+        if: ${{ ! startsWith(inputs.version, 'pre') && ! startsWith(inputs.version, 'next') }}
+        run: pnpm release-it ${{ inputs.version }} --no-npm.publish --npm.skipChecks --git.requireBranch="release/*" --github.release  --github.draft --github.autoGenerate --github.releaseName='v${version}' --ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create a pre-release for a new version
+        if: startsWith(inputs.version, 'pre') 
+        run: pnpm release-it preminor --preRelease=rc --no-npm.publish --npm.skipChecks --git.requireBranch="release/*" --github.release  --github.draft --github.autoGenerate --github.releaseName='v${version}' --ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create a pre-release for a current version
+        if: startsWith(inputs.version, 'next') 
+        run: pnpm release-it --preRelease=rc --no-npm.publish --npm.skipChecks --git.requireBranch="release/*" --github.release  --github.draft --github.autoGenerate --github.releaseName='v${version}' --ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
