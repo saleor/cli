@@ -14,7 +14,9 @@ import {
   printContext,
 } from '../../lib/util.js';
 import {
+  useAppConfig,
   useEnvironment,
+  useInstanceConnector,
   useOrganization,
   useToken,
 } from '../../middleware/index.js';
@@ -30,13 +32,11 @@ export const desc = 'List installed Saleor Apps for an environment';
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  const { organization, environment } = argv;
-
-  printContext(organization, environment);
-
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
-  debug(`Saleor endpoint: ${endpoint}`);
   const headers = await Config.getBearerHeader();
+
+  const { instance } = argv;
+  const endpoint = `${instance}/graphql/`;
+  debug(`Saleor endpoint: ${endpoint}`);
 
   debug('Fetching Saleor Apps');
   const { data }: any = await got
@@ -88,4 +88,4 @@ export const handler = async (argv: Arguments<Options>) => {
   process.exit(0);
 };
 
-export const middlewares = [useToken, useOrganization, useEnvironment];
+export const middlewares = [useAppConfig, useInstanceConnector];
