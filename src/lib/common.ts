@@ -26,12 +26,13 @@ interface Manifest {
 const { ux: cli } = CliUx;
 
 export const doSaleorAppDelete = async (argv: any) => {
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   const headers = await Config.getBearerHeader();
 
-  const app = await findSaleorAppByName(argv.app, argv);
+  const { instance, app } = argv;
 
-  const { data, errors }: any = await got
+  const endpoint = `${instance}/graphql/`;
+
+  const { data }: any = await got
     .post(endpoint, {
       headers,
       json: {
@@ -41,11 +42,11 @@ export const doSaleorAppDelete = async (argv: any) => {
     })
     .json();
 
-  if (errors || data.appDelete.errors.length > 0) {
-    console.error(errors || data.appDelete.errors);
+  if (data.appDelete.errors.length > 0) {
+    return data.appDelete.errors;
   }
 
-  return data;
+  return [];
 };
 
 export const doSaleorAppInstall = async (argv: any) => {
