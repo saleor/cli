@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import chalk, { Chalk } from 'chalk';
+import chalk from 'chalk';
 import { format } from 'date-fns';
 import { emphasize } from 'emphasize';
 import Enquirer from 'enquirer';
@@ -115,6 +115,9 @@ export const makeRequestAppList = async (argv: any) => {
 //
 // P U B L I C
 //
+
+export const print = process.stdout.write.bind(process.stdout);
+export const println = console.log.bind(console);
 
 export const obfuscate = (value: string) => `${value.slice(0, 12)} ****`;
 export const obfuscateArgv = (argv: Arguments<Options>) => {

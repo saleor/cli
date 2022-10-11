@@ -3,7 +3,7 @@ import Debug from 'debug';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { doSaleorAppDelete } from '../../lib/common.js';
-import { obfuscateArgv, printContext } from '../../lib/util.js';
+import { obfuscateArgv, print, println } from '../../lib/util.js';
 import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
@@ -17,17 +17,17 @@ export const builder: CommandBuilder = (_) => _;
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  const { organization, environment } = argv;
+  print(`Uninstalling ${argv.app} the Saleor App from your Dashboard...`);
+  const r = await doSaleorAppDelete(argv);
 
-  printContext(organization, environment);
+  if (r.length > 0) {
+    println(` ${chalk.red('fail')}`);
+    console.error(r);
 
-  process.stdout.write(
-    `Uninstalling ${argv.app} the Saleor App from your Dashboard...`
-  );
-  await doSaleorAppDelete(argv);
-  console.log(` ${chalk.green('success')}`);
-
-  process.exit(0);
+    process.exit(1);
+  } else {
+    println(` ${chalk.green('success')}`);
+  }
 };
 
 export const middlewares = [useAppConfig, useInstanceConnector];
