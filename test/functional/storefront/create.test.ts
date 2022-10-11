@@ -1,18 +1,16 @@
-import crypto from 'crypto';
 import fs from 'fs-extra';
-import path from 'path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { capitalize } from '../../../src/lib/util.js';
 import {
   command,
+  currentDate,
   DefaultTriggerResponse,
   testOrganization,
   trigger,
 } from '../../helper';
 
-const rand = crypto.randomBytes(256).toString('hex').substring(0, 7);
-const storefrontName = `storefront-${rand}`;
+const storefrontName = `storefront-${currentDate()}`;
 const demoName = capitalize(storefrontName);
 const storefrontCwd = `${process.cwd()}/${storefrontName}`;
 
@@ -24,8 +22,8 @@ afterAll(async () => {
     [
       'project',
       'remove',
-      `--organization=${testOrganization}`,
       storefrontName,
+      `--organization=${testOrganization}`,
       '--force',
     ],
     {}
@@ -83,6 +81,7 @@ describe('storefront create --demo', async () => {
         {},
         { ...DefaultTriggerResponse, ...{ output: [demoName] } }
       );
+
       expect(exitCode).toBe(0);
       expect(output.join()).toContain(demoName);
     },

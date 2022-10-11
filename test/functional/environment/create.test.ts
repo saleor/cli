@@ -2,15 +2,13 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import {
   command,
-  randomString,
-  testEnvironmentName,
+  currentDate,
   testOrganization,
   testProjectName,
   trigger,
 } from '../../helper';
 
-const envName = `test-env-${randomString()}`;
-const organization = testOrganization;
+const envName = `test-env-${currentDate()}`;
 
 afterAll(async () => {
   const params = [
@@ -30,7 +28,7 @@ describe('create new environment', async () => {
       const params = [
         'env',
         'create',
-        testEnvironmentName,
+        envName,
         `--project=${testProjectName}`,
         '--database=sample',
         '--saleor=saleor-master-staging',
@@ -38,7 +36,7 @@ describe('create new environment', async () => {
         '--email=test@example.com',
         '--skipRestrict',
         '--deploy',
-        `--organization=${organization}`,
+        `--organization=${testOrganization}`,
       ];
       const { exitCode } = await trigger(command, params, {});
       expect(exitCode).toBe(0);

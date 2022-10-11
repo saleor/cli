@@ -1,17 +1,18 @@
-import crypto from 'crypto';
 import fs from 'fs-extra';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   command,
+  currentDate,
   prepareEnvironment,
+  removeGithubRepository,
+  removeVercelProject,
   testEnvironmentName,
   testOrganization,
   trigger,
 } from '../../helper';
 
-const rand = crypto.randomBytes(256).toString('hex').substring(0, 7);
-const storefrontName = `storefront-${rand}`;
+const storefrontName = `storefront-${currentDate()}`;
 const storefrontCwd = `${process.cwd()}/${storefrontName}`;
 
 beforeAll(async () => {
@@ -30,6 +31,8 @@ beforeAll(async () => {
 }, 1000 * 60 * 10);
 
 afterAll(async () => {
+  await removeGithubRepository(storefrontName, storefrontCwd);
+  await removeVercelProject(`${storefrontName}-app-checkout`);
   await fs.remove(storefrontCwd);
 }, 1000 * 60 * 10);
 

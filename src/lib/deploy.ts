@@ -386,12 +386,10 @@ export const triggerDeploymentInVercel = async (
   projectId: string,
   provider = 'github'
 ) => {
-  const git = simpleGit();
-
   const spinner = ora('Preparing to deploy...').start();
 
   debug('Pushing code to repository');
-  const { pushed } = await git.push('origin', 'main');
+  const { pushed } = await pushToRepo(name);
 
   if (pushed[0]?.alreadyUpdated) {
     const repoUrl = await getRepoUrl(name);
@@ -458,4 +456,18 @@ export const getPackageName = async () => {
   );
 
   return name;
+};
+
+const pushToRepo = async (name: string) => {
+  const git = simpleGit();
+
+  if (process.env.CI) {
+    const repoUrl = await getRepoUrl(name);
+    const { source, pathname, owner } = GitUrlParse(repoUrl);
+    const repo = `https://${owner}:${process.env.GH_TOKEN?.trim()}@${source}${pathname}`;
+    git.remote(['set-url', 'origin', repo]);
+  }
+
+  const data = await git.push('origin', 'main');
+  return data;
 };
