@@ -45,10 +45,15 @@ export const builder: CommandBuilder = (_) =>
       type: 'string',
       desc: 'specify environment id',
     })
-    .option('commit', {
+    .option('repository', {
       type: 'string',
-      default: Config.SaleorStorefrontHash,
-      alias: 'c',
+      default: Config.SaleorStorefrontRepo,
+      alias: ['repo', 'r'],
+    })
+    .option('branch', {
+      type: 'string',
+      default: Config.SaleorStorefrontDefaultBranch,
+      alias: 'b',
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -187,11 +192,11 @@ const prepareEnvironment = async (
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await checkPnpmPresence('react-storefront project');
 
-  const { name, commit } = argv;
+  const { name, repository, branch } = argv;
 
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(name));
-  await downloadFromGitHub(Config.SaleorStorefrontRepo, target, commit);
+  await downloadFromGitHub(repository, target, branch);
 
   process.chdir(target);
   spinner.text = 'Creating .env...';
