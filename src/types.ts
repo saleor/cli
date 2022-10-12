@@ -61,7 +61,8 @@ export interface StoreCreate extends BaseOptions {
   name: string;
   auto?: boolean;
   environment?: string;
-  commit?: string;
+  repository: string;
+  branch?: string;
 }
 
 export interface StoreDeploy extends BaseOptions {
