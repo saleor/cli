@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import Debug from 'debug';
 import { access } from 'fs/promises';
+import GitUrlParse from 'git-url-parse';
 import kebabCase from 'lodash.kebabcase';
 import ora, { Ora } from 'ora';
 import path from 'path';
@@ -16,6 +17,7 @@ import {
   checkPnpmPresence,
   contentBox,
   obfuscateArgv,
+  println,
 } from '../../lib/util.js';
 import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
@@ -40,6 +42,11 @@ export const builder: CommandBuilder = (_) =>
       type: 'string',
       default: Config.SaleorAppHash,
       alias: 'c',
+    })
+    .option('template', {
+      type: 'string',
+      default: Config.SaleorAppRepo,
+      alias: 't',
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -59,8 +66,15 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   contentBox(`    ${dirMsg}\n    ${appMsg}`);
 
   const spinner = ora('Downloading...').start();
-  debug('downloading the `master` app template');
-  await downloadFromGitHub(Config.SaleorAppRepo, target, argv.commit);
+
+  const { full_name: repo, resource } = GitUrlParse(argv.template);
+  if (resource !== 'github.com') {
+    throw new Error(`The provided host - ${resource} - is not yet supported`);
+  }
+  const commit = getCommit(argv, repo);
+
+  debug(`downloading the app template: ${repo} - ${commit} - ${target}`);
+  await downloadFromGitHub(repo, target, commit);
 
   process.chdir(target);
 
@@ -105,6 +119,21 @@ const dirExists = async (name: string): Promise<boolean> => {
   } catch (error) {
     return false;
   }
+};
+
+const getCommit = (argv: Arguments<StoreCreate>, repo: string) => {
+  // saleor app template - use argv.commit
+  if (repo === Config.SaleorAppRepo) {
+    return argv.commit;
+  }
+
+  // custom template, default commit - use main
+  if (argv.commit === Config.SaleorAppHash) {
+    return 'main';
+  }
+
+  // custom template, custom commit
+  return argv.commit;
 };
 
 export const setupGitRepository = async (spinner: Ora) => {

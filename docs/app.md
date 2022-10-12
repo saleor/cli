@@ -73,8 +73,20 @@ Options:
       --json                  Output the data as JSON                  [boolean]
   -u, --instance, --url                                                 [string]
       --dependencies, --deps                           [boolean] [default: true]
+  -c, --commit    [string] [default: "1e3de9d775f2715d988c4ef90aee9101ea30fb16"]
+  -t, --template                [string] [default: "saleor/saleor-app-template"]
   -V, --version               Show version number                      [boolean]
   -h, --help                  Show help                                [boolean]
+```
+
+Example usage in non-interactive mode
+
+```
+saleor app create my-saleor-app \
+  --organization=organization-slug \
+  --environment=env-id-or-name \
+  --template=https://github.com/saleor/saleor-app-klaviyo \
+  --commit=501e56a579469c6eae581a36e813af78596ce43d \
 ```
 
 ### saleor app tunnel
