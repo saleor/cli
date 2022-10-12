@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
@@ -7,7 +8,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
-import { obfuscateArgv, printContext } from '../../lib/util.js';
+import { obfuscateArgv, printContext, println } from '../../lib/util.js';
 import {
   useEnvironment,
   useOrganization,
@@ -26,6 +27,10 @@ export const builder: CommandBuilder = (_) =>
     type: 'string',
     demandOption: false,
     desc: 'The Saleor App id',
+  }).option('permissions', {
+    type: 'array',
+    demandOption: false,
+    desc: 'The array of permissions',
   });
 
 export const handler = async (argv: Arguments<Options>) => {
@@ -38,7 +43,34 @@ export const handler = async (argv: Arguments<Options>) => {
   const endpoint = await getEnvironmentGraphqlEndpoint(argv);
   debug(`Saleor endpoint: ${endpoint}`);
 
-  const { app, apps } = await getSaleorApp(endpoint);
+  const { app, apps } = await getSaleorApp(endpoint, argv.appId);
+  const permissions =
+    argv.permissions ?? (await getPermissions(endpoint, apps, app));
+
+  debug(`Attempting to update the permissions for the app: ${app}`);
+  const headers = await Config.getBearerHeader();
+  await got
+    .post(endpoint, {
+      headers,
+      json: {
+        query: print(AppUpdate),
+        variables: { app, permissions },
+      },
+    })
+    .json();
+
+  console.log('Permissions successfully updated.');
+};
+
+const getPermissions = async (
+  endpoint: string,
+  apps: any,
+  app: string | undefined
+) => {
+  if (!app) {
+    println(` ${chalk.red('No app selected')}`);
+    process.exit(0);
+  }
 
   const headers = await Config.getBearerHeader();
   debug('Fetching permission enum list');
@@ -80,18 +112,7 @@ export const handler = async (argv: Arguments<Options>) => {
       'Select one or more permissions\n  (use the arrows to navigate and the space bar to select)',
   });
 
-  debug(`Attempting to update the permissions for the app: ${app}`);
-  await got
-    .post(endpoint, {
-      headers,
-      json: {
-        query: print(AppUpdate),
-        variables: { app, permissions },
-      },
-    })
-    .json();
-
-  console.log('Permissions successfully updated.');
+  return permissions;
 };
 
 export const middlewares = [useToken, useOrganization, useEnvironment];
