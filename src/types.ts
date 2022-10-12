@@ -32,6 +32,8 @@ export interface Options extends BaseOptions {
   registerUrl?: string;
   saleorApiUrl?: string;
   githubPrompt?: boolean;
+  appId?: string;
+  permissions?: string[];
 }
 
 export interface CreatePromptResult {

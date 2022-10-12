@@ -116,9 +116,23 @@ Options:
 Add or remove permission for a Saleor App
 
 Options:
-      --json     Output the data as JSON                               [boolean]
-  -V, --version  Show version number                                   [boolean]
-  -h, --help     Show help                                             [boolean]
+      --json             Output the data as JSON                       [boolean]
+  -u, --instance, --url                                                 [string]
+      --app-id           The Saleor App id                              [string]
+      --permissions      The array of permissions                        [array]
+  -V, --version          Show version number                           [boolean]
+  -h, --help             Show help                                     [boolean]
+```
+
+Example usage in non-interactive mode
+
+```
+saleor app permission \
+  --organization=organization-slug \
+  --environment=env-id-or-name \
+  --app-id=APP-ID \
+  --permissions=MANAGE_USERS \
+  --permissions=MANAGE_STAFF
 ```
 
 ### saleor app deploy
