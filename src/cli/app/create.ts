@@ -11,7 +11,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
-import { downloadFromGitHub } from '../../lib/download.js';
+import { gitCopy } from '../../lib/download.js';
 import {
   checkPnpmPresence,
   contentBox,
@@ -36,10 +36,15 @@ export const builder: CommandBuilder = (_) =>
       default: true,
       alias: 'deps',
     })
-    .option('commit', {
+    .option('template', {
       type: 'string',
-      default: Config.SaleorAppHash,
-      alias: 'c',
+      default: Config.SaleorAppRepo,
+      alias: ['t', 'repo', 'repository'],
+    })
+    .option('branch', {
+      type: 'string',
+      default: Config.SaleorAppDefaultBranch,
+      alias: 'b',
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -48,8 +53,10 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   debug('check PNPM presence');
   await checkPnpmPresence('This Saleor App template');
 
+  const { name, template, branch } = argv;
+
   debug('construct the folder name');
-  const target = await getFolderName(sanitize(argv.name));
+  const target = await getFolderName(sanitize(name));
   const packageName = kebabCase(target);
   const dirMsg = `App directory: ${chalk.blue(
     path.join(process.env.PWD || '.', target)
@@ -59,8 +66,9 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   contentBox(`    ${dirMsg}\n    ${appMsg}`);
 
   const spinner = ora('Downloading...').start();
-  debug('downloading the `master` app template');
-  await downloadFromGitHub(Config.SaleorAppRepo, target, argv.commit);
+
+  debug(`downloading the ${branch} app template`);
+  await gitCopy(template, target, branch);
 
   process.chdir(target);
 
