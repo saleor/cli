@@ -47,7 +47,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   if (!argv.appId) {
     const { app } = await getSaleorApp(endpoint);
-    appId = app;
+    appId = app!;
   } else {
     appId = argv.appId as string;
   }
