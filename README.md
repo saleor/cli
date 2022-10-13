@@ -124,3 +124,19 @@ pnpm watch
 ```
 node build/cli.js ...
 ```
+
+### Environment variables
+
+`SALEOR_CLI_ENV`
+
+Set to `staging` to use the CLI with staging Saleor Cloud
+
+
+`RUN_FUNCTIONAL_TESTS`
+
+Set to `true` to enable functional tests
+
+
+`DEBUG`
+
+Use it for debugging. Set to `saleor-cli:*` to show debug output for the Saleor CLI only. Set to `*` to show all debug output.
