@@ -84,7 +84,10 @@ export const createAppToken = async (url: string, app: string) => {
   return authToken;
 };
 
-export const getSaleorApp = async (endpoint: string) => {
+export const getSaleorApp = async (
+  endpoint: string,
+  appId: string | undefined = undefined
+) => {
   const headers = await Config.getBearerHeader();
 
   debug('Fetching Saleor Apps');
@@ -99,6 +102,11 @@ export const getSaleorApp = async (endpoint: string) => {
     .json();
 
   const apps = getAppsFromResult(data);
+
+  // return early if appId have been provided and it's found in apps
+  if (apps.map(({ node }: any) => node.id).includes(appId)) {
+    return { app: appId, apps };
+  }
 
   const choices = apps.map(({ node }: any) => ({
     name: node.name,
