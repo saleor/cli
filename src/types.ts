@@ -61,7 +61,7 @@ export interface StoreCreate extends BaseOptions {
   name: string;
   auto?: boolean;
   environment?: string;
-  repository: string;
+  template: string;
   branch?: string;
 }
 

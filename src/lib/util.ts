@@ -41,6 +41,13 @@ export class NotSaleorAppDirectoryError extends Error {
   }
 }
 
+export class WrongGitURLError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'WrongGitURLError';
+  }
+}
+
 export class SaleorAppInstallError extends Error {
   constructor(message = '') {
     super(message);
