@@ -9,7 +9,7 @@ export const currentDate = () => Date.now().toString();
 export const shouldMockTests = !process.env.RUN_FUNCTIONAL_TESTS;
 export const command = 'node';
 export const buildPath = `${process.env.PWD}/dist/saleor.js`;
-export const testOrganization = 'cli-test';
+export const testOrganization = 'devtools';
 export const testEnvironmentName = 'saleor-test';
 export const testProjectName = 'cli-test';
 export const region = 'us-east-1';
