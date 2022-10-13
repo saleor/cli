@@ -36,10 +36,10 @@ export const builder: CommandBuilder = (_) =>
       default: true,
       alias: 'deps',
     })
-    .option('repository', {
+    .option('template', {
       type: 'string',
       default: Config.SaleorAppRepo,
-      alias: ['repo', 'r'],
+      alias: ['t', 'repo', 'repository'],
     })
     .option('branch', {
       type: 'string',
@@ -53,7 +53,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   debug('check PNPM presence');
   await checkPnpmPresence('This Saleor App template');
 
-  const { name, repository, branch } = argv;
+  const { name, template, branch } = argv;
 
   debug('construct the folder name');
   const target = await getFolderName(sanitize(name));
@@ -66,8 +66,9 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   contentBox(`    ${dirMsg}\n    ${appMsg}`);
 
   const spinner = ora('Downloading...').start();
+
   debug(`downloading the ${branch} app template`);
-  await gitCopy(repository, target, branch);
+  await gitCopy(template, target, branch);
 
   process.chdir(target);
 

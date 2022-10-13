@@ -10,7 +10,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
-import { downloadFromGitHub } from '../../lib/download.js';
+import { gitCopy } from '../../lib/download.js';
 import { API, GET, POST } from '../../lib/index.js';
 import {
   capitalize,
@@ -45,10 +45,10 @@ export const builder: CommandBuilder = (_) =>
       type: 'string',
       desc: 'specify environment id',
     })
-    .option('repository', {
+    .option('template', {
       type: 'string',
       default: Config.SaleorStorefrontRepo,
-      alias: ['repo', 'r'],
+      alias: ['t'],
     })
     .option('branch', {
       type: 'string',
@@ -73,7 +73,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     debug('creating project');
     const project = await createProject(_argv);
     debug('preparing the environment');
-    const environment = await prepareEnvironment(_argv, project);
+    await prepareEnvironment(_argv, project);
     debug('creating storefront');
     await createStorefront(_argv);
   } else {
@@ -192,11 +192,11 @@ const prepareEnvironment = async (
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await checkPnpmPresence('react-storefront project');
 
-  const { name, repository, branch } = argv;
+  const { name, template, branch } = argv;
 
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(name));
-  await downloadFromGitHub(repository, target, branch);
+  await gitCopy(template, target, branch);
 
   process.chdir(target);
   spinner.text = 'Creating .env...';
