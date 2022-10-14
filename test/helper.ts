@@ -215,7 +215,16 @@ export const clearProjects = async () => {
     '--json',
   ];
 
-  const { output } = await trigger(command, params, {});
+  const { output } = await trigger(
+    command,
+    params,
+    {},
+    {
+      output: ['[]'],
+      err: [],
+      exitCode: 0,
+    }
+  );
 
   const projects = JSON.parse(output.join()).map((p) => p.slug);
 
