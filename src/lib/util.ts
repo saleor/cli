@@ -41,6 +41,13 @@ export class NotSaleorAppDirectoryError extends Error {
   }
 }
 
+export class SaleorAppUninstallError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'SaleorAppUninstallError';
+  }
+}
+
 export class WrongGitURLError extends Error {
   constructor(message = '') {
     super(message);
