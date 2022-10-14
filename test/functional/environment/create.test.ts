@@ -32,7 +32,7 @@ describe('create new environment', async () => {
         `--project=${testProjectName}`,
         '--database=sample',
         '--saleor=saleor-master-staging',
-        '--domain=saleor-test-domain',
+        `--domain=${envName}`,
         '--email=test@example.com',
         '--skipRestrict',
         '--deploy',
