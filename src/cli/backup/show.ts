@@ -7,7 +7,7 @@ import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:backup:show');
 
-export const command = 'show [backup]';
+export const command = 'show [key]';
 export const desc = 'Show a specific backup';
 
 export const builder: CommandBuilder = NoCommandBuilderSetup;
