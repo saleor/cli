@@ -22,7 +22,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'slug of the project',
   }).option('force', {
     type: 'boolean',
-    desc: 'skip confrimation prompt',
+    desc: 'skip confirmation prompt',
   });
 
 export const handler = async (argv: Arguments<Options>) => {
@@ -36,7 +36,7 @@ export const handler = async (argv: Arguments<Options>) => {
     (await DELETE(API.Project, { ...argv, project: project.value })) as any;
     console.log(
       chalk.green('✔'),
-      chalk.bold('Project has been successfuly removed')
+      chalk.bold('Project has been successfully removed')
     );
   }
 };

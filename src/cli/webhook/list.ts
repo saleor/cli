@@ -51,6 +51,11 @@ export const handler = async (argv: Arguments<Options>) => {
     process.exit(0);
   }
 
+  if (argv.json) {
+    console.log(JSON.stringify(webhookList, null, 2));
+    return;
+  }
+
   for (const {
     node: { name: appName, webhooks },
   } of apps) {

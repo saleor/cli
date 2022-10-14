@@ -36,5 +36,5 @@ export const handler = async (argv: Arguments<any>) => {
     `Creating backup ${name}`,
     'Yay! Backup created!'
   );
-  showResult(result);
+  showResult(result, argv);
 };

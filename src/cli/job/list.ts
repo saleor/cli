@@ -29,6 +29,11 @@ export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
   const result = (await GET(API.Job, argv)) as any[];
 
+  if (argv.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
   cli.table(result, {
     type: {
       header: 'Type',
