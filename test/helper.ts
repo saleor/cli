@@ -206,3 +206,40 @@ export const getRepoRemoteUrl = async (path: string) => {
 
   return output[0].toString().split(/\s/)[1];
 };
+
+export const clearProjects = async () => {
+  const params = [
+    'project',
+    'list',
+    `--organization=${testOrganization}`,
+    '--json',
+  ];
+
+  const { output } = await trigger(
+    command,
+    params,
+    {},
+    {
+      output: ['[]'],
+      err: [],
+      exitCode: 0,
+    }
+  );
+
+  const projects = JSON.parse(output.join()).map((p) => p.slug);
+
+  for (const project of projects.filter((p) => p !== testProjectName)) {
+    await removeProject(project);
+  }
+};
+
+export const removeProject = async (projectName: string) => {
+  const params = [
+    'project',
+    'remove',
+    projectName,
+    `--organization=${testOrganization}`,
+    '--force',
+  ];
+  await trigger(command, params, {});
+};

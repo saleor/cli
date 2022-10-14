@@ -1,15 +1,26 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  clearProjects,
   command,
   currentDate,
   DefaultTriggerResponse,
+  removeProject,
   testOrganization,
   trigger,
 } from '../../helper';
 
+const projectName = `test-project-${currentDate()}`;
+
+beforeAll(async () => {
+  await clearProjects();
+});
+
+afterAll(async () => {
+  await removeProject(projectName);
+});
+
 describe('create new project', async () => {
-  const projectName = `test-project-${currentDate()}`;
   const region = 'us-east-1';
   it(
     'creates a new project',
@@ -77,16 +88,5 @@ describe('create new project', async () => {
     expect(output.join()).toContain(`name: ${projectName}`);
     expect(output.join()).toContain(`slug: ${projectName}`);
     expect(output.join()).toContain(`region: ${region}`);
-  });
-
-  afterAll(async () => {
-    const params = [
-      'project',
-      'remove',
-      projectName,
-      `--organization=${testOrganization}`,
-      '--force',
-    ];
-    await trigger(command, params, {});
   });
 });
