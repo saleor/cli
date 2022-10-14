@@ -26,7 +26,7 @@ export const handler = async (argv: Arguments<Options>) => {
     ...{ organization: argv.slug || argv.organization },
   })) as any;
 
-  showResult(result);
+  showResult(result, argv);
 };
 
 export const middlewares = [useOrganization];

@@ -37,6 +37,11 @@ export const handler = async (argv: Arguments) => {
 
   verifyResultLength(result, 'environment');
 
+  if (argv.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
   cli.table(
     result,
     {

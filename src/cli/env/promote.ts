@@ -33,7 +33,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const result = (await PUT(API.UpgradeEnvironment, argv, {
     json: { service: service.value },
   })) as any;
-  showResult(result);
+  showResult(result, argv);
 };
 
 const getService = async (argv: Arguments<Options>) => {

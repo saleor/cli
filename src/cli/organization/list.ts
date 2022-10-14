@@ -24,6 +24,11 @@ export const handler = async (argv: Arguments<Options>) => {
 
   verifyResultLength(result, 'organization');
 
+  if (argv.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
   cli.table(result, {
     slug: { minWidth: 2 },
     name: { minWidth: 2 },
