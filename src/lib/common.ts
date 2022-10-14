@@ -28,7 +28,7 @@ const { ux: cli } = CliUx;
 export const doSaleorAppDelete = async (argv: any) => {
   const headers = await Config.getBearerHeader();
 
-  const { instance, app } = argv;
+  const { instance, appId: app } = argv;
   const endpoint = `${instance}/graphql/`;
 
   const { data }: any = await got
