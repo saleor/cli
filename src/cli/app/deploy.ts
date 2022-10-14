@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import Debug from 'debug';
 import GitUrlParse from 'git-url-parse';
+import fetch from 'node-fetch';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
