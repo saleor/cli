@@ -187,11 +187,12 @@ export const removeGithubRepository = async (name: string, path: string) => {
   const repoUrl = await getRepoRemoteUrl(path);
   const { owner } = GitUrlParse(repoUrl);
   const url = `https://api.github.com/repos/${owner}/${name}`;
+  const { github_token: GithubToken } = await Config.get();
   console.log(`Removing repo: ${url}`);
   await got.delete(url, {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `token ${process.env.GH_TOKEN}`,
+      Authorization: GithubToken,
     },
   });
 };
