@@ -21,6 +21,8 @@ export const desc = 'Hello from Saleor';
 
 export const builder: CommandBuilder = (_) => _;
 export const handler = async (): Promise<void> => {
+  debug('showing status');
+
   header(pkg.version);
 
   console.log(
@@ -62,7 +64,7 @@ export const handler = async (): Promise<void> => {
       console.log(chalk.green(`Hello ${user.email}, you're logged in`));
     }
   } catch (e) {
-    console.log(chalk.blue("You're not logged in"));
+    console.log(chalk.blue('You\'re not logged in'));
     console.log('  To log in run:');
     console.log('    saleor login');
   }

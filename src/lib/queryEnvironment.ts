@@ -73,7 +73,7 @@ export const POST = async (
 ) => {
   const auth = await checkAuth(endpoint, argv);
 
-  const { data, errors } = await got
+  const { data } = await got
     .post(endpoint, {
       headers: {
         ...headers,
