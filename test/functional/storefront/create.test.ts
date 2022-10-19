@@ -1,13 +1,11 @@
 import fs from 'fs-extra';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { capitalize } from '../../../src/lib/util.js';
 import {
-  clearProjects,
   command,
   currentDate,
   DefaultTriggerResponse,
-  removeProject,
   testOrganization,
   trigger,
 } from '../../helper';
@@ -16,14 +14,8 @@ const storefrontName = `storefront-${currentDate()}`;
 const demoName = capitalize(storefrontName);
 const storefrontCwd = `${process.cwd()}/${storefrontName}`;
 
-beforeAll(async () => {
-  await clearProjects();
-});
-
 afterAll(async () => {
   await fs.remove(storefrontCwd);
-
-  await removeProject(storefrontName);
 }, 1000 * 60 * 5);
 
 describe('storefront create --demo', async () => {

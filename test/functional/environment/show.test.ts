@@ -7,6 +7,10 @@ import {
   trigger,
 } from '../../helper';
 
+beforeAll(async () => {
+  await prepareEnvironment();
+});
+
 describe('storefront show', async () => {
   const command = 'saleor';
   const key = await prepareEnvironment();
@@ -24,7 +28,7 @@ describe('storefront show', async () => {
     );
 
     expect(exitCode).toBe(0);
-    expect(output).toContain(`key: ${key}`);
+    expect(output.join()).toContain(`key: ${key}`);
   });
 
   it('should return 1 exit code for invalid env', async () => {

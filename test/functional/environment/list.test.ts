@@ -30,7 +30,8 @@ describe('show list of existing environments', async () => {
         ...{ output: [testEnvironmentName] },
       }
     );
+
     expect(exitCode).toBe(0);
-    expect(output).toContain(testEnvironmentName);
+    expect(output.join()).toContain(testEnvironmentName);
   });
 });
