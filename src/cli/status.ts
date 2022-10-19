@@ -12,6 +12,8 @@ export const desc = 'Show the login status for the systems that CLI depends on';
 
 export const builder: CommandBuilder = (_) => _;
 export const handler = async (): Promise<void> => {
+  debug('checking status');
+
   const {
     token,
     vercel_token: vercel,
