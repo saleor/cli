@@ -1,8 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { env } from 'yargs';
 
-import { Config } from '../../../src/lib/config';
-import { verifyEnvironment } from '../../../src/middleware/index';
 import {
   command,
   currentDate,
@@ -55,7 +52,15 @@ describe('create new environment', async () => {
       `--organization=${testOrganization}`,
     ];
 
-    const { exitCode, output } = await trigger(command, params, {});
+    const { exitCode, output } = await trigger(
+      command,
+      params,
+      {},
+      {
+        ...DefaultTriggerResponse,
+        ...{ output: [envName] },
+      }
+    );
     expect(exitCode).toBe(0);
     expect(output).toContain(envName);
   });
@@ -84,8 +89,8 @@ describe('create new environment', async () => {
       }
     );
     expect(exitCode).toBe(0);
-    expect(output.join()).toContain(`name: ${env}`);
-    expect(output.join()).toContain(`domain: ${env}`);
+    expect(output.join()).toContain(`name: ${envName}`);
+    expect(output.join()).toContain(`domain: ${envName}`);
     expect(output.join()).toContain('database_population: sample');
   });
 });

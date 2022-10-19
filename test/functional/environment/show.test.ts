@@ -13,7 +13,15 @@ describe('storefront show', async () => {
 
   it('should show the environment details', async () => {
     const params = ['env', 'show', key, `--organization=${testOrganization}`];
-    const { exitCode, output } = await trigger(command, params, {});
+    const { exitCode, output } = await trigger(
+      command,
+      params,
+      {},
+      {
+        ...DefaultTriggerResponse,
+        ...{ output: [`key: ${key}`] },
+      }
+    );
 
     expect(exitCode).toBe(0);
     expect(output).toContain(`key: ${key}`);

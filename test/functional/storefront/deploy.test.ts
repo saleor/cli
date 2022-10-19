@@ -6,11 +6,13 @@ import { Manifest } from '../../../src/lib/common';
 import { Config } from '../../../src/lib/config';
 import { Vercel } from '../../../src/lib/vercel';
 import {
+  clearProjects,
   command,
   currentDate,
   prepareEnvironment,
   removeGithubRepository,
   removeVercelProject,
+  shouldMockTests,
   testEnvironmentName,
   testOrganization,
   trigger,
@@ -21,6 +23,7 @@ const checkoutName = `${storefrontName}-app-checkout`;
 const storefrontCwd = `${process.cwd()}/${storefrontName}`;
 
 beforeAll(async () => {
+  await clearProjects(true);
   const environment = await prepareEnvironment();
 
   const params = [
@@ -87,10 +90,15 @@ describe('storefront deploy', async () => {
 
   it('the deployed checkout returns the manifest', async () => {
     const { vercel_token: VercelToken } = await Config.get();
-    const vercel = new Vercel(VercelToken);
-    const domain = vercel.getProjectDomain(checkoutName);
-    const manifest: Manifest = await got.get(`https://${domain}`).json();
 
-    expect(manifest.name).toBe(checkoutName);
+    if (!shouldMockTests) {
+      const vercel = new Vercel(VercelToken);
+      const { name: domain } = await vercel.getProjectDomain(checkoutName);
+      const manifest: Manifest = await got
+        .get(`https://${domain}/api/manifest`)
+        .json();
+
+      expect(manifest.name).toBe(checkoutName);
+    }
   });
 });
