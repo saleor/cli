@@ -40,7 +40,7 @@ describe('create new project', async () => {
   );
 
   it(
-    'shows project list',
+    '`project list` contains  newly created project',
     async () => {
       const params = ['project', 'list', `--organization=${testOrganization}`];
 
@@ -61,7 +61,7 @@ describe('create new project', async () => {
     1000 * 60 * 1
   );
 
-  it('shows project details', async () => {
+  it('`project show` returns project details', async () => {
     const params = [
       'project',
       'show',

@@ -174,7 +174,7 @@ const getEnvironmentByName = async (
   return key;
 };
 
-const verifyEnvironment = async (
+export const verifyEnvironment = async (
   token: string,
   organization: string,
   environment: string

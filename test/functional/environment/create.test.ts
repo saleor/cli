@@ -1,8 +1,12 @@
 import { afterAll, describe, expect, it } from 'vitest';
+import { env } from 'yargs';
 
+import { Config } from '../../../src/lib/config';
+import { verifyEnvironment } from '../../../src/middleware/index';
 import {
   command,
   currentDate,
+  DefaultTriggerResponse,
   testOrganization,
   testProjectName,
   trigger,
@@ -44,14 +48,44 @@ describe('create new environment', async () => {
     1000 * 60 * 10
   );
 
-  it('returns environment list', async () => {
+  it('`env list` contains newly created env', async () => {
     const params = [
       'environment',
       'list',
       `--organization=${testOrganization}`,
     ];
 
-    const { exitCode } = await trigger(command, params, {});
+    const { exitCode, output } = await trigger(command, params, {});
     expect(exitCode).toBe(0);
+    expect(output).toContain(envName);
+  });
+
+  it('`environment show` returns env details', async () => {
+    const params = [
+      'environment',
+      'show',
+      envName,
+      `--organization=${testOrganization}`,
+    ];
+
+    const { exitCode, output } = await trigger(
+      command,
+      params,
+      {},
+      {
+        ...DefaultTriggerResponse,
+        ...{
+          output: [
+            `name: ${envName}`,
+            `domain: ${envName}.staging.saleor.cloud`,
+            'database_population: sample',
+          ],
+        },
+      }
+    );
+    expect(exitCode).toBe(0);
+    expect(output.join()).toContain(`name: ${env}`);
+    expect(output.join()).toContain(`domain: ${env}`);
+    expect(output.join()).toContain('database_population: sample');
   });
 });

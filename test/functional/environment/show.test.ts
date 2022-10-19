@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
   DefaultTriggerResponse,
@@ -11,11 +11,12 @@ describe('storefront show', async () => {
   const command = 'saleor';
   const key = await prepareEnvironment();
 
-  it('should return 0 exit code for valid env', async () => {
+  it('should show the environment details', async () => {
     const params = ['env', 'show', key, `--organization=${testOrganization}`];
-    const { exitCode } = await trigger(command, params, {});
+    const { exitCode, output } = await trigger(command, params, {});
 
     expect(exitCode).toBe(0);
+    expect(output).toContain(`key: ${key}`);
   });
 
   it('should return 1 exit code for invalid env', async () => {
