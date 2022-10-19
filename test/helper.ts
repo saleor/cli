@@ -208,7 +208,7 @@ export const getRepoRemoteUrl = async (path: string) => {
   return output[0].toString().split(/\s/)[1];
 };
 
-export const clearProjects = async () => {
+export const clearProjects = async (all = false) => {
   const params = [
     'project',
     'list',
@@ -228,8 +228,11 @@ export const clearProjects = async () => {
   );
 
   const projects = JSON.parse(output.join()).map((p) => p.slug);
+  const filtered = all
+    ? projects
+    : projects.filter((p) => p !== testProjectName);
 
-  for (const project of projects.filter((p) => p !== testProjectName)) {
+  for (const project of filtered) {
     await removeProject(project);
   }
 };
