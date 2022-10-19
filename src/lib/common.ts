@@ -18,7 +18,7 @@ import {
 } from './environment.js';
 import { NotSaleorAppDirectoryError, SaleorAppInstallError } from './util.js';
 
-interface Manifest {
+export interface Manifest {
   name: string;
   permissions: string[];
 }

@@ -1,6 +1,10 @@
 import fs from 'fs-extra';
+import got from 'got';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { Manifest } from '../../../src/lib/common';
+import { Config } from '../../../src/lib/config';
+import { Vercel } from '../../../src/lib/vercel.js';
 import {
   command,
   currentDate,
@@ -65,4 +69,13 @@ describe('app deploy', async () => {
     },
     1000 * 60 * 10
   );
+
+  it('the deployed app returns the manifest', async () => {
+    const { vercel_token: VercelToken } = await Config.get();
+    const vercel = new Vercel(VercelToken);
+    const domain = vercel.getProjectDomain(appName);
+    const manifest: Manifest = await got.get(`https://${domain}`).json();
+
+    expect(manifest.name).toBe(appName);
+  });
 });
