@@ -1,24 +1,14 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
-  clearProjects,
   command,
   currentDate,
   DefaultTriggerResponse,
-  removeProject,
   testOrganization,
   trigger,
 } from '../../helper';
 
 const projectName = `test-project-${currentDate()}`;
-
-beforeAll(async () => {
-  await clearProjects();
-});
-
-afterAll(async () => {
-  await removeProject(projectName);
-});
 
 describe('create new project', async () => {
   const region = 'us-east-1';

@@ -6,7 +6,6 @@ import { Manifest } from '../../../src/lib/common';
 import { Config } from '../../../src/lib/config';
 import { Vercel } from '../../../src/lib/vercel';
 import {
-  clearProjects,
   command,
   currentDate,
   prepareEnvironment,
@@ -23,7 +22,6 @@ const checkoutName = `${storefrontName}-app-checkout`;
 const storefrontCwd = `${process.cwd()}/${storefrontName}`;
 
 beforeAll(async () => {
-  await clearProjects(true);
   const environment = await prepareEnvironment();
 
   const params = [
@@ -98,7 +96,7 @@ describe('storefront deploy', async () => {
         .get(`https://${domain}/api/manifest`)
         .json();
 
-      expect(manifest.name).toBe(checkoutName);
+      expect(manifest.name).toBe('Checkout');
     }
   });
 });

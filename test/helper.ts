@@ -115,12 +115,28 @@ export const createTestProject = async (organization = testOrganization) => {
       `--organization=${organization}`,
     ];
 
-    const { err } = await trigger(command, params, {});
-
-    if (err.length > 0) {
+    const { err, exitCode } = await trigger(command, params, {});
+    if (exitCode !== 0) {
       throw new Error(err.join());
     }
   }
+};
+
+export const verifyTestEnvironmentPresence = async (
+  organization = testOrganization,
+  environment = testEnvironmentName
+) => {
+  const params = ['environment', 'list', `--organization=${organization}`];
+
+  const { output } = await trigger(command, params, {});
+
+  if (output.join('').includes(` ${environment} `)) {
+    console.log('Environment exists');
+    return true;
+  }
+
+  console.log('Environment not found');
+  return false;
 };
 
 export const prepareEnvironment = async () => {
@@ -134,24 +150,31 @@ export const prepareEnvironment = async () => {
 export const createTestEnvironment = async (
   organization = testOrganization
 ) => {
-  const params = [
-    'env',
-    'create',
-    testEnvironmentName,
-    `--project=${testProjectName}`,
-    '--database=sample',
-    '--saleor=saleor-master-staging',
-    '--domain=saleor-test-domain',
-    '--email=test@example.com',
-    '--skipRestrict',
-    '--deploy',
-    `--organization=${organization}`,
-  ];
+  const envExists = await verifyTestEnvironmentPresence(
+    organization,
+    testEnvironmentName
+  );
 
-  const { err } = await trigger(command, params, {});
+  if (!envExists) {
+    const params = [
+      'env',
+      'create',
+      testEnvironmentName,
+      `--project=${testProjectName}`,
+      '--database=sample',
+      '--saleor=saleor-master-staging',
+      `--domain=saleor-test-domain-${currentDate()}`,
+      '--email=test@example.com',
+      '--skipRestrict',
+      '--deploy',
+      `--organization=${organization}`,
+    ];
 
-  if (err.length > 0) {
-    throw new Error(err.join());
+    const { err, exitCode, output } = await trigger(command, params, {});
+    if (exitCode !== 0) {
+      console.log(exitCode, err, output);
+      console.error(err.join());
+    }
   }
 };
 
@@ -208,7 +231,7 @@ export const getRepoRemoteUrl = async (path: string) => {
   return output[0].toString().split(/\s/)[1];
 };
 
-export const clearProjects = async (all = false) => {
+export const listProjects = async () => {
   const params = [
     'project',
     'list',
@@ -216,7 +239,7 @@ export const clearProjects = async (all = false) => {
     '--json',
   ];
 
-  const { output } = await trigger(
+  const data = await trigger(
     command,
     params,
     {},
@@ -227,12 +250,22 @@ export const clearProjects = async (all = false) => {
     }
   );
 
+  return data;
+};
+
+export const clearProjects = async (all = false) => {
+  const { output } = await listProjects();
+
   const projects = JSON.parse(output.join()).map((p) => p.slug);
+
   const filtered = all
     ? projects
     : projects.filter((p) => p !== testProjectName);
 
+  console.log(`Clearing projects ${filtered}`);
+
   for (const project of filtered) {
+    console.log('project', project);
     await removeProject(project);
   }
 };
@@ -245,5 +278,8 @@ export const removeProject = async (projectName: string) => {
     `--organization=${testOrganization}`,
     '--force',
   ];
+
+  console.log('params', params);
+
   await trigger(command, params, {});
 };
