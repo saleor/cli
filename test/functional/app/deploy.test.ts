@@ -11,6 +11,7 @@ import {
   prepareEnvironment,
   removeGithubRepository,
   removeVercelProject,
+  shouldMockTests,
   testEnvironmentName,
   testOrganization,
   trigger,
@@ -72,10 +73,15 @@ describe('app deploy', async () => {
 
   it('the deployed app returns the manifest', async () => {
     const { vercel_token: VercelToken } = await Config.get();
-    const vercel = new Vercel(VercelToken);
-    const domain = vercel.getProjectDomain(appName);
-    const manifest: Manifest = await got.get(`https://${domain}`).json();
 
-    expect(manifest.name).toBe(appName);
+    if (!shouldMockTests) {
+      const vercel = new Vercel(VercelToken);
+      const { name: domain } = await vercel.getProjectDomain(appName);
+      const manifest: Manifest = await got
+        .get(`https://${domain}/api/manifest`)
+        .json();
+
+      expect(manifest.name).toBe(appName);
+    }
   });
 });
