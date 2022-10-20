@@ -53,6 +53,11 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const collection: any[] = apps.map(({ node }: any) => ({ ...node }));
 
+  if (argv.json) {
+    console.log(JSON.stringify(collection, null, 2));
+    return;
+  }
+
   cli.table(collection, {
     id: {
       header: 'ID',
