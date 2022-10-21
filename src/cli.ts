@@ -40,6 +40,7 @@ import {
   contentBox,
   fetchLatestPackageVersion,
   NotSaleorAppDirectoryError,
+  println,
   SaleorAppInstallError,
   SaleorAppUninstallError,
 } from './lib/util.js';
@@ -150,16 +151,8 @@ const parser = yargs(hideBin(process.argv))
     } else if (error instanceof AuthError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
     } else if (error instanceof SaleorAppUninstallError) {
-      console.log(
-        `\n${chalk.red('ERROR')}\n${
-          emphasize.highlight(
-            'yaml',
-            yaml.stringify(JSON.parse(error.message)),
-            {
-              attr: chalk.red,
-            }
-          ).value
-        }`
+      println(
+        `\n${chalk.red('ERROR')} There is no Saleor App with the provided ID`
       );
     } else if (error instanceof NotSaleorAppDirectoryError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);

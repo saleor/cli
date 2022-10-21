@@ -15,7 +15,7 @@ const debug = Debug('saleor-cli:app:uninstall');
 
 export const command = 'uninstall <appId>';
 export const desc =
-  'Uninstall a Saleor App by ID. List available apps with `saleor app list`.';
+  'Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.';
 
 export const builder: CommandBuilder = (_) => _;
 
