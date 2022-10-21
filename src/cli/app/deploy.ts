@@ -132,6 +132,12 @@ export const handler = async (argv: Arguments<Options>) => {
       target: ['production', 'preview'],
       type: 'plain',
     },
+    {
+      key: 'APL',
+      value: 'vercel',
+      target: ['production', 'preview'],
+      type: 'plain',
+    },
   ]);
 
   debug(`Triggering deployment in Vercel for ${name} with ID: ${projectId}`);
