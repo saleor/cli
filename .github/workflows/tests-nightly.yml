@@ -46,6 +46,13 @@ jobs:
           node dist/saleor.js info
           node dist/saleor.js status
 
+      - name: clear cloud projects
+        env:
+          SALEOR_CLI_ENV: staging
+          RUN_FUNCTIONAL_TESTS: true
+        run: |
+          pnpm vitest run test/clear_cloud.test.ts
+
       - name: run tests
         env:
           SALEOR_CLI_ENV: staging

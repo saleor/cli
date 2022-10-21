@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   command,
@@ -10,17 +10,6 @@ import {
 } from '../../helper';
 
 const envName = `test-env-${currentDate()}`;
-
-afterAll(async () => {
-  const params = [
-    'environment',
-    'remove',
-    `--organization=${testOrganization}`,
-    envName,
-    '--force',
-  ];
-  await trigger(command, params, {});
-});
 
 describe('create new environment', async () => {
   it(
@@ -62,7 +51,7 @@ describe('create new environment', async () => {
       }
     );
     expect(exitCode).toBe(0);
-    expect(output).toContain(envName);
+    expect(output.join()).toContain(envName);
   });
 
   it('`environment show` returns env details', async () => {

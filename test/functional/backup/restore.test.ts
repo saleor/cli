@@ -35,7 +35,7 @@ beforeAll(async () => {
   const { key } = JSON.parse(output.join());
   backupKey = key;
   console.log(`backup created ${key}`);
-}, 1000 * 60 * 5);
+}, 1000 * 60 * 10);
 
 afterAll(async () => {
   await removeBackups();
