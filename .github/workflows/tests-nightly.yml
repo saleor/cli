@@ -61,7 +61,7 @@ jobs:
         run: |
           git config --global user.name 'GA-saleor-cli'
           git config --global user.email 'GA-saleor-cli@users.noreply.github.com'
-          pnpm test-functional
+          pnpm vitest test/functional -t '^((?!(deploy|tunnel)).)*$' --no-threads
 
       - name: Notify Slack
         if: ${{ failure() }}
