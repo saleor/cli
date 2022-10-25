@@ -58,9 +58,12 @@ describe('storefront deploy', async () => {
         `--environment=${testEnvironmentName}`,
         `--organization=${testOrganization}`,
       ];
-      const { exitCode } = await trigger(command, params, {
+      const { exitCode, output, err } = await trigger(command, params, {
         cwd: storefrontCwd,
       });
+
+      console.log('output', output);
+      console.log('err', err);
 
       expect(exitCode).toBe(0);
     },
