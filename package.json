@@ -19,7 +19,6 @@
     "generate": "graphql-codegen",
     "postinstall": "node ./scripts/binary.js install",
     "test": "pnpm vitest",
-    "test-functional": "pnpm vitest test/functional -t '^((?!deploy).)*$' --no-threads",
     "prepare": "husky install",
     "release": "release-it --dry-run"
   },
