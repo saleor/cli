@@ -1,7 +1,6 @@
 import { spawn } from 'child_process';
-import fs from 'fs-extra';
 import got from 'got';
-import path from 'path';
+import rimraf from 'rimraf';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 
 import { Manifest } from '../../src/lib/common';
@@ -27,7 +26,8 @@ beforeAll(async () => {
 }, 1000 * 60 * 10);
 
 afterAll(async () => {
-  await fs.remove(path.join(process.cwd(), appCwd));
+  console.log(appCwd);
+  await rimraf(appCwd, () => console.log(`removed ${appCwd}`));
 });
 
 it(
@@ -76,13 +76,16 @@ it(
     await delay(1000 * 60 * 2);
     console.log('closing');
     tunnel.emit('close');
+    tunnel.kill();
     app.emit('close');
+    app.kill();
   },
   1000 * 60 * 3
 );
 
 const checkTunnelUrl = async (tunnelUrl: string) => {
-  const { statusCode } = await got.get(tunnelUrl[0]);
+  console.log('tunnelUrl', tunnelUrl);
+  const { statusCode } = await got.get(tunnelUrl);
   expect(statusCode).toBe(200);
 };
 
