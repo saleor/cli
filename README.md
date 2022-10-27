@@ -1,3 +1,5 @@
+# Saleor CLI
+
 **Saleor CLI** is designed to boost your productivity and improve development experience with Saleor and Saleor Cloud. It will take the burden of spawning new storefronts and apps locally, managing and connecting them with Saleor instances, or establishing tunnels for local development in seconds.
 
 To install the latest version of Saleor CLI, run the following command:
@@ -131,12 +133,27 @@ node build/cli.js ...
 
 Set to `staging` to use the CLI with staging Saleor Cloud
 
-
 `RUN_FUNCTIONAL_TESTS`
 
 Set to `true` to enable functional tests
 
-
 `DEBUG`
 
 Use it for debugging. Set to `saleor-cli:*` to show debug output for the Saleor CLI only. Set to `*` to show all debug output.
+
+## Releasing CLI
+
+### Pre-Release 
+
+- check for the type errors with `pnpm tsc` 
+- check if the bundling finishes `pnpm bundle`
+
+### Release
+
+- change to the selected `release-*` branch; all `release-*` branches are protected
+- compare the commits between latest release on that branch and the current `main`
+- cherry pick commits for the next release following the [Trunk Based Development Approach](https://trunkbaseddevelopment.com); do not include the `merge` commits
+- mark the new version in the package.json (the release commit + the tag)
+- push the updated release branch to the origin
+- push the new tag to the origin
+- publish from the release branch; use the `next` tag for the `RC` version
