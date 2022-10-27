@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
+import fs from 'fs-extra';
 import got from 'got';
-import rimraf from 'rimraf';
+import kill from 'tree-kill';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 
 import { Manifest } from '../../src/lib/common';
@@ -18,6 +19,7 @@ const appName = 'tunnel-app';
 const appCwd = `${process.cwd()}/${appName}`;
 
 beforeAll(async () => {
+  await fs.rm(appCwd, { recursive: true, force: true });
   await prepareEnvironment();
   const params = ['app', 'create', appName];
   console.log(`creating an app ${appName}`);
@@ -26,8 +28,7 @@ beforeAll(async () => {
 }, 1000 * 60 * 10);
 
 afterAll(async () => {
-  console.log(appCwd);
-  await rimraf(appCwd, () => console.log(`removed ${appCwd}`));
+  await fs.rm(appCwd, { recursive: true, force: true });
 });
 
 it(
@@ -74,11 +75,14 @@ it(
 
     // wait for the tunnel to start
     await delay(1000 * 60 * 2);
-    console.log('closing');
-    tunnel.emit('close');
-    tunnel.kill();
-    app.emit('close');
-    app.kill();
+
+    if (tunnel.pid) {
+      await killPid(tunnel.pid);
+    }
+
+    if (app.pid) {
+      await killPid(app.pid);
+    }
   },
   1000 * 60 * 3
 );
@@ -94,3 +98,7 @@ const checkManifestName = async (tunnelUrl: string) => {
 
   expect(manifest.name).toBe(appName);
 };
+
+const killPid = async (pid: number) =>
+  // eslint-disable-next-line no-promise-executor-return
+  new Promise((resolve) => kill(pid, resolve));
