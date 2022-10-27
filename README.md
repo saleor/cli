@@ -140,3 +140,74 @@ Set to `true` to enable functional tests
 `DEBUG`
 
 Use it for debugging. Set to `saleor-cli:*` to show debug output for the Saleor CLI only. Set to `*` to show all debug output.
+
+## Releasing CLI
+
+Commands should be executed locally.
+
+### Pre-Release 
+
+- pull latest changes from `main`, e.g.
+
+```
+git pull origin main
+```
+
+- check for the type errors with `pnpm tsc` 
+- check if the bundling finishes `pnpm bundle`
+
+### Release
+
+- change to the selected `release-*` branch; all `release-*` branches are protected
+
+```
+git checkout release-X-Y
+```
+
+where `X` and `Y` is the selected version
+
+- compare the commits between latest release on that branch and the current `main`
+
+```
+git log --no-merges release-X-Y..main
+```
+
+- cherry pick commits for the next release following the [Trunk Based Development Approach](https://trunkbaseddevelopment.com); do not include the `merge` commits
+
+```
+git cherry-pick SHA1 SHA2 SHA3 
+```
+
+where `SHA1`, `SHA2`, `SHA3` are SHAs selected to be included in the upcoming version
+
+- mark the new version in the package.json 
+- commit the new release + add the tag
+
+```
+git commit -m 'Release X.Y.0'
+git tag X.Y.Z
+```
+
+- push the updated release branch to the origin
+
+```
+git push origin release-X-Y
+```
+
+- push the new tag to the origin
+
+```
+git push origin --tags
+```
+
+- publish from the release branch; use the `next` tag for the `RC` version
+
+```
+pnpm publish
+```
+
+or 
+
+```
+pnpm publish --tag next
+```
