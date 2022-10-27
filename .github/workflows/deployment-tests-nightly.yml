@@ -3,7 +3,7 @@ name: Execute nightly deployment tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 4 * * 1-7'
+    - cron: '0 4 * * 0-6'
 
   repository_dispatch:
     types: [automation-tests-event]
