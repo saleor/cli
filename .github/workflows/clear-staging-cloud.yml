@@ -3,7 +3,7 @@ name: Clear staging cloud projects
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 7 * * 1-7'
+    - cron: '0 7 * * 0-6'
 
   repository_dispatch:
     types: [automation-tests-event]

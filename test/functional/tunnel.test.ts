@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import fs from 'fs-extra';
 import got from 'got';
-import path from 'path';
+import kill from 'tree-kill';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 
 import { Manifest } from '../../src/lib/common';
@@ -19,6 +19,7 @@ const appName = 'tunnel-app';
 const appCwd = `${process.cwd()}/${appName}`;
 
 beforeAll(async () => {
+  await fs.rm(appCwd, { recursive: true, force: true });
   await prepareEnvironment();
   const params = ['app', 'create', appName];
   console.log(`creating an app ${appName}`);
@@ -27,7 +28,7 @@ beforeAll(async () => {
 }, 1000 * 60 * 10);
 
 afterAll(async () => {
-  await fs.remove(path.join(process.cwd(), appCwd));
+  await fs.rm(appCwd, { recursive: true, force: true });
 });
 
 it(
@@ -74,15 +75,21 @@ it(
 
     // wait for the tunnel to start
     await delay(1000 * 60 * 2);
-    console.log('closing');
-    tunnel.emit('close');
-    app.emit('close');
+
+    if (tunnel.pid) {
+      await killPid(tunnel.pid);
+    }
+
+    if (app.pid) {
+      await killPid(app.pid);
+    }
   },
   1000 * 60 * 3
 );
 
 const checkTunnelUrl = async (tunnelUrl: string) => {
-  const { statusCode } = await got.get(tunnelUrl[0]);
+  console.log('tunnelUrl', tunnelUrl);
+  const { statusCode } = await got.get(tunnelUrl);
   expect(statusCode).toBe(200);
 };
 
@@ -91,3 +98,7 @@ const checkManifestName = async (tunnelUrl: string) => {
 
   expect(manifest.name).toBe(appName);
 };
+
+const killPid = async (pid: number) =>
+  // eslint-disable-next-line no-promise-executor-return
+  new Promise((resolve) => kill(pid, resolve));

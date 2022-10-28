@@ -68,6 +68,7 @@ specifiers:
   slugify: ^1.6.5
   tar: ^6.1.11
   tplv: ^1.0.0
+  tree-kill: ^1.2.2
   tsm: ^2.2.2
   typescript: 4.8.4
   vitest: ^0.24.3
@@ -143,6 +144,7 @@ devDependencies:
   pkg: 5.8.0
   prettier: 2.7.1
   release-it: 15.5.0
+  tree-kill: 1.2.2
   tsm: 2.2.2
   typescript: 4.8.4
   vitest: 0.24.3
@@ -7429,6 +7431,11 @@ packages:
 
   /tr46/0.0.3:
     resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+
+  /tree-kill/1.2.2:
+    resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
+    hasBin: true
+    dev: true
 
   /truncate-utf8-bytes/1.0.2:
     resolution: {integrity: sha512-95Pu1QXQvruGEhv62XCMO3Mm90GscOCClvrIUwCM0PYOXK3kaF3l3sIHxx71ThJfcbM2O5Au6SO3AWCSEfW4mQ==}
