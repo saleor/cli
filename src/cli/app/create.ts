@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import Debug from 'debug';
 import { access } from 'fs/promises';
+import got from 'got';
 import kebabCase from 'lodash.kebabcase';
 import ora, { Ora } from 'ora';
 import path from 'path';
@@ -9,13 +10,15 @@ import sanitize from 'sanitize-filename';
 import { simpleGit } from 'simple-git';
 import { Arguments, CommandBuilder } from 'yargs';
 
-import * as Config from '../../config.js';
+import * as Configs from '../../config.js';
 import { run } from '../../lib/common.js';
-import { gitCopy } from '../../lib/download.js';
+import { Config } from '../../lib/config.js';
+import { gitCopy, gitCopySha } from '../../lib/download.js';
 import {
   checkPnpmPresence,
   contentBox,
   obfuscateArgv,
+  print,
 } from '../../lib/util.js';
 import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
@@ -38,13 +41,17 @@ export const builder: CommandBuilder = (_) =>
     })
     .option('template', {
       type: 'string',
-      default: Config.SaleorAppRepo,
+      default: Configs.SaleorAppRepo,
       alias: ['t', 'repo', 'repository'],
     })
     .option('branch', {
       type: 'string',
-      default: Config.SaleorAppDefaultBranch,
+      default: Configs.SaleorAppDefaultBranch,
       alias: 'b',
+    })
+    .option('example', {
+      type: 'string',
+      alias: 'e',
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -53,7 +60,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   debug('check PNPM presence');
   await checkPnpmPresence('This Saleor App template');
 
-  const { name, template, branch } = argv;
+  const { name, template, branch, example } = argv;
 
   debug('construct the folder name');
   const target = await getFolderName(sanitize(name));
@@ -68,7 +75,13 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   const spinner = ora('Downloading...').start();
 
   debug(`downloading the ${branch} app template`);
-  await gitCopy(template, target, branch);
+
+  if (example) {
+    const sha = await getExampleSHA(example);
+    await gitCopySha(template, target, sha);
+  } else {
+    await gitCopy(template, target, branch);
+  }
 
   process.chdir(target);
 
@@ -121,6 +134,49 @@ export const setupGitRepository = async (spinner: Ora) => {
   await git.init(['--initial-branch', 'main']);
   await git.add('.');
   await git.commit('Initial commit from Saleor CLI');
+};
+
+const getExampleSHA = async (example: string) => {
+  const examples = await getRepositoryContent();
+  const filtered = examples.filter((e) => e.name === example);
+
+  if (filtered.length === 0) {
+    print(
+      `The provided example app - ${example} - not found in the app-examples repository - https://github.com/saleor/app-examples`
+    );
+
+    process.exit(1);
+  }
+
+  const { sha } = filtered[0];
+
+  return sha;
+};
+
+interface RepositoryContent {
+  name: string;
+  sha: string;
+  path: string;
+  git_url: string;
+  url: string;
+  html_url: string;
+}
+
+const getRepositoryContent = async (
+  repoPath = 'https://api.github.com/repos/saleor/app-examples/contents/examples'
+) => {
+  const { github_token: GitHubToken } = await Config.get();
+
+  const data: RepositoryContent[] = await got
+    .get(repoPath, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: GitHubToken,
+      },
+    })
+    .json();
+
+  return data;
 };
 
 export const middlewares = [useToken];

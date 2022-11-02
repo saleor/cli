@@ -65,6 +65,7 @@ export interface StoreCreate extends BaseOptions {
   environment?: string;
   template: string;
   branch?: string;
+  example?: string;
 }
 
 export interface StoreDeploy extends BaseOptions {
