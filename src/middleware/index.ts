@@ -418,7 +418,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
     debug('telemetry', argv._);
 
     try {
-      got.post(Configuration.TelemetryDomain, {
+      await got.post(Configuration.TelemetryDomain, {
         json: { command, environment, version, user_session: userSession },
         timeout: {
           request: 2000,
@@ -428,7 +428,7 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
       if (error instanceof HTTPError) {
         console.error(`${chalk.yellow('Warning')} Telemetry is down `);
       }
-      // FIXME
+      // FIXME notify Sentry
     }
   }
 };
