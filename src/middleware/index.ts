@@ -417,19 +417,20 @@ export const useTelemetry = (version: string) => async (argv: Arguments) => {
   if (isTelemetryEnabled) {
     debug('telemetry', argv._);
 
-    try {
-      await got.post(Configuration.TelemetryDomain, {
+    got
+      .post(Configuration.TelemetryDomain, {
         json: { command, environment, version, user_session: userSession },
         timeout: {
           request: 2000,
         },
+      })
+      .catch((error) => {
+        if (error instanceof HTTPError) {
+          console.warn(`${chalk.yellow('Warning')} Telemetry is down `);
+        }
+
+        // FIXME notify Sentry
       });
-    } catch (error) {
-      if (error instanceof HTTPError) {
-        console.error(`${chalk.yellow('Warning')} Telemetry is down `);
-      }
-      // FIXME notify Sentry
-    }
   }
 };
 
