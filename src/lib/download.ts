@@ -18,7 +18,7 @@ export const gitCopy = async (repo: string, dest: string, ref = 'main') => {
   }
 };
 
-export const gitCopySha = async (repo: string, dest: string, sha: string) => {
+export const gitCopySHA = async (repo: string, dest: string, sha: string) => {
   try {
     const { href: repoURL } = GitURLParse(repo);
     await git.clone(repoURL, dest).cwd({ path: dest });

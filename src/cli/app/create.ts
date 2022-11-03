@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import Debug from 'debug';
+import Enquirer from 'enquirer';
 import { access } from 'fs/promises';
 import got from 'got';
 import kebabCase from 'lodash.kebabcase';
@@ -13,12 +14,11 @@ import { Arguments, CommandBuilder } from 'yargs';
 import * as Configs from '../../config.js';
 import { run } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { gitCopy, gitCopySha } from '../../lib/download.js';
+import { gitCopy, gitCopySHA } from '../../lib/download.js';
 import {
   checkPnpmPresence,
   contentBox,
   obfuscateArgv,
-  print,
 } from '../../lib/util.js';
 import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
@@ -76,9 +76,9 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
 
   debug(`downloading the ${branch} app template`);
 
-  if (example) {
+  if (typeof example === 'string') {
     const sha = await getExampleSHA(example);
-    await gitCopySha(template, target, sha);
+    await gitCopySHA(template, target, sha);
   } else {
     await gitCopy(template, target, branch);
   }
@@ -141,11 +141,20 @@ const getExampleSHA = async (example: string) => {
   const filtered = examples.filter((e) => e.name === example);
 
   if (filtered.length === 0) {
-    print(
-      `The provided example app - ${example} - not found in the app-examples repository - https://github.com/saleor/app-examples`
-    );
+    const choices = examples.map((e) => ({
+      name: e.sha,
+      message: e.name.split('-').join(' '),
+    }));
 
-    process.exit(1);
+    const { sha } = await Enquirer.prompt<{ sha: string }>({
+      type: 'select',
+      name: 'sha',
+      required: true,
+      choices,
+      message: 'Choose the app example',
+    });
+
+    return sha;
   }
 
   const { sha } = filtered[0];
