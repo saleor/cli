@@ -391,7 +391,9 @@ export const useOnlineChecker = async () => {
   // ref. https://github.com/actions/runner-images/issues/1519#issuecomment-683790054
   if (!process.env.CI) {
     try {
-      await util.promisify(exec)('ping -c 1 1.1.1.1');
+      await util.promisify(exec)(
+        `ping ${process.platform === 'win32' ? '-n' : '-c'} 1 1.1.1.1`
+      );
     } catch (error) {
       console.error(
         `You are ${chalk.red(
