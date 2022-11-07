@@ -73,9 +73,10 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     debug('creating project');
     const project = await createProject(_argv);
     debug('preparing the environment');
-    await prepareEnvironment(_argv, project);
+    const { domain } = await prepareEnvironment(_argv, project);
+
     debug('creating storefront');
-    await createStorefront(_argv);
+    await createStorefront({ ..._argv, instance: `https://${domain}` });
   } else {
     debug('creating storefront');
     await createStorefront(argv);
@@ -192,7 +193,7 @@ const prepareEnvironment = async (
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await checkPnpmPresence('react-storefront project');
 
-  const { name, template, branch } = argv;
+  const { name, template, branch, instance } = argv;
 
   const spinner = ora('Downloading...').start();
   const target = await getFolderName(sanitize(name));
@@ -206,6 +207,14 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
     from: /("name": "(react|saleor)-storefront").*/g,
     to: `"name": "${kebabCase(target)}",`,
   });
+
+  if (instance) {
+    await replace.replaceInFile({
+      files: '.env',
+      from: /SALEOR_API_URL=.*/g,
+      to: `SALEOR_API_URL=${instance}/graphql/`,
+    });
+  }
 
   await setupGitRepository(spinner);
 
