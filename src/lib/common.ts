@@ -112,7 +112,7 @@ export const doSaleorAppInstall = async (argv: any) => {
 };
 
 export const fetchSaleorAppList = async (argv: any) => {
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const endpoint = `${argv.instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got

@@ -6,20 +6,12 @@ import { Arguments } from 'yargs';
 
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import {
   formatDateTime,
   getAppsFromResult,
   obfuscateArgv,
-  printContext,
 } from '../../lib/util.js';
-import {
-  useAppConfig,
-  useEnvironment,
-  useInstanceConnector,
-  useOrganization,
-  useToken,
-} from '../../middleware/index.js';
+import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
