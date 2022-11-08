@@ -1,13 +1,14 @@
-import chalk from 'chalk';
 import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { obfuscateArgv, promptEnvironment } from '../../lib/util.js';
+import { verifyEnvironment } from '../../middleware/index.js';
+import { BaseOptions } from '../../types.js';
 
-type Options = {
+interface Options extends BaseOptions {
   key?: string;
-};
+}
 
 const debug = Debug('saleor-cli:env:switch');
 
@@ -27,16 +28,14 @@ export const handler = async (argv: Arguments<Options>) => {
   const environment = await getEnvironment(argv);
 
   await Config.set('environment_id', environment.value);
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Environment ·'),
-    chalk.cyan(environment.value)
-  );
 };
 
 const getEnvironment = async (argv: Arguments<Options>) => {
-  if (argv.environment) {
-    return { name: argv.key, value: argv.key };
+  const { environment, token, organization } = argv;
+
+  if (environment && token && organization) {
+    const { key } = await verifyEnvironment(token, organization, environment);
+    return { name: key, value: key };
   }
 
   const data = await promptEnvironment(argv);
