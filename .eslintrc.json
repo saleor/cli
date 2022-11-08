@@ -20,6 +20,14 @@
     "import/no-duplicates": "warn",
     "import/no-unresolved": "off",
     "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": [
+      "warn", // or "error"
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
     "@typescript-eslint/ban-types": "off",
     "no-console": "off",
     "no-continue": "off",
