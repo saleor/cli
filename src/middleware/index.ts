@@ -21,6 +21,7 @@ import { isNotFound } from '../lib/response.js';
 import {
   AuthError,
   createProject,
+  printlnSuccess,
   promptCompatibleVersion,
   promptDatabaseTemplate,
   promptEnvironment,
@@ -147,10 +148,8 @@ export const useOrganization = async ({
   }
 
   if (!json) {
-    console.log(
-      chalk.green('✔'),
-      chalk.bold('Organization ·'),
-      chalk.cyan(opts.organization)
+    printlnSuccess(
+      chalk(chalk.bold('Organization ·'), chalk.cyan(opts.organization))
     );
   }
 
@@ -271,10 +270,11 @@ export const useEnvironment = async ({
       opts = { ...opts, ...{ environment: env.value } };
 
       if (!json) {
-        console.log(
-          chalk.green('✔'),
-          chalk.bold('Environment ·'),
-          chalk.cyan(`${env.name} - ${env.value}`)
+        printlnSuccess(
+          chalk(
+            chalk.bold('Environment ·'),
+            chalk.cyan(`${env.name} - ${env.value}`)
+          )
         );
       }
     }

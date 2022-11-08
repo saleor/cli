@@ -6,7 +6,7 @@ import { Arguments } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { obfuscateArgv } from '../../lib/util.js';
+import { obfuscateArgv, printlnSuccess } from '../../lib/util.js';
 import { useGithub } from '../../middleware/index.js';
 
 interface Options {
@@ -127,7 +127,7 @@ export const handler = async (argv: Arguments<Options>) => {
   console.log('  pnpm build');
   await run('pnpm', ['build'], { cwd: process.cwd() });
 
-  console.log(chalk.green('✔️ prepared'));
+  printlnSuccess('prepared');
   console.log('\n  run the saleor cli from project root with:');
   console.log(chalk.green('\n  node ./dist/saleor.js command-name'));
 };

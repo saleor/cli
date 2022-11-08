@@ -3,7 +3,11 @@ import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { API, DELETE } from '../../lib/index.js';
-import { confirmRemoval, obfuscateArgv } from '../../lib/util.js';
+import {
+  confirmRemoval,
+  obfuscateArgv,
+  printlnSuccess,
+} from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:backup:remove');
@@ -31,9 +35,6 @@ export const handler = async (argv: Arguments<Options>) => {
       ...argv,
     })) as any;
 
-    console.log(
-      chalk.green('✔'),
-      chalk.bold('Backup has been successfully removed')
-    );
+    printlnSuccess(chalk.bold('Backup has been successfully removed'));
   }
 };

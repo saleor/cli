@@ -16,7 +16,11 @@ import {
   getEnvironment,
   getEnvironmentGraphqlEndpoint,
 } from './environment.js';
-import { NotSaleorAppDirectoryError, SaleorAppInstallError } from './util.js';
+import {
+  NotSaleorAppDirectoryError,
+  printlnSuccess,
+  SaleorAppInstallError,
+} from './util.js';
 
 export interface Manifest {
   name: string;
@@ -76,9 +80,7 @@ export const doSaleorAppInstall = async (argv: any) => {
   }
 
   const name = argv.appName ?? manifest.name;
-  console.log(
-    chalk(chalk.green('✔'), chalk.bold('Name'), '·', chalk.green(name))
-  );
+  printlnSuccess(chalk(chalk.bold('Name'), '·', chalk.green(name)));
 
   if (!argv.viaDashboard) {
     const { data, errors }: any = await got

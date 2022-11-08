@@ -8,7 +8,11 @@ import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
 import { Config } from '../../lib/config.js';
 import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { NoCommandBuilderSetup } from '../../lib/index.js';
-import { obfuscateArgv, validatePresence } from '../../lib/util.js';
+import {
+  obfuscateArgv,
+  printlnSuccess,
+  validatePresence,
+} from '../../lib/util.js';
 import {
   interactiveSaleorApp,
   interactiveWebhook,
@@ -104,7 +108,7 @@ export const handler = async (argv: Arguments<Options>) => {
     })
     .json();
 
-  console.log(chalk(chalk.green('✔'), chalk.bold('Webhook updated')));
+  printlnSuccess(chalk.bold('Webhook updated'));
 
   process.exit(0);
 };

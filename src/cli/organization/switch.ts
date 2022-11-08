@@ -4,7 +4,11 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { API, GET } from '../../lib/index.js';
-import { obfuscateArgv, promptOrganization } from '../../lib/util.js';
+import {
+  obfuscateArgv,
+  printlnSuccess,
+  promptOrganization,
+} from '../../lib/util.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:org:switch');
@@ -25,10 +29,9 @@ export const handler = async (argv: Arguments<Options>) => {
 
   await Config.set('organization_slug', organization.value);
   await Config.remove('environment_id');
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Organization ·'),
-    chalk.cyan(organization.value)
+
+  printlnSuccess(
+    chalk(chalk.bold('Organization ·'), chalk.cyan(organization.value))
   );
 };
 

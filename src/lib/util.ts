@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { emphasize } from 'emphasize';
 import Enquirer from 'enquirer';
 import got from 'got';
+import logSymbols from 'log-symbols';
 import { lookpath } from 'lookpath';
 import ora from 'ora';
 import yaml from 'yaml';
@@ -132,6 +133,9 @@ export const makeRequestAppList = async (argv: any) => {
 
 export const print = process.stdout.write.bind(process.stdout);
 export const println = console.log.bind(console);
+
+export const printlnSuccess = (msg: string) =>
+  println(chalk.green(logSymbols.success), msg);
 
 export const obfuscate = (value: string) => `${value.slice(0, 12)} ****`;
 export const obfuscateArgv = (argv: Arguments<Options>) => {
