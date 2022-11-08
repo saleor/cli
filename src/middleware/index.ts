@@ -109,7 +109,7 @@ export const useInstanceAttacher = async (argv: Options) => {
   };
 };
 
-export const useAppConfig = async (argv: Options) => {
+export const useAppConfig = async (_argv: Options) => {
   try {
     const content = await fs.readFile(
       path.join(process.cwd(), 'saleor.config.json'),
@@ -260,11 +260,7 @@ export const useEnvironment = async ({
     if (environmentId) {
       debug('env read from file');
 
-      const env: Environment = await verifyEnvironment(
-        token,
-        organization,
-        environmentId
-      );
+      await verifyEnvironment(token, organization, environmentId);
       opts = { ...opts, ...{ environment: environmentId } };
     } else {
       const env = await promptEnvironment(opts);
