@@ -51,6 +51,7 @@ specifiers:
   http-request-mock: ^1.8.2
   husky: ^8.0.1
   lodash.kebabcase: ^4.1.1
+  log-symbols: ^5.1.0
   lookpath: ^1.2.2
   msw: ^0.47.4
   nanoid: ^4.0.0
@@ -97,6 +98,7 @@ dependencies:
   graphql-request: 5.0.0_graphql@16.6.0
   graphql-tag: 2.12.6_graphql@16.6.0
   lodash.kebabcase: 4.1.1
+  log-symbols: 5.1.0
   lookpath: 1.2.2
   nanoid: 4.0.0
   node-fetch: 3.2.10

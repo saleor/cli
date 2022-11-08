@@ -17,6 +17,7 @@ import {
   checkPnpmPresence,
   getSortedServices,
   obfuscateArgv,
+  printlnSuccess,
 } from '../../lib/util.js';
 import { useOrganization, useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
@@ -88,10 +89,8 @@ const createProject = async (argv: Arguments<StoreCreate>) => {
   const demoName = capitalize(argv.name || 'saleor demo');
 
   if (projects.filter(({ name }) => name === demoName).length > 0) {
-    console.log(
-      chalk.green('✔'),
-      chalk.bold('Select Project  ·'),
-      chalk.cyan(demoName)
+    printlnSuccess(
+      chalk(chalk.bold('Select Project  ·'), chalk.cyan(demoName))
     );
     const project = projects.filter(({ name }) => name === demoName)[0];
     return { slug: project.slug };
@@ -105,11 +104,7 @@ const createProject = async (argv: Arguments<StoreCreate>) => {
     },
   })) as any;
 
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Select Project  ·'),
-    chalk.cyan(demoName)
-  );
+  printlnSuccess(chalk(chalk.bold('Select Project  ·'), chalk.cyan(demoName)));
 
   return project;
 };
@@ -127,44 +122,35 @@ const prepareEnvironment = async (
 
   const name = `${project.slug}-${nanoid(8).toLocaleLowerCase()}`;
 
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Select the database template ·'),
-    chalk.cyan('sample')
+  printlnSuccess(
+    chalk(chalk.bold('Select the database template ·'), chalk.cyan('sample'))
   );
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Select a Saleor version ·'),
-    chalk.cyan(
-      `Saleor ${service.version} - ${service.display_name} - ${service.service_type}`
+  printlnSuccess(
+    chalk(
+      chalk.bold('Select a Saleor version ·'),
+      chalk.cyan(
+        `Saleor ${service.version} - ${service.display_name} - ${service.service_type}`
+      )
     )
   );
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Environment name ·'),
-    chalk.cyan(name)
+  printlnSuccess(chalk(chalk.bold('Environment name ·'), chalk.cyan(name)));
+  printlnSuccess(chalk(chalk.bold('Environment domain ·'), chalk.cyan(name)));
+  printlnSuccess(
+    chalk(
+      chalk.bold('Would you like to enable dashboard access  (y/N) ·'),
+      chalk.cyan('yes')
+    )
   );
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Environment domain ·'),
-    chalk.cyan(name)
+  printlnSuccess(
+    chalk(chalk.bold('Dashboard admin email ·'), chalk.cyan(user.email))
   );
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Would you like to enable dashboard access  (y/N) ·'),
-    chalk.cyan('yes')
-  );
-  console.log(
-    chalk.green('✔'),
-    chalk.bold('Dashboard admin email ·'),
-    chalk.cyan(user.email)
-  );
-  console.log(
-    chalk.green('✔'),
-    chalk.bold(
-      'Would you like to restrict your Environment API with Basic Auth? (y/N) ·'
-    ),
-    chalk.cyan('no')
+  printlnSuccess(
+    chalk(
+      chalk.bold(
+        'Would you like to restrict your Environment API with Basic Auth? (y/N) ·'
+      ),
+      chalk.cyan('no')
+    )
   );
 
   const json = {
