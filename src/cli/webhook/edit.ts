@@ -6,7 +6,6 @@ import type { Arguments } from 'yargs';
 
 import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
 import { Config } from '../../lib/config.js';
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { NoCommandBuilderSetup } from '../../lib/index.js';
 import {
   obfuscateArgv,
@@ -28,8 +27,8 @@ export const builder = NoCommandBuilderSetup;
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
-  const { environment, webhookID } = argv;
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const { environment, webhookID, instance } = argv;
+  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   const query = `query getWebhook($id: ID!) {

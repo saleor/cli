@@ -2,7 +2,6 @@ import Debug from 'debug';
 import Enquirer from 'enquirer';
 import type { Arguments, CommandBuilder } from 'yargs';
 
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { API, PUT } from '../../lib/index.js';
 import {
   obfuscateArgv,
@@ -55,7 +54,8 @@ export const handler = async (argv: Arguments<Options>) => {
   });
 
   if (update) {
-    const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+    const { instance } = argv;
+    const endpoint = `${instance}/graphql/`;
     debug(`Saleor endpoint: ${endpoint}`);
     await updateWebhook(endpoint);
   }

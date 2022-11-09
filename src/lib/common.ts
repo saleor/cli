@@ -13,10 +13,6 @@ import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Config } from './config.js';
 import { isPortAvailable } from './detectPort.js';
 import {
-  getEnvironment,
-  getEnvironmentGraphqlEndpoint,
-} from './environment.js';
-import {
   NotSaleorAppDirectoryError,
   printlnSuccess,
   SaleorAppInstallError,
@@ -53,8 +49,8 @@ export const doSaleorAppDelete = async (argv: any) => {
 };
 
 export const doSaleorAppInstall = async (argv: any) => {
-  const endpoint =
-    argv.saleorApiUrl || (await getEnvironmentGraphqlEndpoint(argv));
+  const { instance } = argv;
+  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   if (!argv.manifestURL) {
@@ -104,7 +100,7 @@ export const doSaleorAppInstall = async (argv: any) => {
   } else {
     // open browser
     console.log('\nOpening the browser...');
-    const { domain } = await getEnvironment(argv);
+    const { instance: domain } = argv;
     const QueryParams = new URLSearchParams({ manifestUrl: manifestURL });
     const url = `https://${domain}/dashboard/apps/install?${QueryParams}`;
     console.log(url);

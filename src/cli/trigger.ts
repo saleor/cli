@@ -6,14 +6,9 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import * as SaleorGraphQL from '../generated/graphql.js';
 import { Config } from '../lib/config.js';
-import { getEnvironmentGraphqlEndpoint } from '../lib/environment.js';
 import { DefaultSaleorEndpoint } from '../lib/index.js';
 import { capitalize, obfuscateArgv } from '../lib/util.js';
-import {
-  useEnvironment,
-  useOrganization,
-  useToken,
-} from '../middleware/index.js';
+import { useAppConfig, useInstanceConnector } from '../middleware/index.js';
 import { Options } from '../types.js';
 
 const debug = Debug('saleor-cli:trigger');
@@ -67,7 +62,8 @@ export const handler = async (argv: Arguments<Options>) => {
     `\n  GraphQL Operation for ${chalk.underline(event)} available\n`
   );
 
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const { instance } = argv;
+  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   // FIXME
@@ -99,4 +95,4 @@ export const handler = async (argv: Arguments<Options>) => {
   process.exit(0);
 };
 
-export const middlewares = [useToken, useOrganization, useEnvironment];
+export const middlewares = [useAppConfig, useInstanceConnector];
