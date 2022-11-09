@@ -19,6 +19,7 @@ import {
   checkPnpmPresence,
   contentBox,
   obfuscateArgv,
+  println,
 } from '../../lib/util.js';
 import { useToken } from '../../middleware/index.js';
 import { StoreCreate } from '../../types.js';
@@ -106,9 +107,17 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     )
   );
 
-  console.log('  To start your application:\n');
-  console.log(`    cd ${target}`);
-  console.log('    pnpm dev');
+  println('  To start your application:\n');
+  println(`    cd ${target}`);
+  println('    pnpm dev');
+
+  println(
+    chalk(
+      '\nTip: use',
+      chalk.green('saleor app tunnel'),
+      'to expose your local environment to a public URL and install your app in the Saleor instance'
+    )
+  );
 };
 
 const getFolderName = async (name: string): Promise<string> => {
