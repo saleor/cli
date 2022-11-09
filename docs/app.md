@@ -70,12 +70,15 @@ Positionals:
   name                                       [string] [default: "my-saleor-app"]
 
 Options:
-      --json                  Output the data as JSON                  [boolean]
+      --json                            Output the data as JSON        [boolean]
   -u, --instance, --url                                                 [string]
       --dependencies, --deps                           [boolean] [default: true]
-  -V, --version               Show version number                      [boolean]
-  -h, --help                  Show help                                [boolean]
-```
+  -t, --template, --repo, --repository
+                                [string] [default: "saleor/saleor-app-template"]
+  -b, --branch                                        [string] [default: "main"]
+  -e, --example                                                         [string]
+  -V, --version                         Show version number            [boolean]
+  -h, --help                            Show help                      [boolean]
 
 ### saleor app tunnel
 
