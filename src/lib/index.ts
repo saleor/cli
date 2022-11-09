@@ -92,7 +92,7 @@ export const API: Record<string, DefaultURLPath> = {
   TaskStatus: (_) => `service/task-status/${_.task}`,
   Backup: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/backups/${
-      _.key || ''
+      _.backup || ''
     }`,
   Restore: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/restore`,
