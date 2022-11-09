@@ -284,7 +284,8 @@ const getDomain = async (
     type: 'input',
     name: 'domain',
     message: 'Environment domain',
-    initial: initial || slugify(argv.domain || argv.name || name || ''),
+    initial:
+      initial || slugify(argv.domain || argv.name || name || '').toLowerCase(),
     required: true,
     skip: !!argv.domain,
     validate: (value) => {
