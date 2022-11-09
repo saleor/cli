@@ -6,6 +6,7 @@ import { API, DELETE } from '../../lib/index.js';
 import {
   confirmRemoval,
   obfuscateArgv,
+  printlnSuccess,
   promptProject,
 } from '../../lib/util.js';
 import { Options } from '../../types.js';
@@ -34,9 +35,6 @@ export const handler = async (argv: Arguments<Options>) => {
 
   if (proceed) {
     (await DELETE(API.Project, { ...argv, project: project.value })) as any;
-    console.log(
-      chalk.green('✔'),
-      chalk.bold('Project has been successfully removed')
-    );
+    printlnSuccess(chalk.bold('Project has been successfully removed'));
   }
 };

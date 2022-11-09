@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { HTTPError, Response } from 'got';
+import logSymbols from 'log-symbols';
 import slugify from 'slugify';
 import { Arguments, CommandBuilder } from 'yargs';
 
@@ -305,7 +306,7 @@ const getDomain = async (
 const validateDomain = async (argv: Arguments<Options>, name: string) => {
   let loop = true;
   let domain;
-  const msg = '✖ The environment with this domain already exists.';
+  const msg = `${logSymbols.error} The environment with this domain already exists.`;
 
   domain = await getDomain(argv, name, msg);
   const json = { domain_label: domain };

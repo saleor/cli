@@ -1,8 +1,9 @@
+import chalk from 'chalk';
 import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
-import { obfuscateArgv, promptEnvironment } from '../../lib/util.js';
+import { obfuscateArgv, println, promptEnvironment } from '../../lib/util.js';
 import { verifyEnvironment } from '../../middleware/index.js';
 import { BaseOptions } from '../../types.js';
 
@@ -28,6 +29,8 @@ export const handler = async (argv: Arguments<Options>) => {
   const environment = await getEnvironment(argv);
 
   await Config.set('environment_id', environment.value);
+
+  println(chalk(chalk.bold('Environment ·'), chalk.cyan(environment.value)));
 };
 
 const getEnvironment = async (argv: Arguments<Options>) => {

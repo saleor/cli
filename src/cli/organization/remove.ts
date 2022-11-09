@@ -7,6 +7,7 @@ import { API, DELETE } from '../../lib/index.js';
 import {
   confirmRemoval,
   obfuscateArgv,
+  printlnSuccess,
   promptOrganization,
 } from '../../lib/util.js';
 import { Options } from '../../types.js';
@@ -47,9 +48,6 @@ export const handler = async (argv: Arguments<Options>) => {
       await Config.remove('environment_id');
     }
 
-    console.log(
-      chalk.green('✔'),
-      chalk.bold('Organization has been successfully removed')
-    );
+    printlnSuccess(chalk.bold('Organization has been successfully removed'));
   }
 };
