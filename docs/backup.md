@@ -55,7 +55,7 @@ Options:
 ### saleor backup show
 
 ```
-saleor backup show [key]
+saleor backup show [backup|backup-key]
 
 Show a specific backup
 
