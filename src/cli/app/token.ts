@@ -7,18 +7,13 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { AppTokenCreate } from '../../generated/graphql.js';
 import { SaleorAppList } from '../../graphql/SaleorAppList.js';
 import { Config } from '../../lib/config.js';
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import {
   contentBox,
   getAppsFromResult,
   obfuscateArgv,
   printContext,
 } from '../../lib/util.js';
-import {
-  useEnvironment,
-  useOrganization,
-  useToken,
-} from '../../middleware/index.js';
+import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:app:token');
@@ -40,7 +35,8 @@ export const handler = async (argv: Arguments<Options>) => {
 
   printContext(organization, environment);
 
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const { instance } = argv;
+  const endpoint = `${instance}/graphql/`;
   debug(`Saleor endpoint: ${endpoint}`);
 
   let appId: string;
@@ -124,4 +120,4 @@ export const getSaleorApp = async (
   return { app, apps };
 };
 
-export const middlewares = [useToken, useOrganization, useEnvironment];
+export const middlewares = [useAppConfig, useInstanceConnector];

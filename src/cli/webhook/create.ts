@@ -11,7 +11,6 @@ import {
 } from '../../generated/graphql.js';
 import { doWebhookCreate } from '../../graphql/doWebhookCreate.js';
 import { Config } from '../../lib/config.js';
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
 import { obfuscateArgv, without } from '../../lib/util.js';
 import { interactiveSaleorApp } from '../../middleware/index.js';
@@ -107,7 +106,8 @@ export const handler = async (argv: Arguments<Options>) => {
     },
   ]);
 
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const { instance } = argv;
+  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   const { data }: any = await got

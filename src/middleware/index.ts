@@ -12,10 +12,7 @@ import { Arguments } from 'yargs';
 
 import * as Configuration from '../config.js';
 import { Config } from '../lib/config.js';
-import {
-  getEnvironment as getEnv,
-  getEnvironmentGraphqlEndpoint,
-} from '../lib/environment.js';
+import { getEnvironment as getEnv } from '../lib/environment.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
 import { isNotFound } from '../lib/response.js';
 import {
@@ -339,7 +336,8 @@ mutation login($email: String!, $password: String!) {
       message: 'Your password?',
     });
 
-    const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+    const { instance } = argv;
+    const endpoint = `${instance}/graphql/`;
 
     const { data, errors }: any = await got
       .post(endpoint, {
