@@ -5,6 +5,7 @@ import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
 import got from 'got';
+import kebabCase from 'lodash.kebabcase';
 import ora, { Ora } from 'ora';
 import path from 'path';
 import simpleGit from 'simple-git';
@@ -15,7 +16,7 @@ import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Options } from '../types.js';
 import { doSaleorAppInstall } from './common.js';
 import { Config } from './config.js';
-import { contentBox, delay } from './util.js';
+import { contentBox, delay, NameMismatchError } from './util.js';
 import { Deployment, Env, Vercel } from './vercel.js';
 
 const debug = Debug('saleor-cli:lib:deploy');
@@ -60,8 +61,11 @@ export const createProjectInVercel = async (
   buildCommand: null | string = null,
   rootDirectory: null | string = null
 ) => {
+  debug('Validating if project name is correct');
+  validateVercelProjectName(name);
+
   try {
-    debug('Verify if project exists in Vercel');
+    debug('Verifying if project exists in Vercel');
     const project = await vercel.getProject(name);
 
     const spinner = ora(`Creating ${name}...`).start();
@@ -240,6 +244,7 @@ export const setupSaleorAppCheckout = async (
   argv: Arguments<Options>
 ) => {
   const pkgName = await getPackageName();
+  validateVercelProjectName(pkgName);
 
   const checkoutName = `${pkgName}-app-checkout`;
   debug(`App name in Vercel: ${checkoutName}`);
@@ -386,6 +391,9 @@ export const triggerDeploymentInVercel = async (
   projectId: string,
   provider = 'github'
 ) => {
+  debug('Validating if project name is correct');
+  validateVercelProjectName(name);
+
   const spinner = ora('Preparing to deploy...').start();
 
   debug('Pushing code to repository');
@@ -470,4 +478,21 @@ const pushToRepo = async (name: string) => {
 
   const data = await git.push('origin', 'main');
   return data;
+};
+
+export const validateVercelProjectName = (name: string) => {
+  const requirements =
+    'The name of a Project can only contain up to 100 alphanumeric lowercase characters and hyphens.';
+
+  if (name.length > 99) {
+    throw new NameMismatchError(
+      `Project name too long - ${name.length} characters.\n Vercel requirements: ${requirements}`
+    );
+  }
+
+  if (kebabCase(name) !== name) {
+    throw new NameMismatchError(
+      `Invalid Project name - ${name}.\n Vercel requirements: ${requirements}`
+    );
+  }
 };
