@@ -7,13 +7,8 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { obfuscateArgv, printContext, println } from '../../lib/util.js';
-import {
-  useEnvironment,
-  useOrganization,
-  useToken,
-} from '../../middleware/index.js';
+import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 import { getSaleorApp } from './token.js';
 
@@ -40,7 +35,8 @@ export const handler = async (argv: Arguments<Options>) => {
 
   printContext(organization, environment);
 
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const { instance } = argv;
+  const endpoint = `${instance}/graphql/`;
   debug(`Saleor endpoint: ${endpoint}`);
 
   const { app, apps } = await getSaleorApp(endpoint, argv.appId);
@@ -115,4 +111,4 @@ const getPermissions = async (
   return permissions;
 };
 
-export const middlewares = [useToken, useOrganization, useEnvironment];
+export const middlewares = [useAppConfig, useInstanceConnector];

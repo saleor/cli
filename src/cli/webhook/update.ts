@@ -7,7 +7,6 @@ import { Arguments } from 'yargs';
 import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
 import { WebhookList } from '../../graphql/WebhookList.js';
 import { Config } from '../../lib/config.js';
-import { getEnvironmentGraphqlEndpoint } from '../../lib/environment.js';
 import { getAppsFromResult, obfuscateArgv } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
@@ -18,7 +17,8 @@ export const desc = 'Update webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
-  const endpoint = await getEnvironmentGraphqlEndpoint(argv);
+  const { instance } = argv;
+  const endpoint = `${instance}/graphql/`;
   await updateWebhook(endpoint);
 };
 

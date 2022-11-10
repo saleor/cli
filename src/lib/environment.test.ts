@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { Arguments } from 'yargs';
 
 import { Options } from '../types';
-import { getEnvironment, getEnvironmentGraphqlEndpoint } from './environment';
+import { getEnvironment } from './environment';
 import { configs } from './index';
 
 const environment = {
@@ -20,6 +20,7 @@ const argv = {
   token: 'XYZ',
   organization: 'test_org',
   environment: 'test',
+  instance: 'https://test-environment.test.saleor.cloud',
 } as Arguments<Options>;
 
 const handlers = [
@@ -51,11 +52,12 @@ describe('getEnvironment', () => {
   });
 });
 
-describe('getEnvironmentGraphqlEndpoint', () => {
+describe('get Saleor API endpoint', () => {
   it('should return the environment\'s graphql endpoint', async () => {
-    const response = await getEnvironmentGraphqlEndpoint(argv);
+    const { instance } = argv;
+    const endpoint = `${instance}/graphql/`;
 
-    expect(response).toEqual(
+    expect(endpoint).toEqual(
       'https://test-environment.test.saleor.cloud/graphql/'
     );
   });
