@@ -97,6 +97,7 @@ export const doLogin = async () => {
 
         await Config.reset();
         await Config.set('token', `Token ${token}`);
+        await Config.set('saleor_env', environment);
         await Config.set('user_session', userSession);
         for (const [name, value] of Object.entries(secrets)) {
           await Config.set(name as ConfigField, value);

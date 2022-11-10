@@ -1,4 +1,5 @@
 import { CliUx } from '@oclif/core';
+import chalk from 'chalk';
 import Debug from 'debug';
 import detectPort from 'detect-port';
 import EventEmitter from 'events';
@@ -10,7 +11,7 @@ import { GET } from 'retes/route';
 import type { CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
-import { delay } from '../../lib/util.js';
+import { delay, printlnSuccess } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
@@ -65,6 +66,7 @@ export const handler = async () => {
         const { access_token: accessToken } = data;
 
         await Config.set('github_token', `Bearer ${accessToken}`);
+        printlnSuccess(chalk.bold('success'));
       } catch (error: any) {
         console.log(error.message);
       }

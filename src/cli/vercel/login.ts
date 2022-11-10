@@ -11,7 +11,7 @@ import { GET } from 'retes/route';
 import { Config, SaleorCLIPort } from '../../lib/config.js';
 import { checkPort } from '../../lib/detectPort.js';
 import { NoCommandBuilderSetup } from '../../lib/index.js';
-import { delay } from '../../lib/util.js';
+import { delay, printlnSuccess } from '../../lib/util.js';
 
 const { ux: cli } = CliUx;
 
@@ -66,6 +66,7 @@ export const handler = async () => {
 
         await Config.set('vercel_token', `Bearer ${accessToken}`);
         await Config.set('vercel_team_id', teamId);
+        printlnSuccess(chalk.bold('success'));
       } catch (error: any) {
         console.log(error.message);
         console.log(
