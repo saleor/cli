@@ -46,7 +46,7 @@ const remove = async (field: ConfigField) => {
     (await fs.readJSON(DefaultConfigFile, { throws: false })) || {};
 
   delete content[field];
-  await fs.outputJSON(DefaultConfigFile, content);
+  await fs.outputJSON(DefaultConfigFile, content, { spaces: '\t' });
 
   return content;
 };
