@@ -7,12 +7,13 @@ import got from 'got';
 import { print } from 'graphql';
 import { Arguments } from 'yargs';
 
-import { AppDelete } from '../generated/graphql.js';
+import { AppDelete, AppsInstallations } from '../generated/graphql.js';
 import { AppInstall } from '../graphql/AppInstall.js';
 import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Config } from './config.js';
 import { isPortAvailable } from './detectPort.js';
 import {
+  delay,
   NotSaleorAppDirectoryError,
   printlnSuccess,
   SaleorAppInstallError,
@@ -76,7 +77,6 @@ export const doSaleorAppInstall = async (argv: any) => {
   }
 
   const name = argv.appName ?? manifest.name;
-  printlnSuccess(chalk(chalk.bold('Name'), '·', chalk.green(name)));
 
   if (!argv.viaDashboard) {
     const { data, errors }: any = await got
@@ -97,16 +97,64 @@ export const doSaleorAppInstall = async (argv: any) => {
     if (errors || data.appInstall.errors.length > 0) {
       throw new SaleorAppInstallError();
     }
-  } else {
-    // open browser
-    console.log('\nOpening the browser...');
-    const { instance: domain } = argv;
-    const QueryParams = new URLSearchParams({ manifestUrl: manifestURL });
-    const url = `https://${domain}/dashboard/apps/install?${QueryParams}`;
-    console.log(url);
 
-    cli.open(url);
+    const {
+      appInstall: {
+        appInstallation: { id },
+      },
+    } = data;
+
+    let installed = await waitForAppInstallation(argv, id);
+    while (!installed) {
+      await delay(1000);
+      installed = await waitForAppInstallation(argv, id);
+    }
+
+    return;
   }
+
+  printlnSuccess(chalk(chalk.bold('Name'), '·', chalk.green(name)));
+
+  // open browser
+  console.log('\nOpening the browser...');
+  const { instance: domain } = argv;
+  const QueryParams = new URLSearchParams({ manifestUrl: manifestURL });
+  const url = `https://${domain}/dashboard/apps/install?${QueryParams}`;
+  console.log(url);
+
+  cli.open(url);
+};
+
+const waitForAppInstallation = async (argv: any, id: string) => {
+  const endpoint = `${argv.instance}/graphql/`;
+  const headers = await Config.getBearerHeader();
+
+  const { data, errors }: any = await got
+    .post(endpoint, {
+      headers,
+      json: {
+        query: print(AppsInstallations),
+      },
+    })
+    .json();
+
+  // TODO
+  if (errors) {
+    console.log(errors);
+  }
+
+  const { appsInstallations } = data;
+  const [app] = appsInstallations.filter((a: any) => a.id === id);
+
+  if (app && app.status === 'PENDING') {
+    return false;
+  }
+
+  if (app && app.status === 'FAILED') {
+    throw new SaleorAppInstallError(`App installation failed - ${app.message}`);
+  }
+
+  return true;
 };
 
 export const fetchSaleorAppList = async (argv: any) => {

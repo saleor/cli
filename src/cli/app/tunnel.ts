@@ -101,7 +101,8 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     const gqlMsg = ` GraphQL Playground: ${chalk.blue(`${baseURL}/graphql/`)}`;
 
     contentBox(
-      `${saleorAppName}\n${saleorAppURLMessage}\n\n${dashboardMsg}\n${gqlMsg}`
+      `${saleorAppName}\n${saleorAppURLMessage}\n\n${dashboardMsg}\n${gqlMsg}`,
+      { borderBottom: false }
     );
 
     await delay(1000);
@@ -112,16 +113,21 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
 
     // Find the App ID
     debug('Searching for a Saleor app named:', appName);
-    const app = await findSaleorAppByName(appName, _argv);
+    let app = await findSaleorAppByName(appName, _argv);
     debug('Saleor App found?', !app);
 
     if (!app || argv.forceInstall) {
       const spinner = ora('Installing... \n').start();
-
-      // TODO this should return App ID, now it returns an ID of a job installing the app
       await doSaleorAppInstall(_argv);
-      spinner.succeed();
+      spinner.stop();
+
+      app = await findSaleorAppByName(appName, _argv);
     }
+
+    const appDashboardURL = `${baseURL}/dashboard/apps/${encodeURIComponent(
+      app || ''
+    )}/app`;
+    contentBox(`Open app in Dashboard: ${chalk.blue(appDashboardURL)}`);
 
     console.log(
       `Tunnel is listening to your local machine on port: ${chalk.blue(
