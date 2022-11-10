@@ -60,6 +60,17 @@ export const GetWebhookSyncEventEnum = gql`
     }
   }
 `;
+export const AppsInstallations = gql`
+  query AppsInstallations {
+    appsInstallations {
+      id
+      manifestUrl
+      appName
+      message
+      status
+    }
+  }
+`;
 export const AppDelete = gql`
   mutation AppDelete($app: ID!) {
     appDelete(id: $app) {
