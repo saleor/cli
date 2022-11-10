@@ -97,6 +97,7 @@ const createPrompt = async (
     name,
     choices: JSON.parse(JSON.stringify(choices)),
     message,
+    skip: !allowCreation && collection.length === 1,
   })) as any;
 
   const { [name]: ret } = r;
