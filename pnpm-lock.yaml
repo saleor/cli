@@ -27,6 +27,7 @@ specifiers:
   cli-highlight: ^2.1.11
   cli-progress: ^3.11.2
   completarr: ^0.2.2
+  concurrently: ^7.5.0
   date-fns: ^2.29.3
   debug: ^4.3.4
   detect-port: ^1.5.1
@@ -53,7 +54,7 @@ specifiers:
   lodash.kebabcase: ^4.1.1
   log-symbols: ^5.1.0
   lookpath: ^1.2.2
-  msw: ^0.48.0
+  msw: ^0.48.1
   nanoid: ^4.0.0
   node-fetch: ^3.2.10
   ora: ^6.1.2
@@ -132,6 +133,7 @@ devDependencies:
   '@typescript-eslint/eslint-plugin': 5.42.1_2udltptbznfmezdozpdoa2aemq
   '@typescript-eslint/parser': 5.42.1_rmayb2veg2btbq6mbmnyivgasy
   clean-publish: 4.0.1
+  concurrently: 7.5.0
   esbuild: 0.15.13
   eslint: 8.27.0
   eslint-config-airbnb: 19.0.4_v4ozrpls4jffhgxnip5iifiweq
@@ -142,7 +144,7 @@ devDependencies:
   eslint-plugin-simple-import-sort: 8.0.0_eslint@8.27.0
   http-request-mock: 1.8.2_debug@4.3.4
   husky: 8.0.2
-  msw: 0.48.0_typescript@4.8.4
+  msw: 0.48.1_typescript@4.8.4
   pkg: 5.8.0
   prettier: 2.7.1
   release-it: 15.5.0
@@ -865,7 +867,7 @@ packages:
       '@graphql-tools/utils': 8.13.1_graphql@16.6.0
       '@whatwg-node/fetch': 0.3.2
       ansi-escapes: 4.3.2
-      chalk: 4.1.1
+      chalk: 4.1.2
       chokidar: 3.5.3
       cosmiconfig: 7.0.1
       cosmiconfig-typescript-loader: 4.1.1_oa4wsfzhhxgncqqk7dcv75js2i
@@ -2677,6 +2679,7 @@ packages:
     dependencies:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
+    dev: true
 
   /chalk/4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
@@ -2808,7 +2811,7 @@ packages:
     engines: {node: '>=8.0.0', npm: '>=5.0.0'}
     hasBin: true
     dependencies:
-      chalk: 4.1.1
+      chalk: 4.1.2
       highlight.js: 10.7.3
       mz: 2.7.0
       parse5: 5.1.1
@@ -2931,6 +2934,22 @@ packages:
 
   /concat-map/0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
+
+  /concurrently/7.5.0:
+    resolution: {integrity: sha512-5E3mwiS+i2JYBzr5BpXkFxOnleZTMsG+WnE/dCG4/P+oiVXrbmrBwJ2ozn4SxwB2EZDrKR568X+puVohxz3/Mg==}
+    engines: {node: ^12.20.0 || ^14.13.0 || >=16.0.0}
+    hasBin: true
+    dependencies:
+      chalk: 4.1.2
+      date-fns: 2.29.3
+      lodash: 4.17.21
+      rxjs: 7.5.7
+      shell-quote: 1.7.4
+      spawn-command: 0.0.2-1
+      supports-color: 8.1.1
+      tree-kill: 1.2.2
+      yargs: 17.6.2
+    dev: true
 
   /config-chain/1.1.13:
     resolution: {integrity: sha512-qj+f8APARXHrM0hraqXYb2/bOVSV4PvJQlNZ/DVj0QrmNM2q2euizkeuVckQ57J+W0mRH6Hvi+k50M4Jul2VRQ==}
@@ -3092,7 +3111,6 @@ packages:
   /date-fns/2.29.3:
     resolution: {integrity: sha512-dDCnyH2WnnKusqvZZ6+jA1O51Ibt8ZMRNkDZdyAyK4YfbDwa/cEmuztzG5pk6hqlp9aSBPYcjOlktquahGwGeA==}
     engines: {node: '>=0.11'}
-    dev: false
 
   /debounce/1.2.1:
     resolution: {integrity: sha512-XRRe6Glud4rd/ZGQfiV1ruXSfbvfJedlV9Y6zOlP+2K04vBYiJEte6stfFkCP03aMnY5tsipamumUjL14fofug==}
@@ -3332,7 +3350,7 @@ packages:
   /emphasize/5.0.0:
     resolution: {integrity: sha512-wRMiBsXijTTIOcXAhNzrMEwhSo246B1Dw8Qtx1QThNNeqN4edg85YvREhhZClwk23dQ3Kz1IM+TsmZ2hVVLeoQ==}
     dependencies:
-      chalk: 4.1.1
+      chalk: 4.1.2
       highlight.js: 11.0.1
       lowlight: 2.0.1
     dev: false
@@ -4083,7 +4101,7 @@ packages:
       '@humanwhocodes/module-importer': 1.0.1
       '@nodelib/fs.walk': 1.2.8
       ajv: 6.12.6
-      chalk: 4.1.1
+      chalk: 4.1.2
       cross-spawn: 7.0.3
       debug: 4.3.4
       doctrine: 3.0.0
@@ -5914,8 +5932,8 @@ packages:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
     dev: true
 
-  /msw/0.48.0_typescript@4.8.4:
-    resolution: {integrity: sha512-bInpCikiW1VnjNkEjdaL5Wj+P/Xgz/U1GiUH/++Ck96w+FRpegP38HqBHJjdYZM1oH8VrtGiT14xvQHHhUTDzQ==}
+  /msw/0.48.1_typescript@4.8.4:
+    resolution: {integrity: sha512-lnhIsC5aQOpqu5CjJ11CPl6RYGbY9+LhZZw1zKX3S710O9qGQ7kftmfX1FifmZNk2FuKoygprKITSfqHWpE5LQ==}
     engines: {node: '>=14'}
     hasBin: true
     requiresBuild: true
@@ -7249,6 +7267,10 @@ packages:
     requiresBuild: true
     dev: true
 
+  /spawn-command/0.0.2-1:
+    resolution: {integrity: sha512-n98l9E2RMSJ9ON1AKisHzz7V42VDiBQGY6PB1BwRglz99wpVsSuGzQ+jOi6lFXBGVTCrRpltvjm+/XA+tpeJrg==}
+    dev: true
+
   /sponge-case/1.0.1:
     resolution: {integrity: sha512-dblb9Et4DAtiZ5YSUZHLl4XhH4uK80GhAZrVXdN4O2P4gQ40Wa5UIOPUHlA/nFd2PLblBZWUioLMMAVrgpoYcA==}
     dependencies:
@@ -7431,7 +7453,6 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       has-flag: 4.0.0
-    dev: false
 
   /supports-hyperlinks/2.3.0:
     resolution: {integrity: sha512-RpsAZlpWcDwOPQA22aCH4J0t7L8JmAvsCxfOSEwm7cQs3LshN36QaTkwd70DnBOXDWGssw2eUoc8CaRWT0XunA==}
