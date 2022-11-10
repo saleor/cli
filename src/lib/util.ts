@@ -357,18 +357,18 @@ export const createProject = async (argv: ProjectCreate) => {
     validate: (value) => validatePresence(value),
   })) as { promptName: string };
 
-  const choosenRegion = argv.region
+  const chosenRegion = argv.region
     ? { value: argv.region }
     : await promptRegion(argv);
-  const choosenPlan = argv.plan ? { value: argv.plan } : await promptPlan(argv);
+  const chosenPlan = argv.plan ? { value: argv.plan } : await promptPlan(argv);
 
   const spinner = ora(`Creating project ${promptName}...`).start();
 
   const project = (await POST(API.Project, argv, {
     json: {
       name: promptName,
-      plan: choosenPlan.value,
-      region: choosenRegion.value,
+      plan: chosenPlan.value,
+      region: chosenRegion.value,
     },
   })) as any;
 
