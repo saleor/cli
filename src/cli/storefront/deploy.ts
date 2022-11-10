@@ -12,6 +12,7 @@ import {
   getRepoUrl,
   setupSaleorAppCheckout,
   triggerDeploymentInVercel,
+  validateVercelProjectName,
 } from '../../lib/deploy.js';
 import { obfuscate, obfuscateArgv } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
@@ -51,6 +52,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const name = await getPackageName();
+  validateVercelProjectName(name);
 
   console.log(
     `\nDeploying... ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(

@@ -12,6 +12,7 @@ import {
   getPackageName,
   getRepoUrl,
   triggerDeploymentInVercel,
+  validateVercelProjectName,
 } from '../../lib/deploy.js';
 import {
   contentBox,
@@ -63,6 +64,7 @@ export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const name = await getPackageName();
+  validateVercelProjectName(name);
 
   console.log(
     `Deploying ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
