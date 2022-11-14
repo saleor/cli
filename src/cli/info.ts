@@ -6,7 +6,7 @@ import type { CommandBuilder } from 'yargs';
 import pkg from '../../package.json';
 import { Config } from '../lib/config.js';
 import { header } from '../lib/images.js';
-import { API, GET } from '../lib/index.js';
+import { API, GET, getEnvironment } from '../lib/index.js';
 
 const { ux: cli } = CliUx;
 
@@ -61,7 +61,15 @@ export const handler = async (): Promise<void> => {
     const user = (await GET(API.User, { token })) as unknown;
 
     if (hasEmail(user)) {
-      console.log(chalk.green(`Hello ${user.email}, you're logged in`));
+      const environment = await getEnvironment();
+      console.log(
+        chalk.green(
+          'Hello',
+          user.email,
+          'you\'re logged in to Saleor API -',
+          environment
+        )
+      );
     }
   } catch (e) {
     console.log(chalk.blue('You\'re not logged in'));
