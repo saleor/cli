@@ -85,6 +85,9 @@ export interface Environment {
     version: string;
     service_type: string;
   };
+  maintenance_mode: boolean;
+  blocking_tasks_in_progress: boolean;
+  disabled: boolean;
 }
 
 export interface Task {

@@ -470,3 +470,35 @@ export const useVercel = async () => {
 
   return {};
 };
+
+export const useAvailabilityChecker = async (argv: Options) => {
+  const { maintenance_mode: maintenance, disabled } = await getEnv(
+    argv as Arguments
+  );
+
+  if (maintenance) {
+    throw new Error('The selected environment is in the maintenance mode');
+  }
+
+  if (disabled) {
+    throw new Error(
+      'The selected environment has exceeded maximum request count'
+    );
+  }
+
+  return {};
+};
+
+export const useBlockingTasksChecker = async (argv: Options) => {
+  const { blocking_tasks_in_progress: blockingTasksInProgress } = await getEnv(
+    argv as Arguments
+  );
+
+  if (blockingTasksInProgress) {
+    throw new Error(
+      'The selected operation can\'t be performed at the moment.\n Please wait for pending jobs to finish.'
+    );
+  }
+
+  return {};
+};

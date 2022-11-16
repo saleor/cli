@@ -3,6 +3,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
 import { obfuscateArgv, waitForTask } from '../../lib/util.js';
+import { useBlockingTasksChecker } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:env:clear');
@@ -23,3 +24,5 @@ export const handler = async (argv: Arguments<Options>) => {
   const result = (await GET(API.ClearDatabase, argv)) as any;
   await waitForTask(argv, result.task_id, 'Clearing', 'Yay! Database cleared!');
 };
+
+export const middlewares = [useBlockingTasksChecker];
