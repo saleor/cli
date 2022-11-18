@@ -13,7 +13,11 @@ import {
   obfuscateArgv,
   printContext,
 } from '../../lib/util.js';
-import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
+import {
+  useAppConfig,
+  useAvailabilityChecker,
+  useInstanceConnector,
+} from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:app:token');
@@ -120,4 +124,8 @@ export const getSaleorApp = async (
   return { app, apps };
 };
 
-export const middlewares = [useAppConfig, useInstanceConnector];
+export const middlewares = [
+  useAppConfig,
+  useInstanceConnector,
+  useAvailabilityChecker,
+];

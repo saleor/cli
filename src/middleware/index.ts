@@ -28,7 +28,7 @@ import {
   promptSaleorApp,
   promptWebhook,
 } from '../lib/util.js';
-import { CreatePromptResult, Environment, Options } from '../types.js';
+import { CreatePromptResult, Environment, Job, Options } from '../types.js';
 
 const debug = Debug('saleor-cli:middleware');
 
@@ -495,8 +495,22 @@ export const useBlockingTasksChecker = async (argv: Options) => {
   );
 
   if (blockingTasksInProgress) {
+    const jobs = (await GET(API.Job, argv)) as Job[];
+    const pending = jobs
+      .filter(
+        ({ status, is_blocking: isBlocking }) =>
+          isBlocking && ['IN_PROGRESS', 'PENDING'].includes(status)
+      )
+      .map(
+        ({ job_name: jobName, status }) =>
+          ` ${jobName.split('-').reverse().shift()} - ${status}\n`
+      );
+
     throw new Error(
-      'The selected operation can\'t be performed at the moment.\n Please wait for pending jobs to finish.'
+      `The selected operation can't be performed at the moment.
+ Please wait for pending jobs to finish.\n
+${pending}
+ Use ${chalk.green('saleor job list')} command to list jobs`
     );
   }
 

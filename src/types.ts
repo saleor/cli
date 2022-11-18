@@ -103,3 +103,12 @@ export type Config = {
 export type ConfigMap = {
   [key: string]: Config;
 };
+
+export type Job = {
+  job_name: string;
+  created_at: string;
+  status: string;
+  status_message: string | null;
+  last_status_change: string;
+  is_blocking: boolean;
+};

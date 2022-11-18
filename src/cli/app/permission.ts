@@ -8,7 +8,11 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { AppUpdate, GetPermissionEnum } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
 import { obfuscateArgv, printContext, println } from '../../lib/util.js';
-import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
+import {
+  useAppConfig,
+  useAvailabilityChecker,
+  useInstanceConnector,
+} from '../../middleware/index.js';
 import { Options } from '../../types.js';
 import { getSaleorApp } from './token.js';
 
@@ -111,4 +115,8 @@ const getPermissions = async (
   return permissions;
 };
 
-export const middlewares = [useAppConfig, useInstanceConnector];
+export const middlewares = [
+  useAppConfig,
+  useInstanceConnector,
+  useAvailabilityChecker,
+];
