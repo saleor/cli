@@ -5,7 +5,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
 import { formatDateTime, obfuscateArgv } from '../../lib/util.js';
-import { Options } from '../../types.js';
+import { Job, Options } from '../../types.js';
 
 const { ux: cli } = CliUx;
 
@@ -14,8 +14,6 @@ const parseJobName = (name: string) => {
 
   return { type, env, id };
 };
-
-// TODO environment required in config or as param!!!!!!
 
 const debug = Debug('saleor-cli:job:list');
 
@@ -27,7 +25,7 @@ export const builder: CommandBuilder = (_) =>
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
-  const result = (await GET(API.Job, argv)) as any[];
+  const result = (await GET(API.Job, argv)) as Job[];
 
   if (argv.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -46,6 +44,8 @@ export const handler = async (argv: Arguments<Options>) => {
             return chalk.blue('CREATE');
           case 'bkp':
             return chalk.blue('BACKUP');
+          case 'rst':
+            return chalk.blue('RESTORE');
           default:
             return chalk.blue(type.toUpperCase());
         }
@@ -79,6 +79,4 @@ export const handler = async (argv: Arguments<Options>) => {
       get: ({ job_name: jobName }) => parseJobName(jobName).id,
     },
   });
-
-  process.exit(0);
 };

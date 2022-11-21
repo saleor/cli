@@ -85,6 +85,9 @@ export interface Environment {
     version: string;
     service_type: string;
   };
+  maintenance_mode: boolean;
+  blocking_tasks_in_progress: boolean;
+  disabled: boolean;
 }
 
 export interface Task {
@@ -99,4 +102,13 @@ export type Config = {
 
 export type ConfigMap = {
   [key: string]: Config;
+};
+
+export type Job = {
+  job_name: string;
+  created_at: string;
+  status: string;
+  status_message: string | null;
+  last_status_change: string;
+  is_blocking: boolean;
 };

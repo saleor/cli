@@ -3,6 +3,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
 import { obfuscateArgv, waitForTask } from '../../lib/util.js';
+import { useBlockingTasksChecker } from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:env:populate');
@@ -28,3 +29,5 @@ export const handler = async (argv: Arguments<Options>) => {
     'Yay! Database populated!'
   );
 };
+
+export const middlewares = [useBlockingTasksChecker];

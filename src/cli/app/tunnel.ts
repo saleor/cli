@@ -16,7 +16,11 @@ import {
 } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import { contentBox, delay, obfuscateArgv } from '../../lib/util.js';
-import { useAppConfig, useInstanceConnector } from '../../middleware/index.js';
+import {
+  useAppConfig,
+  useAvailabilityChecker,
+  useInstanceConnector,
+} from '../../middleware/index.js';
 import { Options } from '../../types.js';
 
 const random = (min: number, max: number) =>
@@ -146,4 +150,5 @@ export const middlewares = [
   verifyIfSaleorAppRunning,
   useAppConfig,
   useInstanceConnector,
+  useAvailabilityChecker,
 ];

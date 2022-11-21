@@ -28,7 +28,7 @@ import {
   promptSaleorApp,
   promptWebhook,
 } from '../lib/util.js';
-import { CreatePromptResult, Environment, Options } from '../types.js';
+import { CreatePromptResult, Environment, Job, Options } from '../types.js';
 
 const debug = Debug('saleor-cli:middleware');
 
@@ -466,6 +466,52 @@ export const useVercel = async () => {
     );
 
     process.exit(1);
+  }
+
+  return {};
+};
+
+export const useAvailabilityChecker = async (argv: Options) => {
+  const { maintenance_mode: maintenance, disabled } = await getEnv(
+    argv as Arguments
+  );
+
+  if (maintenance) {
+    throw new Error('The selected environment is in the maintenance mode');
+  }
+
+  if (disabled) {
+    throw new Error(
+      'The selected environment has exceeded maximum request count'
+    );
+  }
+
+  return {};
+};
+
+export const useBlockingTasksChecker = async (argv: Options) => {
+  const { blocking_tasks_in_progress: blockingTasksInProgress } = await getEnv(
+    argv as Arguments
+  );
+
+  if (blockingTasksInProgress) {
+    const jobs = (await GET(API.Job, argv)) as Job[];
+    const pending = jobs
+      .filter(
+        ({ status, is_blocking: isBlocking }) =>
+          isBlocking && ['IN_PROGRESS', 'PENDING'].includes(status)
+      )
+      .map(
+        ({ job_name: jobName, status }) =>
+          ` ${jobName.split('-').reverse().shift()} - ${status}\n`
+      );
+
+    throw new Error(
+      `The selected operation can't be performed at the moment.
+ Please wait for pending jobs to finish.\n
+${pending}
+ Use ${chalk.green('saleor job list')} command to list jobs`
+    );
   }
 
   return {};
