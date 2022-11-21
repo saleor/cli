@@ -145,7 +145,7 @@ Use it for debugging. Set to `saleor-cli:*` to show debug output for the Saleor 
 
 Commands should be executed locally.
 
-### Pre-Release 
+### Pre-Release
 
 - pull latest changes from `main`, e.g.
 
@@ -153,7 +153,7 @@ Commands should be executed locally.
 git pull origin main
 ```
 
-- check for the type errors with `pnpm tsc` 
+- check for the type errors with `pnpm tsc`
 - check if the bundling finishes `pnpm bundle`
 
 ### Release
@@ -161,7 +161,7 @@ git pull origin main
 - change to the selected `release-*` branch; all `release-*` branches are protected
 
 ```
-git checkout release-X-Y
+git checkout release/X.Y
 ```
 
 where `X` and `Y` is the selected version
@@ -169,18 +169,18 @@ where `X` and `Y` is the selected version
 - compare the commits between latest release on that branch and the current `main`
 
 ```
-git log --no-merges release-X-Y..main
+git log --no-merges --cherry-pick --right-only release/X.Y...main
 ```
 
 - cherry pick commits for the next release following the [Trunk Based Development Approach](https://trunkbaseddevelopment.com); do not include the `merge` commits
 
 ```
-git cherry-pick SHA1 SHA2 SHA3 
+git cherry-pick SHA1 SHA2 SHA3
 ```
 
 where `SHA1`, `SHA2`, `SHA3` are SHAs selected to be included in the upcoming version
 
-- mark the new version in the package.json 
+- mark the new version in the package.json
 - commit the new release + add the tag
 
 ```
@@ -191,7 +191,7 @@ git tag X.Y.Z
 - push the updated release branch to the origin
 
 ```
-git push origin release-X-Y
+git push origin release/X.Y
 ```
 
 - push the new tag to the origin
@@ -206,7 +206,7 @@ git push origin --tags
 pnpm publish
 ```
 
-or 
+or
 
 ```
 pnpm publish --tag next
