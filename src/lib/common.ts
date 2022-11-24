@@ -58,12 +58,15 @@ export const doSaleorAppInstall = async (argv: any) => {
     console.log(chalk.green('  Configure your Saleor App'));
   }
 
+  const { cache } = await Config.get();
+  const cachedManifest = cache.apps?.reverse().shift();
+
   const { manifestURL } = await Enquirer.prompt<{ manifestURL: string }>({
     type: 'input',
     name: 'manifestURL',
     message: 'Manifest URL',
     skip: !!argv.manifestURL,
-    initial: argv.manifestURL,
+    initial: argv.manifestURL || cachedManifest,
   });
 
   let manifest: Manifest;
