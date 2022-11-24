@@ -176,6 +176,8 @@ export const handler = async (argv: Arguments<Options>) => {
 
   contentBox(`${msg1}\n\n ${msg2}`, { title: 'Install the app' });
 
+  await Config.appendCache('apps', projectManifestURL);
+
   process.exit(0);
 };
 

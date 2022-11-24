@@ -28,7 +28,9 @@ export type ConfigField =
   | 'github_token'
   | 'lastUpdateCheck';
 
-type ConfigProps = Record<ConfigField, string>;
+type CacheItem = Record<string, string[]>;
+
+type ConfigProps = Record<ConfigField, string> & Record<'cache', CacheItem>;
 
 const set = async (field: ConfigField, value: string) => {
   await fs.ensureFile(DefaultConfigFile);
@@ -71,4 +73,16 @@ const getBearerHeader = async (): Promise<Record<string, string>> => {
   throw new Error('\nYou are not logged in\n');
 };
 
-export const Config = { get, set, reset, remove, getBearerHeader };
+const appendCache = async (key: string, value: string) => {
+  const content = await get();
+  const cache = content.cache || {};
+
+  cache[key] = [...(cache[key] || []), value];
+
+  const newContent = { ...content, cache };
+  await fs.outputJSON(DefaultConfigFile, newContent, { spaces: '\t' });
+
+  return newContent;
+};
+
+export const Config = { get, set, appendCache, reset, remove, getBearerHeader };
