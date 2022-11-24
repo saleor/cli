@@ -21,13 +21,14 @@ export const command = 'configure [token]';
 export const desc = 'Configure Saleor CLI';
 
 export const builder: CommandBuilder = (_) =>
-  _.positional('token', { type: 'string', demandOption: false }).option(
-    'force',
-    {
-      type: 'boolean',
-      desc: 'skip additional prompts',
-    }
-  );
+  _.positional('token', {
+    type: 'string',
+    demandOption: false,
+    desc: 'token created at https://cloud.saleor.io/tokens',
+  }).option('force', {
+    type: 'boolean',
+    desc: 'skip additional prompts',
+  });
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
