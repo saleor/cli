@@ -112,3 +112,8 @@ export type Job = {
   last_status_change: string;
   is_blocking: boolean;
 };
+
+export type WebhookError = {
+  field: string;
+  message: string;
+};
