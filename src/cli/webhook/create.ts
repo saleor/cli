@@ -12,9 +12,9 @@ import {
 import { doWebhookCreate } from '../../graphql/doWebhookCreate.js';
 import { Config } from '../../lib/config.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
-import { obfuscateArgv, without } from '../../lib/util.js';
+import { obfuscateArgv, println, without } from '../../lib/util.js';
 import { interactiveSaleorApp } from '../../middleware/index.js';
-import { Options } from '../../types.js';
+import { Options, WebhookError } from '../../types.js';
 
 const debug = Debug('saleor-cli:webhook:create');
 
@@ -36,7 +36,7 @@ export const handler = async (argv: Arguments<Options>) => {
     __type: { enumValues: syncEventsList },
   } = await request(DefaultSaleorEndpoint, GetWebhookSyncEventEnum);
 
-  console.log(`Creating a webhook for the ${environment} environment`);
+  println(`Creating a webhook for the ${environment} environment`);
 
   const {
     name,
@@ -69,6 +69,14 @@ export const handler = async (argv: Arguments<Options>) => {
       message: 'Target URL',
       initial: argv.targetUrl,
       required: true,
+      validate: (value) => {
+        try {
+          const _ = new URL(value);
+          return true;
+        } catch {
+          return false;
+        }
+      },
       skip: !!argv.targetUrl,
     },
     {
@@ -132,11 +140,16 @@ export const handler = async (argv: Arguments<Options>) => {
     .json();
 
   const {
-    webhookCreate: {
-      webhook: { id },
-    },
+    webhookCreate: { webhook, errors },
   } = data;
-  console.log(chalk('Webhook created with id', chalk.green(id)));
+
+  if (errors.length) {
+    throw new Error(
+      errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join()
+    );
+  }
+
+  println(chalk('Webhook created with id', chalk.green(webhook?.id)));
 };
 
 export const middlewares = [interactiveSaleorApp];
