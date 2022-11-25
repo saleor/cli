@@ -1,12 +1,9 @@
-import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { Arguments, CommandBuilder } from 'yargs';
 
-import { obfuscateArgv } from '../lib/util';
-
-const { ux: cli } = CliUx;
+import { canOpen, obfuscateArgv, openURL } from '../lib/util';
 
 const debug = Debug('saleor-cli:register');
 
@@ -31,6 +28,10 @@ export const handler = async (argv: Arguments) => {
     )}\nto create a Saleor Cloud account.\n`
   );
 
+  if (!(await canOpen())) {
+    return;
+  }
+
   const { confirm } = await Enquirer.prompt<{ confirm: boolean }>([
     {
       type: 'confirm',
@@ -42,8 +43,6 @@ export const handler = async (argv: Arguments) => {
   ]);
 
   if (confirm) {
-    cli.open(link);
+    await openURL(link);
   }
-
-  process.exit(0);
 };

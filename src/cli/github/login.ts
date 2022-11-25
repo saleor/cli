@@ -1,4 +1,3 @@
-import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import detectPort from 'detect-port';
@@ -11,9 +10,7 @@ import { GET } from 'retes/route';
 import type { CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
-import { delay, printlnSuccess } from '../../lib/util.js';
-
-const { ux: cli } = CliUx;
+import { delay, openURL, printlnSuccess } from '../../lib/util.js';
 
 const debug = Debug('saleor-cli:github:login');
 
@@ -39,7 +36,7 @@ export const handler = async () => {
 
   const QueryParams = new URLSearchParams({ ...Params, state: generatedState });
   const url = `https://github.com/login/oauth/authorize?${QueryParams}`;
-  cli.open(url);
+  await openURL(url);
 
   const app = new ServerApp([
     GET('/github/callback', async ({ params }) => {

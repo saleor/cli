@@ -1,4 +1,5 @@
 /* eslint-disable max-classes-per-file */
+import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import { format } from 'date-fns';
 import { emphasize } from 'emphasize';
@@ -608,6 +609,29 @@ export const contentBox = (
 };
 
 export const without = (name: string) => (record: any) => record.name !== name;
+
+export const canOpen = async (command = 'xdg-open'): Promise<boolean> => {
+  if (!['darwin', 'win32'].includes(process.platform)) {
+    const executable = await lookpath(command);
+
+    if (!executable) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+export const openURL = async (url: string) => {
+  const canOpenURL = await canOpen();
+
+  if (!canOpenURL) {
+    throw new Error('This command requires browser to operate');
+  }
+
+  const { ux: cli } = CliUx;
+  cli.open(url);
+};
 
 export const countries: { [key: string]: string } = {
   '': '',

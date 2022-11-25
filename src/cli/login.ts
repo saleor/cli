@@ -13,7 +13,7 @@ import { GET } from 'retes/route';
 import { Config, ConfigField, SaleorCLIPort } from '../lib/config.js';
 import { checkPort } from '../lib/detectPort.js';
 import { API, getAmplifyConfig, getEnvironment, POST } from '../lib/index.js';
-import { delay, println } from '../lib/util.js';
+import { delay, openURL, println } from '../lib/util.js';
 
 const { ux: cli } = CliUx;
 
@@ -55,20 +55,17 @@ export const doLogin = async () => {
   const url = `https://${amplifyConfig.oauth.domain}/login?${QueryParams}`;
 
   try {
-    cli.open(url);
+    await openURL(url);
   } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      println('This command requires browser to operate');
-      println(
-        chalk(
-          'In the headless environment use',
-          chalk.green('saleor configure')
-        )
-      );
-      process.exit(1);
-    }
-
-    throw error;
+    spinner.fail(error.message);
+    println(
+      chalk(
+        'Use',
+        chalk.green('saleor configure'),
+        'in the headless environment'
+      )
+    );
+    process.exit(1);
   }
 
   const app = new ServerApp([
