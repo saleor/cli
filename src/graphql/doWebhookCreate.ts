@@ -5,6 +5,10 @@ export const doWebhookCreate = /* GraphQL */ `
       webhook {
         id
       }
+      errors {
+        field
+        message
+      }
     }
   }
 `;
