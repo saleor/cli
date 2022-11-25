@@ -1,4 +1,3 @@
-import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import { spawn } from 'child_process';
 import Enquirer from 'enquirer';
@@ -13,8 +12,10 @@ import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Config } from './config.js';
 import { isPortAvailable } from './detectPort.js';
 import {
+  canOpen,
   delay,
   NotSaleorAppDirectoryError,
+  openURL,
   printlnSuccess,
   SaleorAppInstallError,
 } from './util.js';
@@ -23,8 +24,6 @@ export interface Manifest {
   name: string;
   permissions: string[];
 }
-
-const { ux: cli } = CliUx;
 
 export const doSaleorAppDelete = async (argv: any) => {
   const headers = await Config.getBearerHeader();
@@ -123,9 +122,15 @@ export const doSaleorAppInstall = async (argv: any) => {
   const { instance: domain } = argv;
   const QueryParams = new URLSearchParams({ manifestUrl: manifestURL });
   const url = `https://${domain}/dashboard/apps/install?${QueryParams}`;
-  console.log(url);
 
-  cli.open(url);
+  if (!(await canOpen())) {
+    console.log('Open the following link in the browser:');
+    console.log(chalk.blue(url));
+    return;
+  }
+
+  console.log(url);
+  await openURL(url);
 };
 
 const waitForAppInstallation = async (argv: any, id: string) => {

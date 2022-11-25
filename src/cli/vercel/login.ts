@@ -1,4 +1,3 @@
-import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import EventEmitter from 'events';
@@ -11,9 +10,7 @@ import { GET } from 'retes/route';
 import { Config, SaleorCLIPort } from '../../lib/config.js';
 import { checkPort } from '../../lib/detectPort.js';
 import { NoCommandBuilderSetup } from '../../lib/index.js';
-import { delay, printlnSuccess } from '../../lib/util.js';
-
-const { ux: cli } = CliUx;
+import { delay, openURL, printlnSuccess } from '../../lib/util.js';
 
 const RedirectURI = `http://localhost:${SaleorCLIPort}/vercel/callback`;
 
@@ -38,7 +35,7 @@ export const handler = async () => {
 
   const QueryParams = new URLSearchParams({ state: generatedState });
   const url = `https://vercel.com/integrations/saleor-cli/new?${QueryParams}`;
-  cli.open(url);
+  await openURL(url);
 
   const app = new ServerApp([
     GET('/vercel/callback', async ({ params }) => {
