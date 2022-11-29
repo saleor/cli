@@ -91,10 +91,14 @@ Positionals:
   port                                                  [number] [default: 3000]
 
 Options:
-      --json     Output the data as JSON                               [boolean]
-      --name     The application name for installation in the Dashboard [string]
-  -V, --version  Show version number                                   [boolean]
-  -h, --help     Show help                                             [boolean]
+      --json             Output the data as JSON                       [boolean]
+  -u, --instance, --url                                                 [string]
+      --name             The application name for installation in the Dashboard
+                                                                        [string]
+      --force-install                                 [boolean] [default: false]
+      --use-ngrok                                     [boolean] [default: false]
+  -V, --version          Show version number                           [boolean]
+  -h, --help             Show help                                     [boolean]
 ```
 
 ### saleor app token
