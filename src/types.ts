@@ -117,3 +117,8 @@ export type WebhookError = {
   field: string;
   message: string;
 };
+
+export interface Organization {
+  slug: string;
+  name: string;
+}

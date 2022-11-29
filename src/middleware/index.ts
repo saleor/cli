@@ -15,6 +15,7 @@ import * as Configuration from '../config.js';
 import { Config } from '../lib/config.js';
 import { getEnvironment as getEnv } from '../lib/environment.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
+import { extractDataFromInstance, validateInstance } from '../lib/instance.js';
 import { isNotFound } from '../lib/response.js';
 import {
   AuthError,
@@ -69,20 +70,19 @@ export const useInstanceConnector = async (argv: Options) => {
   const { instance } = argv;
 
   if (instance) {
-    try {
-      const { protocol, host } = new URL(instance);
-      const instanceURL = `${protocol}//${host}`;
+    const instanceURL = validateInstance(instance);
+    const _argv = {
+      ...(await useToken(argv)),
+      instance: instanceURL,
+    };
 
-      // TODO API Call for org & env
+    const { organization, environment } = await extractDataFromInstance(_argv);
 
-      return {
-        ...(await useToken(argv)),
-        instance: instanceURL,
-      };
-    } catch (error) {
-      console.error('Provided URL is invalid');
-      process.exit(1);
-    }
+    return {
+      ..._argv,
+      organization,
+      environment,
+    };
   }
 
   const stacked = useInstanceAttacher({
