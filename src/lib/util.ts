@@ -42,6 +42,13 @@ export class NotSaleorAppDirectoryError extends Error {
   }
 }
 
+export class NgrokError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'NgrokError';
+  }
+}
+
 export class SaleorAppUninstallError extends Error {
   constructor(message = '') {
     super(message);

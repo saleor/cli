@@ -39,6 +39,7 @@ import {
   ChalkColor,
   contentBox,
   fetchLatestPackageVersion,
+  NgrokError,
   NotSaleorAppDirectoryError,
   println,
   SaleorAppInstallError,
@@ -149,6 +150,8 @@ const parser = yargs(hideBin(process.argv))
         console.error(body);
       }
     } else if (error instanceof AuthError) {
+      console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
+    } else if (error instanceof NgrokError) {
       console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
     } else if (error instanceof SaleorAppUninstallError) {
       println(
