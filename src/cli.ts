@@ -122,6 +122,11 @@ const parser = yargs(hideBin(process.argv))
   .command(['checkout [command]'], '', checkout)
   .command(['dev [command]'], false, dev)
   .option('json', { type: 'boolean', desc: 'Output the data as JSON' })
+  .option('short', {
+    type: 'boolean',
+    desc: 'Output data as text',
+    default: false,
+  })
   .option('instance', { alias: ['u', 'url'], type: 'string', desc: '' })
   .strictCommands()
   .middleware([useOnlineChecker, useTelemetry(pkg.version)])

@@ -6,6 +6,7 @@ import Debug from 'debug';
 import enquirer from 'enquirer';
 import fs from 'fs-extra';
 import got, { HTTPError } from 'got';
+import logSymbols from 'log-symbols';
 import ora from 'ora';
 import path from 'path';
 import { Arguments } from 'yargs';
@@ -145,8 +146,10 @@ export const useOrganization = async ({
   }
 
   if (!json) {
-    printlnSuccess(
-      chalk(chalk.bold('Organization ·'), chalk.cyan(opts.organization))
+    console.warn(
+      chalk.green(logSymbols.success),
+      chalk.bold('Organization ·'),
+      chalk.cyan(opts.organization)
     );
   }
 
