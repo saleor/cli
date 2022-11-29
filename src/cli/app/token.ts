@@ -35,9 +35,9 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  const { organization, environment } = argv;
+  const { organization, environment, short } = argv;
 
-  printContext(organization, environment);
+  if (!short) printContext(organization, environment);
 
   const { instance } = argv;
   const endpoint = `${instance}/graphql/`;
@@ -55,13 +55,16 @@ export const handler = async (argv: Arguments<Options>) => {
   debug(`Creating auth token for ${appId}`);
   try {
     const authToken = await createAppToken(endpoint, appId);
-    console.log();
-    contentBox(`  ${authToken}`, { title: 'Your Token' });
+
+    if (short) {
+      process.stdout.write(authToken);
+    } else {
+      console.log();
+      contentBox(`  ${authToken}`, { title: 'Your Token' });
+    }
   } catch (error) {
     console.log(error);
   }
-
-  process.exit(0);
 };
 
 export const createAppToken = async (url: string, app: string) => {
