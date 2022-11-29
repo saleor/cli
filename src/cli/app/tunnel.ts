@@ -78,19 +78,21 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     const isNgrokInstalled = await lookpath('ngrok');
     if (!isNgrokInstalled) throw new NgrokError('`ngrok` binary not found');
 
-    const _p = spawn('ngrok', ['http', localPort || '3000'], {
+    const p = spawn('ngrok', ['http', localPort || '3000', '--log', 'stdout'], {
       cwd: process.cwd(),
-      stdio: 'ignore',
     });
 
-    const { stdout } = await execAsync('ngrok api endpoints list');
-    const {
-      endpoints: {
-        0: { public_url: publicURL },
-      },
-    } = JSON.parse(stdout);
+    tunnelURL = await new Promise((resolve, _reject) => {
+      let output = '';
 
-    tunnelURL = publicURL;
+      p.stdout.setEncoding('utf-8');
+      p.stdout.on('data', (chunk: string) => {
+        output += chunk;
+
+        const result = output.match(/https:\/\/[a-zA-Z0-9\-.]+\.ngrok\.io/);
+        if (result) resolve(result[0]);
+      });
+    });
   } else {
     // built-in tunnel
 
