@@ -132,6 +132,7 @@ const parser = yargs(hideBin(process.argv))
   .middleware([useOnlineChecker, useTelemetry(pkg.version)])
   .demandCommand(1, 'You need at least one command before moving on')
   .alias('h', 'help')
+  .wrap(null)
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, _yargs) => {
     if (error) {
