@@ -77,28 +77,31 @@ Usage: saleor <command> [options]
 
 Commands:
   saleor info                    Hello from Saleor
+  saleor status                  Show the login status for the systems that CLI depends on
   saleor login                   Log in to the Saleor Cloud
   saleor logout                  Log out from the Saleor Cloud
   saleor configure [token]       Configure Saleor CLI
-  saleor register                Create Saleor account
+  saleor register                Create a Saleor Cloud account  [aliases: signup]
   saleor trigger [event]         This triggers a Saleor event
-  saleor organization [command]                                   [aliases: org]
-  saleor environment [command]                                    [aliases: env]
+  saleor organization [command]  [aliases: org]
+  saleor environment [command]  [aliases: env]
   saleor backup [command]
   saleor job [command]
   saleor project [command]
-  saleor storefront [command]                                   [aliases: store]
-  saleor telemetry [command]                                     [aliases: tele]
-  saleor webhook [command]                                       [aliases: hook]
+  saleor storefront [command]  [aliases: store]
+  saleor telemetry [command]  [aliases: tele]
+  saleor webhook [command]  [aliases: hook]
   saleor app [command]
   saleor vercel [command]
   saleor github [command]
   saleor checkout [command]
 
 Options:
-      --json     Output the data as JSON                               [boolean]
-  -V, --version  Show version number                                   [boolean]
-  -h, --help     Show help                                             [boolean]
+      --json             Output the data as JSON  [boolean]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  [string]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
 
 for more information, find the documentation at https://saleor.io
 ```
