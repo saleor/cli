@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { GetWebhookEventEnum } from '../../generated/graphql.js';
-import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
+// import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
 import {
   capitalize,
@@ -25,7 +25,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const debug = Debug('saleor-cli:app:generate');
 
 export const command = 'generate <resource>';
-export const desc = 'Generate a resource for a Saleor App';
+export const desc = false;
+// export const desc = 'Generate a resource for a Saleor App';
 
 export const builder: CommandBuilder = (_) =>
   _.positional('resource', {
@@ -36,6 +37,10 @@ export const builder: CommandBuilder = (_) =>
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
+
+  throw new CommandRemovedError(
+    'This command has been removed\nPlease check documentation for `app` commands at https://github.com/saleor/saleor-cli/tree/main/docs'
+  );
 
   const { resource } = argv;
 
@@ -111,4 +116,4 @@ export const handler = async (argv: Arguments<Options>) => {
   process.exit(0);
 };
 
-export const middlewares = [verifyIsSaleorAppDirectory];
+// export const middlewares = [verifyIsSaleorAppDirectory];

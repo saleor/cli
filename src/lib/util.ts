@@ -77,6 +77,13 @@ export class NameMismatchError extends Error {
   }
 }
 
+export class CommandRemovedError extends Error {
+  constructor(message = 'This command has been removed') {
+    super(message);
+    this.name = 'CommandRemovedError';
+  }
+}
+
 export const fetchLatestPackageVersion = async (name: string) => {
   const { version } = await got
     .get(`https://registry.npmjs.org/${name}/latest`)
