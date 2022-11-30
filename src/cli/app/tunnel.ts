@@ -47,8 +47,16 @@ export const builder: CommandBuilder = (_) =>
       demandOption: false,
       desc: 'The application name for installation in the Dashboard',
     })
-    .option('force-install', { type: 'boolean', default: false })
-    .option('use-ngrok', { type: 'boolean', default: false });
+    .option('force-install', {
+      type: 'boolean',
+      default: false,
+      desc: 'Force the Saleor App Install',
+    })
+    .option('use-ngrok', {
+      type: 'boolean',
+      default: false,
+      desc: 'Use `ngrok` binary instead of the built-in tunnel',
+    });
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));
