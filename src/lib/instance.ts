@@ -16,14 +16,7 @@ export const extractDataFromInstance = async (argv: Options) => {
   const spinner = ora('Getting instance details...').start();
   const { instance } = argv;
 
-  const match = instance?.match(/(?:http[s]*:\/\/)*(.*?)\.(?=[^/]*\..{2,5})/i);
-
-  if (!match) {
-    spinner.fail();
-    throw new Error('The environment not found');
-  }
-
-  const envName = match[1];
+  const { host } = new URL(instance ?? '');
 
   const organizations = (await GET(API.Organization, {
     ...argv,
@@ -38,8 +31,8 @@ export const extractDataFromInstance = async (argv: Options) => {
         environment: '',
       })) as Environment[];
 
-      if (environments.map((e) => e.name).includes(envName)) {
-        const environment = environments.filter((e) => e.name === envName)[0];
+      if (environments.map((e) => e.domain).includes(host)) {
+        const environment = environments.filter((e) => e.domain === host)[0];
 
         spinner.succeed();
         return {
