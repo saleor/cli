@@ -46,7 +46,13 @@ export const builder: CommandBuilder = (_) =>
       default: 'true',
       demandOption: false,
       desc: 'specify prompt presence for repository creation on Github',
-    });
+    })
+    .example('saleor storefront deploy --no-github-prompt', '')
+    .example('saleor storefront deploy --no-github-prompt --with-checkout', '')
+    .example(
+      'saleor storefront deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt --with-checkout',
+      ''
+    );
 
 export const handler = async (argv: Arguments<StoreDeploy>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
