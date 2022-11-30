@@ -14,6 +14,7 @@ import { GetWebhookEventEnum } from '../../generated/graphql.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
 import {
   capitalize,
+  CommandRemovedError,
   obfuscateArgv,
   uncapitalize,
   without,
