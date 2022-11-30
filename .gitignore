@@ -143,3 +143,6 @@ dummy/
 .idea/
 .DS_Store
 package/
+
+.type-coverage/
+coverage-ts/
