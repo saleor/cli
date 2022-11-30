@@ -19,7 +19,12 @@ export const builder: CommandBuilder = (_) =>
     default: 'true',
     demandOption: false,
     desc: 'specify prompt presence for repository creation on Github',
-  });
+  })
+    .example('saleor checkout deploy --no-github-prompt', '')
+    .example(
+      'saleor checkout deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt',
+      ''
+    );
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
