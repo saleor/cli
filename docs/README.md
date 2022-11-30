@@ -109,7 +109,6 @@ for more information, find the documentation at https://saleor.io
   * [app token](#app-token)
   * [app permission](#app-permission)
   * [app deploy](#app-deploy)
-  * [app generate](#app-generate)
 * [vercel](#vercel)
   * [vercel login](#vercel-login)
 * [github](#github)
@@ -1260,15 +1259,14 @@ Help output:
 saleor app [command]
 
 Commands:
-  saleor app list                 List installed Saleor Apps for an environment
-  saleor app install              Install a Saleor App by URL
-  saleor app uninstall <appId>    Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.
-  saleor app create [name]        Create a Saleor App template
-  saleor app tunnel [port]        Expose your Saleor app remotely via tunnel
-  saleor app token                Create a Saleor App token
-  saleor app permission           Add or remove permission for a Saleor App
-  saleor app deploy               Deploy this Saleor App repository to Vercel
-  saleor app generate <resource>  Generate a resource for a Saleor App
+  saleor app list               List installed Saleor Apps for an environment
+  saleor app install            Install a Saleor App by URL
+  saleor app uninstall <appId>  Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.
+  saleor app create [name]      Create a Saleor App template
+  saleor app tunnel [port]      Expose your Saleor app remotely via tunnel
+  saleor app token              Create a Saleor App token
+  saleor app permission         Add or remove permission for a Saleor App
+  saleor app deploy             Deploy this Saleor App repository to Vercel
 
 Options:
       --json             Output the data as JSON  [boolean]
@@ -1398,8 +1396,8 @@ Options:
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  [string]
       --name             The application name for installation in the Dashboard  [string]
-      --force-install  [boolean] [default: false]
-      --use-ngrok  [boolean] [default: false]
+      --force-install    Force the Saleor App Install  [boolean] [default: false]
+      --use-ngrok        Use `ngrok` binary instead of the built-in tunnel  [boolean] [default: false]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1480,30 +1478,6 @@ Options:
 Examples:
   saleor app deploy --no-github-prompt
   saleor app deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt
-```
-
-#### app generate
-
-```sh
-$ saleor app generate --help
-```
-
-Help output:
-
-```
-saleor app generate <resource>
-
-Generate a resource for a Saleor App
-
-Positionals:
-  resource  [string] [required] [choices: "webhook", "query", "mutation", "subscription"]
-
-Options:
-      --json             Output the data as JSON  [boolean]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
 ```
 
 ### vercel
