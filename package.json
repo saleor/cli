@@ -12,7 +12,7 @@
   "scripts": {
     "prepublishOnly": "rm -rf ./package && pnpm build && clean-publish --fields dependencies && node -e \"let pkg=require('./package/package.json'); pkg.dependencies = { 'got': '^12.4.1' }; require('fs').writeFileSync('./package/package.json', JSON.stringify(pkg, null, 2));\"",
     "postpublish": "",
-    "bundle": "esbuild src/cli.ts --bundle --minify --outfile=dist/saleor.js --platform=node --format=esm --target=node16 --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\" --out-extension:.js=.js",
+    "bundle": "esbuild src/cli.ts --sourcemap --bundle --minify --outfile=dist/saleor.js --platform=node --format=esm --target=node16 --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\" --out-extension:.js=.js",
     "build": "pnpm bundle",
     "watch-generate": "graphql-codegen -w",
     "watch-ts": "tsc --noEmit --watch --preserveWatchOutput",
@@ -65,7 +65,7 @@
     "msw": "^0.49.1",
     "pkg": "^5.8.0",
     "prettier": "2.8.0",
-    "release-it": "^15.5.0",
+    "release-it": "^15.5.1",
     "tree-kill": "^1.2.2",
     "tsm": "^2.3.0",
     "type-coverage": "^2.24.1",
