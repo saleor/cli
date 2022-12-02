@@ -4,6 +4,16 @@
 
 ## Install
 
+with `pnpm`
+
+```sh
+$ pnpm i @saleor/cli -g
+```
+
+or
+
+with `npm`
+
 ```sh
 $ npm i @saleor/cli -g
 ```
@@ -49,6 +59,8 @@ Options:
 
 for more information, find the documentation at https://saleor.io
 ```
+
+---
 
 ## Available commands
 
