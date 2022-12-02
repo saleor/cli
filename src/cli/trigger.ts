@@ -7,7 +7,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import * as SaleorGraphQL from '../generated/graphql.js';
 import { Config } from '../lib/config.js';
 import { DefaultSaleorEndpoint } from '../lib/index.js';
-import { capitalize, obfuscateArgv } from '../lib/util.js';
+import { capitalize, obfuscateArgv, SaleorEventError } from '../lib/util.js';
 import { useAppConfig, useInstanceConnector } from '../middleware/index.js';
 import { Options } from '../types.js';
 
@@ -42,8 +42,7 @@ export const handler = async (argv: Arguments<Options>) => {
   }
 
   if (!choices.map((_) => _.name).includes(event.toUpperCase())) {
-    console.error('wrong event name');
-    process.exit(1);
+    throw new SaleorEventError('Wrong event name');
   }
 
   const webhookName = event.toLowerCase().replaceAll('_', '-');
@@ -54,8 +53,7 @@ export const handler = async (argv: Arguments<Options>) => {
     .slice(0, -1);
 
   if (!(operationName in SaleorGraphQL)) {
-    console.error('operation not implemented');
-    process.exit(1);
+    throw new SaleorEventError('Operation not implemented');
   }
 
   console.log(

@@ -11,6 +11,7 @@ import {
   contentBox,
   deploy,
   obfuscateArgv,
+  SaleorEnvironmentError,
   validateEmail,
   validateLength,
   waitForTask,
@@ -127,12 +128,9 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   const user = (await GET(API.User, argv)) as any;
 
   if (argv.restore && !argv.restore_from) {
-    console.error(
-      chalk.red(
-        'Error: `restore_from` option is required for database snapshot'
-      )
+    throw new SaleorEnvironmentError(
+      '`restore_from` option is required for database snapshot'
     );
-    process.exit(1);
   }
 
   const { name } = (await Enquirer.prompt([

@@ -1,4 +1,3 @@
-import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import crypto from 'crypto';
 import Debug from 'debug';
@@ -9,13 +8,12 @@ import ora from 'ora';
 import { ServerApp } from 'retes';
 import { Response } from 'retes/response';
 import { GET } from 'retes/route';
+import invariant from 'tiny-invariant';
 
 import { Config, ConfigField, SaleorCLIPort } from '../lib/config.js';
 import { checkPort } from '../lib/detectPort.js';
 import { API, getAmplifyConfig, getEnvironment, POST } from '../lib/index.js';
-import { delay, openURL, println } from '../lib/util.js';
-
-const { ux: cli } = CliUx;
+import { CannotOpenURLError, delay, openURL, println } from '../lib/util.js';
 
 const RedirectURI = `http://localhost:${SaleorCLIPort}/`;
 
@@ -58,14 +56,12 @@ export const doLogin = async () => {
     await openURL(url);
   } catch (error: any) {
     spinner.fail(error.message);
+
     println(
-      chalk(
-        'Use',
-        chalk.green('saleor configure'),
-        'in the headless environment'
-      )
+      chalk('In a headless environment use', chalk.green('saleor configure'))
     );
-    process.exit(1);
+
+    throw new CannotOpenURLError();
   }
 
   const app = new ServerApp([

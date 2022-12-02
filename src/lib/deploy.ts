@@ -16,7 +16,12 @@ import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { Options } from '../types.js';
 import { doSaleorAppInstall } from './common.js';
 import { Config } from './config.js';
-import { contentBox, delay, NameMismatchError } from './util.js';
+import {
+  contentBox,
+  delay,
+  NameMismatchError,
+  SaleorAppError,
+} from './util.js';
 import { Deployment, Env, Vercel } from './vercel.js';
 
 const debug = Debug('saleor-cli:lib:deploy');
@@ -136,8 +141,7 @@ const createProjectInGithub = async (
   })) as { githubProjectCreate: boolean };
 
   if (!githubProjectCreate) {
-    console.error('Saleor App deployment cancelled by the user');
-    process.exit(1);
+    throw new SaleorAppError('Saleor App deployment cancelled by the user');
   }
 
   let gitRepoUrl;
@@ -182,8 +186,7 @@ const createProjectInGithub = async (
         await git.addRemote('origin', sshUrl);
         gitRepoUrl = sshUrl;
       } else {
-        console.error(`\n ${chalk.red('ERROR')} ${error.message} `);
-        process.exit(1);
+        throw new SaleorAppError(error.message);
       }
     }
   } else {

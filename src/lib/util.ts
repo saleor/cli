@@ -28,6 +28,18 @@ interface ResultFormat {
   json?: boolean;
 }
 
+export const ClientErrorCollection = [
+  'NotSaleorAppDirectoryError',
+  'CannotOpenURLError',
+];
+
+export class SaleorEventError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SaleorEventError';
+  }
+}
+
 export class AuthError extends Error {
   constructor(message: string) {
     super(message);
@@ -49,10 +61,45 @@ export class NgrokError extends Error {
   }
 }
 
-export class SaleorAppUninstallError extends Error {
+export class CannotOpenURLError extends Error {
   constructor(message = '') {
     super(message);
+    this.name = 'CannotOpenURLError';
+  }
+}
+
+export class SaleorAppUninstallError extends Error {
+  constructor(message = 'There is no Saleor App with the provided ID') {
+    super(message);
     this.name = 'SaleorAppUninstallError';
+  }
+}
+
+export class GitError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'GitError';
+  }
+}
+
+export class SaleorEnvironmentError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'SaleorEnvironmentError';
+  }
+}
+
+export class SaleorOrganizationError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'SaleorOrganizationError';
+  }
+}
+
+export class SaleorAppError extends Error {
+  constructor(message = '') {
+    super(message);
+    this.name = 'SaleorAppError';
   }
 }
 
@@ -64,7 +111,9 @@ export class WrongGitURLError extends Error {
 }
 
 export class SaleorAppInstallError extends Error {
-  constructor(message = '') {
+  constructor(
+    message = 'Cannot install this Saleor App. Check your connection and try again.'
+  ) {
     super(message);
     this.name = 'SaleorAppInstallError';
   }
