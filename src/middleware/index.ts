@@ -204,7 +204,7 @@ export const verifyEnvironment = async (
           chalk.red(
             chalk.bold('Environment ·'),
             environment,
-            '- not found in the Saleor Cloud'
+            `- not found in the scope of '${organization}' organization in the Saleor Cloud`
           )
         );
         process.exit(1);
