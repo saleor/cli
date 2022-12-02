@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import fetch from 'node-fetch';
 import ora from 'ora';
 
-import { delay } from './util.js';
+import { delay, SaleorAppError } from './util.js';
 
 export interface Env {
   key: string;
@@ -168,7 +168,8 @@ export class Vercel {
         );
         console.log('Verify deployment using the following link:');
         console.log(inspectorUrl);
-        process.exit(1);
+
+        throw new SaleorAppError();
       }
 
       await delay(5000);

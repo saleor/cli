@@ -35,15 +35,10 @@ import { Config } from './lib/config.js';
 import { header } from './lib/images.js';
 import { API, GET, getEnvironment } from './lib/index.js';
 import {
-  AuthError,
   ChalkColor,
+  ClientErrorCollection,
   contentBox,
   fetchLatestPackageVersion,
-  NgrokError,
-  NotSaleorAppDirectoryError,
-  println,
-  SaleorAppInstallError,
-  SaleorAppUninstallError,
 } from './lib/util.js';
 import { useOnlineChecker, useTelemetry } from './middleware/index.js';
 
@@ -135,7 +130,7 @@ const parser = yargs(hideBin(process.argv))
   .wrap(null)
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, _yargs) => {
-    if (error) {
+    if (error && !ClientErrorCollection.includes(error.name)) {
       Sentry.captureException(error);
     }
 
@@ -155,22 +150,6 @@ const parser = yargs(hideBin(process.argv))
         console.error('---');
         console.error(body);
       }
-    } else if (error instanceof AuthError) {
-      console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
-    } else if (error instanceof NgrokError) {
-      console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
-    } else if (error instanceof SaleorAppUninstallError) {
-      println(
-        `\n${chalk.red('ERROR')} There is no Saleor App with the provided ID`
-      );
-    } else if (error instanceof NotSaleorAppDirectoryError) {
-      console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
-    } else if (error instanceof SaleorAppInstallError) {
-      console.log(
-        `\n ${chalk.red(
-          'ERROR'
-        )} Cannot install this Saleor App. Check your connection and try again.`
-      );
     } else if (error instanceof TimeoutError) {
       // Don't display `Timeout` errors to user
     } else if (error) {

@@ -8,6 +8,7 @@ import {
   obfuscateArgv,
   printlnSuccess,
   promptOrganization,
+  SaleorOrganizationError,
 } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
@@ -44,8 +45,9 @@ const getOrganization = async (argv: Arguments<Options>) => {
   const organizations = (await GET(API.Organization, argv)) as any[];
 
   if (!organizations.map((o) => o.slug).includes(argv.slug)) {
-    console.error(chalk.red(`No organization with slug ${argv.slug} found`));
-    process.exit(1);
+    throw new SaleorOrganizationError(
+      `No organization with slug '${argv.slug}' found`
+    );
   }
 
   return { name: argv.slug, value: argv.slug };

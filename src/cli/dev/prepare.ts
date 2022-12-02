@@ -6,7 +6,7 @@ import { Arguments } from 'yargs';
 
 import { run } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
-import { obfuscateArgv, printlnSuccess } from '../../lib/util.js';
+import { GitError, obfuscateArgv, printlnSuccess } from '../../lib/util.js';
 import { useGithub } from '../../middleware/index.js';
 
 interface Options {
@@ -39,7 +39,7 @@ export const handler = async (argv: Arguments<Options>) => {
           chalk.bold(repoName)
         )
       );
-      process.exit(1);
+      throw new GitError();
     }
   } catch (err: any) {
     if (err.message.match('not a git repository')) {
@@ -53,7 +53,7 @@ export const handler = async (argv: Arguments<Options>) => {
           'directory'
         )
       );
-      process.exit(1);
+      throw new GitError();
     }
 
     throw err;
