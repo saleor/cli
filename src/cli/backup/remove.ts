@@ -12,7 +12,7 @@ import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:backup:remove');
 
-export const command = 'remove <key>';
+export const command = 'remove <key|backup>';
 export const desc = 'Remove the backup';
 
 export const builder: CommandBuilder = (_) =>

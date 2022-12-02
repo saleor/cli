@@ -681,7 +681,7 @@ Commands:
   saleor backup list [key|environment]    List backups of the environment
   saleor backup create <name>             Create a new backup
   saleor backup show [backup|backup-key]  Show a specific backup
-  saleor backup remove <key>              Remove the backup
+  saleor backup remove <key|backup>       Remove the backup
   saleor backup restore [from]            Restore a specific backup
 
 Options:
@@ -767,12 +767,12 @@ $ saleor backup remove --help
 Help output:
 
 ```
-saleor backup remove <key>
+saleor backup remove <key|backup>
 
 Remove the backup
 
 Positionals:
-  key  key of the backup  [string] [required]
+  key, backup  key of the backup  [string] [required]
 
 Options:
       --json             Output the data as JSON  [boolean]
