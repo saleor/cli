@@ -87,7 +87,11 @@ if (SentryDSN) {
   const release = `saleor-cli@${pkg.version}`;
   const dsn = SentryDSN;
 
-  Sentry.init({ dsn, environment: env, release });
+  Sentry.init({
+    dsn,
+    environment: env,
+    release,
+  });
   Sentry.setUser({ id: userSession });
 }
 
