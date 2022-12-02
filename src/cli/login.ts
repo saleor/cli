@@ -54,7 +54,9 @@ export const doLogin = async () => {
 
   try {
     await openURL(url);
-  } catch (error: any) {
+  } catch (error) {
+    invariant(error instanceof Error, 'Must be an error');
+
     spinner.fail(error.message);
 
     println(
