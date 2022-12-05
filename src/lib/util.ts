@@ -31,6 +31,14 @@ interface ResultFormat {
 export const ClientErrorCollection = [
   'NotSaleorAppDirectoryError',
   'CannotOpenURLError',
+  'AuthError',
+  'NgrokError',
+  'NotSaleorAppDirectoryError',
+  'SaleorAppInstallError',
+  'SaleorAppUninstallError',
+  'GitError',
+  'WrongGitURLError',
+  'CommandRemovedError',
 ];
 
 export class SaleorEventError extends Error {
