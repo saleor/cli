@@ -54,6 +54,15 @@ if (!semver.satisfies(process.versions.node, pkg.engines.node)) {
   process.exit(1);
 }
 
+const ExecutionContext = {
+  is(name: 'development' | 'staging' | 'production') {
+    return (process.env.NODE_ENV ?? 'development') === name;
+  },
+  isNot(name: 'development' | 'staging' | 'production') {
+    return !this.is(name);
+  },
+};
+
 const {
   user_session: userSession,
   SentryDSN,
@@ -62,6 +71,7 @@ const {
 
 if (
   pkg.version !== '0.0.0' &&
+  ExecutionContext.is('production') && // check for updates only for `production`
   (!lastUpdateCheck ||
     Date.now() - new Date(lastUpdateCheck).valueOf() > 1000 * 60 * 60 * 24) // 1 day
 ) {
@@ -83,7 +93,7 @@ if (
 
 const env = await getEnvironment();
 
-if (SentryDSN) {
+if (ExecutionContext.isNot('development') && SentryDSN) {
   const release = `saleor-cli@${pkg.version}`;
   const dsn = SentryDSN;
 
@@ -134,7 +144,11 @@ const parser = yargs(hideBin(process.argv))
   .wrap(null)
   .epilogue('for more information, find the documentation at https://saleor.io')
   .fail(async (msg, error, _yargs) => {
-    if (error && !ClientErrorCollection.includes(error.name)) {
+    if (
+      error &&
+      ExecutionContext.isNot('development') &&
+      !ClientErrorCollection.includes(error.name)
+    ) {
       Sentry.captureException(error);
     }
 
