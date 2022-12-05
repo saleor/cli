@@ -157,7 +157,11 @@ const parser = yargs(hideBin(process.argv))
     } else if (error instanceof TimeoutError) {
       // Don't display `Timeout` errors to user
     } else if (error) {
-      console.log(`\n ${chalk.red('ERROR')} ${error.message}`);
+      console.error(`\n ${chalk.red('ERROR')} ${error.message}`);
+      console.error('\n If you think this is a bug, report it on GitHub:');
+      console.error(' https://github.com/saleor/saleor-cli/issues');
+      console.error('\n CLI Docs:');
+      console.error(' https://docs.saleor.io/docs/3.x/cli');
     } else {
       if (!process.argv.slice(2).length) {
         header(pkg.version);
