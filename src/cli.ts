@@ -61,7 +61,7 @@ const {
 } = await Config.get();
 
 if (
-  pkg.verion !== 'DEV' &&
+  pkg.version !== '0.0.0' &&
   (!lastUpdateCheck ||
     Date.now() - new Date(lastUpdateCheck).valueOf() > 1000 * 60 * 60 * 24) // 1 day
 ) {
