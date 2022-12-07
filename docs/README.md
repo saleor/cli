@@ -1410,8 +1410,17 @@ Options:
       --name             The application name for installation in the Dashboard  [string]
       --force-install    Force the Saleor App Install  [boolean] [default: false]
       --use-ngrok        Use `ngrok` binary instead of the built-in tunnel  [boolean] [default: false]
+      --manifest-path    The application's manifest path  [string] [default: "/api/manifest"]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor app tunnel --manifest-path=/app/manifest
+  saleor app tunnel --name="Custom name"
+  saleor app tunnel --force-install
+  saleor app tunnel --use-ngrok
+  saleor app tunnel --manifest-path=/app/manifest
+  saleor app tunnel --organization=organization-slug --environment=env-id-or-name
 ```
 
 #### app token
@@ -1484,11 +1493,13 @@ Options:
       --register-url     specify your own endpoint for registering apps  [string] [default: "https://appraptor.vercel.app/api/register-app"]
       --encrypt-url      specify your own endpoint for encrypting tokens  [string] [default: "https://appraptor.vercel.app/api/encrypt"]
       --github-prompt    specify prompt presence for repository creation on Github  [boolean] [default: "true"]
+      --manifest-path    The application's manifest path  [string] [default: "/api/manifest"]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
 Examples:
   saleor app deploy --no-github-prompt
+  saleor app deploy --no-github-prompt --manifest-path=/app/manifest
   saleor app deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt
 ```
 
