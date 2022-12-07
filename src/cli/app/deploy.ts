@@ -59,7 +59,16 @@ export const builder: CommandBuilder = (_) =>
       demandOption: false,
       desc: 'specify prompt presence for repository creation on Github',
     })
+    .option('manifest-path', {
+      type: 'string',
+      default: '/api/manifest',
+      desc: 'The application\'s manifest path',
+    })
     .example('saleor app deploy --no-github-prompt', '')
+    .example(
+      'saleor app deploy --no-github-prompt --manifest-path=/app/manifest',
+      ''
+    )
     .example(
       'saleor app deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt',
       ''
@@ -164,7 +173,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const domain = await vercel.getProjectDomain(projectId);
 
-  const projectManifestURL = `https://${domain.name}/api/manifest`;
+  const projectManifestURL = `https://${domain.name}${argv.manifestPath}`;
 
   const msg1 = ` ${chalk.dim('Using the CLI')}: ${chalk.green(
     'saleor app install'

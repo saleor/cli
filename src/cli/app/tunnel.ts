@@ -56,7 +56,21 @@ export const builder: CommandBuilder = (_) =>
       type: 'boolean',
       default: false,
       desc: 'Use `ngrok` binary instead of the built-in tunnel',
-    });
+    })
+    .option('manifest-path', {
+      type: 'string',
+      default: '/api/manifest',
+      desc: 'The application\'s manifest path',
+    })
+    .example('saleor app tunnel --manifest-path=/app/manifest', '')
+    .example('saleor app tunnel --name="Custom name"', '')
+    .example('saleor app tunnel --force-install', '')
+    .example('saleor app tunnel --use-ngrok', '')
+    .example('saleor app tunnel --manifest-path=/app/manifest', '')
+    .example(
+      'saleor app tunnel --organization=organization-slug --environment=env-id-or-name',
+      ''
+    );
 
 export const handler = async (argv: Arguments<Options>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -159,7 +173,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
   await delay(1000);
 
   const _argv = argv;
-  _argv.manifestURL = `${tunnelURL}/api/manifest`;
+  _argv.manifestURL = `${tunnelURL}${argv.manifestPath}`;
   _argv.appName = appName;
 
   // Find the App ID
