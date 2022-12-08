@@ -58,7 +58,7 @@ export const doSaleorAppInstall = async (argv: any) => {
   }
 
   const { cache } = await Config.get();
-  const cachedManifest = cache.apps?.reverse().shift();
+  const cachedManifest = cache?.apps?.reverse().shift();
 
   const { manifestURL } = await Enquirer.prompt<{ manifestURL: string }>({
     type: 'input',
