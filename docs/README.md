@@ -1415,7 +1415,6 @@ Options:
   -h, --help             Show help  [boolean]
 
 Examples:
-  saleor app tunnel --manifest-path=/app/manifest
   saleor app tunnel --name="Custom name"
   saleor app tunnel --force-install
   saleor app tunnel --use-ngrok

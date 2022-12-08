@@ -165,6 +165,15 @@ const waitForAppInstallation = async (argv: any, id: string) => {
   return true;
 };
 
+export const buildManifestURL = (origin: string, path: string) => {
+  try {
+    const manifestURL = new URL(path, origin);
+    return manifestURL.toString();
+  } catch {
+    throw new Error('The provided manifest URL is invalid');
+  }
+};
+
 export const fetchSaleorAppList = async (argv: any) => {
   const endpoint = `${argv.instance}/graphql/`;
   const headers = await Config.getBearerHeader();

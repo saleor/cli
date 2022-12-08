@@ -6,7 +6,7 @@ import { Config } from '../../lib/config.js';
 import { setupSaleorAppCheckout } from '../../lib/deploy.js';
 import { contentBox, obfuscate, obfuscateArgv } from '../../lib/util.js';
 import { Vercel } from '../../lib/vercel.js';
-import { Options } from '../../types.js';
+import { Deploy } from '../../types.js';
 
 const debug = Debug('saleor-cli:checkout:deploy');
 
@@ -26,7 +26,7 @@ export const builder: CommandBuilder = (_) =>
       ''
     );
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async (argv: Arguments<Deploy>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const domain = argv.instance;

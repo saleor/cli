@@ -13,7 +13,7 @@ import { Arguments } from 'yargs';
 
 import { createAppToken } from '../cli/app/token.js';
 import { SaleorAppList } from '../graphql/SaleorAppList.js';
-import { Options } from '../types.js';
+import { Deploy, Options } from '../types.js';
 import { doSaleorAppInstall } from './common.js';
 import { Config } from './config.js';
 import {
@@ -244,7 +244,7 @@ export const getGithubRepository = async (
 export const setupSaleorAppCheckout = async (
   url: string,
   vercel: Vercel,
-  argv: Arguments<Options>
+  argv: Arguments<Deploy>
 ) => {
   const pkgName = await getPackageName();
   validateVercelProjectName(pkgName);

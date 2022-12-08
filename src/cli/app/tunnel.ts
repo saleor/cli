@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { exec, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import Debug from 'debug';
 import fs from 'fs-extra';
 import { lookpath } from 'lookpath';
@@ -7,10 +7,10 @@ import fetch from 'node-fetch';
 import ora from 'ora';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import util from 'util';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import {
+  buildManifestURL,
   doSaleorAppInstall,
   findSaleorAppByName,
   verifyIfSaleorAppRunning,
@@ -28,12 +28,10 @@ import {
   useAvailabilityChecker,
   useInstanceConnector,
 } from '../../middleware/index.js';
-import { Options } from '../../types.js';
+import { AppTunnel } from '../../types.js';
 
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min + 1) + min);
-
-const execAsync = util.promisify(exec);
 
 const debug = Debug('saleor-cli:app:tunnel');
 
@@ -62,7 +60,6 @@ export const builder: CommandBuilder = (_) =>
       default: '/api/manifest',
       desc: 'The application\'s manifest path',
     })
-    .example('saleor app tunnel --manifest-path=/app/manifest', '')
     .example('saleor app tunnel --name="Custom name"', '')
     .example('saleor app tunnel --force-install', '')
     .example('saleor app tunnel --use-ngrok', '')
@@ -72,7 +69,7 @@ export const builder: CommandBuilder = (_) =>
       ''
     );
 
-export const handler = async (argv: Arguments<Options>): Promise<void> => {
+export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const { organization, environment, port: localPort, useNgrok } = argv;
@@ -100,9 +97,13 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
     const isNgrokInstalled = await lookpath('ngrok');
     if (!isNgrokInstalled) throw new NgrokError('`ngrok` binary not found');
 
-    const p = spawn('ngrok', ['http', localPort || '3000', '--log', 'stdout'], {
-      cwd: process.cwd(),
-    });
+    const p = spawn(
+      'ngrok',
+      ['http', localPort.toString() || '3000', '--log', 'stdout'],
+      {
+        cwd: process.cwd(),
+      }
+    );
 
     tunnelURL = await new Promise((resolve, _reject) => {
       let output = '';
@@ -140,7 +141,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
         `${vendorDir}/tunnel${winSuffix}`,
         [
           'local',
-          localPort || '3000',
+          localPort.toString() || '3000',
           '--to',
           tunnelURL,
           '--port',
@@ -173,7 +174,7 @@ export const handler = async (argv: Arguments<Options>): Promise<void> => {
   await delay(1000);
 
   const _argv = argv;
-  _argv.manifestURL = `${tunnelURL}${argv.manifestPath}`;
+  _argv.manifestURL = buildManifestURL(argv.manifestPath, tunnelURL);
   _argv.appName = appName;
 
   // Find the App ID
