@@ -88,14 +88,14 @@ export const verifyTestProjectPresence = async (
 ) => {
   const params = ['project', 'list', `--organization=${organization}`];
 
-  const { err, output } = await trigger(command, params, {});
+  const { err, output, exitCode } = await trigger(command, params, {});
 
   if (output.join('').includes(` ${project} `)) {
     console.log('Project exists');
     return true;
   }
 
-  if (err.length > 0) {
+  if (exitCode !== 0) {
     throw new Error(err.join());
   }
 
