@@ -4,7 +4,10 @@ import GitUrlParse from 'git-url-parse';
 import fetch from 'node-fetch';
 import type { Arguments, CommandBuilder } from 'yargs';
 
-import { verifyIsSaleorAppDirectory } from '../../lib/common.js';
+import {
+  buildManifestURL,
+  verifyIsSaleorAppDirectory,
+} from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import {
   createProjectInVercel,
@@ -27,7 +30,7 @@ import {
   useInstanceConnector,
   useVercel,
 } from '../../middleware/index.js';
-import { Options } from '../../types.js';
+import { AppDeploy, Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:app:deploy');
 
@@ -74,7 +77,7 @@ export const builder: CommandBuilder = (_) =>
       ''
     );
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async (argv: Arguments<AppDeploy>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const name = await getPackageName();
@@ -173,7 +176,10 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const domain = await vercel.getProjectDomain(projectId);
 
-  const projectManifestURL = `https://${domain.name}${argv.manifestPath}`;
+  const projectManifestURL = buildManifestURL(
+    argv.manifestPath,
+    `https://${domain.name}`
+  );
 
   const msg1 = ` ${chalk.dim('Using the CLI')}: ${chalk.green(
     'saleor app install'

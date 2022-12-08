@@ -26,12 +26,8 @@ export interface Options extends BaseOptions {
   key?: string;
   json?: boolean;
   event?: string;
-  port?: string;
   name?: string;
-  encryptUrl?: string;
-  registerUrl?: string;
   saleorApiUrl?: string;
-  githubPrompt?: boolean;
   appId?: string;
   permissions?: string[];
 }
@@ -68,9 +64,27 @@ export interface StoreCreate extends BaseOptions {
   example?: string;
 }
 
-export interface StoreDeploy extends BaseOptions {
+export interface Deploy extends BaseOptions {
+  dispatch: boolean;
+  githubPrompt: boolean;
+}
+
+export interface StoreDeploy extends Deploy {
   withCheckout: boolean;
-  githubPrompt?: boolean;
+}
+
+export interface AppTunnel extends BaseOptions {
+  name: string;
+  port: number;
+  forceInstall: boolean;
+  useNgrok: boolean;
+  manifestPath: string;
+}
+
+export interface AppDeploy extends Deploy {
+  registerUrl: string;
+  encryptUrl: string;
+  manifestPath: string;
 }
 
 export interface Environment {

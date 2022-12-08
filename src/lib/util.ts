@@ -14,7 +14,7 @@ import { Arguments } from 'yargs';
 import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
 import { SaleorAppList } from '../graphql/SaleorAppList.js';
 import { API, GET, POST, Region } from '../lib/index.js';
-import { Environment, Options, ProjectCreate } from '../types.js';
+import { BaseOptions, Environment, Options, ProjectCreate } from '../types.js';
 import { Config } from './config.js';
 
 export const delay = (ms: number) =>
@@ -211,7 +211,7 @@ export const printlnSuccess = (msg: string) =>
   println(chalk.green(logSymbols.success), msg);
 
 export const obfuscate = (value: string) => `${value.slice(0, 12)} ****`;
-export const obfuscateArgv = (argv: Arguments<Options>) => {
+export const obfuscateArgv = (argv: Arguments<BaseOptions>) => {
   // immutable
   // structuredClone, available from Node.js 17
   const argvCopy = Object.fromEntries(Object.entries(argv));
