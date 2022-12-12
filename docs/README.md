@@ -34,7 +34,6 @@ Commands:
   saleor status                  Show the login status for the systems that CLI depends on
   saleor login                   Log in to the Saleor Cloud
   saleor logout                  Log out from the Saleor Cloud
-  saleor configure [token]       Configure Saleor CLI
   saleor register                Create a Saleor Cloud account  [aliases: signup]
   saleor trigger [event]         This triggers a Saleor event
   saleor organization [command]  [aliases: org]
@@ -68,7 +67,6 @@ for more information, find the documentation at https://saleor.io
 * [status](#status)
 * [login](#login)
 * [logout](#logout)
-* [configure](#configure)
 * [register](#register)
 * [trigger](#trigger)
 * [organization](#organization)
@@ -187,8 +185,15 @@ Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  [string]
+      --token            use with headless flag, create token at https://cloud.saleor.io/tokens  [string]
+      --headless         login without the need of a browser  [boolean] [default: false]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor login
+  saleor login --headless
+  saleor login --headless --token=TOKEN
 ```
 
 ### logout
@@ -208,31 +213,6 @@ Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  [string]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
-```
-
-### configure
-
-```sh
-$ saleor configure --help
-```
-
-Help output:
-
-```
-saleor configure [token]
-
-Configure Saleor CLI
-
-Positionals:
-  token  token created at https://cloud.saleor.io/tokens  [string]
-
-Options:
-      --json             Output the data as JSON  [boolean]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
-      --force            skip additional prompts  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```

@@ -21,6 +21,7 @@ import {
   interactiveProject,
   interactiveSaleorVersion,
 } from '../../middleware/index.js';
+import { User } from '../../types.js';
 import { updateWebhook } from '../webhook/update.js';
 
 interface Options {
@@ -125,7 +126,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
   const { project, saleor, database } = argv;
 
   debug('getting user from Saleor API');
-  const user = (await GET(API.User, argv)) as any;
+  const user = (await GET(API.User, argv)) as User;
 
   if (argv.restore && !argv.restore_from) {
     throw new SaleorEnvironmentError(

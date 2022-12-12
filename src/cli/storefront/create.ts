@@ -20,7 +20,7 @@ import {
   printlnSuccess,
 } from '../../lib/util.js';
 import { useOrganization, useToken } from '../../middleware/index.js';
-import { StoreCreate } from '../../types.js';
+import { StoreCreate, User } from '../../types.js';
 import { setupGitRepository } from '../app/create.js';
 import { createEnvironment } from '../env/create.js';
 
@@ -113,7 +113,7 @@ const prepareEnvironment = async (
   argv: Arguments<StoreCreate>,
   project: any
 ) => {
-  const user = (await GET(API.User, argv)) as any;
+  const user = (await GET(API.User, argv)) as User;
   const services = (await getSortedServices(argv)) as any[];
 
   const service = services.filter(
