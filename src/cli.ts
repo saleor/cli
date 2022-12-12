@@ -41,6 +41,7 @@ import {
   fetchLatestPackageVersion,
 } from './lib/util.js';
 import { useOnlineChecker, useTelemetry } from './middleware/index.js';
+import { User } from './types.js';
 
 const debug = Debug('saleor-cli');
 
@@ -114,7 +115,7 @@ const parser = yargs(hideBin(process.argv))
   .command(status)
   .command(login)
   .command(logout)
-  .command(configure)
+  .command('configure', false, configure)
   .command(register)
   .command(trigger)
   .command(['organization [command]', 'org'], '', organization)
@@ -192,7 +193,7 @@ const parser = yargs(hideBin(process.argv))
             email,
           } = (await GET(API.User, {
             token,
-          })) as any;
+          })) as User;
           const user = [firstName, lastName].join(' ');
 
           console.log(chalk.blue(`\nLogged as ${user} ${email}\n`));

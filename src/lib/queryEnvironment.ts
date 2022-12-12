@@ -2,7 +2,7 @@ import Enquirer from 'enquirer';
 import { got, HTTPError, Response } from 'got';
 import { Arguments } from 'yargs';
 
-import { Options } from '../types.js';
+import { Options, User } from '../types.js';
 import { Config } from './config.js';
 import { API, GET } from './index.js';
 import { validateLength } from './util.js';
@@ -21,7 +21,7 @@ const isHttpBasicAuthProtected = (response: Response) => {
 const getAuth = async (argv: Arguments<Options>) => {
   console.log('The selected environment is restricted with Basic Auth');
   const { token } = await Config.get();
-  const user = (await GET(API.User, { token })) as any;
+  const user = (await GET(API.User, { token })) as User;
 
   const data = await Enquirer.prompt<{ username: string; password: string }>([
     {
