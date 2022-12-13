@@ -165,7 +165,7 @@ const waitForAppInstallation = async (argv: any, id: string) => {
   return true;
 };
 
-export const buildManifestURL = (origin: string, path: string) => {
+export const buildManifestURL = (path: string, origin: string) => {
   try {
     const manifestURL = new URL(path, origin);
     return manifestURL.toString();
