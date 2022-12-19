@@ -56,3 +56,14 @@ jobs:
         run: pnpm install
       - name: Build project
         run: pnpm build
+
+  vulnerability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install OSV
+        run: curl -skL https://github.com/google/osv-scanner/releases/download/v1.0.1/osv-scanner_1.0.1_linux_amd64 > osv-scanner
+      - name: chmod 
+        run: chmod a+x osv-scanner 
+      - name: Check for vulnerabilities 
+        run: ./osv-scanner -L pnpm-lock.yaml --json | jq -e '.results | length == 0'
