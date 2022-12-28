@@ -48,7 +48,7 @@ Commands:
   saleor vercel [command]
   saleor github [command]
   saleor checkout [command]
-  saleor open [resource]         Open <resource>
+  saleor open [resource]         Open resource in browser
 
 Options:
       --json             Output the data as JSON  [boolean]
@@ -1629,7 +1629,7 @@ Help output:
 ```
 saleor open [resource]
 
-Open <resource>
+Open resource in browser
 
 Positionals:
   resource  [string] [choices: "dashboard", "api", "docs", "docs/api", "docs/apps", "docs/webhooks", "docs/checkout", "docs/storefront", "docs/cli"]
