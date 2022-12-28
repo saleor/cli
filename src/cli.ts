@@ -22,6 +22,7 @@ import * as info from './cli/info.js';
 import job from './cli/job/index.js';
 import * as login from './cli/login.js';
 import * as logout from './cli/logout.js';
+import * as open from './cli/open.js';
 import organization from './cli/organization/index.js';
 import project from './cli/project/index.js';
 import * as register from './cli/register.js';
@@ -131,6 +132,7 @@ const parser = yargs(hideBin(process.argv))
   .command(['github [command]'], '', github)
   .command(['checkout [command]'], '', checkout)
   .command(['dev [command]'], false, dev)
+  .command(open)
   .option('json', { type: 'boolean', desc: 'Output the data as JSON' })
   .option('short', {
     type: 'boolean',

@@ -48,6 +48,7 @@ Commands:
   saleor vercel [command]
   saleor github [command]
   saleor checkout [command]
+  saleor open [resource]         Open <resource>
 
 Options:
       --json             Output the data as JSON  [boolean]
@@ -125,6 +126,7 @@ for more information, find the documentation at https://saleor.io
   * [github login](#github-login)
 * [checkout](#checkout)
   * [checkout deploy](#checkout-deploy)
+* [open](#open)
 
 ### info
 
@@ -1614,4 +1616,33 @@ Options:
 Examples:
   saleor checkout deploy --no-github-prompt
   saleor checkout deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt
+```
+
+### open
+
+```sh
+$ saleor open --help
+```
+
+Help output:
+
+```
+saleor open [resource]
+
+Open <resource>
+
+Positionals:
+  resource  [string] [choices: "dashboard", "api", "docs", "docs/api", "docs/apps", "docs/webhooks", "docs/checkout", "docs/storefront", "docs/cli"]
+
+Options:
+      --json             Output the data as JSON  [boolean]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  [string]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+
+Examples:
+  saleor open dashboard  Open instance dashboard
+  saleor open api        Open instance GraphQL endpoint
+  saleor open docs       Open Saleor documentation page
 ```

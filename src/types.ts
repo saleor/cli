@@ -87,6 +87,10 @@ export interface AppDeploy extends Deploy {
   manifestPath: string;
 }
 
+export interface Open extends BaseOptions {
+  resource?: string;
+}
+
 export interface Environment {
   name: string;
   key: string;
