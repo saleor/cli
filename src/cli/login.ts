@@ -39,7 +39,7 @@ export const builder: CommandBuilder = (_) =>
     })
     .example('saleor login', '')
     .example('saleor login --headless', '')
-    .example('saleor login --headless --token=TOKEN');
+    .example('saleor login --headless --token=TOKEN', '');
 
 export const handler = async (argv: Arguments<BaseOptions>) => {
   if (argv.headless) {
