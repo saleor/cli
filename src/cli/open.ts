@@ -6,7 +6,7 @@ import { useInstanceConnector } from '../middleware';
 import { Options } from '../types';
 
 export const command = 'open [resource]';
-export const desc = 'Open <resource>';
+export const desc = 'Open resource in browser';
 
 const resources: Record<string, string> = {
   dashboard: '/dashboard',
