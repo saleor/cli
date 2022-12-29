@@ -1,6 +1,6 @@
 {
   "name": "@saleor/cli",
-  "version": "1.25.0-rc2",
+  "version": "1.25.0",
   "description": "",
   "type": "module",
   "repository": "github:saleor/saleor-cli",
