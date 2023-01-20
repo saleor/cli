@@ -91,6 +91,11 @@ export interface Open extends BaseOptions {
   resource?: string;
 }
 
+export interface WebhookDryRun extends BaseOptions {
+  objectId?: string;
+  query?: string;
+}
+
 export interface Environment {
   name: string;
   key: string;
