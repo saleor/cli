@@ -111,6 +111,7 @@ for more information, find the documentation at https://saleor.io
   * [webhook create](#webhook-create)
   * [webhook edit](#webhook-edit)
   * [webhook update](#webhook-update)
+  * [webhook dry-run](#webhook-dry-run)
 * [app](#app)
   * [app list](#app-list)
   * [app install](#app-install)
@@ -1144,10 +1145,11 @@ Help output:
 saleor webhook [command]
 
 Commands:
-  saleor webhook list    List webhooks for an environment
-  saleor webhook create  Create a new webhook
-  saleor webhook edit    Edit a webhook
-  saleor webhook update  Update webhooks for an environment
+  saleor webhook list     List webhooks for an environment
+  saleor webhook create   Create a new webhook
+  saleor webhook edit     Edit a webhook
+  saleor webhook update   Update webhooks for an environment
+  saleor webhook dry-run  Webhook dry run
 
 Options:
       --json             Output the data as JSON  [boolean]
@@ -1239,6 +1241,34 @@ Options:
   -u, --instance, --url  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+```
+
+#### webhook dry-run
+
+```sh
+$ saleor webhook dry-run --help
+```
+
+Help output:
+
+```
+saleor webhook dry-run
+
+Webhook dry run
+
+Options:
+      --json             Output the data as JSON  [boolean]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  [string]
+      --object-id        Object ID to perform dry run on  [string]
+      --query            Subscription query  [boolean]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+
+Examples:
+  saleor webhook dry-run
+  saleor webhook dry-run --query='subscription { event { ... on ProductCreated { product { id name } } } }'
+  saleor webhook dry-run --object-id='UHJvZHVjdDo3Mg=='
 ```
 
 ### app
