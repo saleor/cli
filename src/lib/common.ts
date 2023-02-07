@@ -218,7 +218,9 @@ export const verifyIsSaleorAppDirectory = async (argv: any) => {
 
   // check if this is a Next.js app
   const isNodeApp = await fs.pathExists('package.json');
-  const isNextApp = await fs.pathExists('next.config.js');
+  const isNextApp =
+    (await fs.pathExists('next.config.js')) ||
+    (await fs.pathExists('next.config.mjs'));
 
   if (!isTunnel) {
     return {};
