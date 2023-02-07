@@ -1,5 +1,4 @@
 import * as create from './create.js';
-import * as deploy from './deploy.js';
 import * as generate from './generate.js';
 import * as install from './install.js';
 import * as list from './list.js';
@@ -17,7 +16,6 @@ export default function (_: any) {
     tunnel,
     token,
     permission,
-    deploy,
 
     // no auth needed
     generate,
