@@ -35,7 +35,7 @@ import { AppDeploy, Options } from '../../types.js';
 const debug = Debug('saleor-cli:app:deploy');
 
 export const command = 'deploy';
-export const desc = 'Deploy this Saleor App repository to Vercel';
+export const desc = '[DEPRECATED] Deploy this Saleor App repository to Vercel';
 
 export const builder: CommandBuilder = (_) =>
   _.option('dispatch', {
@@ -78,6 +78,11 @@ export const builder: CommandBuilder = (_) =>
     );
 
 export const handler = async (argv: Arguments<AppDeploy>) => {
+  console.log(
+    `${chalk.red(
+      'DEPRECATION: app deploy will be removed in the next CLI version. Visit apps documentation. Command may not work.'
+    )}`
+  );
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const name = await getPackageName();
