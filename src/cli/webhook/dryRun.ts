@@ -21,7 +21,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'Object ID to perform dry run on',
   })
     .option('query', {
-      type: 'boolean',
+      type: 'string',
       desc: 'Subscription query',
     })
     .example('saleor webhook dry-run', '')
