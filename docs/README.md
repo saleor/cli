@@ -120,7 +120,6 @@ for more information, find the documentation at https://saleor.io
   * [app tunnel](#app-tunnel)
   * [app token](#app-token)
   * [app permission](#app-permission)
-  * [app deploy](#app-deploy)
 * [vercel](#vercel)
   * [vercel login](#vercel-login)
 * [github](#github)
@@ -1290,7 +1289,6 @@ Commands:
   saleor app tunnel [port]      Expose your Saleor app remotely via tunnel
   saleor app token              Create a Saleor App token
   saleor app permission         Add or remove permission for a Saleor App
-  saleor app deploy             Deploy this Saleor App repository to Vercel
 
 Options:
       --json             Output the data as JSON  [boolean]
@@ -1421,7 +1419,6 @@ Options:
   -u, --instance, --url  [string]
       --name             The application name for installation in the Dashboard  [string]
       --force-install    Force the Saleor App Install  [boolean] [default: false]
-      --use-ngrok        Use `ngrok` binary instead of the built-in tunnel  [boolean] [default: false]
       --manifest-path    The application's manifest path  [string] [default: "/api/manifest"]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -1429,7 +1426,6 @@ Options:
 Examples:
   saleor app tunnel --name="Custom name"
   saleor app tunnel --force-install
-  saleor app tunnel --use-ngrok
   saleor app tunnel --manifest-path=/app/manifest
   saleor app tunnel --organization=organization-slug --environment=env-id-or-name
 ```
@@ -1481,37 +1477,6 @@ Options:
 Examples:
   saleor app permission --app-id=APP-ID --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
   saleor app permission --organization=organization-slug --environment=env-id-or-name --app-id=APP-ID --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
-```
-
-#### app deploy
-
-```sh
-$ saleor app deploy --help
-```
-
-Help output:
-
-```
-saleor app deploy
-
-Deploy this Saleor App repository to Vercel
-
-Options:
-      --json             Output the data as JSON  [boolean]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
-      --dispatch         dispatch deployment and don't wait till it ends  [boolean] [default: false]
-      --register-url     specify your own endpoint for registering apps  [string] [default: "https://appraptor.vercel.app/api/register-app"]
-      --encrypt-url      specify your own endpoint for encrypting tokens  [string] [default: "https://appraptor.vercel.app/api/encrypt"]
-      --github-prompt    specify prompt presence for repository creation on Github  [boolean] [default: "true"]
-      --manifest-path    The application's manifest path  [string] [default: "/api/manifest"]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
-
-Examples:
-  saleor app deploy --no-github-prompt
-  saleor app deploy --no-github-prompt --manifest-path=/app/manifest
-  saleor app deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt
 ```
 
 ### vercel
