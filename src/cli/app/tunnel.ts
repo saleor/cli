@@ -30,9 +30,6 @@ import {
 } from '../../middleware/index.js';
 import { AppTunnel } from '../../types.js';
 
-const random = (min: number, max: number) =>
-  Math.floor(Math.random() * (max - min + 1) + min);
-
 const debug = Debug('saleor-cli:app:tunnel');
 
 export const command = 'tunnel [port]';
@@ -50,11 +47,6 @@ export const builder: CommandBuilder = (_) =>
       default: false,
       desc: 'Force the Saleor App Install',
     })
-    .option('use-ngrok', {
-      type: 'boolean',
-      default: false,
-      desc: 'Use `ngrok` binary instead of the built-in tunnel',
-    })
     .option('manifest-path', {
       type: 'string',
       default: '/api/manifest',
@@ -62,7 +54,6 @@ export const builder: CommandBuilder = (_) =>
     })
     .example('saleor app tunnel --name="Custom name"', '')
     .example('saleor app tunnel --force-install', '')
-    .example('saleor app tunnel --use-ngrok', '')
     .example('saleor app tunnel --manifest-path=/app/manifest', '')
     .example(
       'saleor app tunnel --organization=organization-slug --environment=env-id-or-name',
@@ -72,12 +63,11 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  const { organization, environment, port: localPort, useNgrok } = argv;
+  const { port: localPort } = argv;
   const baseURL = argv.instance!;
 
   debug(`Starting the tunnel with the port: ${argv.port}`);
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const vendorDir = path.join(__dirname, '..', 'vendor');
 
   debug('Extracting the Saleor app name');
   let appName: string;
@@ -90,72 +80,28 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   }
 
   // ngrok tunnel
+  const isNgrokInstalled = await lookpath('ngrok');
+  if (!isNgrokInstalled) throw new NgrokError('`ngrok` binary not found');
 
-  let tunnelURL: string;
-
-  if (useNgrok) {
-    const isNgrokInstalled = await lookpath('ngrok');
-    if (!isNgrokInstalled) throw new NgrokError('`ngrok` binary not found');
-
-    const p = spawn(
-      'ngrok',
-      ['http', localPort.toString() || '3000', '--log', 'stdout'],
-      {
-        cwd: process.cwd(),
-      }
-    );
-
-    tunnelURL = await new Promise((resolve, _reject) => {
-      let output = '';
-
-      p.stdout.setEncoding('utf-8');
-      p.stdout.on('data', (chunk: string) => {
-        output += chunk;
-
-        const result = output.match(/https:\/\/[a-zA-Z0-9\-.]+\.ngrok\.io/);
-        if (result) resolve(result[0]);
-      });
-    });
-  } else {
-    // built-in tunnel
-
-    const { TunnelServerSecret } = await Config.get();
-
-    const port = random(1025, 65535);
-    debug(`Remote port: ${port}`);
-
-    const subdomain = `${appName}-${environment}-${organization}`.toLowerCase();
-    tunnelURL = `https://${subdomain}.saleor.live`;
-
-    const winSuffix = process.platform === 'win32' ? '.cmd' : '';
-
-    try {
-      debug(`Linking the subdomain with a port: ${subdomain} <-> ${port}`);
-      await fetch(`http://95.179.221.135:5544/add/${subdomain}/${port}`, {
-        method: 'POST',
-      });
-      await delay(500);
-
-      debug('Spawning the tunnel process');
-      const _p = spawn(
-        `${vendorDir}/tunnel${winSuffix}`,
-        [
-          'local',
-          localPort.toString() || '3000',
-          '--to',
-          tunnelURL,
-          '--port',
-          port.toString(),
-          '--secret',
-          TunnelServerSecret,
-        ],
-        { cwd: process.cwd(), stdio: 'ignore' }
-      );
-    } catch (error) {
-      console.log('error');
-      console.error(error);
+  const p = spawn(
+    'ngrok',
+    ['http', localPort.toString() || '3000', '--log', 'stdout'],
+    {
+      cwd: process.cwd(),
     }
-  }
+  );
+
+  const tunnelURL: string = await new Promise((resolve, _reject) => {
+    let output = '';
+
+    p.stdout.setEncoding('utf-8');
+    p.stdout.on('data', (chunk: string) => {
+      output += chunk;
+
+      const result = output.match(/https:\/\/[a-zA-Z0-9\-.]+\.ngrok\.io/);
+      if (result) resolve(result[0]);
+    });
+  });
 
   // General
 
