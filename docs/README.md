@@ -1261,7 +1261,7 @@ Options:
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  [string]
       --object-id        Object ID to perform dry run on  [string]
-      --query            Subscription query  [boolean]
+      --query            Subscription query  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
@@ -1290,7 +1290,7 @@ Commands:
   saleor app tunnel [port]      Expose your Saleor app remotely via tunnel
   saleor app token              Create a Saleor App token
   saleor app permission         Add or remove permission for a Saleor App
-  saleor app deploy             [DEPRECATED] Deploy this Saleor App repository to Vercel
+  saleor app deploy             Deploy this Saleor App repository to Vercel
 
 Options:
       --json             Output the data as JSON  [boolean]
@@ -1494,7 +1494,7 @@ Help output:
 ```
 saleor app deploy
 
-[DEPRECATED] Deploy this Saleor App repository to Vercel
+Deploy this Saleor App repository to Vercel
 
 Options:
       --json             Output the data as JSON  [boolean]
