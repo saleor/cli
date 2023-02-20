@@ -1,4 +1,4 @@
-import { CliUx } from '@oclif/core';
+import { ux as cli } from '@oclif/core';
 import { format } from 'date-fns';
 import Debug from 'debug';
 import { Arguments } from 'yargs';
@@ -6,8 +6,6 @@ import { Arguments } from 'yargs';
 import { API, GET } from '../../lib/index.js';
 import { obfuscateArgv, verifyResultLength } from '../../lib/util.js';
 import { Options } from '../../types.js';
-
-const { ux: cli } = CliUx;
 
 const debug = Debug('saleor-cli:org:list');
 

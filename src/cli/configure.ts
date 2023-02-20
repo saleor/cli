@@ -1,4 +1,4 @@
-import { CliUx } from '@oclif/core';
+import { ux as cli } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
@@ -12,8 +12,6 @@ import {
   promptOrganization,
 } from '../lib/util.js';
 import { Options } from '../types.js';
-
-const { ux: cli } = CliUx;
 
 const debug = Debug('saleor-cli:configure');
 

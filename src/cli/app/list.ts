@@ -1,4 +1,4 @@
-import { CliUx } from '@oclif/core';
+import { ux as cli } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import got from 'got';
@@ -17,8 +17,6 @@ import {
   useInstanceConnector,
 } from '../../middleware/index.js';
 import { Options } from '../../types.js';
-
-const { ux: cli } = CliUx;
 
 const debug = Debug('saleor-cli:app:list');
 

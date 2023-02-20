@@ -1,4 +1,4 @@
-import { CliUx } from '@oclif/core';
+import { ux as cli } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import type { CommandBuilder } from 'yargs';
@@ -8,8 +8,6 @@ import { Config } from '../lib/config.js';
 import { header } from '../lib/images.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
 import { User } from '../types';
-
-const { ux: cli } = CliUx;
 
 const debug = Debug('saleor-cli:info');
 

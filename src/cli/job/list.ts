@@ -1,4 +1,4 @@
-import { CliUx } from '@oclif/core';
+import { ux as cli } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import { Arguments, CommandBuilder } from 'yargs';
@@ -6,8 +6,6 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { API, GET } from '../../lib/index.js';
 import { formatDateTime, obfuscateArgv } from '../../lib/util.js';
 import { Job, Options } from '../../types.js';
-
-const { ux: cli } = CliUx;
 
 const parseJobName = (name: string) => {
   const [_, type, env, id] = /(\w{3})-(.+)-(\w{32})/g.exec(name) || [];

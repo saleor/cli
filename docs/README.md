@@ -1260,7 +1260,7 @@ Options:
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  [string]
       --object-id        Object ID to perform dry run on  [string]
-      --query            Subscription query  [string]
+      --query            Subscription query  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
@@ -1419,6 +1419,7 @@ Options:
   -u, --instance, --url  [string]
       --name             The application name for installation in the Dashboard  [string]
       --force-install    Force the Saleor App Install  [boolean] [default: false]
+      --use-ngrok        Use `ngrok` binary instead of the built-in tunnel  [boolean] [default: false]
       --manifest-path    The application's manifest path  [string] [default: "/api/manifest"]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -1426,6 +1427,7 @@ Options:
 Examples:
   saleor app tunnel --name="Custom name"
   saleor app tunnel --force-install
+  saleor app tunnel --use-ngrok
   saleor app tunnel --manifest-path=/app/manifest
   saleor app tunnel --organization=organization-slug --environment=env-id-or-name
 ```

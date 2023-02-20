@@ -1,4 +1,4 @@
-import { CliUx } from '@oclif/core';
+import { ux as cli } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import got from 'got';
@@ -8,8 +8,6 @@ import { WebhookList } from '../../graphql/WebhookList.js';
 import { Config } from '../../lib/config.js';
 import { getAppsFromResult, obfuscateArgv } from '../../lib/util.js';
 import { Options } from '../../types.js';
-
-const { ux: cli } = CliUx;
 
 const debug = Debug('saleor-cli:webhook:list');
 
