@@ -1,5 +1,4 @@
 /* eslint-disable max-classes-per-file */
-import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import { format } from 'date-fns';
 import { emphasize } from 'emphasize';
@@ -7,6 +6,7 @@ import Enquirer from 'enquirer';
 import got from 'got';
 import logSymbols from 'log-symbols';
 import { lookpath } from 'lookpath';
+import open from 'open';
 import ora from 'ora';
 import yaml from 'yaml';
 import { Arguments } from 'yargs';
@@ -700,8 +700,7 @@ export const openURL = async (url: string) => {
     throw new Error('This command requires browser to operate');
   }
 
-  const { ux: cli } = CliUx;
-  cli.open(url);
+  await open(url);
 };
 
 export const countries: { [key: string]: string } = {

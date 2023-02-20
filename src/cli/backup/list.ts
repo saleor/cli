@@ -1,4 +1,4 @@
-import { CliUx } from '@oclif/core';
+import { ux as cli } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import { Arguments } from 'yargs';
@@ -10,8 +10,6 @@ import {
   verifyResultLength,
 } from '../../lib/util.js';
 import { Options } from '../../types.js';
-
-const { ux: cli } = CliUx;
 
 const debug = Debug('saleor-cli:backup:list');
 

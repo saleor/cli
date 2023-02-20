@@ -1,4 +1,4 @@
-import { CliUx } from '@oclif/core';
+import { ux as cli } from '@oclif/core';
 import chalk from 'chalk';
 import crypto from 'crypto';
 import Debug from 'debug';
@@ -43,7 +43,6 @@ export const builder: CommandBuilder = (_) =>
 
 export const handler = async (argv: Arguments<BaseOptions>) => {
   if (argv.headless) {
-    const { ux: cli } = CliUx;
     let { token } = argv;
     while (!token)
       token = await cli.prompt(
