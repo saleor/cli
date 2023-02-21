@@ -1,9 +1,9 @@
 import Enquirer from 'enquirer';
 import { Arguments, CommandBuilder } from 'yargs';
 
-import { openURL } from '../lib/util';
-import { useInstanceConnector } from '../middleware';
-import { Options } from '../types';
+import { openURL } from '../lib/util.js';
+import { useInstanceConnector } from '../middleware/index.js';
+import { Options } from '../types.js';
 
 export const command = 'open [resource]';
 export const desc = 'Open resource in browser';
