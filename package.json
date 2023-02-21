@@ -7,7 +7,7 @@
   "homepage": "https://github.com/saleor/saleor-cli#readme",
   "bugs": "https://github.com/saleor/saleor-cli/issues",
   "bin": {
-    "seor": "./dist/saleor.js"
+    "saleor": "./dist/saleor.js"
   },
   "scripts": {
     "prepublishOnly": "rm -rf ./package && pnpm build && clean-publish --fields dependencies && node -e \"let pkg=require('./package/package.json'); pkg.dependencies = { 'got': '^12.4.1' }; require('fs').writeFileSync('./package/package.json', JSON.stringify(pkg, null, 2));\"",
