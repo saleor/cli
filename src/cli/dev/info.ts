@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { run } from '../../lib/common.js';
 
 const require = createRequire(import.meta.url);
-const pkg = require('../../package.json');
+const pkg = require('../package.json');
 
 export const command = 'info';
 export const desc = 'Show env info for debugging';
