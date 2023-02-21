@@ -3,7 +3,7 @@ import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { Arguments, CommandBuilder } from 'yargs';
 
-import { canOpen, obfuscateArgv, openURL } from '../lib/util';
+import { canOpen, obfuscateArgv, openURL } from '../lib/util.js';
 
 const debug = Debug('saleor-cli:register');
 
