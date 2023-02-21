@@ -5,8 +5,8 @@ import Debug from 'debug';
 import got from 'got';
 import type { CommandBuilder } from 'yargs';
 
-import { getEnvironment } from '../lib';
 import { Config } from '../lib/config.js';
+import { getEnvironment } from '../lib/index.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');

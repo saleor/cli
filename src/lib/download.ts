@@ -3,7 +3,7 @@ import GitURLParse from 'git-url-parse';
 import { join } from 'path';
 import { simpleGit } from 'simple-git';
 
-import { WrongGitURLError } from './util';
+import { WrongGitURLError } from './util.js';
 
 const git = simpleGit();
 
