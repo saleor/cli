@@ -1,11 +1,15 @@
+import { createRequire } from 'node:module';
+
 import chalk from 'chalk';
 import Debug from 'debug';
 import got from 'got';
 import type { CommandBuilder } from 'yargs';
 
-import pkg from '../../package.json';
 import { getEnvironment } from '../lib';
 import { Config } from '../lib/config.js';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 
 const debug = Debug('saleor-cli:status');
 

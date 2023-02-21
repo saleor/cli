@@ -1,13 +1,17 @@
+import { createRequire } from 'node:module';
+
 import { ux as cli } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import type { CommandBuilder } from 'yargs';
 
-import pkg from '../../package.json';
 import { Config } from '../lib/config.js';
 import { header } from '../lib/images.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
 import { User } from '../types';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 
 const debug = Debug('saleor-cli:info');
 
