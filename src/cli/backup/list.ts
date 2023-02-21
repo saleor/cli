@@ -1,4 +1,4 @@
-import { ux as cli } from '@oclif/core';
+import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import { Arguments } from 'yargs';
@@ -28,6 +28,8 @@ export const handler = async (argv: Arguments<Options>) => {
     console.log(JSON.stringify(result, null, 2));
     return;
   }
+
+  const { ux: cli } = CliUx;
 
   cli.table(result, {
     name: {

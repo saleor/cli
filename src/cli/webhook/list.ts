@@ -1,4 +1,4 @@
-import { ux as cli } from '@oclif/core';
+import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import got from 'got';
@@ -62,6 +62,8 @@ export const handler = async (argv: Arguments<Options>) => {
     }
 
     console.log(chalk('\n App:', chalk.bold(appName), '\n'));
+
+    const { ux: cli } = CliUx;
 
     cli.table(webhooks, {
       id: {

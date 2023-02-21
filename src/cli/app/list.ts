@@ -1,4 +1,4 @@
-import { ux as cli } from '@oclif/core';
+import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import got from 'got';
@@ -26,6 +26,7 @@ export const desc = 'List installed Saleor Apps for an environment';
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
+  const { ux: cli } = CliUx;
   const headers = await Config.getBearerHeader();
 
   const { instance } = argv;

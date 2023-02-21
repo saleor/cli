@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 
-import { ux as cli } from '@oclif/core';
+import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import type { CommandBuilder } from 'yargs';
@@ -46,6 +46,8 @@ export const handler = async (): Promise<void> => {
   );
 
   console.log('\n');
+
+  const { ux: cli } = CliUx;
 
   cli.url(chalk.blue('Website - https://saleor.io/'), 'https://saleor.io/');
   cli.url(

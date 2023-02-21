@@ -1,4 +1,4 @@
-import { ux as cli } from '@oclif/core';
+import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
@@ -114,6 +114,7 @@ const chooseEnv = async (
 };
 
 export const configure = async (providedToken: string | undefined) => {
+  const { ux: cli } = CliUx;
   let token = providedToken;
   while (!token) token = await cli.prompt('Access Token', { type: 'mask' });
 
