@@ -43,22 +43,11 @@ export const handler = async (argv: Arguments<Options>) => {
 
   println(`Creating a webhook for the ${environment} environment`);
 
-  const {
-    name,
-    targetUrl,
-    secretKey,
-    asyncEvents,
-    syncEvents,
-    isActive,
-    query,
-  } = await Enquirer.prompt<{
+  const { name, targetUrl, secretKey, asyncEvents } = await Enquirer.prompt<{
     name: string;
     targetUrl: string;
     secretKey: string;
     asyncEvents: string[];
-    syncEvents: string[];
-    isActive: boolean;
-    query: string;
   }>([
     {
       type: 'input',
@@ -98,12 +87,32 @@ export const handler = async (argv: Arguments<Options>) => {
         'Select asynchronous events\n  (use the arrows to navigate and the space bar to select)',
       choices: asyncEventsListChoices,
     },
-    {
+  ]);
+
+  // https://github.com/enquirer/enquirer/issues/298
+  let syncEvents: string[] = [];
+  if (asyncEvents.length === 0) {
+    const { events } = await Enquirer.prompt<{
+      events: string[];
+    }>({
       type: 'multiselect',
       name: 'syncEvents',
       message:
         'Select synchronous events\n  (use the arrows to navigate and the space bar to select)',
       choices: syncEventsList,
+    });
+
+    syncEvents = events;
+  }
+
+  const { query, isActive } = await Enquirer.prompt<{
+    query: string;
+    isActive: boolean;
+  }>([
+    {
+      type: 'input',
+      name: 'query',
+      message: 'Subscription query (optional)',
     },
     {
       type: 'confirm',
@@ -111,11 +120,6 @@ export const handler = async (argv: Arguments<Options>) => {
       message: 'Webhook is active',
       format: formatConfirm,
       initial: true,
-    },
-    {
-      type: 'input',
-      name: 'query',
-      message: 'Subscription query (optional)',
     },
   ]);
 
