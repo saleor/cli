@@ -3,7 +3,7 @@ import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { Arguments, CommandBuilder } from 'yargs';
 
-import { canOpen, obfuscateArgv, openURL } from '../lib/util.js';
+import { canOpen, formatConfirm, obfuscateArgv, openURL } from '../lib/util.js';
 
 const debug = Debug('saleor-cli:register');
 
@@ -37,7 +37,7 @@ export const handler = async (argv: Arguments) => {
       type: 'confirm',
       name: 'confirm',
       required: true,
-      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+      format: formatConfirm,
       message: 'Do you want to open it right now?',
     },
   ]);

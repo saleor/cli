@@ -610,6 +610,9 @@ export const showResult = (
   }
 };
 
+export const formatConfirm = (value: string) =>
+  chalk.cyan(value ? 'yes' : 'no');
+
 export const confirmRemoval = async (argv: Options, name: string) => {
   const { proceed } = (await Enquirer.prompt({
     type: 'confirm',
@@ -617,7 +620,7 @@ export const confirmRemoval = async (argv: Options, name: string) => {
     initial: argv.force,
     skip: !!argv.force,
     message: `You are going to remove ${name}. Continue`,
-    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    format: formatConfirm,
   })) as { proceed: boolean };
 
   return proceed;

@@ -12,7 +12,12 @@ import {
 import { doWebhookCreate } from '../../graphql/doWebhookCreate.js';
 import { Config } from '../../lib/config.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
-import { obfuscateArgv, println, without } from '../../lib/util.js';
+import {
+  formatConfirm,
+  obfuscateArgv,
+  println,
+  without,
+} from '../../lib/util.js';
 import { interactiveSaleorApp } from '../../middleware/index.js';
 import { Options, WebhookError } from '../../types.js';
 
@@ -104,7 +109,7 @@ export const handler = async (argv: Arguments<Options>) => {
       type: 'confirm',
       name: 'isActive',
       message: 'Webhook is active',
-      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+      format: formatConfirm,
       initial: true,
     },
     {
