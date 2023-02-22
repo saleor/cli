@@ -10,6 +10,7 @@ import { API, GET, POST, PUT } from '../../lib/index.js';
 import {
   contentBox,
   deploy,
+  formatConfirm,
   obfuscateArgv,
   SaleorEnvironmentError,
   validateEmail,
@@ -111,7 +112,7 @@ export const handler = async (argv: Arguments<Options>) => {
     type: 'confirm',
     name: 'deployPrompt',
     message: 'Deploy our react-storefront starter pack to Vercel',
-    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    format: formatConfirm,
     initial: argv.deploy,
     skip: !(argv.deploy === undefined),
   })) as { deployPrompt: boolean };
@@ -152,7 +153,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     type: 'confirm',
     name: 'access',
     message: 'Would you like to enable dashboard access?',
-    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    format: formatConfirm,
     skip: !!argv.email,
     initial: true,
   });
@@ -176,7 +177,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     type: 'confirm',
     name: 'restrict',
     message: 'Would you like to restrict your Environment API with Basic Auth?',
-    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    format: formatConfirm,
     skip: (!!argv.pass && !!argv.login) || argv.skipRestrict,
   })) as { restrict: boolean };
 
