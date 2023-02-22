@@ -7,6 +7,7 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { Config } from '../lib/config.js';
 import { API, GET } from '../lib/index.js';
 import {
+  formatConfirm,
   obfuscateArgv,
   promptEnvironment,
   promptOrganization,
@@ -50,7 +51,7 @@ Learn more: ${chalk.gray('https://saleor.io/')}${chalk.blueBright('telemetry')}
     type: 'confirm',
     name: 'telemetry',
     initial: 'yes',
-    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    format: formatConfirm,
     message: 'Are you OK with leaving telemetry enabled?',
   })) as { telemetry: boolean };
 
@@ -74,7 +75,7 @@ const chooseOrganization = async (token: string | undefined) => {
       type: 'confirm',
       name: 'orgSetup',
       initial: 'yes',
-      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+      format: formatConfirm,
       message: 'Would you like to choose the default organization?',
     })) as { orgSetup: boolean };
 
@@ -99,7 +100,7 @@ const chooseEnv = async (
       type: 'confirm',
       name: 'envSetup',
       initial: 'yes',
-      format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+      format: formatConfirm,
       message: 'Would you like to choose the default environment',
     })) as { envSetup: boolean };
 

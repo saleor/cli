@@ -19,6 +19,7 @@ import { Config } from './config.js';
 import {
   contentBox,
   delay,
+  formatConfirm,
   NameMismatchError,
   SaleorAppError,
 } from './util.js';
@@ -135,7 +136,7 @@ const createProjectInGithub = async (
     type: 'confirm',
     name: 'githubProjectCreate',
     initial: 'yes',
-    format: (value) => chalk.cyan(value ? 'yes' : 'no'),
+    format: formatConfirm,
     skip: !prompt,
     message: 'Creating a project on your GitHub. Do you want to continue?',
   })) as { githubProjectCreate: boolean };
