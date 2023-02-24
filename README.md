@@ -1,6 +1,6 @@
 
 <div align="center">
-  <img width="150" alt="saleor-cli" src="https://user-images.githubusercontent.com/200613/221140666-6c92bcc1-e381-4b57-b58d-b27a78d160e7.png">
+  <img width="150" alt="saleor-cli" src="https://user-images.githubusercontent.com/200613/221163557-797cf981-3c65-4a0b-afd3-304b6d7ac537.png">
 </div>
 
 <div align="center">
