@@ -1,3 +1,23 @@
+
+<div align="center">
+  <img width="150" alt="saleor-cli" src="https://user-images.githubusercontent.com/200613/221140666-6c92bcc1-e381-4b57-b58d-b27a78d160e7.png">
+</div>
+
+<div align="center">
+  <h1>Saleor CLI</h1>
+</div>
+
+<div align="center">
+  <p>Command-Line Interface for Saleor</p>
+</div>
+
+<div align="center">
+  <a href="https://saleor.io/">Website</a>
+  <span> | </span>
+  <a href="https://docs.saleor.io/docs/3.x/cli">Docs</a>
+</div>
+
+
 **Saleor CLI** is designed to boost your productivity and improve development experience with Saleor and Saleor Cloud. It will take the burden of spawning new storefronts and apps locally, managing and connecting them with Saleor instances, or establishing tunnels for local development in seconds.
 
 To install the latest version of Saleor CLI, run the following command:
