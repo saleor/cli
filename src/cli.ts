@@ -49,7 +49,7 @@ const debug = Debug('saleor-cli');
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
 
-if (!semver.satisfies(process.versions.node, pkg.engines.node)) {
+if (!semver.satisfies(process.versions.node, '>= 16')) {
   console.error(
     `${chalk.red('ERROR')}: Saleor CLI requires Node.js 16.x or later`
   );
