@@ -5,9 +5,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.2
+      - uses: pnpm/action-setup@v2.2.4
         with:
-          version: 7.5.0 # Use 7.5.0 like other Saleor packages, to avoid pnpm version conflicts.
+          version: 8 
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
@@ -21,9 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.2
+      - uses: pnpm/action-setup@v2.2.4
         with:
-          version: 7.5.0
+          version: 8 
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
@@ -37,9 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2.2.2
+      - uses: pnpm/action-setup@v2.2.4
         with:
-          version: 7.5.0
+          version: 8 
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
