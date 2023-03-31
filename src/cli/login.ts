@@ -151,7 +151,14 @@ export const doLogin = async () => {
       console.log('');
       emitter.emit('finish');
 
-      return Response.Redirect(amplifyConfig.oauth.redirectSignIn);
+      return {
+        body: successPage,
+        status: 200,
+        type: 'text/html',
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      };
     }),
   ]);
   await app.start(SaleorCLIPort);
@@ -215,3 +222,38 @@ const createConfig = async (
     await Config.set(name as ConfigField, value);
   }
 };
+
+const successPage = `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Saleor CLI</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+
+      html {
+        display: table;
+        margin: auto;
+      }
+
+      body {
+        display: table-cell;
+        vertical-align: middle;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+          "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+          "Helvetica Neue", sans-serif;
+        background-color: #f3f3f3;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>You've successfully logged into the Saleor CLI!</h1>
+    <h3>You can close this tab and return to your terminal.</h3>
+  </body>
+</html>
+`;
