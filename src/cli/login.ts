@@ -122,7 +122,7 @@ export const doLogin = async () => {
 
         const secrets = await verifyToken(
           accessToken,
-          'https://id.saleor.live/verify'
+          'https://id.saleor.online/verify'
         );
 
         const { token }: any = await POST(API.Token, {
@@ -174,7 +174,7 @@ const doHeadlessLogin = async (token: string) => {
     const spinner = ora('\nLogging in...').start();
     const secrets = await verifyToken(
       token,
-      'https://id.saleor.live/configure'
+      'https://id.saleor.online/configure'
     );
     await createConfig(token, secrets);
 
