@@ -424,7 +424,7 @@ Commands:
   saleor environment remove [key|environment]    Delete an environment
   saleor environment upgrade [key|environment]   Upgrade a Saleor version in a specific environment
   saleor environment clear <key|environment>     Clear database for environment
-  saleor environment populate <key|environment>  Populate database for environment
+  saleor environment populate [key|environment]  Populate database for environment
   saleor environment promote [key|environment]   Promote environment to production
 
 Options:
@@ -620,12 +620,12 @@ $ saleor environment populate --help
 Help output:
 
 ```
-saleor environment populate <key|environment>
+saleor environment populate [key|environment]
 
 Populate database for environment
 
 Positionals:
-  key, environment  key of the environment  [string] [required]
+  key, environment  key of the environment  [string]
 
 Options:
       --json             Output the data as JSON  [boolean]

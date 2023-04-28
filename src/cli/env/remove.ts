@@ -3,12 +3,11 @@ import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
-import { API, DELETE, GET } from '../../lib/index.js';
+import { API, DELETE } from '../../lib/index.js';
 import {
   confirmRemoval,
   obfuscateArgv,
   printlnSuccess,
-  waitForTask,
 } from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options, Task } from '../../types.js';
