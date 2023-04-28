@@ -242,6 +242,14 @@ export const getGithubRepository = async (
   return data;
 };
 
+const getInstanceJWKS = async (instance: string) => {
+  const JWKSURL = `${instance}/.well-known/jwks.json`;
+  const response = await fetch(JWKSURL);
+  const asText = await response.text();
+
+  return asText;
+};
+
 export const setupSaleorAppCheckout = async (
   url: string,
   vercel: Vercel,
@@ -254,6 +262,10 @@ export const setupSaleorAppCheckout = async (
   debug(`App name in Vercel: ${checkoutName}`);
 
   const secret = crypto.randomBytes(256).toString('hex');
+
+  const instance = url.replace(/\/graphql\/$/, '');
+  const JWKS = await getInstanceJWKS(instance);
+
   const envs = [
     {
       type: 'encrypted',
@@ -271,6 +283,18 @@ export const setupSaleorAppCheckout = async (
       type: 'encrypted',
       key: 'NEXT_PUBLIC_SALEOR_API_URL',
       value: url,
+      target: ['production', 'preview', 'development'],
+    },
+    {
+      type: 'encrypted',
+      key: 'APL',
+      value: 'vercel',
+      target: ['production', 'preview', 'development'],
+    },
+    {
+      type: 'encrypted',
+      key: 'SALEOR_APP_JWKS',
+      value: JWKS,
       target: ['production', 'preview', 'development'],
     },
   ];
