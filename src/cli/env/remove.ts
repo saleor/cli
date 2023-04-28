@@ -4,7 +4,12 @@ import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
 import { API, DELETE, GET } from '../../lib/index.js';
-import { confirmRemoval, obfuscateArgv, waitForTask } from '../../lib/util.js';
+import {
+  confirmRemoval,
+  obfuscateArgv,
+  printlnSuccess,
+  waitForTask,
+} from '../../lib/util.js';
 import { useEnvironment } from '../../middleware/index.js';
 import { Options, Task } from '../../types.js';
 
@@ -31,17 +36,9 @@ export const handler = async (argv: Arguments<Options>) => {
   const proceed = await confirmRemoval(argv, `environment ${environment}`);
 
   if (proceed && environment) {
-    const result = (await DELETE(API.Environment, {
-      ...argv,
-      ...{ environment },
-    })) as Task;
-    await waitForTask(
-      argv,
-      result.task_id,
-      `Deleting environment: ${environment}`,
-      'Yay! Environment deleted!'
-    );
+    (await DELETE(API.Environment, { ...argv, ...{ environment } })) as Task;
     await removeCurrentEnvironment(environment);
+    printlnSuccess(`Environment ${environment} deleted`);
   }
 };
 
