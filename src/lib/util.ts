@@ -563,14 +563,14 @@ export const waitForTask = async (
 
     while (!succeed) {
       progress += 1;
-      await delay(2000);
+      await delay(400);
       spinner.text = `${spinnerText}...\n
     ${simpleProgress(progress)}\n
     ${messages[currentMsg]}`;
 
-      const nextMsg = progress % 5 === 0;
+      const nextMsg = progress % 20 === 0;
       if (nextMsg) {
-        currentMsg = progress % 3;
+        currentMsg = progress % 5;
         succeed = await checkIfJobSucceeded(taskId);
       }
     }
