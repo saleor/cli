@@ -706,6 +706,41 @@ export const openURL = async (url: string) => {
   await open(url);
 };
 
+export const successPage = (message: string) => `
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <title>Saleor CLI</title>
+      <style>
+        html,
+        body {
+          height: 100%;
+        }
+
+        html {
+          display: table;
+          margin: auto;
+        }
+
+        body {
+          display: table-cell;
+          vertical-align: middle;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+            "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+            "Helvetica Neue", sans-serif;
+          background-color: #f3f3f3;
+        }
+      </style>
+    </head>
+
+    <body>
+      <h1>${message}</h1>
+      <h3>You can close this tab and return to your terminal.</h3>
+    </body>
+  </html>
+  `;
+
 export const countries: { [key: string]: string } = {
   '': '',
   AF: 'Afghanistan',

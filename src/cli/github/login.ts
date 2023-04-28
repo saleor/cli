@@ -10,7 +10,7 @@ import { GET } from 'retes/route';
 import type { CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
-import { delay, openURL, printlnSuccess } from '../../lib/util.js';
+import { delay, openURL, printlnSuccess, successPage } from '../../lib/util.js';
 
 const debug = Debug('saleor-cli:github:login');
 
@@ -70,7 +70,16 @@ export const handler = async () => {
 
       emitter.emit('finish');
 
-      return Response.Redirect('https://cloud.saleor.io');
+      return {
+        body: successPage(
+          'You\'ve successfully authenticated Gitub with the Saleor CLI!'
+        ),
+        status: 200,
+        type: 'text/html',
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      };
     }),
   ]);
   await app.start(port);

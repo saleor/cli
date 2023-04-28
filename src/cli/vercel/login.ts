@@ -10,7 +10,7 @@ import { GET } from 'retes/route';
 import { Config, SaleorCLIPort } from '../../lib/config.js';
 import { checkPort } from '../../lib/detectPort.js';
 import { NoCommandBuilderSetup } from '../../lib/index.js';
-import { delay, openURL, printlnSuccess } from '../../lib/util.js';
+import { delay, openURL, printlnSuccess, successPage } from '../../lib/util.js';
 
 const RedirectURI = `http://localhost:${SaleorCLIPort}/vercel/callback`;
 
@@ -80,7 +80,16 @@ export const handler = async () => {
       // spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
       emitter.emit('finish');
 
-      return Response.Redirect('https://cloud.saleor.io');
+      return {
+        body: successPage(
+          'You\'ve successfully authenticated Vercel with the Saleor CLI!'
+        ),
+        status: 200,
+        type: 'text/html',
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      };
     }),
   ]);
   await app.start(SaleorCLIPort);
