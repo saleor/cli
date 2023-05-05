@@ -89,17 +89,21 @@ describe('storefront deploy', async () => {
     1000 * 60 * 10
   );
 
-  it('the deployed checkout returns the manifest', async () => {
-    const { vercel_token: VercelToken } = await Config.get();
+  it(
+    'the deployed checkout returns the manifest',
+    async () => {
+      const { vercel_token: VercelToken } = await Config.get();
 
-    if (!shouldMockTests) {
-      const vercel = new Vercel(VercelToken);
-      const { name: domain } = await vercel.getProjectDomain(checkoutName);
-      const manifest: Manifest = await got
-        .get(`https://${domain}/api/manifest`)
-        .json();
+      if (!shouldMockTests) {
+        const vercel = new Vercel(VercelToken);
+        const { name: domain } = await vercel.getProjectDomain(checkoutName);
+        const manifest: Manifest = await got
+          .get(`https://${domain}/api/manifest`)
+          .json();
 
-      expect(manifest.name).toBe('Checkout');
-    }
-  });
+        expect(manifest.name).toBe('Checkout');
+      }
+    },
+    1000 * 60
+  );
 });
