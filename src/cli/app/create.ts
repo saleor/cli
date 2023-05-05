@@ -35,24 +35,22 @@ export const builder: CommandBuilder = (_) =>
     demandOption: true,
     default: 'my-saleor-app',
   })
-    .option('dependencies', {
-      type: 'boolean',
-      default: true,
-      alias: 'deps',
-    })
     .option('template', {
       type: 'string',
       default: Configs.SaleorAppRepo,
       alias: ['t', 'repo', 'repository'],
+      desc: 'Template repository to start from',
     })
     .option('branch', {
       type: 'string',
       default: Configs.SaleorAppDefaultBranch,
       alias: 'b',
+      desc: 'Branch of the template repository',
     })
     .option('example', {
       type: 'string',
       alias: 'e',
+      desc: 'Use an Example App as a starter',
     });
 
 export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
@@ -78,8 +76,11 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   debug(`downloading the ${branch} app template`);
 
   if (typeof example === 'string') {
-    const sha = await getExampleSHA(example);
-    await gitCopySHA(template, target, sha);
+    const {
+      name: targetBranch,
+      commit: { sha },
+    } = await getExampleBranch(example);
+    await gitCopySHA(template, target, sha, targetBranch);
   } else {
     await gitCopy(template, target, branch);
   }
@@ -145,13 +146,13 @@ export const setupGitRepository = async (spinner: Ora) => {
   await git.commit('Initial commit from Saleor CLI');
 };
 
-const getExampleSHA = async (example: string) => {
-  const examples = await getRepositoryContent();
+const getExampleBranch = async (example: string) => {
+  const examples = await getExamplesBranches();
   const filtered = examples.filter((e) => e.name === example);
 
   if (filtered.length === 0) {
     const choices = examples.map((e) => ({
-      name: e.sha,
+      name: e.commit.sha,
       message: e.name.split('-').join(' '),
     }));
 
@@ -163,30 +164,27 @@ const getExampleSHA = async (example: string) => {
       message: 'Choose the app example',
     });
 
-    return sha;
+    const selected = examples.filter((e) => e.commit.sha === sha)[0];
+    return selected;
   }
 
-  const { sha } = filtered[0];
-
-  return sha;
+  return filtered[0];
 };
 
-interface RepositoryContent {
+interface BranchContent {
   name: string;
-  sha: string;
-  path: string;
-  git_url: string;
-  url: string;
-  html_url: string;
+  commit: {
+    sha: string;
+    url: string;
+  };
+  protected: boolean;
 }
 
-const getRepositoryContent = async (
-  repoPath = 'https://api.github.com/repos/saleor/app-examples/contents/examples'
-) => {
+const getExamplesBranches = async () => {
   const { github_token: GitHubToken } = await Config.get();
 
-  const data: RepositoryContent[] = await got
-    .get(repoPath, {
+  const data: BranchContent[] = await got
+    .get('https://api.github.com/repos/saleor/saleor-app-template/branches', {
       headers: {
         Accept: 'application/vnd.github+json',
         Authorization: GitHubToken,
@@ -194,7 +192,7 @@ const getRepositoryContent = async (
     })
     .json();
 
-  return data;
+  return data.filter(({ name }) => name.startsWith('examples'));
 };
 
 export const middlewares = [useToken];

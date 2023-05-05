@@ -1389,10 +1389,9 @@ Options:
       --json                            Output the data as JSON  [boolean]
       --short                           Output data as text  [boolean] [default: false]
   -u, --instance, --url  [string]
-      --dependencies, --deps  [boolean] [default: true]
-  -t, --template, --repo, --repository  [string] [default: "saleor/saleor-app-template"]
-  -b, --branch  [string] [default: "main"]
-  -e, --example  [string]
+  -t, --template, --repo, --repository  Template repository to start from  [string] [default: "saleor/saleor-app-template"]
+  -b, --branch                          Branch of the template repository  [string] [default: "main"]
+  -e, --example                         Use an Example App as a starter  [string]
   -V, --version                         Show version number  [boolean]
   -h, --help                            Show help  [boolean]
 ```
