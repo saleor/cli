@@ -308,9 +308,15 @@ export const promptCompatibleVersion = async (argv: any, service = 'SANDBOX') =>
     'production service',
     'Select a Saleor service',
     async () =>
-      (await getSortedServices(argv)).filter(
-        ({ service_type: serviceType }: any) => serviceType === service
-      ),
+      (await getSortedServices(argv))
+        .filter(({ service_type: serviceType }: any) => serviceType === service)
+        .sort((a, b) =>
+          b.version
+            .replace(/\d+/g, (n: string) => +n + 100000)
+            .localeCompare(
+              a.version.replace(/\d+/g, (n: string) => +n + 100000)
+            )
+        ),
     (_: any) => ({
       name: `Saleor ${_.version} - ${_.display_name}`,
       value: _.name,
