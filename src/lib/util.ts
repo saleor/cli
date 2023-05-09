@@ -501,30 +501,6 @@ export const validatePresence = (value: string): boolean => {
   return true;
 };
 
-export const deploy = async ({ name, url }: { name: string; url: string }) => {
-  const params = {
-    'repository-url': 'https://github.com/saleor/react-storefront',
-    'project-name': name || 'my-react-storefront',
-    'repository-name': name || 'my-react-storefront',
-    env: 'NEXT_PUBLIC_API_URI',
-    envDescription: '\'NEXT_PUBLIC_API_URI\' is your GraphQL endpoint',
-    envLink: 'https://github.com/saleor/react-storefront',
-  };
-
-  const queryParams = new URLSearchParams(params);
-
-  contentBox([
-    '  To complete the deployment, open the following link in your browser and continue there: \n\n',
-    chalk.blue(`https://vercel.com/new/clone?${queryParams}\n\n`),
-    ` Use the following ${chalk.underline(
-      'Environment Variables'
-    )} for configuration:`,
-    `\n\n  ${chalk.gray('NEXT_PUBLIC_API_URI')}=${chalk.yellow(
-      `${url}/graphql/`
-    )}`,
-  ]);
-};
-
 export const checkIfJobSucceeded = async (taskId: string): Promise<boolean> => {
   const result = (await GET(API.TaskStatus, { task: taskId })) as any;
   return result.status === 'SUCCEEDED';
