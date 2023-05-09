@@ -9,7 +9,6 @@ import { Arguments, CommandBuilder } from 'yargs';
 import { API, GET, POST, PUT } from '../../lib/index.js';
 import {
   contentBox,
-  deploy,
   formatConfirm,
   obfuscateArgv,
   SaleorEnvironmentError,
@@ -33,7 +32,6 @@ interface Options {
   domain: string;
   login?: string;
   pass?: string;
-  deploy: boolean;
   restore: boolean;
   restore_from: string;
   skipRestrict: boolean;
@@ -79,10 +77,6 @@ export const builder: CommandBuilder = (_) =>
       type: 'string',
       desc: 'specify the api Basic Auth password',
     })
-    .option('deploy', {
-      type: 'boolean',
-      desc: 'specify Vercel deployment',
-    })
     .option('restore_from', {
       type: 'string',
       desc: 'specify snapshot id to restore database from',
@@ -106,20 +100,6 @@ export const handler = async (argv: Arguments<Options>) => {
       const endpoint = `https://${result.domain}/graphql/`;
       await updateWebhook(endpoint);
     }
-  }
-
-  const { deployPrompt } = (await Enquirer.prompt({
-    type: 'confirm',
-    name: 'deployPrompt',
-    message: 'Deploy our react-storefront starter pack to Vercel',
-    format: formatConfirm,
-    initial: argv.deploy,
-    skip: !(argv.deploy === undefined),
-  })) as { deployPrompt: boolean };
-
-  if (deployPrompt) {
-    debug('deploying `react-storefront` to Vercel');
-    await deploy({ name: result.name, url: `https://${result.domain}` });
   }
 };
 

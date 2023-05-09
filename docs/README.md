@@ -508,7 +508,6 @@ Options:
       --email            specify the dashboard access email  [string]
       --login            specify the api Basic Auth login  [string]
       --pass             specify the api Basic Auth password  [string]
-      --deploy           specify Vercel deployment  [boolean]
       --restore_from     specify snapshot id to restore database from  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
