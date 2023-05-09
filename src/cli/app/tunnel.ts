@@ -3,10 +3,8 @@ import { spawn } from 'child_process';
 import Debug from 'debug';
 import fs from 'fs-extra';
 import { lookpath } from 'lookpath';
-import fetch from 'node-fetch';
 import ora from 'ora';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import {
@@ -16,12 +14,13 @@ import {
   verifyIfSaleorAppRunning,
   verifyIsSaleorAppDirectory,
 } from '../../lib/common.js';
-import { Config } from '../../lib/config.js';
 import {
   contentBox,
   delay,
   NgrokError,
   obfuscateArgv,
+  print,
+  println,
 } from '../../lib/util.js';
 import {
   useAppConfig,
@@ -63,11 +62,8 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  const { port: localPort } = argv;
+  const { port } = argv;
   const baseURL = argv.instance!;
-
-  debug(`Starting the tunnel with the port: ${argv.port}`);
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
   debug('Extracting the Saleor app name');
   let appName: string;
@@ -83,23 +79,36 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   const isNgrokInstalled = await lookpath('ngrok');
   if (!isNgrokInstalled) throw new NgrokError('`ngrok` binary not found');
 
+  debug(`Starting the tunnel with the port: ${port}`);
   const p = spawn(
     'ngrok',
-    ['http', localPort.toString() || '3000', '--log', 'stdout'],
+    ['http', port.toString() || '3000', '--log', 'stderr', '--log', 'stdout'],
     {
       cwd: process.cwd(),
     }
   );
 
+  debug('Get tunnelURL');
   const tunnelURL: string = await new Promise((resolve, _reject) => {
-    let output = '';
+    const err: string[] = [];
+    p.stderr.on('data', (chunk: string) => {
+      err.push(chunk.toString());
+    });
 
+    p.on('close', (exitCode) => {
+      if (exitCode !== 0) {
+        print(err.join());
+        process.exit(1);
+      }
+    });
+
+    let output = '';
     p.stdout.setEncoding('utf-8');
     p.stdout.on('data', (chunk: string) => {
       output += chunk;
 
-      const result = output.match(/https:\/\/[a-zA-Z0-9\-.]+\.ngrok\.io/);
-      if (result) resolve(result[0]);
+      const result = output.match(/url=(https?:\/\/.*$)/m);
+      if (result) resolve(result[1]);
     });
   });
 
@@ -141,12 +150,10 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   )}/app`;
   contentBox(`Open app in Dashboard: ${chalk.blue(appDashboardURL)}`);
 
-  console.log(
-    `Tunnel is listening to your local machine on port: ${chalk.blue(
-      localPort
-    )}\n`
+  println(
+    `Tunnel is listening to your local machine on port: ${chalk.blue(port)}\n`
   );
-  console.log('Press CTRL-C to stop the tunnel');
+  print('Press CTRL-C to stop the tunnel');
 };
 
 export const middlewares = [
