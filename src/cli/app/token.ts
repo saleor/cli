@@ -4,8 +4,7 @@ import got from 'got';
 import { print } from 'graphql';
 import { Arguments, CommandBuilder } from 'yargs';
 
-import { AppTokenCreate } from '../../generated/graphql.js';
-import { SaleorAppList } from '../../graphql/SaleorAppList.js';
+import { AppTokenCreate, GetApps } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
 import {
   contentBox,
@@ -98,7 +97,7 @@ export const getSaleorApp = async (
     .post(endpoint, {
       headers,
       json: {
-        query: SaleorAppList,
+        query: print(GetApps),
         variables: {},
       },
     })

@@ -1,0 +1,9 @@
+mutation WebhookDryRun($objectId: ID!, $query: String!) {
+  webhookDryRun(objectId: $objectId, query: $query) {
+    payload
+    errors {
+      field
+      message
+    }
+  }
+}

@@ -1,11 +1,11 @@
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
+import { print } from 'graphql';
 import ora from 'ora';
 import { Arguments } from 'yargs';
 
-import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
-import { WebhookList } from '../../graphql/WebhookList.js';
+import { WebhookList, WebhookUpdate } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
 import { getAppsFromResult, obfuscateArgv } from '../../lib/util.js';
 import { Options } from '../../types.js';
@@ -29,7 +29,7 @@ export const updateWebhook = async (endpoint: string) => {
     .post(endpoint, {
       headers,
       json: {
-        query: WebhookList,
+        query: print(WebhookList),
       },
     })
     .json();
@@ -97,7 +97,7 @@ const runUpdateWebhook = async (
     .post(endpoint, {
       headers,
       json: {
-        query: doWebhookUpdate,
+        query: print(WebhookUpdate),
         variables: {
           input: {
             targetUrl,
