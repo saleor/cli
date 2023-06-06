@@ -1,0 +1,12 @@
+mutation AppDelete($app: ID!) {
+  appDelete(id: $app) {
+    app {
+      id
+      name
+    }
+    errors {
+      field
+      message
+    }
+  }
+}

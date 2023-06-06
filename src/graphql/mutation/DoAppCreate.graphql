@@ -1,0 +1,12 @@
+mutation AppCreate($name: String, $permissions: [PermissionEnum!] ) {
+  appCreate(input: { name: $name, permissions: $permissions }) {
+    app {
+      id
+      name
+    }
+    errors {
+      field
+      message
+    }
+  }
+}

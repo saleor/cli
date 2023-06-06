@@ -1,200 +1,94 @@
 import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
-import { access } from 'fs/promises';
 import got from 'got';
-import kebabCase from 'lodash.kebabcase';
-import ora, { Ora } from 'ora';
-import path from 'path';
-import replace from 'replace-in-file';
-import sanitize from 'sanitize-filename';
-import { simpleGit } from 'simple-git';
-import { Arguments, CommandBuilder } from 'yargs';
+import { print } from 'graphql';
+import type { Arguments, CommandBuilder } from 'yargs';
 
-import * as Configs from '../../config.js';
-import { run } from '../../lib/common.js';
+import { AppCreate } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
-import { gitCopy, gitCopySHA } from '../../lib/download.js';
+import { obfuscateArgv, println, validateLength } from '../../lib/util.js';
 import {
-  checkPnpmPresence,
-  contentBox,
-  obfuscateArgv,
-  println,
-} from '../../lib/util.js';
-import { useToken } from '../../middleware/index.js';
-import { StoreCreate } from '../../types.js';
+  useAvailabilityChecker,
+  useInstanceConnector,
+} from '../../middleware/index.js';
+import { WebhookError } from '../../types.js';
+import { choosePermissions, getPermissionsEnum } from './permission.js';
 
 const debug = Debug('saleor-cli:app:create');
 
 export const command = 'create [name]';
-export const desc = 'Create a Saleor App template';
+export const desc = 'Create a new Saleor Local App';
 
 export const builder: CommandBuilder = (_) =>
   _.positional('name', {
     type: 'string',
-    demandOption: true,
-    default: 'my-saleor-app',
+    demandOption: false,
+    desc: 'name for the new Local App',
   })
-    .option('dependencies', {
-      type: 'boolean',
-      default: true,
-      alias: 'deps',
+    .option('permissions', {
+      type: 'array',
+      demandOption: false,
+      desc: 'The array of permissions',
     })
-    .option('template', {
-      type: 'string',
-      default: Configs.SaleorAppRepo,
-      alias: ['t', 'repo', 'repository'],
-    })
-    .option('branch', {
-      type: 'string',
-      default: Configs.SaleorAppDefaultBranch,
-      alias: 'b',
-    })
-    .option('example', {
-      type: 'string',
-      alias: 'e',
-    });
+    .example(
+      'saleor app create --name=my-saleor-app --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
+      ''
+    )
+    .example(
+      'saleor app create --name=my-saleor-app --organization=organization-slug --environment=env-id-or-name --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
+      ''
+    );
 
-export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
+export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  debug('check PNPM presence');
-  await checkPnpmPresence('This Saleor App template');
-
-  const { name, template, branch, example } = argv;
-
-  debug('construct the folder name');
-  const target = await getFolderName(sanitize(name));
-  const packageName = kebabCase(target);
-  const dirMsg = `App directory: ${chalk.blue(
-    path.join(process.env.PWD || '.', target)
-  )}`;
-  const appMsg = ` Package name: ${chalk.blue(packageName)}`;
-
-  contentBox(`    ${dirMsg}\n    ${appMsg}`);
-
-  const spinner = ora('Downloading...').start();
-
-  debug(`downloading the ${branch} app template`);
-
-  if (typeof example === 'string') {
-    const sha = await getExampleSHA(example);
-    await gitCopySHA(template, target, sha);
-  } else {
-    await gitCopy(template, target, branch);
-  }
-
-  process.chdir(target);
-
-  spinner.text = 'Updating package.json...';
-  await replace.replaceInFile({
-    files: 'package.json',
-    from: /"name": "saleor-app-template".*/g,
-    to: `"name": "${packageName}",`,
-  });
-
-  await setupGitRepository(spinner);
-
-  spinner.text = 'Installing dependencies...';
-  await run('pnpm', ['i', '--ignore-scripts'], { cwd: process.cwd() });
-  await run('pnpm', ['generate'], { cwd: process.cwd() });
-
-  spinner.succeed(
-    chalk(
-      'Your Saleor app is ready in the',
-      chalk.yellow(target),
-      'directory\n'
-    )
-  );
-
-  println('  To start your application:\n');
-  println(`    cd ${target}`);
-  println('    pnpm dev');
-
-  println(
-    chalk(
-      '\nTip: use',
-      chalk.green('saleor app tunnel'),
-      'to expose your local environment to a public URL and install your app in the Saleor instance'
-    )
-  );
-};
-
-const getFolderName = async (name: string): Promise<string> => {
-  let folderName = name;
-  while (await dirExists(folderName)) {
-    folderName = folderName.concat('-0');
-  }
-  return folderName;
-};
-
-const dirExists = async (name: string): Promise<boolean> => {
-  try {
-    await access(name);
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
-
-export const setupGitRepository = async (spinner: Ora) => {
-  spinner.text = 'Setting up the Git repository...'; // eslint-disable-line no-param-reassign
-  const git = simpleGit();
-  await git.init(['--initial-branch', 'main']);
-  await git.add('.');
-  await git.commit('Initial commit from Saleor CLI');
-};
-
-const getExampleSHA = async (example: string) => {
-  const examples = await getRepositoryContent();
-  const filtered = examples.filter((e) => e.name === example);
-
-  if (filtered.length === 0) {
-    const choices = examples.map((e) => ({
-      name: e.sha,
-      message: e.name.split('-').join(' '),
-    }));
-
-    const { sha } = await Enquirer.prompt<{ sha: string }>({
-      type: 'select',
-      name: 'sha',
+  const { name } = (await Enquirer.prompt([
+    {
+      type: 'input',
+      name: 'name',
+      message: 'Local App name',
+      initial: argv.name,
       required: true,
-      choices,
-      message: 'Choose the app example',
-    });
+      skip: !!argv.name,
+      validate: (value) => validateLength(value, 255),
+    },
+  ])) as { name: string };
 
-    return sha;
-  }
+  debug(`Using the name: ${name}`);
 
-  const { sha } = filtered[0];
+  const { instance } = argv;
+  const endpoint = `${instance}/graphql/`;
+  const headers = await Config.getBearerHeader();
+  const availablePermissions = await getPermissionsEnum(endpoint);
 
-  return sha;
-};
+  const permissions =
+    argv.permissions ?? (await choosePermissions(availablePermissions, 0));
 
-interface RepositoryContent {
-  name: string;
-  sha: string;
-  path: string;
-  git_url: string;
-  url: string;
-  html_url: string;
-}
-
-const getRepositoryContent = async (
-  repoPath = 'https://api.github.com/repos/saleor/app-examples/contents/examples'
-) => {
-  const { github_token: GitHubToken } = await Config.get();
-
-  const data: RepositoryContent[] = await got
-    .get(repoPath, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: GitHubToken,
+  const { data }: any = await got
+    .post(endpoint, {
+      headers,
+      json: {
+        query: print(AppCreate),
+        variables: {
+          name,
+          permissions,
+        },
       },
     })
     .json();
 
-  return data;
+  const {
+    appCreate: { app, errors },
+  } = data;
+
+  if (errors.length) {
+    throw new Error(
+      errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join()
+    );
+  }
+
+  println(chalk('App created with id', chalk.green(app?.id)));
 };
 
-export const middlewares = [useToken];
+export const middlewares = [useInstanceConnector, useAvailabilityChecker];
