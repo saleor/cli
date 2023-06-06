@@ -139,7 +139,11 @@ const parser = yargs(hideBin(process.argv))
     desc: 'Output data as text',
     default: false,
   })
-  .option('instance', { alias: ['u', 'url'], type: 'string', desc: '' })
+  .option('instance', {
+    alias: ['u', 'url'],
+    type: 'string',
+    desc: 'Saleor instance to work with',
+  })
   .strictCommands()
   .middleware([useOnlineChecker, useTelemetry(pkg.version)])
   .demandCommand(1, 'You need at least one command before moving on')
