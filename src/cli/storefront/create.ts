@@ -21,7 +21,7 @@ import {
 } from '../../lib/util.js';
 import { useOrganization, useToken } from '../../middleware/index.js';
 import { StoreCreate, User } from '../../types.js';
-import { setupGitRepository } from '../app/create.js';
+import { setupGitRepository } from '../app/template.js';
 import { createEnvironment } from '../env/create.js';
 
 const debug = Debug('saleor-cli:storefront:create');

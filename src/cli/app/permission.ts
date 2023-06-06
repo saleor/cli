@@ -71,16 +71,21 @@ export const handler = async (argv: Arguments<Options>) => {
   console.log('Permissions successfully updated.');
 };
 
-const getPermissions = async (
-  endpoint: string,
-  apps: any,
-  app: string | undefined
-) => {
-  if (!app) {
-    println(` ${chalk.red('No app selected')}`);
-    process.exit(0);
-  }
+export const choosePermissions = async (choices: any, initial: number) => {
+  const { permissions } = await Enquirer.prompt<{ permissions: string[] }>({
+    type: 'multiselect',
+    name: 'permissions',
+    muliple: true,
+    choices,
+    initial,
+    message:
+      'Select one or more permissions\n  (use the arrows to navigate and the space bar to select)',
+  });
 
+  return permissions;
+};
+
+export const getPermissionsEnum = async (endpoint: string) => {
   const headers = await Config.getBearerHeader();
   debug('Fetching permission enum list');
   const {
@@ -97,6 +102,21 @@ const getPermissions = async (
     })
     .json();
 
+  return enumValues;
+};
+
+const getPermissions = async (
+  endpoint: string,
+  apps: any,
+  app: string | undefined
+) => {
+  if (!app) {
+    println(` ${chalk.red('No app selected')}`);
+    process.exit(0);
+  }
+
+  const enumValues = await getPermissionsEnum(endpoint);
+
   const choices2 = enumValues.map((node: any) => ({
     name: node.name,
     value: node.name,
@@ -111,15 +131,7 @@ const getPermissions = async (
     choices2Names.indexOf(permission.code)
   );
 
-  const { permissions } = await Enquirer.prompt<{ permissions: string[] }>({
-    type: 'multiselect',
-    name: 'permissions',
-    muliple: true,
-    choices: choices2,
-    initial,
-    message:
-      'Select one or more permissions\n  (use the arrows to navigate and the space bar to select)',
-  });
+  const permissions = choosePermissions(choices2, initial);
 
   return permissions;
 };

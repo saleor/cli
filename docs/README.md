@@ -53,7 +53,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
@@ -120,6 +120,8 @@ for more information, find the documentation at https://saleor.io
   * [app tunnel](#app-tunnel)
   * [app token](#app-token)
   * [app permission](#app-permission)
+  * [app template](#app-template)
+  * [app remove](#app-remove)
 * [vercel](#vercel)
   * [vercel login](#vercel-login)
 * [github](#github)
@@ -144,7 +146,7 @@ Hello from Saleor
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -165,7 +167,7 @@ Show the login status for the systems that CLI depends on
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -186,7 +188,7 @@ Log in to the Saleor Cloud
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --token            use with headless flag, create token at https://cloud.saleor.io/tokens  [string]
       --headless         login without the need of a browser  [boolean] [default: false]
   -V, --version          Show version number  [boolean]
@@ -214,7 +216,7 @@ Log out from the Saleor Cloud
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -235,7 +237,7 @@ Create a Saleor Cloud account
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --from-cli         specify sign up via CLI  [boolean] [default: false]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -257,7 +259,7 @@ This triggers a Saleor event
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --event  [string]
       --id  [string]
   -V, --version          Show version number  [boolean]
@@ -285,7 +287,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -306,7 +308,7 @@ Show a specific organization
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -327,7 +329,7 @@ List organizations
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -351,7 +353,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --force            skip confirmation prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -376,7 +378,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -400,7 +402,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -430,7 +432,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -454,7 +456,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -475,7 +477,7 @@ List environments
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --extended         show extended table  [boolean] [default: false]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -500,7 +502,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --project          create this environment in this project  [string]
       --database         specify how to populate the database  [string]
       --saleor           specify the Saleor version  [string]
@@ -532,7 +534,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -556,7 +558,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --force            skip confirmation prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -581,7 +583,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -605,7 +607,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -629,7 +631,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -653,7 +655,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --saleor           specify the Saleor version  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -680,7 +682,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -701,7 +703,7 @@ List backups of the environment
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -725,7 +727,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -746,7 +748,7 @@ Show a specific backup
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -770,7 +772,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --force            skip confirmation prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -792,7 +794,7 @@ Restore a specific backup
 Options:
       --json                  Output the data as JSON  [boolean]
       --short                 Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url       Saleor instance to work with  [string]
       --from                  key of the snapshot  [string]
       --skip-webhooks-update  skip webhooks update prompt  [boolean]
   -V, --version               Show version number  [boolean]
@@ -816,7 +818,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -837,7 +839,7 @@ List jobs
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --env  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -863,7 +865,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -884,7 +886,7 @@ List projects
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -908,7 +910,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --plan             specify the plan  [string]
       --region           specify the region  [string]
   -V, --version          Show version number  [boolean]
@@ -934,7 +936,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --force            skip confirmation prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -959,7 +961,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -982,7 +984,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1006,7 +1008,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --demo             specify demo process  [boolean] [default: false]
       --environment      specify environment id  [string]
   -t, --template  [string] [default: "saleor/react-storefront"]
@@ -1031,7 +1033,7 @@ Deploy this `react-storefront` to Vercel
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --dispatch         dispatch deployment and don't wait till it ends  [boolean] [default: false]
       --with-checkout    Deploy with checkout  [boolean] [default: false]
       --github-prompt    specify prompt presence for repository creation on Github  [boolean] [default: "true"]
@@ -1063,7 +1065,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1084,7 +1086,7 @@ Disable the telemetry
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1105,7 +1107,7 @@ Enable the telemetry
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1126,7 +1128,7 @@ Show the telemetry status
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1152,7 +1154,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1173,7 +1175,7 @@ List webhooks for an environment
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1194,7 +1196,7 @@ Create a new webhook
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1215,7 +1217,7 @@ Edit a webhook
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1236,7 +1238,7 @@ Update webhooks for an environment
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1257,7 +1259,7 @@ Webhook dry run
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --object-id        Object ID to perform dry run on  [string]
       --query            Subscription query  [string]
   -V, --version          Show version number  [boolean]
@@ -1284,15 +1286,17 @@ Commands:
   saleor app list               List installed Saleor Apps for an environment
   saleor app install            Install a Saleor App by URL
   saleor app uninstall <appId>  Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.
-  saleor app create [name]      Create a Saleor App template
+  saleor app create [name]      Create a new Saleor Local App
   saleor app tunnel [port]      Expose your Saleor app remotely via tunnel
   saleor app token              Create a Saleor App token
   saleor app permission         Add or remove permission for a Saleor App
+  saleor app template [name]    Create an App with Saleor App Template
+  saleor app remove [app-id]    Create a new Saleor Local App
 
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1313,7 +1317,7 @@ List installed Saleor Apps for an environment
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1334,7 +1338,7 @@ Install a Saleor App by URL
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --via-dashboard  [boolean] [default: false]
       --app-name         Application name  [string]
       --manifest-URL     Application Manifest URL  [string]
@@ -1363,7 +1367,7 @@ Uninstall a Saleor App by ID. You need to provide `appId`. List available apps a
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1379,21 +1383,22 @@ Help output:
 ```
 saleor app create [name]
 
-Create a Saleor App template
+Create a new Saleor Local App
 
 Positionals:
-  name  [string] [default: "my-saleor-app"]
+  name  name for the new Local App  [string]
 
 Options:
-      --json                            Output the data as JSON  [boolean]
-      --short                           Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
-      --dependencies, --deps  [boolean] [default: true]
-  -t, --template, --repo, --repository  [string] [default: "saleor/saleor-app-template"]
-  -b, --branch  [string] [default: "main"]
-  -e, --example  [string]
-  -V, --version                         Show version number  [boolean]
-  -h, --help                            Show help  [boolean]
+      --json             Output the data as JSON  [boolean]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+      --permissions      The array of permissions  [array]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+
+Examples:
+  saleor app create --name=my-saleor-app --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
+  saleor app create --name=my-saleor-app --organization=organization-slug --environment=env-id-or-name --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
 ```
 
 #### app tunnel
@@ -1415,7 +1420,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --name             The application name for installation in the Dashboard  [string]
       --force-install    Force the Saleor App Install  [boolean] [default: false]
       --manifest-path    The application's manifest path  [string] [default: "/api/manifest"]
@@ -1445,7 +1450,7 @@ Create a Saleor App token
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --app-id           The Saleor App id  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -1467,7 +1472,7 @@ Add or remove permission for a Saleor App
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --app-id           The Saleor App id  [string]
       --permissions      The array of permissions  [array]
   -V, --version          Show version number  [boolean]
@@ -1476,6 +1481,60 @@ Options:
 Examples:
   saleor app permission --app-id=APP-ID --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
   saleor app permission --organization=organization-slug --environment=env-id-or-name --app-id=APP-ID --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
+```
+
+#### app template
+
+```sh
+$ saleor app template --help
+```
+
+Help output:
+
+```
+saleor app template [name]
+
+Create an App with Saleor App Template
+
+Positionals:
+  name  [string] [default: "my-saleor-app"]
+
+Options:
+      --json                            Output the data as JSON  [boolean]
+      --short                           Output data as text  [boolean] [default: false]
+  -u, --instance, --url                 Saleor instance to work with  [string]
+      --dependencies, --deps  [boolean] [default: true]
+  -t, --template, --repo, --repository  [string] [default: "saleor/saleor-app-template"]
+  -b, --branch  [string] [default: "main"]
+  -e, --example  [string]
+  -V, --version                         Show version number  [boolean]
+  -h, --help                            Show help  [boolean]
+```
+
+#### app remove
+
+```sh
+$ saleor app remove --help
+```
+
+Help output:
+
+```
+saleor app remove [app-id]
+
+Create a new Saleor Local App
+
+Options:
+      --json             Output the data as JSON  [boolean]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+      --app-id           The Saleor App id  [string]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+
+Examples:
+  saleor app remove
+  saleor app remove --app-id=APP-ID --environment=env-id-or-name
 ```
 
 ### vercel
@@ -1495,7 +1554,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1516,7 +1575,7 @@ Add integration for Saleor CLI
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1538,7 +1597,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1559,7 +1618,7 @@ Add integration for Saleor CLI
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1581,7 +1640,7 @@ Commands:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -1602,7 +1661,7 @@ Deploy `saleor-checkout` to Vercel
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
       --github-prompt    specify prompt presence for repository creation on Github  [boolean] [default: "true"]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -1631,7 +1690,7 @@ Positionals:
 Options:
       --json             Output the data as JSON  [boolean]
       --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
