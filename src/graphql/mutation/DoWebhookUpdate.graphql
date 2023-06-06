@@ -1,0 +1,12 @@
+mutation WebhookUpdate($id: ID!, $input: WebhookUpdateInput!) {
+  webhookUpdate(id: $id, input: $input) {
+    webhook {
+      id
+    }
+    errors {
+      field
+      code
+      message
+    }
+  }
+}

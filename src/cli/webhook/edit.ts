@@ -2,9 +2,10 @@ import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
+import { print } from 'graphql';
 import type { Arguments } from 'yargs';
 
-import { doWebhookUpdate } from '../../graphql/doWebhookUpdate.js';
+import { WebhookUpdate } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
 import { NoCommandBuilderSetup } from '../../lib/index.js';
 import {
@@ -96,7 +97,7 @@ export const handler = async (argv: Arguments<Options>) => {
     .post(endpoint, {
       headers,
       json: {
-        query: doWebhookUpdate,
+        query: print(WebhookUpdate),
         variables: {
           id: webhookID,
           input: {

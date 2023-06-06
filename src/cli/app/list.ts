@@ -2,9 +2,10 @@ import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import got from 'got';
+import { print } from 'graphql';
 import { Arguments } from 'yargs';
 
-import { SaleorAppList } from '../../graphql/SaleorAppList.js';
+import { GetApps } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
 import {
   formatDateTime,
@@ -38,7 +39,7 @@ export const handler = async (argv: Arguments<Options>) => {
     .post(endpoint, {
       headers,
       json: {
-        query: SaleorAppList,
+        query: print(GetApps),
         variables: {},
       },
     })

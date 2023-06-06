@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { emphasize } from 'emphasize';
 import Enquirer from 'enquirer';
 import got from 'got';
+import { print as gqlPrint } from 'graphql';
 import logSymbols from 'log-symbols';
 import { lookpath } from 'lookpath';
 import open from 'open';
@@ -11,8 +12,7 @@ import ora from 'ora';
 import yaml from 'yaml';
 import { Arguments } from 'yargs';
 
-import { SaleorAppByID } from '../graphql/SaleorAppByID.js';
-import { SaleorAppList } from '../graphql/SaleorAppList.js';
+import { GetAppById, GetApps } from '../generated/graphql.js';
 import { API, GET, POST, Region } from '../lib/index.js';
 import { BaseOptions, Environment, Options, ProjectCreate } from '../types.js';
 import { Config } from './config.js';
@@ -189,7 +189,7 @@ export const makeRequestAppList = async (argv: any) => {
   const { data, errors }: any = await got
     .post(endpoint, {
       headers,
-      json: { query: SaleorAppList },
+      json: { query: gqlPrint(GetApps) },
     })
     .json();
 
@@ -250,7 +250,7 @@ export const promptWebhook = async (argv: any) =>
         .post(endpoint, {
           headers,
           json: {
-            query: SaleorAppByID,
+            query: gqlPrint(GetAppById),
             variables: { appID },
           },
         })

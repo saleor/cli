@@ -5,6 +5,7 @@ import Enquirer from 'enquirer';
 import fs from 'fs-extra';
 import GitUrlParse from 'git-url-parse';
 import got from 'got';
+import { print } from 'graphql';
 import kebabCase from 'lodash.kebabcase';
 import ora, { Ora } from 'ora';
 import path from 'path';
@@ -12,7 +13,7 @@ import simpleGit from 'simple-git';
 import { Arguments } from 'yargs';
 
 import { createAppToken } from '../cli/app/token.js';
-import { SaleorAppList } from '../graphql/SaleorAppList.js';
+import { GetApps } from '../generated/graphql.js';
 import { Deploy, Options } from '../types.js';
 import { doSaleorAppInstall } from './common.js';
 import { Config } from './config.js';
@@ -39,7 +40,7 @@ export const getAppId = async (url: string) => {
     .post(url, {
       headers,
       json: {
-        query: SaleorAppList,
+        query: print(GetApps),
         variables: {},
       },
     })

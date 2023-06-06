@@ -2,14 +2,15 @@ import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
+import { print } from 'graphql';
 import { request } from 'graphql-request';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import {
   GetWebhookAsyncEventEnum,
   GetWebhookSyncEventEnum,
+  WebhookCreate,
 } from '../../generated/graphql.js';
-import { doWebhookCreate } from '../../graphql/doWebhookCreate.js';
 import { Config } from '../../lib/config.js';
 import { DefaultSaleorEndpoint } from '../../lib/index.js';
 import {
@@ -131,7 +132,7 @@ export const handler = async (argv: Arguments<Options>) => {
     .post(endpoint, {
       headers,
       json: {
-        query: doWebhookCreate,
+        query: print(WebhookCreate),
         variables: {
           input: {
             name,

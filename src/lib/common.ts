@@ -6,9 +6,12 @@ import got from 'got';
 import { print } from 'graphql';
 import { Arguments } from 'yargs';
 
-import { AppDelete, AppsInstallations } from '../generated/graphql.js';
-import { AppInstall } from '../graphql/AppInstall.js';
-import { SaleorAppList } from '../graphql/SaleorAppList.js';
+import {
+  AppDelete,
+  AppInstall,
+  AppsInstallations,
+  GetApps,
+} from '../generated/graphql.js';
 import { Config } from './config.js';
 import { isPortAvailable } from './detectPort.js';
 import {
@@ -85,7 +88,7 @@ export const doSaleorAppInstall = async (argv: any) => {
       .post(endpoint, {
         headers,
         json: {
-          query: AppInstall,
+          query: print(AppInstall),
           variables: {
             manifestURL,
             name,
@@ -182,7 +185,7 @@ export const fetchSaleorAppList = async (argv: any) => {
     .post(endpoint, {
       headers,
       json: {
-        query: SaleorAppList,
+        query: print(GetApps),
       },
     })
     .json();

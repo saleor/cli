@@ -2,9 +2,10 @@ import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
 import got from 'got';
+import { print } from 'graphql';
 import { Arguments } from 'yargs';
 
-import { WebhookList } from '../../graphql/WebhookList.js';
+import { WebhookList } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
 import { getAppsFromResult, obfuscateArgv } from '../../lib/util.js';
 import { Options } from '../../types.js';
@@ -24,7 +25,7 @@ export const handler = async (argv: Arguments<Options>) => {
     .post(endpoint, {
       headers,
       json: {
-        query: WebhookList,
+        query: print(WebhookList),
       },
     })
     .json();

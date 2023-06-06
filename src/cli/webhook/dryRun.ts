@@ -2,12 +2,16 @@ import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got, { HTTPError } from 'got';
+import { print } from 'graphql';
 import { Arguments, CommandBuilder } from 'yargs';
 
-import { doWebhookDryRun } from '../../graphql/doWebhookDryRun.js';
+import { WebhookDryRun } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
-import { obfuscateArgv, println, showResult } from '../../lib/util.js';
-import { WebhookDryRun, WebhookError } from '../../types.js';
+import { obfuscateArgv, println } from '../../lib/util.js';
+import {
+  WebhookDryRun as WebhookDryRunArgs,
+  WebhookError,
+} from '../../types.js';
 
 const debug = Debug('saleor-cli:webhook:create');
 
@@ -31,7 +35,7 @@ export const builder: CommandBuilder = (_) =>
     )
     .example('saleor webhook dry-run --object-id=\'UHJvZHVjdDo3Mg==\'', '');
 
-export const handler = async (argv: Arguments<WebhookDryRun>) => {
+export const handler = async (argv: Arguments<WebhookDryRunArgs>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const { objectId, query } = await Enquirer.prompt<{
@@ -67,7 +71,7 @@ export const handler = async (argv: Arguments<WebhookDryRun>) => {
       .post(endpoint, {
         headers,
         json: {
-          query: doWebhookDryRun,
+          query: print(WebhookDryRun),
           variables: {
             objectId,
             query,

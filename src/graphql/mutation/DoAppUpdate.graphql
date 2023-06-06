@@ -1,4 +1,4 @@
-mutation appUpdate($app: ID!, $permissions: [PermissionEnum!]) {
+mutation AppUpdate($app: ID!, $permissions: [PermissionEnum!]) {
   appUpdate(id: $app, input: { permissions: $permissions }) {
     app {
       id
