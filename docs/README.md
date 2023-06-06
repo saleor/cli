@@ -674,7 +674,7 @@ saleor backup [command]
 
 Commands:
   saleor backup list [key|environment]    List backups of the environment
-  saleor backup create <name>             Create a new backup
+  saleor backup create [name]             Create a new backup
   saleor backup show [backup|backup-key]  Show a specific backup
   saleor backup remove <key|backup>       Remove the backup
   saleor backup restore [from]            Restore a specific backup
@@ -717,19 +717,21 @@ $ saleor backup create --help
 Help output:
 
 ```
-saleor backup create <name>
+saleor backup create [name]
 
 Create a new backup
-
-Positionals:
-  name  name for the new backup  [string] [required]
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  Saleor instance to work with  [string]
+      --name             name for the new backup  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor backup create
+  saleor backup create my-backup --environment=env-id-or-name
 ```
 
 #### backup show
