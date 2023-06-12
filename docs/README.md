@@ -1529,12 +1529,13 @@ Options:
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  Saleor instance to work with  [string]
       --app-id           The Saleor App id  [string]
+      --force            skip confirmation prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
 Examples:
   saleor app remove
-  saleor app remove --app-id=APP-ID --environment=env-id-or-name
+  saleor app remove --app-id=APP-ID --environment=env-id-or-name --force
 ```
 
 ### vercel
