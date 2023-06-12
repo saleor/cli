@@ -44,9 +44,7 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  const { organization, environment } = argv;
-
-  printContext(organization, environment);
+  printContext(argv);
 
   const { instance } = argv;
   const endpoint = `${instance}/graphql/`;
