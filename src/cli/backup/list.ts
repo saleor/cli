@@ -22,7 +22,7 @@ export const handler = async (argv: Arguments<Options>) => {
   debug(`Listing for ${argv.key}`);
   const result = (await GET(API.Backup, argv)) as any[];
 
-  verifyResultLength(result, 'backup');
+  verifyResultLength(result, 'backup', argv.json);
 
   if (argv.json) {
     console.log(JSON.stringify(result, null, 2));

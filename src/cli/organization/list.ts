@@ -20,7 +20,7 @@ export const handler = async (argv: Arguments<Options>) => {
     organization: '',
   })) as any[];
 
-  verifyResultLength(result, 'organization');
+  verifyResultLength(result, 'organization', argv.json);
 
   if (argv.json) {
     console.log(JSON.stringify(result, null, 2));

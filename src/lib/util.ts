@@ -149,16 +149,24 @@ export const fetchLatestPackageVersion = async (name: string) => {
 };
 
 // Higher-Order Creator for Prompts
-const createPrompt = async (
-  name: string,
-  message: string,
-  fetcher: any,
-  extractor: any,
-  allowCreation = false
-) => {
+const createPrompt = async ({
+  name,
+  message,
+  fetcher,
+  extractor,
+  allowCreation = false,
+  json,
+}: {
+  name: string;
+  message: string;
+  fetcher: any;
+  extractor: any;
+  allowCreation?: boolean;
+  json: boolean;
+}) => {
   const collection = await fetcher();
 
-  verifyResultLength(collection, name);
+  verifyResultLength(collection, name, json);
 
   const creation = allowCreation ? [{ name: 'Create new' }] : [];
   const choices = [...creation, ...collection.map(extractor)];
@@ -236,10 +244,10 @@ export const checkPnpmPresence = async (entity: string) => {
 };
 
 export const promptWebhook = async (argv: any) =>
-  createPrompt(
-    'webhookID',
-    'Select a Webhook',
-    async () => {
+  createPrompt({
+    name: 'webhookID',
+    message: 'Select a Webhook',
+    fetcher: async () => {
       const { instance } = argv;
       const endpoint = `${instance}/graphql/`;
       const headers = await Config.getBearerHeader();
@@ -266,22 +274,24 @@ export const promptWebhook = async (argv: any) =>
 
       return webhooks;
     },
-    ({ id, name, targetUrl }: any) => ({
+    extractor: ({ id, name, targetUrl }: any) => ({
       name: `${name} (${targetUrl})`,
       value: id,
-    })
-  );
+    }),
+    json: argv.json,
+  });
 
 export const promptSaleorApp = async (argv: any) =>
-  createPrompt(
-    'app',
-    'Select a Saleor App',
-    async () => {
+  createPrompt({
+    name: 'app',
+    message: 'Select a Saleor App',
+    fetcher: async () => {
       const collection = await makeRequestAppList(argv);
       return collection;
     },
-    ({ node: { name, id } }: any) => ({ name, value: id })
-  );
+    extractor: ({ node: { name, id } }: any) => ({ name, value: id }),
+    json: argv.json,
+  });
 
 export const getSortedServices = async (argv: any) => {
   const services = (await GET(API.Services, {
@@ -293,21 +303,22 @@ export const getSortedServices = async (argv: any) => {
 
 // deprecated ?
 export const promptVersion = async (argv: any) =>
-  createPrompt(
-    'service',
-    'Select a Saleor version',
-    async () => getSortedServices(argv),
-    (_: any) => ({
+  createPrompt({
+    name: 'service',
+    message: 'Select a Saleor version',
+    fetcher: async () => getSortedServices(argv),
+    extractor: (_: any) => ({
       name: `Saleor ${_.version} - ${_.display_name} - ${_.service_type}`,
       value: _.name,
-    })
-  );
+    }),
+    json: argv.json,
+  });
 
 export const promptCompatibleVersion = async (argv: any, service = 'SANDBOX') =>
-  createPrompt(
-    'production service',
-    'Select a Saleor service',
-    async () =>
+  createPrompt({
+    name: 'production service',
+    message: 'Select a Saleor service',
+    fetcher: async () =>
       (await getSortedServices(argv))
         .filter(({ service_type: serviceType }: any) => serviceType === service)
         .sort((a, b) =>
@@ -317,17 +328,18 @@ export const promptCompatibleVersion = async (argv: any, service = 'SANDBOX') =>
               a.version.replace(/\d+/g, (n: string) => +n + 100000)
             )
         ),
-    (_: any) => ({
+    extractor: (_: any) => ({
       name: `Saleor ${_.version} - ${_.display_name}`,
       value: _.name,
-    })
-  );
+    }),
+    json: argv.json,
+  });
 
 export const promptDatabaseTemplate = async () =>
-  createPrompt(
-    'database',
-    'Select the database template',
-    () => [
+  createPrompt({
+    name: 'database',
+    message: 'Select the database template',
+    fetcher: () => [
       {
         name: 'sample',
         value: 'sample',
@@ -344,57 +356,63 @@ export const promptDatabaseTemplate = async () =>
         hint: 'Import data from backups or your own snapshots',
       },
     ],
-    (_: any) => ({ name: _.name, value: _.value, hint: _.hint })
-  );
+    extractor: (_: any) => ({ name: _.name, value: _.value, hint: _.hint }),
+    json: false,
+  });
 
 export const promptProject = (argv: any) =>
-  createPrompt(
-    'project',
-    'Select Project',
-    async () => GET(API.Project, argv),
-    (_: any) => ({ name: _.name, value: _.slug }),
-    true
-  );
+  createPrompt({
+    name: 'project',
+    message: 'Select Project',
+    fetcher: async () => GET(API.Project, argv),
+    extractor: (_: any) => ({ name: _.name, value: _.slug }),
+    allowCreation: true,
+    json: argv.json,
+  });
 
 export const promptEnvironment = async (argv: any) =>
-  createPrompt(
-    'environment',
-    'Select Environment',
-    async () => GET(API.Environment, { ...argv, environment: '' }),
-    (_: any) => ({ name: _.name, value: _.key }),
-    false
-  );
+  createPrompt({
+    name: 'environment',
+    message: 'Select Environment',
+    fetcher: async () => GET(API.Environment, { ...argv, environment: '' }),
+    extractor: (_: any) => ({ name: _.name, value: _.key }),
+    allowCreation: false,
+    json: argv.json,
+  });
 
 export const promptOrganization = async (argv: any) =>
-  createPrompt(
-    'organization',
-    'Select Organization',
-    async () => GET(API.Organization, argv),
-    (_: any) => ({ name: _.name, value: _.slug })
-  );
+  createPrompt({
+    name: 'organization',
+    message: 'Select Organization',
+    fetcher: async () => GET(API.Organization, argv),
+    extractor: (_: any) => ({ name: _.name, value: _.slug }),
+    json: argv.json,
+  });
 
 export const promptPlan = async (argv: any) =>
-  createPrompt(
-    'plan',
-    'Select Plan',
-    async () => GET(API.Plan, argv),
-    (_: any) => ({ name: _.name, value: _.slug })
-  );
+  createPrompt({
+    name: 'plan',
+    message: 'Select Plan',
+    fetcher: async () => GET(API.Plan, argv),
+    extractor: (_: any) => ({ name: _.name, value: _.slug }),
+    json: argv.json,
+  });
 
 export const promptRegion = async (argv: any) =>
-  createPrompt(
-    'region',
-    'Select Region',
-    async () => GET(API.Region, argv),
-    (_: any) => ({ name: _.name, value: _.name })
-  );
+  createPrompt({
+    name: 'region',
+    message: 'Select Region',
+    fetcher: async () => GET(API.Region, argv),
+    extractor: (_: any) => ({ name: _.name, value: _.name }),
+    json: argv.json,
+  });
 
 export const promptOrganizationBackup = async (argv: any) =>
-  createPrompt(
-    'backup',
-    'Select Snapshot',
-    async () => GET(API.OrganizationBackups, argv),
-    (_: any) => ({
+  createPrompt({
+    name: 'backup',
+    message: 'Select Snapshot',
+    fetcher: async () => GET(API.OrganizationBackups, argv),
+    extractor: (_: any) => ({
       name: chalk(
         chalk.bold(_.project.name),
         chalk(
@@ -408,8 +426,9 @@ export const promptOrganizationBackup = async (argv: any) =>
         chalk.bold(_.name)
       ),
       value: _.key,
-    })
-  );
+    }),
+    json: argv.json,
+  });
 
 export const formatDateTime = (name: string) =>
   format(new Date(name), 'yyyy-MM-dd HH:mm');
@@ -621,9 +640,18 @@ export const confirmRemoval = async (
   return proceed;
 };
 
-export const verifyResultLength = (result: any[], entity: string) => {
+export const verifyResultLength = (
+  result: any[],
+  entity: string,
+  json: boolean | undefined
+) => {
   if (result.length > 0) {
     return;
+  }
+
+  if (json) {
+    println('[]');
+    process.exit(0);
   }
 
   const element = entity === 'environment' ? 'organization' : 'environment';
@@ -642,9 +670,9 @@ export const verifyResultLength = (result: any[], entity: string) => {
   process.exit(0);
 };
 
-export const getAppsFromResult = (result: any) => {
+export const getAppsFromResult = (result: any, json: boolean | undefined) => {
   const apps = result.apps?.edges;
-  verifyResultLength(apps || [], 'app');
+  verifyResultLength(apps || [], 'app', json);
 
   return apps;
 };

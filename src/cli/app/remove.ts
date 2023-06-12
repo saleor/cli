@@ -38,9 +38,9 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  const { instance } = argv;
+  const { instance, appId, json } = argv;
   const endpoint = `${instance}/graphql/`;
-  const { app } = await getSaleorApp(endpoint, argv.appId);
+  const { app } = await getSaleorApp({ endpoint, appId, json });
 
   const proceed = await confirmRemoval(argv, `app ${app}`);
 

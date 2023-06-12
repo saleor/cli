@@ -45,7 +45,7 @@ export const handler = async (argv: Arguments<Options>) => {
     })
     .json();
 
-  const apps = getAppsFromResult(data);
+  const apps = getAppsFromResult(data, argv.json);
 
   const collection: any[] = apps.map(({ node }: any) => ({ ...node }));
 
