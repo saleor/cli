@@ -133,7 +133,11 @@ const parser = yargs(hideBin(process.argv))
   .command(['checkout [command]'], '', checkout)
   .command(['dev [command]'], false, dev)
   .command(open)
-  .option('json', { type: 'boolean', desc: 'Output the data as JSON' })
+  .option('json', {
+    type: 'boolean',
+    default: false,
+    desc: 'Output the data as JSON',
+  })
   .option('short', {
     type: 'boolean',
     desc: 'Output data as text',
