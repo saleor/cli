@@ -5,7 +5,7 @@
     "sourceType": "module"
   },
   "extends": ["airbnb", "plugin:@typescript-eslint/recommended", "prettier"],
-  "ignorePatterns": ["pnpm-lock.yaml"],
+  "ignorePatterns": ["pnpm-lock.yaml", "dist/"],
   "plugins": ["simple-import-sort", "@typescript-eslint"],
   "rules": {
     "quotes": ["error", "single"],
