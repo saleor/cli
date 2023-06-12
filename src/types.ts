@@ -3,6 +3,7 @@ export interface BaseOptions {
   organization?: string;
   environment?: string;
   instance?: string;
+  json?: boolean;
 }
 
 export interface Options extends BaseOptions {
@@ -24,7 +25,6 @@ export interface Options extends BaseOptions {
   slug?: string;
   force?: boolean;
   key?: string;
-  json?: boolean;
   event?: string;
   name?: string;
   saleorApiUrl?: string;
@@ -150,4 +150,8 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
+}
+
+export interface EnvironmentList extends BaseOptions {
+  extended: boolean;
 }

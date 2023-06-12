@@ -30,7 +30,7 @@ export const handler = async (argv: Arguments<Options>) => {
     })
     .json();
 
-  const apps = getAppsFromResult(data);
+  const apps = getAppsFromResult(data, argv.json);
 
   const webhookList = apps.map((app: any) => app.node.webhooks).flat();
 

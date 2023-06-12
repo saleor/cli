@@ -1,7 +1,7 @@
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import got from 'got';
-import { print } from 'graphql';
+import { print as gqlPrint } from 'graphql';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { AppTokenCreate, GetApps } from '../../generated/graphql.js';
@@ -10,6 +10,7 @@ import {
   contentBox,
   getAppsFromResult,
   obfuscateArgv,
+  print,
   printContext,
 } from '../../lib/util.js';
 import {
@@ -36,14 +37,15 @@ export const handler = async (argv: Arguments<Options>) => {
 
   printContext(argv);
 
-  const { instance } = argv;
+  const { instance, json, short } = argv;
+
   const endpoint = `${instance}/graphql/`;
   debug(`Saleor endpoint: ${endpoint}`);
 
   let appId: string;
 
   if (!argv.appId) {
-    const { app } = await getSaleorApp(endpoint);
+    const { app } = await getSaleorApp({ endpoint, json });
     appId = app!;
   } else {
     appId = argv.appId as string;
@@ -54,11 +56,17 @@ export const handler = async (argv: Arguments<Options>) => {
     const authToken = await createAppToken(endpoint, appId);
 
     if (short) {
-      process.stdout.write(authToken);
-    } else {
-      console.log();
-      contentBox(`  ${authToken}`, { title: 'Your Token' });
+      print(authToken);
+      process.exit(0);
     }
+
+    if (json) {
+      print(`{ "token": "${authToken}" }`);
+      process.exit(0);
+    }
+
+    console.log();
+    contentBox(`  ${authToken}`, { title: 'Your Token' });
   } catch (error) {
     console.log(error);
   }
@@ -72,7 +80,7 @@ export const createAppToken = async (url: string, app: string) => {
     .post(url, {
       headers,
       json: {
-        query: print(AppTokenCreate),
+        query: gqlPrint(AppTokenCreate),
         variables: { app },
       },
     })
@@ -84,10 +92,15 @@ export const createAppToken = async (url: string, app: string) => {
   return authToken;
 };
 
-export const getSaleorApp = async (
-  endpoint: string,
-  appId: string | undefined = undefined
-) => {
+export const getSaleorApp = async ({
+  endpoint,
+  appId = undefined,
+  json,
+}: {
+  endpoint: string;
+  appId?: string | undefined;
+  json: boolean | undefined;
+}) => {
   const headers = await Config.getBearerHeader();
 
   debug('Fetching Saleor Apps');
@@ -95,13 +108,15 @@ export const getSaleorApp = async (
     .post(endpoint, {
       headers,
       json: {
-        query: print(GetApps),
+        query: gqlPrint(GetApps),
         variables: {},
       },
     })
     .json();
 
-  const apps = getAppsFromResult(data);
+  const apps = getAppsFromResult(data, json);
+
+  debug(`Available apps ${apps}`);
 
   // return early if appId have been provided and it's found in apps
   if (apps.map(({ node }: any) => node.id).includes(appId)) {

@@ -162,7 +162,7 @@ const prepareEnvironment = async (
     saleor: service.name,
     deploy: false,
     restore: false,
-    restore_from: '',
+    restoreFrom: '',
   };
 
   const environment = await createEnvironment({

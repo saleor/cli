@@ -21,19 +21,15 @@ import {
   interactiveProject,
   interactiveSaleorVersion,
 } from '../../middleware/index.js';
-import { User } from '../../types.js';
+import { Options, User } from '../../types.js';
 import { updateWebhook } from '../webhook/update.js';
 
-interface Options {
-  name: string;
-  project: string;
-  saleor: string;
-  database: string;
-  domain: string;
+interface CommandOptions extends Options {
+  domain?: string;
   login?: string;
   pass?: string;
   restore: boolean;
-  restore_from: string;
+  restoreFrom: string;
   skipRestrict: boolean;
 }
 
@@ -82,13 +78,13 @@ export const builder: CommandBuilder = (_) =>
       desc: 'specify snapshot id to restore database from',
     });
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async (argv: Arguments<CommandOptions>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   debug('creating environment');
   const result = await createEnvironment(argv);
 
-  if (argv.restore_from) {
+  if (argv.restoreFrom) {
     const { update } = await Enquirer.prompt<{ update: string }>({
       type: 'confirm',
       name: 'update',
@@ -98,18 +94,18 @@ export const handler = async (argv: Arguments<Options>) => {
     debug('updating the webhooks');
     if (update) {
       const endpoint = `https://${result.domain}/graphql/`;
-      await updateWebhook(endpoint);
+      await updateWebhook(endpoint, argv.json);
     }
   }
 };
 
-export const createEnvironment = async (argv: Arguments<Options>) => {
+export const createEnvironment = async (argv: Arguments<CommandOptions>) => {
   const { project, saleor, database } = argv;
 
   debug('getting user from Saleor API');
   const user = (await GET(API.User, argv)) as User;
 
-  if (argv.restore && !argv.restore_from) {
+  if (argv.restore && !argv.restoreFrom) {
     throw new SaleorEnvironmentError(
       '`restore_from` option is required for database snapshot'
     );
@@ -211,7 +207,7 @@ export const createEnvironment = async (argv: Arguments<Options>) => {
     service: saleor,
     login,
     password,
-    restore_from: argv.restore_from,
+    restore_from: argv.restoreFrom,
   };
 
   const result = await getResult(json, argv);
@@ -256,7 +252,7 @@ export const middlewares = [
 ];
 
 const getDomain = async (
-  argv: Arguments<Options>,
+  argv: Arguments<CommandOptions>,
   name: string,
   errorMsg: string,
   initial: string | undefined = undefined
@@ -283,7 +279,10 @@ const getDomain = async (
   return domain;
 };
 
-const validateDomain = async (argv: Arguments<Options>, name: string) => {
+const validateDomain = async (
+  argv: Arguments<CommandOptions>,
+  name: string
+) => {
   let loop = true;
   let domain;
   const msg = `${logSymbols.error} The environment with this domain already exists.`;

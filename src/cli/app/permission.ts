@@ -46,11 +46,11 @@ export const handler = async (argv: Arguments<Options>) => {
 
   printContext(argv);
 
-  const { instance } = argv;
+  const { instance, appId, json } = argv;
   const endpoint = `${instance}/graphql/`;
   debug(`Saleor endpoint: ${endpoint}`);
 
-  const { app, apps } = await getSaleorApp(endpoint, argv.appId);
+  const { app, apps } = await getSaleorApp({ endpoint, appId, json });
   const permissions =
     argv.permissions ?? (await getPermissions(endpoint, apps, app));
 

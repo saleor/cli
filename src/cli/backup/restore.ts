@@ -57,7 +57,7 @@ export const handler = async (argv: Arguments<Options>) => {
     const { instance } = argv;
     const endpoint = `${instance}/graphql/`;
     debug(`Saleor endpoint: ${endpoint}`);
-    await updateWebhook(endpoint);
+    await updateWebhook(endpoint, argv.json);
   }
 };
 

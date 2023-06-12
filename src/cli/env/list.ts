@@ -9,6 +9,7 @@ import {
   obfuscateArgv,
   verifyResultLength,
 } from '../../lib/util.js';
+import { EnvironmentList } from '../../types.js';
 
 const debug = Debug('saleor-cli:env:list');
 
@@ -22,7 +23,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'show extended table',
   });
 
-export const handler = async (argv: Arguments) => {
+export const handler = async (argv: Arguments<EnvironmentList>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const { extended } = argv;
@@ -33,7 +34,7 @@ export const handler = async (argv: Arguments) => {
 
   // const production = result.filter(({service}) => service.service_type === "SANDBOX")
 
-  verifyResultLength(result, 'environment');
+  verifyResultLength(result, 'environment', argv.json);
 
   if (argv.json) {
     console.log(JSON.stringify(result, null, 2));

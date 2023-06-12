@@ -19,10 +19,13 @@ export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
   const { instance } = argv;
   const endpoint = `${instance}/graphql/`;
-  await updateWebhook(endpoint);
+  await updateWebhook(endpoint, argv.json);
 };
 
-export const updateWebhook = async (endpoint: string) => {
+export const updateWebhook = async (
+  endpoint: string,
+  json: boolean | undefined
+) => {
   const headers = await Config.getBearerHeader();
 
   const { data }: any = await got
@@ -34,7 +37,7 @@ export const updateWebhook = async (endpoint: string) => {
     })
     .json();
 
-  const apps = getAppsFromResult(data);
+  const apps = getAppsFromResult(data, json);
 
   const { updateAll } = await Enquirer.prompt<{ updateAll: string }>({
     type: 'confirm',
