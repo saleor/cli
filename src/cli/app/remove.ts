@@ -25,9 +25,13 @@ export const builder: CommandBuilder = (_) =>
     demandOption: false,
     desc: 'The Saleor App id',
   })
+    .option('force', {
+      type: 'boolean',
+      desc: 'skip confirmation prompt',
+    })
     .example('saleor app remove', '')
     .example(
-      'saleor app remove --app-id=APP-ID --environment=env-id-or-name',
+      'saleor app remove --app-id=APP-ID --environment=env-id-or-name --force',
       ''
     );
 
