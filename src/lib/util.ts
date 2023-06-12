@@ -414,7 +414,16 @@ export const promptOrganizationBackup = async (argv: any) =>
 export const formatDateTime = (name: string) =>
   format(new Date(name), 'yyyy-MM-dd HH:mm');
 
-export const printContext = (organization?: string, environment?: string) => {
+export const printContext = ({
+  organization,
+  environment,
+  json,
+  short,
+}: Arguments<Options>) => {
+  if (json || short) {
+    return;
+  }
+
   let message = `\n ${chalk.bgGray(' CONTEXT ')}\n`;
 
   if (organization)
