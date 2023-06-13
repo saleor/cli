@@ -20,7 +20,6 @@
     "watch": "concurrently \"npm:watch-*\"",
     "lint": "prettier --write . && eslint src/**/*.ts --cache --fix",
     "generate": "graphql-codegen",
-    "postinstall": "node ./scripts/binary.js install",
     "test": "pnpm vitest",
     "prepare": "husky install",
     "typecov": "type-coverage --cache",
