@@ -23,9 +23,7 @@ describe('create new environment', async () => {
         '--database=sample',
         '--saleor=saleor-master-staging',
         `--domain=${envName}`,
-        '--email=test@example.com',
-        '--skipRestrict',
-        '--deploy',
+        '--skip-restrict',
         `--organization=${testOrganization}`,
       ];
       const { exitCode } = await trigger(command, params, {});

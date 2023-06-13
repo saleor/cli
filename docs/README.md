@@ -507,12 +507,17 @@ Options:
       --database         specify how to populate the database  [string]
       --saleor           specify the Saleor version  [string]
       --domain           specify the domain for the environment  [string]
-      --email            specify the dashboard access email  [string]
       --login            specify the api Basic Auth login  [string]
       --pass             specify the api Basic Auth password  [string]
-      --restore_from     specify snapshot id to restore database from  [string]
+      --restore-from     specify snapshot id to restore database from  [string]
+      --skip-restrict    skip Basic Auth restriction prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor env create my-environment
+  saleor env create my-environment --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict
+  saleor env create my-environment --organization=organization-slug --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict
 ```
 
 #### environment switch

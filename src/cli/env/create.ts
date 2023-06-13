@@ -12,7 +12,6 @@ import {
   formatConfirm,
   obfuscateArgv,
   SaleorEnvironmentError,
-  validateEmail,
   validateLength,
   waitForTask,
 } from '../../lib/util.js';
@@ -61,10 +60,6 @@ export const builder: CommandBuilder = (_) =>
       type: 'string',
       desc: 'specify the domain for the environment',
     })
-    .option('email', {
-      type: 'string',
-      desc: 'specify the dashboard access email',
-    })
     .option('login', {
       type: 'string',
       desc: 'specify the api Basic Auth login',
@@ -73,10 +68,23 @@ export const builder: CommandBuilder = (_) =>
       type: 'string',
       desc: 'specify the api Basic Auth password',
     })
-    .option('restore_from', {
+    .option('restore-from', {
       type: 'string',
       desc: 'specify snapshot id to restore database from',
-    });
+    })
+    .option('skip-restrict', {
+      type: 'boolean',
+      desc: 'skip Basic Auth restriction prompt',
+    })
+    .example('saleor env create my-environment', '')
+    .example(
+      'saleor env create my-environment --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict',
+      ''
+    )
+    .example(
+      'saleor env create my-environment --organization=organization-slug --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict',
+      ''
+    );
 
 export const handler = async (argv: Arguments<CommandOptions>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -107,7 +115,7 @@ export const createEnvironment = async (argv: Arguments<CommandOptions>) => {
 
   if (argv.restore && !argv.restoreFrom) {
     throw new SaleorEnvironmentError(
-      '`restore_from` option is required for database snapshot'
+      '`restore-from` option is required for database snapshot'
     );
   }
 
@@ -124,30 +132,6 @@ export const createEnvironment = async (argv: Arguments<CommandOptions>) => {
   ])) as { name: string };
 
   const domain = await validateDomain(argv, name);
-
-  const { access } = await Enquirer.prompt<{ access: boolean }>({
-    type: 'confirm',
-    name: 'access',
-    message: 'Would you like to enable dashboard access?',
-    format: formatConfirm,
-    skip: !!argv.email,
-    initial: true,
-  });
-
-  let { email } = argv;
-
-  if (access) {
-    const { emailPrompt } = (await Enquirer.prompt({
-      type: 'input',
-      name: 'emailPrompt',
-      message: 'Dashboard admin email',
-      initial: argv.email || user.email,
-      skip: !!argv.email,
-      validate: (value) => validateEmail(value),
-    })) as { emailPrompt: string };
-
-    email = emailPrompt;
-  }
 
   const { restrict } = (await Enquirer.prompt({
     type: 'confirm',
@@ -167,7 +151,7 @@ export const createEnvironment = async (argv: Arguments<CommandOptions>) => {
         name: 'loginPrompt',
         message: 'Login',
         required: true,
-        initial: argv.login || user.email,
+        initial: argv.login,
         validate: (value) => validateLength(value, 128),
       },
       {
@@ -201,7 +185,6 @@ export const createEnvironment = async (argv: Arguments<CommandOptions>) => {
   const json = {
     name,
     domain_label: domain,
-    email,
     project,
     database_population: database,
     service: saleor,
@@ -224,23 +207,13 @@ export const createEnvironment = async (argv: Arguments<CommandOptions>) => {
     '           Dashboard:',
     chalk.blue(`${baseUrl}/dashboard`)
   );
-  const accessMsg =
-    access || !!argv.email
-      ? `\n\n  Please check your email - ${email} - to setup your dashboard access.`
-      : '';
+
   const gqlMsg = chalk(
     '  GraphQL Playground:',
     chalk.blue(`${baseUrl}/graphql/`)
   );
 
-  contentBox(`${dashboardMsg}\n${gqlMsg}${accessMsg}`);
-
-  if (access || !!argv.email) {
-    (await GET(API.SetAdminAccount, {
-      ...argv,
-      environment: result.key,
-    })) as any;
-  }
+  contentBox(`${dashboardMsg}\n${gqlMsg}`);
 
   return result;
 };

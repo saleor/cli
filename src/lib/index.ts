@@ -85,8 +85,6 @@ export const API: Record<string, DefaultURLPath> = {
     `organizations/${_.organization}/environments/${_.environment}/populate-database`,
   ClearDatabase: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/clear-database`,
-  SetAdminAccount: (_) =>
-    `organizations/${_.organization}/environments/${_.environment}/set-admin-account`,
   Job: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/jobs`,
   TaskStatus: (_) => `service/task-status/${_.task}`,
