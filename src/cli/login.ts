@@ -7,6 +7,7 @@ import got from 'got';
 import isEmpty from 'lodash.isempty';
 import { nanoid } from 'nanoid';
 import ora from 'ora';
+import pkceChallenge from 'pkce-challenge';
 import { ServerApp } from 'retes';
 import { Response } from 'retes/response';
 import { GET } from 'retes/route';
@@ -70,24 +71,51 @@ export const doLogin = async () => {
   debug('get AWS Amplify Configuration');
   const amplifyConfig = await getAmplifyConfig();
 
-  const Params = {
+  const { code_challenge: codeChallenge, code_verifier: codeVerifier } =
+    await pkceChallenge();
+
+  const generatedState = nanoid();
+
+  const BaseParams = {
     response_type: 'code',
     client_id: amplifyConfig.aws_user_pools_web_client_id,
     redirect_uri: RedirectURI,
-    identity_provider: 'COGNITO',
     scope: amplifyConfig.oauth.scope.join(' '),
+    state: generatedState,
   };
 
-  const generatedState = nanoid();
+  const CognitoParams = {
+    ...BaseParams,
+    identity_provider: 'COGNITO',
+  };
+
+  const KeycloakParams = {
+    ...BaseParams,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+  };
+
   const emitter = new EventEmitter();
 
-  const spinner = ora('\nLogging in...').start();
-  spinner.text = '\nLogging in...\nFollow the instructions in your browser';
+  const spinner = ora(
+    'Logging in...Follow the instructions in your browser'
+  ).start();
+  debug(
+    `prepare the Base OAuth params: ${JSON.stringify(BaseParams, null, 2)}`
+  );
 
-  const QueryParams = new URLSearchParams({ ...Params, state: generatedState });
-  debug(`prepare the OAuth params: ${JSON.stringify(QueryParams, null, 2)}`);
+  const environment = await getEnvironment();
 
-  const url = `https://${amplifyConfig.oauth.domain}/login?${QueryParams}`;
+  const url =
+    environment === 'staging'
+      ? `https://${
+          amplifyConfig.oauth.domain
+        }/realms/saleor-cloud/protocol/openid-connect/auth?${new URLSearchParams(
+          { ...KeycloakParams }
+        )}`
+      : `https://${amplifyConfig.oauth.domain}/login?${new URLSearchParams({
+          ...CognitoParams,
+        })}`;
 
   try {
     await openURL(url);
@@ -115,19 +143,29 @@ export const doLogin = async () => {
       const OauthParams = {
         grant_type: 'authorization_code',
         code,
+        code_verifier: codeVerifier,
         client_id: amplifyConfig.aws_user_pools_web_client_id,
         redirect_uri: RedirectURI,
       };
 
       try {
-        const { id_token: idToken, access_token: accessToken }: any = await got
-          .post(`https://${amplifyConfig.oauth.domain}/oauth2/token`, {
+        const tokenURL =
+          environment === 'staging'
+            ? `https://${amplifyConfig.oauth.domain}/realms/saleor-cloud/protocol/openid-connect/token`
+            : `https://${amplifyConfig.oauth.domain}/oauth2/token`;
+
+        const response: any = await got
+          .post(tokenURL, {
             form: OauthParams,
           })
           .json();
 
+        const { id_token: idToken, access_token: accessToken } = response;
+
+        const tokenToVerify = environment === 'staging' ? idToken : accessToken;
+
         const secrets = await verifyToken(
-          accessToken,
+          tokenToVerify,
           'https://id.saleor.online/verify'
         );
 
@@ -137,15 +175,26 @@ export const doLogin = async () => {
 
         await createConfig(token, secrets);
       } catch (error) {
+        if (error instanceof Error) {
+          spinner.fail(error.message);
+          emitter.emit('finish');
+
+          return {
+            body: successPage('Login failed!'),
+            status: 200,
+            type: 'text/html',
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+            },
+          };
+        }
+
         println(
           chalk(
             'In a headless environment use',
             chalk.green('saleor configure')
           )
         );
-        if (error instanceof Error) {
-          throw error.message;
-        }
       }
 
       spinner.succeed(

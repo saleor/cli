@@ -12,7 +12,7 @@ const debug = Debug('lib:index');
 
 export const configs: ConfigMap = {
   staging: {
-    cloudApiUrl: 'https://staging-cloud.saleor.io/api',
+    cloudApiUrl: 'https://staging-cloud.saleor.io/platform/api',
     amplifyConfig: amplifyStagingConfig,
   },
   production: {
