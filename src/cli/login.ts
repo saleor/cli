@@ -26,7 +26,11 @@ import {
 } from '../lib/util.js';
 import { BaseOptions } from '../types.js';
 
-const RedirectURI = `http://localhost:${SaleorCLIPort}/`;
+const environment = await getEnvironment();
+const RedirectURI =
+  environment === 'staging'
+    ? `http://127.0.0.1:${SaleorCLIPort}/`
+    : `http://localhost:${SaleorCLIPort}/`;
 
 const debug = Debug('saleor-cli:login');
 
@@ -103,8 +107,6 @@ export const doLogin = async () => {
   debug(
     `prepare the Base OAuth params: ${JSON.stringify(BaseParams, null, 2)}`
   );
-
-  const environment = await getEnvironment();
 
   const url =
     environment === 'staging'
@@ -243,8 +245,6 @@ const doHeadlessLogin = async (token: string) => {
 };
 
 const verifyToken = async (token: string, endpoint: string) => {
-  const environment = await getEnvironment();
-
   debug('verify the token');
   const secrets: Record<ConfigField, string> = await got
     .post(endpoint, {
@@ -266,7 +266,6 @@ const createConfig = async (
   token: string,
   secrets: Record<ConfigField, string>
 ) => {
-  const environment = await getEnvironment();
   const userSession = crypto.randomUUID();
 
   await Config.reset();
