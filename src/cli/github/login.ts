@@ -66,6 +66,26 @@ export const handler = async () => {
         printlnSuccess(chalk.bold('success'));
       } catch (error: any) {
         console.log(error.message);
+        console.log(
+          chalk(
+            'Tip: in some cases',
+            chalk.green('saleor logout'),
+            'followed by',
+            chalk.green('saleor login'),
+            'may help'
+          )
+        );
+
+        emitter.emit('finish');
+
+        return {
+          body: successPage('Login failed!'),
+          status: 200,
+          type: 'text/html',
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+          },
+        };
       }
 
       emitter.emit('finish');
