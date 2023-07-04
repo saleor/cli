@@ -75,6 +75,17 @@ export const handler = async () => {
             'may help'
           )
         );
+
+        emitter.emit('finish');
+
+        return {
+          body: successPage('Login failed!'),
+          status: 200,
+          type: 'text/html',
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+          },
+        };
       }
 
       // spinner.succeed(`You've successfully logged into Saleor Cloud!\n  Your access token has been safely stored, and you're ready to go`)
