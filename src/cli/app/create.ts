@@ -88,6 +88,11 @@ export const handler = async (argv: Arguments<any>) => {
     );
   }
 
+  if (argv.json) {
+    console.log(JSON.stringify(app, null, 2));
+    return;
+  }
+
   println(chalk('App created with id', chalk.green(app?.id)));
 };
 
