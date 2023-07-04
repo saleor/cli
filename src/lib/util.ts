@@ -610,7 +610,7 @@ export const showResult = (
   { json }: ResultFormat = { json: false }
 ) => {
   if (json) {
-    console.log(JSON.stringify(result, null, 2));
+    print(JSON.stringify(result, null, 2));
   } else {
     console.log(
       emphasize.highlight('yaml', yaml.stringify(result), {
