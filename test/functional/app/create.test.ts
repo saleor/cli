@@ -27,21 +27,22 @@ describe('app create', async () => {
         'app',
         'create',
         appName,
+        '--permissions=MANAGE_USERS',
         `--environment=${testEnvironmentName}`,
         `--organization=${testOrganization}`,
       ];
-      const { exitCode, err } = await trigger(
+      const { exitCode, output } = await trigger(
         command,
         params,
         {},
         {
           ...DefaultTriggerResponse,
-          ...{ err: ['App created with id'] },
+          ...{ output: ['App created with id'] },
         }
       );
 
       expect(exitCode).toBe(0);
-      expect(err.join()).toContain('App created with id');
+      expect(output.join()).toContain('App created with id');
     },
     1000 * 60 * 1
   );
