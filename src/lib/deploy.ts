@@ -7,6 +7,7 @@ import GitUrlParse from 'git-url-parse';
 import got from 'got';
 import { print } from 'graphql';
 import kebabCase from 'lodash.kebabcase';
+import fetch from 'node-fetch';
 import ora, { Ora } from 'ora';
 import path from 'path';
 import simpleGit from 'simple-git';
