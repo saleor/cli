@@ -1,3 +1,4 @@
+import stripAnsi from 'strip-ansi';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -32,7 +33,7 @@ beforeAll(async () => {
       ...{ output: ['{"key": "key"}'] },
     }
   );
-  const { key } = JSON.parse(output.join());
+  const { key } = JSON.parse(stripAnsi(output.join('')));
   backupKey = key;
   console.log(`backup created ${key}`);
 }, 1000 * 60 * 10);
@@ -88,7 +89,7 @@ const getBackups = async () => {
       ...{ output: ['[]'] },
     }
   );
-  return JSON.parse(output.join());
+  return JSON.parse(output.join(''));
 };
 
 const removeBackups = async () => {
