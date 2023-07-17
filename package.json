@@ -11,7 +11,7 @@
   },
   "scripts": {
     "prepublishOnly": "rm -rf ./package && pnpm build && clean-publish --fields dependencies && node -e \"let pkg=require('./package/package.json'); pkg.dependencies = { 'got': '^12.4.1' }; require('fs').writeFileSync('./package/package.json', JSON.stringify(pkg, null, 2));\"",
-    "postpublish": "",
+    "postpublish": "pnpm sentry:sourcemaps",
     "bundle": "esbuild src/cli.ts --sourcemap --bundle --minify --outfile=dist/saleor.js --platform=node --format=esm --target=node16 --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);import { dirname } from 'path'; import { fileURLToPath } from 'url'; const __dirname = dirname(fileURLToPath(import.meta.url));\" --out-extension:.js=.js --define:process.env.NODE_ENV=\\\"production\\\"",
     "build": "pnpm bundle",
     "watch-generate": "graphql-codegen -w",
@@ -24,7 +24,8 @@
     "prepare": "husky install",
     "typecov": "type-coverage --cache",
     "typecov-report": "typescript-coverage-report",
-    "release": "release-it --dry-run"
+    "release": "release-it --dry-run",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org saleor --project saleor-cli ./dist && sentry-cli sourcemaps upload --release $npm_package_version --dist $npm_package_version/$npm_package_name --org saleor --project saleor-cli ./dist"
   },
   "files": [
     "dist/saleor.js",
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.0",
     "@graphql-codegen/typescript-document-nodes": "^4.0.1",
+    "@sentry/cli": "^2.19.4",
     "@types/cli-progress": "^3.11.0",
     "@types/debug": "^4.1.8",
     "@types/detect-port": "^1.3.3",
