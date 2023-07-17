@@ -142,6 +142,9 @@ devDependencies:
   '@graphql-codegen/typescript-document-nodes':
     specifier: ^4.0.1
     version: 4.0.1(graphql@16.7.1)
+  '@sentry/cli':
+    specifier: ^2.19.4
+    version: 2.19.4
   '@types/cli-progress':
     specifier: ^3.11.0
     version: 3.11.0
@@ -2132,6 +2135,22 @@ packages:
       '@sentry/utils': 7.60.0
       tslib: 2.6.0
     dev: false
+
+  /@sentry/cli@2.19.4:
+    resolution: {integrity: sha512-wsSr2O/GVgr/i+DYtie+DNhODyI+HL7F5/0t1HwWMjHJWm4+5XTEauznYgbh2mewkzfUk9+t0CPecA82lEgspg==}
+    engines: {node: '>= 10'}
+    hasBin: true
+    requiresBuild: true
+    dependencies:
+      https-proxy-agent: 5.0.1
+      node-fetch: 2.6.12
+      progress: 2.0.3
+      proxy-from-env: 1.1.0
+      which: 2.0.2
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: true
 
   /@sentry/core@7.60.0:
     resolution: {integrity: sha512-B02OlFMoqdkfDZlbQfmk7tL2vObShofk7ySd/7mp+oRdUuCvX0tyrGlwI87YJvd8YWSZOCKINs3aVYivw/b6gg==}
