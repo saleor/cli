@@ -8,7 +8,7 @@ import type { CommandBuilder } from 'yargs';
 import { Config } from '../lib/config.js';
 import { header } from '../lib/images.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
-import { User } from '../types';
+import { User } from '../types.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -36,13 +36,13 @@ export const handler = async (): Promise<void> => {
                 \\___ \\    / /\\ \\   | |      |  __|   | |  | | |  _  /
                 ____) |  / ____ \\  | |____  | |____  | |__| | | | \\ \\
                |_____/  /_/    \\_\\ |______| |______|  \\____/  |_|  \\_\\
-    `)
+    `),
   );
 
   console.log(
     chalk.bold.blueBright(`
                      The commerce API that puts developers first
-   `)
+   `),
   );
 
   console.log('\n');
@@ -52,11 +52,11 @@ export const handler = async (): Promise<void> => {
   cli.url(chalk.blue('Website - https://saleor.io/'), 'https://saleor.io/');
   cli.url(
     chalk.blue('Console - https://cloud.saleor.io/'),
-    'https://cloud.saleor.io/'
+    'https://cloud.saleor.io/',
   );
   cli.url(
     chalk.blue('Github  - https://github.com/saleor/'),
-    'https://github.com/saleor/'
+    'https://github.com/saleor/',
   );
 
   console.log('');
@@ -72,8 +72,8 @@ export const handler = async (): Promise<void> => {
           'Hello',
           user.email,
           'you\'re logged in to Saleor API -',
-          environment
-        )
+          environment,
+        ),
       );
     }
   } catch (e) {

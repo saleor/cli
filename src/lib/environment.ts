@@ -1,7 +1,7 @@
 import { Arguments } from 'yargs';
 
 import { API, GET } from '../lib/index.js';
-import { Environment, Options } from '../types';
+import { Environment, Options } from '../types.js';
 
 // eslint-disable-next-line import/prefer-default-export
 export const getEnvironment = async (argv: Arguments<Options>) =>
