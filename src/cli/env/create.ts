@@ -79,11 +79,11 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor env create my-environment', '')
     .example(
       'saleor env create my-environment --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict',
-      ''
+      '',
     )
     .example(
       'saleor env create my-environment --organization=organization-slug --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict',
-      ''
+      '',
     );
 
 export const handler = async (argv: Arguments<CommandOptions>) => {
@@ -111,11 +111,11 @@ export const createEnvironment = async (argv: Arguments<CommandOptions>) => {
   const { project, saleor, database } = argv;
 
   debug('getting user from Saleor API');
-  const user = (await GET(API.User, argv)) as User;
+  const _user = (await GET(API.User, argv)) as User;
 
   if (argv.restore && !argv.restoreFrom) {
     throw new SaleorEnvironmentError(
-      '`restore-from` option is required for database snapshot'
+      '`restore-from` option is required for database snapshot',
     );
   }
 
@@ -199,18 +199,18 @@ export const createEnvironment = async (argv: Arguments<CommandOptions>) => {
     argv,
     result.task_id,
     'Creating a new environment',
-    'Yay! A new environment is now ready!'
+    'Yay! A new environment is now ready!',
   );
 
   const baseUrl = `https://${result.domain}`;
   const dashboardMsg = chalk(
     '           Dashboard:',
-    chalk.blue(`${baseUrl}/dashboard`)
+    chalk.blue(`${baseUrl}/dashboard`),
   );
 
   const gqlMsg = chalk(
     '  GraphQL Playground:',
-    chalk.blue(`${baseUrl}/graphql/`)
+    chalk.blue(`${baseUrl}/graphql/`),
   );
 
   contentBox(`${dashboardMsg}\n${gqlMsg}`);
@@ -228,7 +228,7 @@ const getDomain = async (
   argv: Arguments<CommandOptions>,
   name: string,
   errorMsg: string,
-  initial: string | undefined = undefined
+  initial: string | undefined = undefined,
 ) => {
   const { domain } = await Enquirer.prompt<{ domain: string }>({
     type: 'input',
@@ -254,7 +254,7 @@ const getDomain = async (
 
 const validateDomain = async (
   argv: Arguments<CommandOptions>,
-  name: string
+  name: string,
 ) => {
   let loop = true;
   let domain;
@@ -293,7 +293,7 @@ const validateDomain = async (
 
 const getResult = async (
   json: Record<string, any>,
-  argv: Arguments<Options>
+  argv: Arguments<Options>,
 ) => {
   let loop = true;
   const _json = { ...json };
@@ -304,7 +304,7 @@ const getResult = async (
       const data = (await POST(
         API.Environment,
         { ...argv, environment: '' },
-        { json: _json }
+        { json: _json },
       )) as any;
       loop = false;
 

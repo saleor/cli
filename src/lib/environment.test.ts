@@ -4,9 +4,9 @@ import { setupServer } from 'msw/node';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { Arguments } from 'yargs';
 
-import { Options } from '../types';
-import { getEnvironment } from './environment';
-import { configs } from './index';
+import { Options } from '../types.js';
+import { getEnvironment } from './environment.js';
+import { configs } from './index.js';
 
 const environment = {
   name: 'Test environment',
@@ -25,15 +25,15 @@ const argv = {
 
 const handlers = [
   rest.get('https://rest.example/path/to/posts', (req, res, ctx) =>
-    res(ctx.status(200), ctx.json(environment))
+    res(ctx.status(200), ctx.json(environment)),
   ),
   rest.get(
     `${configs.production.cloudApiUrl}/organizations/${argv.organization}/environments/${argv.environment}`,
-    (req, res, ctx) => res(ctx.status(200), ctx.json(environment))
+    (req, res, ctx) => res(ctx.status(200), ctx.json(environment)),
   ),
   rest.get(
     `${configs.staging.cloudApiUrl}/organizations/${argv.organization}/environments/${argv.environment}`,
-    (req, res, ctx) => res(ctx.status(200), ctx.json(environment))
+    (req, res, ctx) => res(ctx.status(200), ctx.json(environment)),
   ),
 ];
 
@@ -58,7 +58,7 @@ describe('get Saleor API endpoint', () => {
     const endpoint = `${instance}/graphql/`;
 
     expect(endpoint).toEqual(
-      'https://test-environment.test.saleor.cloud/graphql/'
+      'https://test-environment.test.saleor.cloud/graphql/',
     );
   });
 });

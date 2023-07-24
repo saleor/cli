@@ -1,4 +1,4 @@
-import gql from 'graphql-tag';
+import { gql } from 'graphql-tag';
 
 export const AppCreate = gql`
   mutation AppCreate($name: String, $permissions: [PermissionEnum!]) {

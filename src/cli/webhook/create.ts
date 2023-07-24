@@ -35,12 +35,12 @@ export const handler = async (argv: Arguments<Options>) => {
   const { environment, app } = argv;
   const {
     __type: { enumValues: asyncEventsList },
-  } = await request(DefaultSaleorEndpoint, GetWebhookAsyncEventEnum);
+  } = await request<any>(DefaultSaleorEndpoint, GetWebhookAsyncEventEnum);
   const asyncEventsListChoices = asyncEventsList.filter(without('ANY_EVENTS'));
 
   const {
     __type: { enumValues: syncEventsList },
-  } = await request(DefaultSaleorEndpoint, GetWebhookSyncEventEnum);
+  } = await request<any>(DefaultSaleorEndpoint, GetWebhookSyncEventEnum);
 
   println(`Creating a webhook for the ${environment} environment`);
 
@@ -155,7 +155,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   if (errors.length) {
     throw new Error(
-      errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join()
+      errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join(),
     );
   }
 

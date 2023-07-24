@@ -27,7 +27,10 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const {
     __type: { enumValues },
-  } = await request(DefaultSaleorEndpoint, SaleorGraphQL.GetWebhookEventEnum);
+  } = await request<{ __type: { enumValues: unknown } }>(
+    DefaultSaleorEndpoint,
+    SaleorGraphQL.GetWebhookEventEnum,
+  );
   const choices = enumValues as Record<string, string>[];
 
   if (!event) {
@@ -57,7 +60,7 @@ export const handler = async (argv: Arguments<Options>) => {
   }
 
   console.log(
-    `\n  GraphQL Operation for ${chalk.underline(event)} available\n`
+    `\n  GraphQL Operation for ${chalk.underline(event)} available\n`,
   );
 
   const { instance } = argv;
@@ -76,7 +79,7 @@ export const handler = async (argv: Arguments<Options>) => {
         id,
         input: {},
       },
-      headers
+      headers,
     );
 
     console.log(result);

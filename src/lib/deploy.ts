@@ -10,7 +10,7 @@ import kebabCase from 'lodash.kebabcase';
 import fetch from 'node-fetch';
 import ora, { Ora } from 'ora';
 import path from 'path';
-import simpleGit from 'simple-git';
+import { simpleGit } from 'simple-git';
 import { Arguments } from 'yargs';
 
 import { createAppToken } from '../cli/app/token.js';
@@ -67,7 +67,7 @@ export const createProjectInVercel = async (
   vercel: Vercel,
   envs: Env[],
   buildCommand: null | string = null,
-  rootDirectory: null | string = null
+  rootDirectory: null | string = null,
 ) => {
   debug('Validating if project name is correct');
   validateVercelProjectName(name);
@@ -97,7 +97,7 @@ export const createProjectInVercel = async (
       repoName,
       buildCommand,
       rootDirectory,
-      'github'
+      'github',
     );
 
     spinner.succeed(`Created ${name}`);
@@ -107,7 +107,7 @@ export const createProjectInVercel = async (
 
 export const getRepoUrl = async (
   name: string,
-  githubPrompt = true
+  githubPrompt = true,
 ): Promise<string> => {
   const git = simpleGit();
   const remotes = await git.getRemotes(true);
@@ -129,7 +129,7 @@ export const getRepoUrl = async (
 
 const createProjectInGithub = async (
   name: string,
-  prompt = true
+  prompt = true,
 ): Promise<string> => {
   const git = simpleGit();
   const { github_token: GitHubToken } = await Config.get();
@@ -207,7 +207,7 @@ const createProjectInGithub = async (
 
 export const getGithubRepository = async (
   name: string,
-  owner: string | undefined = undefined
+  owner: string | undefined = undefined,
 ): Promise<any> => {
   const { github_token: GitHubToken } = await Config.get();
 
@@ -255,7 +255,7 @@ const getInstanceJWKS = async (instance: string) => {
 export const setupSaleorAppCheckout = async (
   url: string,
   vercel: Vercel,
-  argv: Arguments<Deploy>
+  argv: Arguments<Deploy>,
 ) => {
   const pkgName = await getPackageName();
   validateVercelProjectName(pkgName);
@@ -316,7 +316,7 @@ export const setupSaleorAppCheckout = async (
       vercel,
       envs,
       'cd ../.. && npx turbo run build --filter="saleor-app-checkout..."',
-      'apps/saleor-app-checkout'
+      'apps/saleor-app-checkout',
     )
   );
 
@@ -327,7 +327,7 @@ export const setupSaleorAppCheckout = async (
     const appId = vercelEnvs.filter(({ key }) => key === 'SALEOR_APP_ID')[0]
       ?.value;
     const authToken = vercelEnvs.filter(
-      ({ key }) => key === 'SALEOR_APP_TOKEN'
+      ({ key }) => key === 'SALEOR_APP_TOKEN',
     )[0]?.value;
     const { name: domain } = await vercel.getProjectDomain(projectId);
     const checkoutAppURL = `https://${domain}`;
@@ -345,7 +345,7 @@ export const setupSaleorAppCheckout = async (
     vercel,
     checkoutName,
     owner,
-    projectId
+    projectId,
   );
 
   const deploymentId = deployment.id || deployment.uid;
@@ -359,7 +359,7 @@ export const setupSaleorAppCheckout = async (
   await doCheckoutAppInstall(
     { ...argv, saleorApiUrl: url },
     apiURL,
-    checkoutName
+    checkoutName,
   );
   const appId = await getAppId(url);
   const authToken = await createAppToken(url, appId);
@@ -388,7 +388,7 @@ export const setupSaleorAppCheckout = async (
   const { id: redeploymentId } = await vercel.deploy(
     checkoutName,
     'github',
-    repoId
+    repoId,
   );
   await vercel.verifyDeployment(checkoutName, redeploymentId, 'Redeploying');
 
@@ -402,11 +402,11 @@ export const setupSaleorAppCheckout = async (
 const doCheckoutAppInstall = async (
   argv: Options,
   apiURL: string,
-  appName: string
+  appName: string,
 ) => {
   const { environment } = argv;
   const spinner = ora(
-    `Installing ${appName} in the ${environment} environment...`
+    `Installing ${appName} in the ${environment} environment...`,
   ).start();
   const manifestURL = `${apiURL}/manifest`;
   await doSaleorAppInstall({ ...argv, manifestURL, appName });
@@ -419,7 +419,7 @@ export const triggerDeploymentInVercel = async (
   name: string,
   owner: string,
   projectId: string,
-  provider = 'github'
+  provider = 'github',
 ) => {
   debug('Validating if project name is correct');
   validateVercelProjectName(name);
@@ -483,14 +483,14 @@ export const formatEnvironmentVariables = (envs: {}) =>
         value,
         target: ['production', 'preview'],
         type: 'encrypted',
-      } as Env)
+      }) as Env,
   );
 
 export const getPackageName = async () => {
   debug('extracting the `name` from `package.json`');
 
   const { name } = JSON.parse(
-    await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8')
+    await fs.readFile(path.join(process.cwd(), 'package.json'), 'utf-8'),
   );
 
   return name;
@@ -516,13 +516,13 @@ export const validateVercelProjectName = (name: string) => {
 
   if (name.length > 99) {
     throw new NameMismatchError(
-      `Project name too long - ${name.length} characters.\n Vercel requirements: ${requirements}`
+      `Project name too long - ${name.length} characters.\n Vercel requirements: ${requirements}`,
     );
   }
 
   if (kebabCase(name) !== name) {
     throw new NameMismatchError(
-      `Invalid Project name - ${name}.\n Vercel requirements: ${requirements}`
+      `Invalid Project name - ${name}.\n Vercel requirements: ${requirements}`,
     );
   }
 };
