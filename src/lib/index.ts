@@ -16,7 +16,7 @@ export const configs: ConfigMap = {
     amplifyConfig: amplifyStagingConfig,
   },
   production: {
-    cloudApiUrl: 'https://cloud.saleor.io/api',
+    cloudApiUrl: 'https://cloud.saleor.io/platform/api',
     amplifyConfig: amplifyProdConfig,
   },
 };
