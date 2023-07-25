@@ -27,10 +27,7 @@ import {
 import { BaseOptions } from '../types.js';
 
 const environment = await getEnvironment();
-const RedirectURI =
-  environment === 'staging'
-    ? `http://127.0.0.1:${SaleorCLIPort}/`
-    : `http://localhost:${SaleorCLIPort}/`;
+const RedirectURI = `http://127.0.0.1:${SaleorCLIPort}/`;
 
 const debug = Debug('saleor-cli:login');
 
@@ -59,7 +56,7 @@ export const handler = async (argv: Arguments<BaseOptions>) => {
     while (!token)
       token = await cli.prompt(
         'Access Token - https://cloud.saleor.io/tokens',
-        { type: 'mask' }
+        { type: 'mask' },
       );
     await doHeadlessLogin(token);
     return;
@@ -88,11 +85,6 @@ export const doLogin = async () => {
     state: generatedState,
   };
 
-  const CognitoParams = {
-    ...BaseParams,
-    identity_provider: 'COGNITO',
-  };
-
   const KeycloakParams = {
     ...BaseParams,
     code_challenge: codeChallenge,
@@ -102,22 +94,17 @@ export const doLogin = async () => {
   const emitter = new EventEmitter();
 
   const spinner = ora(
-    'Logging in...Follow the instructions in your browser'
+    'Logging in...Follow the instructions in your browser',
   ).start();
   debug(
-    `prepare the Base OAuth params: ${JSON.stringify(BaseParams, null, 2)}`
+    `prepare the Base OAuth params: ${JSON.stringify(BaseParams, null, 2)}`,
   );
 
-  const url =
-    environment === 'staging'
-      ? `https://${
-          amplifyConfig.oauth.domain
-        }/realms/saleor-cloud/protocol/openid-connect/auth?${new URLSearchParams(
-          { ...KeycloakParams }
-        )}`
-      : `https://${amplifyConfig.oauth.domain}/login?${new URLSearchParams({
-          ...CognitoParams,
-        })}`;
+  const url = `https://${
+    amplifyConfig.oauth.domain
+  }/realms/saleor-cloud/protocol/openid-connect/auth?${new URLSearchParams({
+    ...KeycloakParams,
+  })}`;
 
   try {
     await openURL(url);
@@ -127,7 +114,7 @@ export const doLogin = async () => {
     spinner.fail(error.message);
 
     println(
-      chalk('In a headless environment use', chalk.green('saleor configure'))
+      chalk('In a headless environment use', chalk.green('saleor configure')),
     );
 
     throw new CannotOpenURLError();
@@ -151,10 +138,7 @@ export const doLogin = async () => {
       };
 
       try {
-        const tokenURL =
-          environment === 'staging'
-            ? `https://${amplifyConfig.oauth.domain}/realms/saleor-cloud/protocol/openid-connect/token`
-            : `https://${amplifyConfig.oauth.domain}/oauth2/token`;
+        const tokenURL = `https://${amplifyConfig.oauth.domain}/realms/saleor-cloud/protocol/openid-connect/token`;
 
         const response: any = await got
           .post(tokenURL, {
@@ -162,13 +146,11 @@ export const doLogin = async () => {
           })
           .json();
 
-        const { id_token: idToken, access_token: accessToken } = response;
-
-        const tokenToVerify = environment === 'staging' ? idToken : accessToken;
+        const { id_token: idToken } = response;
 
         const secrets = await verifyToken(
-          tokenToVerify,
-          'https://id.saleor.online/verify'
+          idToken,
+          'https://id.saleor.online/verify',
         );
 
         const { token }: any = await POST(API.Token, {
@@ -194,16 +176,16 @@ export const doLogin = async () => {
         println(
           chalk(
             'In a headless environment use',
-            chalk.green('saleor configure')
-          )
+            chalk.green('saleor configure'),
+          ),
         );
       }
 
       spinner.succeed(
-        chalk.green('You\'ve successfully logged into Saleor Cloud!')
+        chalk.green('You\'ve successfully logged into Saleor Cloud!'),
       );
       println(
-        'Your access token has been safely stored, and you\'re ready to go'
+        'Your access token has been safely stored, and you\'re ready to go',
       );
       console.log('');
       emitter.emit('finish');
@@ -231,12 +213,12 @@ const doHeadlessLogin = async (token: string) => {
     const spinner = ora('\nLogging in...').start();
     const secrets = await verifyToken(
       token,
-      'https://id.saleor.online/configure'
+      'https://id.saleor.online/configure',
     );
     await createConfig(token, secrets);
 
     spinner.succeed(
-      chalk.green('You\'ve successfully logged into Saleor Cloud!')
+      chalk.green('You\'ve successfully logged into Saleor Cloud!'),
     );
     println('Your access token has been safely stored, and you\'re ready to go');
   } catch (error) {
@@ -264,7 +246,7 @@ const verifyToken = async (token: string, endpoint: string) => {
 
 const createConfig = async (
   token: string,
-  secrets: Record<ConfigField, string>
+  secrets: Record<ConfigField, string>,
 ) => {
   const userSession = crypto.randomUUID();
 
