@@ -17,6 +17,7 @@ import checkout from './cli/checkout/index.js';
 import * as configure from './cli/configure.js';
 import dev from './cli/dev/index.js';
 import environment from './cli/env/index.js';
+import * as example from './cli/example.js';
 import github from './cli/github/index.js';
 import * as info from './cli/info.js';
 import job from './cli/job/index.js';
@@ -51,7 +52,7 @@ const pkg = require('../package.json');
 
 if (!semver.satisfies(process.versions.node, '>= 16')) {
   console.error(
-    `${chalk.red('ERROR')}: Saleor CLI requires Node.js 16.x or later`
+    `${chalk.red('ERROR')}: Saleor CLI requires Node.js 16.x or later`,
   );
   process.exit(1);
 }
@@ -84,7 +85,7 @@ if (
   if (semver.compare(latestVersion, pkg.version) > 0) {
     const updateCommand = `npm i -g ${pkg.name}`;
     const message = `  Update available ${chalk.dim(pkg.version)} ${chalk.reset(
-      ' → '
+      ' → ',
     )} ${chalk.green(latestVersion)}
   Run ${chalk.cyan(updateCommand)} to update`;
 
@@ -117,6 +118,7 @@ const parser = yargs(hideBin(process.argv))
   .command(login)
   .command(logout)
   .command('configure', false, configure)
+  .command(example)
   .command(register)
   .command(trigger)
   .command(['organization [command]', 'org'], '', organization)
@@ -171,7 +173,7 @@ const parser = yargs(hideBin(process.argv))
         console.error(
           emphasize.highlight('yaml', yaml.stringify({ errors }), {
             attr: chalk.red,
-          }).value
+          }).value,
         );
       } catch (err: any) {
         console.log('Output is not JSON');
