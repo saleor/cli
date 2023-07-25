@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { spawn } from 'child_process';
 import Enquirer from 'enquirer';
-import fs from 'fs-extra';
+import fs, { access } from 'fs-extra';
 import got from 'got';
 import { print } from 'graphql';
 import { Arguments } from 'yargs';
@@ -76,7 +76,9 @@ export const doSaleorAppInstall = async (argv: any) => {
     manifest = await got.get(manifestURL).json();
   } catch {
     console.log(
-      chalk.red('\n There was a problem while fetching provided manifest URL\n')
+      chalk.red(
+        '\n There was a problem while fetching provided manifest URL\n',
+      ),
     );
     process.exit(1);
   }
@@ -202,7 +204,7 @@ export const run = async (
   cmd: string,
   params: string[],
   options: Record<string, unknown>,
-  log = false
+  log = false,
 ) => {
   const winSuffix = process.platform === 'win32' ? '.cmd' : '';
   const child = spawn(`${cmd}${winSuffix}`, params, options);
@@ -231,7 +233,7 @@ export const verifyIsSaleorAppDirectory = async (argv: any) => {
 
   if (!isNextApp || !isNodeApp) {
     throw new NotSaleorAppDirectoryError(
-      `'app ${argv._[1]}' must be run from the directory of your Saleor app`
+      `'app ${argv._[1]}' must be run from the directory of your Saleor app`,
     );
   }
 
@@ -270,4 +272,21 @@ export const findSaleorAppByName = async (appName: string, argv: Arguments) => {
 
   // not found
   return null;
+};
+
+export const getFolderName = async (name: string): Promise<string> => {
+  let folderName = name;
+  while (await dirExists(folderName)) {
+    folderName = folderName.concat('-0');
+  }
+  return folderName;
+};
+
+export const dirExists = async (name: string): Promise<boolean> => {
+  try {
+    await access(name);
+    return true;
+  } catch (error) {
+    return false;
+  }
 };

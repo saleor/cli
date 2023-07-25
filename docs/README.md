@@ -34,6 +34,7 @@ Commands:
   saleor status                  Show the login status for the systems that CLI depends on
   saleor login                   Log in to the Saleor Cloud
   saleor logout                  Log out from the Saleor Cloud
+  saleor example [name]          Setup an official Saleor example locally
   saleor register                Create a Saleor Cloud account  [aliases: signup]
   saleor trigger [event]         This triggers a Saleor event
   saleor organization [command]  [aliases: org]
@@ -68,6 +69,7 @@ for more information, find the documentation at https://saleor.io
 * [status](#status)
 * [login](#login)
 * [logout](#logout)
+* [example](#example)
 * [register](#register)
 * [trigger](#trigger)
 * [organization](#organization)
@@ -219,6 +221,32 @@ Options:
   -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+```
+
+### example
+
+```sh
+$ saleor example --help
+```
+
+Help output:
+
+```
+saleor example [name]
+
+Setup an official Saleor example locally
+
+Positionals:
+  name  [string] [default: "my-saleor-app"]
+
+Options:
+      --json                            Output the data as JSON  [boolean] [default: false]
+      --short                           Output data as text  [boolean] [default: false]
+  -u, --instance, --url                 Saleor instance to work with  [string]
+      --dependencies, --deps  [boolean] [default: true]
+  -t, --template, --repo, --repository  [string]
+  -V, --version                         Show version number  [boolean]
+  -h, --help                            Show help  [boolean]
 ```
 
 ### register
