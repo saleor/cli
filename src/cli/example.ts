@@ -38,7 +38,11 @@ export const builder: CommandBuilder = (_) =>
     .option('template', {
       type: 'string',
       alias: ['t', 'repo', 'repository'],
-    });
+    })
+    .example(
+      'saleor example auth-sdk',
+      'Setup the auth-sdk example from saleor/examples on GitHub',
+    );
 
 export const handler = async (argv: Arguments<any>): Promise<void> => {
   debug('command arguments: %O', obfuscateArgv(argv));

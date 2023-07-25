@@ -247,6 +247,9 @@ Options:
   -t, --template, --repo, --repository  [string]
   -V, --version                         Show version number  [boolean]
   -h, --help                            Show help  [boolean]
+
+Examples:
+  saleor example auth-sdk  Setup the auth-sdk example from saleor/examples on GitHub
 ```
 
 ### register
