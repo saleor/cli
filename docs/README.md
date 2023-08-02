@@ -48,7 +48,6 @@ Commands:
   saleor app [command]
   saleor vercel [command]
   saleor github [command]
-  saleor checkout [command]
   saleor open [resource]         Open resource in browser
 
 Options:
@@ -128,8 +127,6 @@ for more information, find the documentation at https://saleor.io
   * [vercel login](#vercel-login)
 * [github](#github)
   * [github login](#github-login)
-* [checkout](#checkout)
-  * [checkout deploy](#checkout-deploy)
 * [open](#open)
 
 ### info
@@ -1073,15 +1070,13 @@ Options:
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  Saleor instance to work with  [string]
       --dispatch         dispatch deployment and don't wait till it ends  [boolean] [default: false]
-      --with-checkout    Deploy with checkout  [boolean] [default: false]
       --github-prompt    specify prompt presence for repository creation on Github  [boolean] [default: "true"]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
 Examples:
   saleor storefront deploy --no-github-prompt
-  saleor storefront deploy --no-github-prompt --with-checkout
-  saleor storefront deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt --with-checkout
+  saleor storefront deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt
 ```
 
 ### telemetry
@@ -1660,54 +1655,6 @@ Options:
   -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
-```
-
-### checkout
-
-```sh
-$ saleor checkout --help
-```
-
-Help output:
-
-```
-saleor checkout [command]
-
-Commands:
-  saleor checkout deploy  Deploy `saleor-checkout` to Vercel
-
-Options:
-      --json             Output the data as JSON  [boolean] [default: false]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  Saleor instance to work with  [string]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
-```
-
-#### checkout deploy
-
-```sh
-$ saleor checkout deploy --help
-```
-
-Help output:
-
-```
-saleor checkout deploy
-
-Deploy `saleor-checkout` to Vercel
-
-Options:
-      --json             Output the data as JSON  [boolean] [default: false]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  Saleor instance to work with  [string]
-      --github-prompt    specify prompt presence for repository creation on Github  [boolean] [default: "true"]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
-
-Examples:
-  saleor checkout deploy --no-github-prompt
-  saleor checkout deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt
 ```
 
 ### open

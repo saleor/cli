@@ -10,7 +10,6 @@ import {
   formatEnvironmentVariables,
   getPackageName,
   getRepoUrl,
-  setupSaleorAppCheckout,
   triggerDeploymentInVercel,
   validateVercelProjectName,
 } from '../../lib/deploy.js';
@@ -22,7 +21,7 @@ import {
   useInstanceConnector,
   useVercel,
 } from '../../middleware/index.js';
-import { StoreDeploy } from '../../types.js';
+import { Deploy } from '../../types.js';
 
 const debug = Debug('saleor-cli:storefront:deploy');
 
@@ -36,11 +35,6 @@ export const builder: CommandBuilder = (_) =>
     default: false,
     desc: 'dispatch deployment and don\'t wait till it ends',
   })
-    .option('with-checkout', {
-      type: 'boolean',
-      default: false,
-      desc: 'Deploy with checkout',
-    })
     .option('github-prompt', {
       type: 'boolean',
       default: 'true',
@@ -48,13 +42,12 @@ export const builder: CommandBuilder = (_) =>
       desc: 'specify prompt presence for repository creation on Github',
     })
     .example('saleor storefront deploy --no-github-prompt', '')
-    .example('saleor storefront deploy --no-github-prompt --with-checkout', '')
     .example(
-      'saleor storefront deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt --with-checkout',
+      'saleor storefront deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt',
       '',
     );
 
-export const handler = async (argv: Arguments<StoreDeploy>) => {
+export const handler = async (argv: Arguments<Deploy>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const name = await getPackageName();
@@ -78,22 +71,6 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
   const envs = {
     SALEOR_API_URL: endpoint,
   };
-
-  if (argv.withCheckout) {
-    console.log('\nDeploying Checkout to Vercel');
-    const { checkoutAppURL, authToken, appId } = await setupSaleorAppCheckout(
-      endpoint,
-      vercel,
-      argv,
-    );
-
-    Object.assign(envs, {
-      CHECKOUT_APP_URL: checkoutAppURL,
-      CHECKOUT_STOREFRONT_URL: `${checkoutAppURL}/checkout-spa`,
-      SALEOR_APP_TOKEN: authToken,
-      SALEOR_APP_ID: appId,
-    });
-  }
 
   console.log('\nDeploying Storefront to Vercel');
   const { id } = await createProjectInVercel(
