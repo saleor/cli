@@ -11,6 +11,7 @@ import { Arguments, CommandBuilder } from 'yargs';
 import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
 import { gitCopy } from '../../lib/download.js';
+import { setupGitRepository } from '../../lib/git.js';
 import { API, GET, POST } from '../../lib/index.js';
 import {
   capitalize,
@@ -21,7 +22,6 @@ import {
 } from '../../lib/util.js';
 import { useOrganization, useToken } from '../../middleware/index.js';
 import { StoreCreate, User } from '../../types.js';
-import { setupGitRepository } from '../app/template.js';
 import { createEnvironment } from '../env/create.js';
 
 const debug = Debug('saleor-cli:storefront:create');
@@ -90,7 +90,7 @@ const createProject = async (argv: Arguments<StoreCreate>) => {
 
   if (projects.filter(({ name }) => name === demoName).length > 0) {
     printlnSuccess(
-      chalk(chalk.bold('Select Project  ·'), chalk.cyan(demoName))
+      chalk(chalk.bold('Select Project  ·'), chalk.cyan(demoName)),
     );
     const project = projects.filter(({ name }) => name === demoName)[0];
     return { slug: project.slug };
@@ -111,46 +111,46 @@ const createProject = async (argv: Arguments<StoreCreate>) => {
 
 const prepareEnvironment = async (
   argv: Arguments<StoreCreate>,
-  project: any
+  project: any,
 ) => {
   const user = (await GET(API.User, argv)) as User;
   const services = (await getSortedServices(argv)) as any[];
 
   const service = services.filter(
-    ({ service_type: serviceType }) => serviceType === 'SANDBOX'
+    ({ service_type: serviceType }) => serviceType === 'SANDBOX',
   )[0];
 
   const name = `${project.slug}-${nanoid(8).toLocaleLowerCase()}`;
 
   printlnSuccess(
-    chalk(chalk.bold('Select the database template ·'), chalk.cyan('sample'))
+    chalk(chalk.bold('Select the database template ·'), chalk.cyan('sample')),
   );
   printlnSuccess(
     chalk(
       chalk.bold('Select a Saleor version ·'),
       chalk.cyan(
-        `Saleor ${service.version} - ${service.display_name} - ${service.service_type}`
-      )
-    )
+        `Saleor ${service.version} - ${service.display_name} - ${service.service_type}`,
+      ),
+    ),
   );
   printlnSuccess(chalk(chalk.bold('Environment name ·'), chalk.cyan(name)));
   printlnSuccess(chalk(chalk.bold('Environment domain ·'), chalk.cyan(name)));
   printlnSuccess(
     chalk(
       chalk.bold('Would you like to enable dashboard access  (y/N) ·'),
-      chalk.cyan('yes')
-    )
+      chalk.cyan('yes'),
+    ),
   );
   printlnSuccess(
-    chalk(chalk.bold('Dashboard admin email ·'), chalk.cyan(user.email))
+    chalk(chalk.bold('Dashboard admin email ·'), chalk.cyan(user.email)),
   );
   printlnSuccess(
     chalk(
       chalk.bold(
-        'Would you like to restrict your Environment API with Basic Auth? (y/N) ·'
+        'Would you like to restrict your Environment API with Basic Auth? (y/N) ·',
       ),
-      chalk.cyan('no')
-    )
+      chalk.cyan('no'),
+    ),
   );
 
   const json = {
@@ -211,8 +211,8 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
     chalk(
       'Your Saleor Storefront is ready in the',
       chalk.yellow(target),
-      'directory\n'
-    )
+      'directory\n',
+    ),
   );
 
   console.log('  To start your application:\n');
