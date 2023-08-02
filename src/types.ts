@@ -69,10 +69,6 @@ export interface Deploy extends BaseOptions {
   githubPrompt: boolean;
 }
 
-export interface StoreDeploy extends Deploy {
-  withCheckout: boolean;
-}
-
 export interface AppTunnel extends BaseOptions {
   name: string;
   port: number;

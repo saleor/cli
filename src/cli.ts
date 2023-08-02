@@ -13,7 +13,6 @@ import { hideBin } from 'yargs/helpers';
 
 import app from './cli/app/index.js';
 import backup from './cli/backup/index.js';
-import checkout from './cli/checkout/index.js';
 import * as configure from './cli/configure.js';
 import dev from './cli/dev/index.js';
 import environment from './cli/env/index.js';
@@ -132,7 +131,6 @@ const parser = yargs(hideBin(process.argv))
   .command(['app [command]'], '', app)
   .command(['vercel [command]'], '', vercel)
   .command(['github [command]'], '', github)
-  .command(['checkout [command]'], '', checkout)
   .command(['dev [command]'], false, dev)
   .command(open)
   .option('json', {
