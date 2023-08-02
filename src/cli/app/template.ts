@@ -4,17 +4,17 @@ import Enquirer from 'enquirer';
 import { access } from 'fs/promises';
 import got from 'got';
 import kebabCase from 'lodash.kebabcase';
-import ora, { Ora } from 'ora';
+import ora from 'ora';
 import path from 'path';
 import replace from 'replace-in-file';
 import sanitize from 'sanitize-filename';
-import { simpleGit } from 'simple-git';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import * as Configs from '../../config.js';
 import { run } from '../../lib/common.js';
 import { Config } from '../../lib/config.js';
 import { gitCopy, gitCopySHA } from '../../lib/download.js';
+import { setupGitRepository } from '../../lib/git.js';
 import {
   checkPnpmPresence,
   contentBox,
@@ -67,7 +67,7 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
   const target = await getFolderName(sanitize(name));
   const packageName = kebabCase(target);
   const dirMsg = `App directory: ${chalk.blue(
-    path.join(process.env.PWD || '.', target)
+    path.join(process.env.PWD || '.', target),
   )}`;
   const appMsg = ` Package name: ${chalk.blue(packageName)}`;
 
@@ -103,8 +103,8 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     chalk(
       'Your Saleor app is ready in the',
       chalk.yellow(target),
-      'directory\n'
-    )
+      'directory\n',
+    ),
   );
 
   println('  To start your application:\n');
@@ -115,8 +115,8 @@ export const handler = async (argv: Arguments<StoreCreate>): Promise<void> => {
     chalk(
       '\nTip: use',
       chalk.green('saleor app tunnel'),
-      'to expose your local environment to a public URL and install your app in the Saleor instance'
-    )
+      'to expose your local environment to a public URL and install your app in the Saleor instance',
+    ),
   );
 };
 
@@ -135,14 +135,6 @@ const dirExists = async (name: string): Promise<boolean> => {
   } catch (error) {
     return false;
   }
-};
-
-export const setupGitRepository = async (spinner: Ora) => {
-  spinner.text = 'Setting up the Git repository...'; // eslint-disable-line no-param-reassign
-  const git = simpleGit();
-  await git.init(['--initial-branch', 'main']);
-  await git.add('.');
-  await git.commit('Initial commit from Saleor CLI');
 };
 
 const getExampleSHA = async (example: string) => {
@@ -181,7 +173,7 @@ interface RepositoryContent {
 }
 
 const getRepositoryContent = async (
-  repoPath = 'https://api.github.com/repos/saleor/app-examples/contents/examples'
+  repoPath = 'https://api.github.com/repos/saleor/app-examples/contents/examples',
 ) => {
   const { github_token: GitHubToken } = await Config.get();
 

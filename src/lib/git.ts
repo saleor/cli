@@ -1,5 +1,6 @@
 import Enquirer from 'enquirer';
 import got from 'got';
+import { Ora } from 'ora';
 import { simpleGit } from 'simple-git';
 
 import { Config } from './config.js';
@@ -56,9 +57,21 @@ export const getExampleSHA = async (example: string) => {
   return sha;
 };
 
-export const setupGitRepository = async (): Promise<void> => {
+export const setupGitRepository = async (
+  spinner: Ora | undefined = undefined,
+): Promise<void> => {
+  if (spinner) {
+    spinner.text = 'Setting up the Git repository...'; // eslint-disable-line no-param-reassign
+  }
+
   const git = simpleGit();
-  await git.init(['--initial-branch', 'main']);
+
+  // For compatibility with older versions of Git where init --initial-branch is not supported
+  // await git.init(['--initial-branch', 'main']);
+  await git.init();
+  const refCmd = process.platform === 'win32' ? 'update-ref' : 'symbolic-ref';
+  await git.raw(refCmd, 'HEAD', 'refs/heads/main');
+
   await git.add('.');
   await git.commit('Initial commit from Saleor CLI');
 };
