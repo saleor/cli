@@ -34,11 +34,11 @@ export const builder: CommandBuilder = (_) =>
     })
     .example(
       'saleor app permission --app-id=APP-ID --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
-      ''
+      '',
     )
     .example(
       'saleor app permission --organization=organization-slug --environment=env-id-or-name --app-id=APP-ID --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
-      ''
+      '',
     );
 
 export const handler = async (argv: Arguments<Options>) => {
@@ -73,7 +73,7 @@ export const choosePermissions = async (choices: any, initial: number) => {
   const { permissions } = await Enquirer.prompt<{ permissions: string[] }>({
     type: 'multiselect',
     name: 'permissions',
-    muliple: true,
+    multiple: true,
     choices,
     initial,
     message:
@@ -106,7 +106,7 @@ export const getPermissionsEnum = async (endpoint: string) => {
 const getPermissions = async (
   endpoint: string,
   apps: any,
-  app: string | undefined
+  app: string | undefined,
 ) => {
   if (!app) {
     println(` ${chalk.red('No app selected')}`);
@@ -126,7 +126,7 @@ const getPermissions = async (
   } = apps.filter(({ node }: any) => node.id === app)[0];
   const choices2Names = choices2.map(({ name }: any) => name);
   const initial = currentPermissions.map((permission: any) =>
-    choices2Names.indexOf(permission.code)
+    choices2Names.indexOf(permission.code),
   );
 
   const permissions = choosePermissions(choices2, initial);
