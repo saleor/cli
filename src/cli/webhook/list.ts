@@ -36,15 +36,15 @@ export const handler = async (argv: Arguments<Options>) => {
 
   if (webhookList.length === 0) {
     console.log(
-      chalk.red('\n', ' No webhooks found for this environment', '\n')
+      chalk.red('\n', ' No webhooks found for this environment', '\n'),
     );
 
     console.log(
       chalk(
         '  Create webhook with',
         chalk.green('saleor webhook create'),
-        'command'
-      )
+        'command',
+      ),
     );
 
     process.exit(0);

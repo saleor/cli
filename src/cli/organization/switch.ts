@@ -32,7 +32,7 @@ export const handler = async (argv: Arguments<Options>) => {
   await Config.remove('environment_id');
 
   printlnSuccess(
-    chalk(chalk.bold('Organization ·'), chalk.cyan(organization.value))
+    chalk(chalk.bold('Organization ·'), chalk.cyan(organization.value)),
   );
 };
 
@@ -46,7 +46,7 @@ const getOrganization = async (argv: Arguments<Options>) => {
 
   if (!organizations.map((o) => o.slug).includes(argv.slug)) {
     throw new SaleorOrganizationError(
-      `No organization with slug '${argv.slug}' found`
+      `No organization with slug '${argv.slug}' found`,
     );
   }
 

@@ -120,7 +120,7 @@ export class WrongGitURLError extends Error {
 
 export class SaleorAppInstallError extends Error {
   constructor(
-    message = 'Cannot install this Saleor App. Check your connection and try again.'
+    message = 'Cannot install this Saleor App. Check your connection and try again.',
   ) {
     super(message);
     this.name = 'SaleorAppInstallError';
@@ -236,7 +236,7 @@ export const checkPnpmPresence = async (entity: string) => {
   if (!pnpm) {
     console.log(
       chalk.red(`
-✘ ${entity} uses the pnpm package manager. To install it, run:`)
+✘ ${entity} uses the pnpm package manager. To install it, run:`),
     );
     console.log('  npm install -g pnpm');
     process.exit(1);
@@ -325,8 +325,8 @@ export const promptCompatibleVersion = async (argv: any, service = 'SANDBOX') =>
           b.version
             .replace(/\d+/g, (n: string) => +n + 100000)
             .localeCompare(
-              a.version.replace(/\d+/g, (n: string) => +n + 100000)
-            )
+              a.version.replace(/\d+/g, (n: string) => +n + 100000),
+            ),
         ),
     extractor: (_: any) => ({
       name: `Saleor ${_.version} - ${_.display_name}`,
@@ -421,9 +421,9 @@ export const promptOrganizationBackup = async (argv: any) =>
           _.saleor_version,
           ', created on',
           formatDateTime(_.created),
-          '-'
+          '-',
         ),
-        chalk.bold(_.name)
+        chalk.bold(_.name),
       ),
       value: _.key,
     }),
@@ -487,7 +487,7 @@ export const validateLength = (
   value: string,
   maxLength: number,
   name = '',
-  required = false
+  required = false,
 ): boolean | string => {
   if (required && value.length < 1) {
     return chalk.red('please provide value');
@@ -495,7 +495,7 @@ export const validateLength = (
 
   if (value.length > maxLength) {
     console.log(
-      chalk.red(`${name} please use ${maxLength} characters maximum`)
+      chalk.red(`${name} please use ${maxLength} characters maximum`),
     );
     return false;
   }
@@ -505,7 +505,7 @@ export const validateLength = (
 
 export const validateEmail = (
   value: string,
-  required = true
+  required = true,
 ): boolean | string => {
   if (!required && value.length < 1) {
     return true;
@@ -541,7 +541,7 @@ const simpleProgress = (current = 0): string => {
   const filled = Math.round(progress / 2);
   const left = 50 - filled;
   const bar = `progress [${barCompleteChar.repeat(
-    filled
+    filled,
   )}${barIncompleteChar.repeat(left)}] ${progress}%`;
 
   return bar;
@@ -551,7 +551,7 @@ export const waitForTask = async (
   argv: Options,
   taskId: string,
   spinnerText: string,
-  spinnerSucceed: string
+  spinnerSucceed: string,
 ) => {
   let currentMsg = 0;
   const messages = [
@@ -607,7 +607,7 @@ export const waitForTask = async (
 
 export const showResult = (
   result: Record<string, unknown> | Environment,
-  { json }: ResultFormat = { json: false }
+  { json }: ResultFormat = { json: false },
 ) => {
   if (json) {
     print(JSON.stringify(result, null, 2));
@@ -615,7 +615,7 @@ export const showResult = (
     console.log(
       emphasize.highlight('yaml', yaml.stringify(result), {
         attr: chalk.blue,
-      }).value
+      }).value,
     );
   }
 };
@@ -626,7 +626,7 @@ export const formatConfirm = (value: string) =>
 export const confirmRemoval = async (
   argv: Options,
   name: string,
-  action = 'remove'
+  action = 'remove',
 ) => {
   const { proceed } = (await Enquirer.prompt({
     type: 'confirm',
@@ -643,7 +643,7 @@ export const confirmRemoval = async (
 export const verifyResultLength = (
   result: any[],
   entity: string,
-  json: boolean | undefined
+  json: boolean | undefined,
 ) => {
   if (result.length > 0) {
     return;
@@ -663,8 +663,8 @@ export const verifyResultLength = (
       chalk(
         `  Create ${entity} with`,
         chalk.green(`saleor ${entity} create`),
-        'command'
-      )
+        'command',
+      ),
     );
   }
   process.exit(0);
@@ -686,13 +686,13 @@ export enum ChalkColor {
 
 export const contentBox = (
   lines: string | string[],
-  { title = '', borderBottom = true, color = ChalkColor.Blue } = {}
+  { title = '', borderBottom = true, color = ChalkColor.Blue } = {},
 ) => {
   const content = Array.isArray(lines) ? lines.join(' ') : lines;
   const width = process.stdout.columns;
   const wrappedTitle = title.length === 0 ? '' : ` ${title} `;
   const headerLine = chalk[color](
-    `──${wrappedTitle}${'─'.repeat(width - wrappedTitle.length - 2)}`
+    `──${wrappedTitle}${'─'.repeat(width - wrappedTitle.length - 2)}`,
   );
 
   console.log(headerLine);

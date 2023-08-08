@@ -69,7 +69,7 @@ export const POST = async (
   endpoint: string,
   headers: Record<string, string>,
   json: Record<string, unknown>,
-  argv: Arguments<Options>
+  argv: Arguments<Options>,
 ) => {
   const auth = await checkAuth(endpoint, argv);
 

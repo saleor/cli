@@ -63,7 +63,7 @@ export const handler = async (argv: Arguments<EnvironmentList>) => {
     },
     {
       extended: extended as boolean,
-    }
+    },
   );
 
   process.exit(0);

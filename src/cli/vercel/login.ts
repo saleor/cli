@@ -1,6 +1,6 @@
+import EventEmitter from 'events';
 import chalk from 'chalk';
 import Debug from 'debug';
-import EventEmitter from 'events';
 import got from 'got';
 import { nanoid } from 'nanoid';
 import { ServerApp } from 'retes';
@@ -72,8 +72,8 @@ export const handler = async () => {
             chalk.green('saleor logout'),
             'followed by',
             chalk.green('saleor login'),
-            'may help'
-          )
+            'may help',
+          ),
         );
 
         emitter.emit('finish');
@@ -93,7 +93,7 @@ export const handler = async () => {
 
       return {
         body: successPage(
-          'You\'ve successfully authenticated Vercel with the Saleor CLI!'
+          'You\'ve successfully authenticated Vercel with the Saleor CLI!',
         ),
         status: 200,
         type: 'text/html',

@@ -34,7 +34,7 @@ export const handler = async (argv: Arguments<Options>) => {
     : await promptOrganization(argv);
   const proceed = await confirmRemoval(
     argv,
-    `organization ${organization.name}`
+    `organization ${organization.name}`,
   );
 
   if (proceed) {

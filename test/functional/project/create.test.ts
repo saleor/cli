@@ -26,7 +26,7 @@ describe('create new project', async () => {
       const { exitCode } = await trigger(command, params, {});
       expect(exitCode).toBe(0);
     },
-    1000 * 60 * 1
+    1000 * 60 * 1,
   );
 
   it(
@@ -43,12 +43,12 @@ describe('create new project', async () => {
           ...{
             output: [projectName],
           },
-        }
+        },
       );
       expect(exitCode).toBe(0);
       expect(output.join()).toContain(projectName);
     },
-    1000 * 60 * 1
+    1000 * 60 * 1,
   );
 
   it('`project show` returns project details', async () => {
@@ -72,7 +72,7 @@ describe('create new project', async () => {
             `region: ${region}`,
           ],
         },
-      }
+      },
     );
     expect(exitCode).toBe(0);
     expect(output.join()).toContain(`name: ${projectName}`);

@@ -52,7 +52,7 @@ export const handler = async (argv: Arguments<any>) => {
     argv,
     result.task_id,
     `Creating backup ${name}`,
-    'Yay! Backup created!'
+    'Yay! Backup created!',
   );
   showResult(result, argv);
 };

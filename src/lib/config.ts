@@ -1,6 +1,6 @@
-import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
+import fs from 'fs-extra';
 
 const DefaultConfigFile = path.join(os.homedir(), '.config', 'saleor.json');
 

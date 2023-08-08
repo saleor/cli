@@ -40,7 +40,7 @@ export const handler = async (argv: Arguments<Options>) => {
     argv,
     result.task_id,
     'Upgrading',
-    'Yay! Upgrade finished!'
+    'Yay! Upgrade finished!',
   );
 };
 

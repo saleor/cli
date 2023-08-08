@@ -22,6 +22,6 @@ export const handler = async () => {
       '{saleor,@saleor/*}',
     ],
     { cwd: process.cwd() },
-    true
+    true,
   );
 };

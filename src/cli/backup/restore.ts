@@ -43,7 +43,7 @@ export const handler = async (argv: Arguments<Options>) => {
     argv,
     result.task_id,
     'Restoring',
-    'Yay! Restore finished!'
+    'Yay! Restore finished!',
   );
 
   const { update } = await Enquirer.prompt<{ update: string }>({

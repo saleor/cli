@@ -1,9 +1,9 @@
 /* eslint-disable no-async-promise-executor */
 import { exec } from 'child_process';
+import util from 'util';
 import Debug from 'debug';
 import fs from 'fs-extra';
 import ora from 'ora';
-import util from 'util';
 import { CommandBuilder } from 'yargs';
 
 const debug = Debug('saleor-cli:info');
@@ -26,7 +26,7 @@ export const handler = async (): Promise<void> => {
   const spinner = ora('Generating docs').start();
 
   const { stdout: helpOutput, stderr } = await execAsync(
-    `${cliExecutable} --help`
+    `${cliExecutable} --help`,
   );
   if (stderr) {
     throw new Error(stderr);
@@ -53,7 +53,7 @@ export const handler = async (): Promise<void> => {
 const getCommands = async (
   helpOutput: string,
   depth = 1,
-  previousCommand = ''
+  previousCommand = '',
 ) => {
   const commandSection = helpOutput
     .split('\n\n')
@@ -82,7 +82,7 @@ const getCommands = async (
         new Promise(async (resolve, reject) => {
           try {
             const { stdout, stderr } = await execAsync(
-              `${cliExecutable} ${cliCommand} --help`
+              `${cliExecutable} ${cliCommand} --help`,
             );
 
             if (stderr) {
@@ -94,7 +94,7 @@ const getCommands = async (
             const nestedCommands = await getCommands(
               stdout,
               depth + 1,
-              cliCommand
+              cliCommand,
             );
 
             resolve([
@@ -109,8 +109,8 @@ const getCommands = async (
             console.log('err', err);
             reject(err);
           }
-        })
-    )
+        }),
+    ),
   );
 };
 
@@ -142,7 +142,7 @@ const commands = (availableCommands: AvailableCommand[]) =>
             (cliCommand) =>
               `${'  '.repeat(cliCommand.depth - 1)}* [${
                 cliCommand.name
-              }](#${cliCommand.name.split(' ').join('-')})`
+              }](#${cliCommand.name.split(' ').join('-')})`,
           )
           .join('\n'),
         ...availableCommands

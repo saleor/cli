@@ -14,9 +14,12 @@ const storefrontName = `storefront-${currentDate()}`;
 const demoName = capitalize(storefrontName);
 const storefrontCwd = `${process.cwd()}/${storefrontName}`;
 
-afterAll(async () => {
-  await fs.remove(storefrontCwd);
-}, 1000 * 60 * 5);
+afterAll(
+  async () => {
+    await fs.remove(storefrontCwd);
+  },
+  1000 * 60 * 5,
+);
 
 describe('storefront create --demo', async () => {
   it(
@@ -33,13 +36,13 @@ describe('storefront create --demo', async () => {
         command,
         params,
         {},
-        { ...DefaultTriggerResponse, ...{ output: [storefrontName] } }
+        { ...DefaultTriggerResponse, ...{ output: [storefrontName] } },
       );
 
       expect(exitCode).toBe(0);
       expect(output.join()).toContain(storefrontName);
     },
-    1000 * 60 * 10
+    1000 * 60 * 10,
   );
   it(
     'should create a demo project',
@@ -50,12 +53,12 @@ describe('storefront create --demo', async () => {
         command,
         params,
         {},
-        { ...DefaultTriggerResponse, ...{ output: [demoName] } }
+        { ...DefaultTriggerResponse, ...{ output: [demoName] } },
       );
       expect(exitCode).toBe(0);
       expect(output.join()).toContain(demoName);
     },
-    1000 * 60 * 1
+    1000 * 60 * 1,
   );
 
   it(
@@ -67,12 +70,12 @@ describe('storefront create --demo', async () => {
         command,
         params,
         {},
-        { ...DefaultTriggerResponse, ...{ output: [demoName] } }
+        { ...DefaultTriggerResponse, ...{ output: [demoName] } },
       );
 
       expect(exitCode).toBe(0);
       expect(output.join()).toContain(demoName);
     },
-    1000 * 60 * 1
+    1000 * 60 * 1,
   );
 });

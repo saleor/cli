@@ -1,9 +1,9 @@
+import path from 'path';
 import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import kebabCase from 'lodash.kebabcase';
 import ora from 'ora';
-import path from 'path';
 import replace from 'replace-in-file';
 import sanitize from 'sanitize-filename';
 import type { Arguments, CommandBuilder } from 'yargs';

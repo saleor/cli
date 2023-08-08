@@ -15,26 +15,32 @@ import {
 const storefrontName = `storefront-${currentDate()}`;
 const storefrontCwd = `${process.cwd()}/${storefrontName}`;
 
-beforeAll(async () => {
-  const environment = await prepareEnvironment();
+beforeAll(
+  async () => {
+    const environment = await prepareEnvironment();
 
-  const params = [
-    'store',
-    'create',
-    storefrontName,
-    `--environment=${environment}`,
-  ];
-  console.log(
-    `creating storefront ${storefrontName} with the ${environment} env`
-  );
-  await trigger(command, params, {});
-}, 1000 * 60 * 10);
+    const params = [
+      'store',
+      'create',
+      storefrontName,
+      `--environment=${environment}`,
+    ];
+    console.log(
+      `creating storefront ${storefrontName} with the ${environment} env`,
+    );
+    await trigger(command, params, {});
+  },
+  1000 * 60 * 10,
+);
 
-afterAll(async () => {
-  await removeGithubRepository(storefrontName, storefrontCwd);
-  await removeVercelProject(`${storefrontName}-app-checkout`);
-  await fs.remove(storefrontCwd);
-}, 1000 * 60 * 10);
+afterAll(
+  async () => {
+    await removeGithubRepository(storefrontName, storefrontCwd);
+    await removeVercelProject(`${storefrontName}-app-checkout`);
+    await fs.remove(storefrontCwd);
+  },
+  1000 * 60 * 10,
+);
 
 describe('checkout deploy', async () => {
   it(
@@ -56,7 +62,7 @@ describe('checkout deploy', async () => {
 
       expect(exitCode).toBe(0);
     },
-    1000 * 60 * 20
+    1000 * 60 * 20,
   );
 
   it(
@@ -75,6 +81,6 @@ describe('checkout deploy', async () => {
 
       expect(exitCode).toBe(0);
     },
-    1000 * 60 * 10
+    1000 * 60 * 10,
   );
 });

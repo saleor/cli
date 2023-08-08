@@ -28,7 +28,7 @@ describe('show list of existing environments', async () => {
       {
         ...DefaultTriggerResponse,
         ...{ output: [testEnvironmentName] },
-      }
+      },
     );
 
     expect(exitCode).toBe(0);

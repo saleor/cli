@@ -36,8 +36,8 @@ export const handler = async (argv: Arguments<Options>) => {
           chalk.bold('saleor-cli'),
           'repository.',
           '\naYour current repository: ',
-          chalk.bold(repoName)
-        )
+          chalk.bold(repoName),
+        ),
       );
       throw new GitError();
     }
@@ -50,8 +50,8 @@ export const handler = async (argv: Arguments<Options>) => {
           'repository',
           '\nPlease navigate to your local',
           chalk.bold('saleor-cli'),
-          'directory'
-        )
+          'directory',
+        ),
       );
       throw new GitError();
     }

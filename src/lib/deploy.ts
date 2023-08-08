@@ -1,5 +1,6 @@
-import chalk from 'chalk';
 import crypto from 'crypto';
+import path from 'path';
+import chalk from 'chalk';
 import Debug from 'debug';
 import Enquirer from 'enquirer';
 import fs from 'fs-extra';
@@ -9,7 +10,6 @@ import { print } from 'graphql';
 import kebabCase from 'lodash.kebabcase';
 import fetch from 'node-fetch';
 import ora, { Ora } from 'ora';
-import path from 'path';
 import { simpleGit } from 'simple-git';
 import { Arguments } from 'yargs';
 

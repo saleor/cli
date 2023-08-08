@@ -29,7 +29,7 @@ export const trigger = async (
   cmd: string,
   params: string[],
   options: {},
-  defaults = DefaultTriggerResponse
+  defaults = DefaultTriggerResponse,
 ) => {
   if (shouldMockTests) {
     return defaults;
@@ -65,7 +65,7 @@ export const trigger = async (
 
 export const getEnvironmentId = async (
   organization = testOrganization,
-  environmentName = testEnvironmentName
+  environmentName = testEnvironmentName,
 ) => {
   const params = [
     'env',
@@ -84,7 +84,7 @@ export const getEnvironmentId = async (
 
 export const verifyTestProjectPresence = async (
   organization = testOrganization,
-  project = testProjectName
+  project = testProjectName,
 ) => {
   const params = ['project', 'list', `--organization=${organization}`];
 
@@ -124,7 +124,7 @@ export const createTestProject = async (organization = testOrganization) => {
 
 export const verifyTestEnvironmentPresence = async (
   organization = testOrganization,
-  environment = testEnvironmentName
+  environment = testEnvironmentName,
 ) => {
   const params = ['environment', 'list', `--organization=${organization}`];
 
@@ -148,11 +148,11 @@ export const prepareEnvironment = async () => {
 };
 
 export const createTestEnvironment = async (
-  organization = testOrganization
+  organization = testOrganization,
 ) => {
   const envExists = await verifyTestEnvironmentPresence(
     organization,
-    testEnvironmentName
+    testEnvironmentName,
   );
 
   if (!envExists) {
@@ -247,7 +247,7 @@ export const listProjects = async () => {
       output: ['[]'],
       err: [],
       exitCode: 0,
-    }
+    },
   );
 
   return data;

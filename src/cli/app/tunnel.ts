@@ -1,10 +1,10 @@
-import chalk from 'chalk';
 import { spawn } from 'child_process';
+import path from 'path';
+import chalk from 'chalk';
 import Debug from 'debug';
 import fs from 'fs-extra';
 import { lookpath } from 'lookpath';
 import ora from 'ora';
-import path from 'path';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import {
@@ -56,7 +56,7 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor app tunnel --manifest-path=/app/manifest', '')
     .example(
       'saleor app tunnel --organization=organization-slug --environment=env-id-or-name',
-      ''
+      '',
     );
 
 export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
@@ -85,7 +85,7 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
     ['http', port.toString() || '3000', '--log', 'stderr', '--log', 'stdout'],
     {
       cwd: process.cwd(),
-    }
+    },
   );
 
   debug('Get tunnelURL');
@@ -117,13 +117,13 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   const saleorAppName = `    Saleor App Name: ${chalk.yellow(appName)}`;
   const saleorAppURLMessage = `     Saleor App URL: ${chalk.blue(tunnelURL)}`;
   const dashboardMsg = `   Saleor Dashboard: ${chalk.blue(
-    `${baseURL}/dashboard/`
+    `${baseURL}/dashboard/`,
   )}`;
   const gqlMsg = ` GraphQL Playground: ${chalk.blue(`${baseURL}/graphql/`)}`;
 
   contentBox(
     `${saleorAppName}\n${saleorAppURLMessage}\n\n${dashboardMsg}\n${gqlMsg}`,
-    { borderBottom: false }
+    { borderBottom: false },
   );
 
   await delay(1000);
@@ -146,12 +146,12 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   }
 
   const appDashboardURL = `${baseURL}/dashboard/apps/${encodeURIComponent(
-    app || ''
+    app || '',
   )}/app`;
   contentBox(`Open app in Dashboard: ${chalk.blue(appDashboardURL)}`);
 
   println(
-    `Tunnel is listening to your local machine on port: ${chalk.blue(port)}\n`
+    `Tunnel is listening to your local machine on port: ${chalk.blue(port)}\n`,
   );
   print('Press CTRL-C to stop the tunnel');
 };

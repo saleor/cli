@@ -1,5 +1,5 @@
-import chalk from 'chalk';
 import { spawn } from 'child_process';
+import chalk from 'chalk';
 import Enquirer from 'enquirer';
 import fs, { access } from 'fs-extra';
 import got from 'got';

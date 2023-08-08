@@ -32,15 +32,15 @@ export const builder: CommandBuilder = (_) =>
     })
     .example(
       'saleor app install --manifest-URL="https://my-saleor-app.com/api/manifest',
-      ''
+      '',
     )
     .example(
       'saleor app install --manifest-URL="https://my-saleor-app.com/api/manifest --app-name="Saleor app"',
-      ''
+      '',
     )
     .example(
       'saleor app install --organization=organization-slug --environment=env-id-or-name --app-name="Saleor app" --manifest-URL="https://my-saleor-app.com/api/manifest',
-      ''
+      '',
     );
 
 export const handler = async (argv: Arguments<Options>) => {

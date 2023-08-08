@@ -48,7 +48,7 @@ const getService = async (argv: Arguments<Options>) => {
       region: env.service.region,
       serviceName: `?compatible_with=${env.service.version}`,
     },
-    'PRODUCTION'
+    'PRODUCTION',
   );
 
   return data;

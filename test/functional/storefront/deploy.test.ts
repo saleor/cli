@@ -21,30 +21,36 @@ const storefrontName = `storefront-${currentDate()}`;
 const checkoutName = `${storefrontName}-app-checkout`;
 const storefrontCwd = `${process.cwd()}/${storefrontName}`;
 
-beforeAll(async () => {
-  const environment = await prepareEnvironment();
+beforeAll(
+  async () => {
+    const environment = await prepareEnvironment();
 
-  const params = [
-    'store',
-    'create',
-    storefrontName,
-    `--environment=${environment}`,
-  ];
-  console.log(
-    `creating storefront ${storefrontName} with the ${environment} env`
-  );
-  await trigger(command, params, {});
+    const params = [
+      'store',
+      'create',
+      storefrontName,
+      `--environment=${environment}`,
+    ];
+    console.log(
+      `creating storefront ${storefrontName} with the ${environment} env`,
+    );
+    await trigger(command, params, {});
 
-  console.log('Storefront prepared');
-}, 1000 * 60 * 10);
+    console.log('Storefront prepared');
+  },
+  1000 * 60 * 10,
+);
 
-afterAll(async () => {
-  await removeGithubRepository(storefrontName, storefrontCwd);
-  await removeGithubRepository(checkoutName, storefrontCwd);
-  await removeVercelProject(storefrontName);
-  await removeVercelProject(checkoutName);
-  await fs.remove(storefrontCwd);
-}, 1000 * 60 * 10);
+afterAll(
+  async () => {
+    await removeGithubRepository(storefrontName, storefrontCwd);
+    await removeGithubRepository(checkoutName, storefrontCwd);
+    await removeVercelProject(storefrontName);
+    await removeVercelProject(checkoutName);
+    await fs.remove(storefrontCwd);
+  },
+  1000 * 60 * 10,
+);
 
 describe('storefront deploy', async () => {
   it(
@@ -67,7 +73,7 @@ describe('storefront deploy', async () => {
 
       expect(exitCode).toBe(0);
     },
-    1000 * 60 * 60
+    1000 * 60 * 60,
   );
 
   it(
@@ -86,7 +92,7 @@ describe('storefront deploy', async () => {
 
       expect(exitCode).toBe(0);
     },
-    1000 * 60 * 10
+    1000 * 60 * 10,
   );
 
   it(
@@ -104,6 +110,6 @@ describe('storefront deploy', async () => {
         expect(manifest.name).toBe('Checkout');
       }
     },
-    1000 * 60
+    1000 * 60,
   );
 });

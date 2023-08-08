@@ -1,8 +1,8 @@
+import crypto from 'crypto';
+import EventEmitter from 'events';
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
-import crypto from 'crypto';
 import Debug from 'debug';
-import EventEmitter from 'events';
 import got from 'got';
 import isEmpty from 'lodash.isempty';
 import { nanoid } from 'nanoid';

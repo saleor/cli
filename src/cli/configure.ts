@@ -37,7 +37,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   console.log(`
 Saleor Telemetry is ${chalk.underline(
-    'completely anonymous and optional'
+    'completely anonymous and optional',
   )} information about general usage.
 You may opt-out at any time (check 'saleor telemetry').
 Learn more: ${chalk.gray('https://saleor.io/')}${chalk.blueBright('telemetry')}
@@ -88,7 +88,7 @@ const chooseOrganization = async (token: string | undefined) => {
 
 const chooseEnv = async (
   token: string | undefined,
-  organizationSlug: string
+  organizationSlug: string,
 ) => {
   const envs = (await GET(API.Environment, {
     token,
