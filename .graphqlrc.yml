@@ -7,3 +7,5 @@ extensions:
       src/generated/graphql.ts:
         plugins:
           - typescript-document-nodes
+        config:
+          gqlImport: 'graphql-tag#gql'
