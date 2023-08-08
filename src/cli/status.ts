@@ -36,7 +36,7 @@ export const handler = async (): Promise<void> => {
       token
         ? chalk.green('Logged', '-', environment)
         : `${chalk.red('Not logged')}   Run: saleor login`
-    }`
+    }`,
   );
 
   const vercel = await verifyVercelToken(VercelToken);
@@ -45,7 +45,7 @@ export const handler = async (): Promise<void> => {
       vercel
         ? chalk.green('Logged', '-', vercel.user?.username, vercel.user?.email)
         : `${chalk.red('Not logged')}   Run: saleor vercel login`
-    }`
+    }`,
   );
 
   const github = await verifyGithubToken(GitHubToken);
@@ -54,7 +54,7 @@ export const handler = async (): Promise<void> => {
       github
         ? chalk.green('Logged', '-', github.login, github.email)
         : `${chalk.red('Not logged')}   Run: saleor github login`
-    }`
+    }`,
   );
 };
 

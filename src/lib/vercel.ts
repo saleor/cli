@@ -29,7 +29,7 @@ export class Vercel {
     this._client = async (
       method = 'GET',
       path = '',
-      body: unknown = undefined
+      body: unknown = undefined,
     ) => {
       const dest = `https://api.vercel.com${path}${
         teamId ? `?teamId=${teamId}` : ''
@@ -66,14 +66,14 @@ export class Vercel {
         type: 'plain',
         target: ['production', 'development', 'preview'],
         ...env,
-      }))
+      })),
     );
   }
 
   async removeEnvironmentVariables(projectId: string, envs: Env[]) {
     const { envs: existingEnvs = [] }: any = await this._client(
       'GET',
-      `/v9/projects/${projectId}/env`
+      `/v9/projects/${projectId}/env`,
     );
 
     for (const env of envs) {
@@ -83,7 +83,7 @@ export class Vercel {
       if (envToRemove) {
         await this._client(
           'DELETE',
-          `/v9/projects/${projectId}/env/${envToRemove.id}`
+          `/v9/projects/${projectId}/env/${envToRemove.id}`,
         );
       }
     }
@@ -101,7 +101,7 @@ export class Vercel {
     repoName: string,
     buildCommand: null | string = null,
     rootDirectory: null | string = null,
-    provider = 'github'
+    provider = 'github',
   ) {
     const {
       framework: { slug },
@@ -145,14 +145,14 @@ export class Vercel {
   async getDeployment(deploymentId: string) {
     return this._client(
       'GET',
-      `/v13/deployments/${deploymentId}`
+      `/v13/deployments/${deploymentId}`,
     ) as Deployment;
   }
 
   async verifyDeployment(
     name: string,
     deploymentId: string,
-    msg = 'Deployment of'
+    msg = 'Deployment of',
   ) {
     const spinner = ora(`${msg} ${chalk.cyan(name)} in progress...`).start();
 
@@ -164,7 +164,7 @@ export class Vercel {
       if (hasDeploymentFailed(readyState)) {
         const { errorCode, inspectorUrl } = deployment;
         console.log(
-          `\nVercel deployment status : ${readyState} - ${errorCode}`
+          `\nVercel deployment status : ${readyState} - ${errorCode}`,
         );
         console.log('Verify deployment using the following link:');
         console.log(inspectorUrl);

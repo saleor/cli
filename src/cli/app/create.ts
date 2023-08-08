@@ -33,11 +33,11 @@ export const builder: CommandBuilder = (_) =>
     })
     .example(
       'saleor app create --name=my-saleor-app --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
-      ''
+      '',
     )
     .example(
       'saleor app create --name=my-saleor-app --organization=organization-slug --environment=env-id-or-name --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
-      ''
+      '',
     );
 
 export const handler = async (argv: Arguments<any>) => {
@@ -84,7 +84,7 @@ export const handler = async (argv: Arguments<any>) => {
 
   if (errors.length) {
     throw new Error(
-      errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join()
+      errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join(),
     );
   }
 

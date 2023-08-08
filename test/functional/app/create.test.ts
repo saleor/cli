@@ -11,13 +11,19 @@ import {
 
 const appName = `${testEnvironmentName}-app`;
 
-beforeAll(async () => {
-  await prepareEnvironment();
-}, 1000 * 60 * 10);
+beforeAll(
+  async () => {
+    await prepareEnvironment();
+  },
+  1000 * 60 * 10,
+);
 
-afterAll(async () => {
-  await removeApps();
-}, 1000 * 60 * 1);
+afterAll(
+  async () => {
+    await removeApps();
+  },
+  1000 * 60 * 1,
+);
 
 describe('app create', async () => {
   it(
@@ -38,13 +44,13 @@ describe('app create', async () => {
         {
           ...DefaultTriggerResponse,
           ...{ output: ['App created with id'] },
-        }
+        },
       );
 
       expect(exitCode).toBe(0);
       expect(output.join()).toContain('App created with id');
     },
-    1000 * 60 * 1
+    1000 * 60 * 1,
   );
 });
 
@@ -64,7 +70,7 @@ const getApps = async () => {
     {
       ...DefaultTriggerResponse,
       ...{ output: ['[]'] },
-    }
+    },
   );
 
   console.log(output);

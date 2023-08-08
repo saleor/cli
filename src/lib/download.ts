@@ -1,6 +1,6 @@
+import { join } from 'path';
 import fs from 'fs-extra';
 import GitURLParse from 'git-url-parse';
-import { join } from 'path';
 import { simpleGit } from 'simple-git';
 
 import { WrongGitURLError } from './util.js';

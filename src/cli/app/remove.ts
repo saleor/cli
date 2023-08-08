@@ -32,7 +32,7 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor app remove', '')
     .example(
       'saleor app remove --app-id=APP-ID --environment=env-id-or-name --force',
-      ''
+      '',
     );
 
 export const handler = async (argv: Arguments<any>) => {
@@ -65,7 +65,7 @@ export const handler = async (argv: Arguments<any>) => {
 
     if (errors.length) {
       throw new Error(
-        errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join()
+        errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join(),
       );
     }
 

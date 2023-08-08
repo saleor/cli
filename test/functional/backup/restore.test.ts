@@ -13,34 +13,40 @@ import {
 const backupName = `${testEnvironmentName}-backup`;
 let backupKey = '';
 
-beforeAll(async () => {
-  await prepareEnvironment();
-  const params = [
-    'backup',
-    'create',
-    backupName,
-    `--environment=${testEnvironmentName}`,
-    `--organization=${testOrganization}`,
-    '--json',
-  ];
-  console.log(`creating backup ${backupName}`);
-  const { output } = await trigger(
-    command,
-    params,
-    {},
-    {
-      ...DefaultTriggerResponse,
-      ...{ output: ['{"key": "key"}'] },
-    }
-  );
-  const { key } = JSON.parse(stripAnsi(output.join('')));
-  backupKey = key;
-  console.log(`backup created ${key}`);
-}, 1000 * 60 * 10);
+beforeAll(
+  async () => {
+    await prepareEnvironment();
+    const params = [
+      'backup',
+      'create',
+      backupName,
+      `--environment=${testEnvironmentName}`,
+      `--organization=${testOrganization}`,
+      '--json',
+    ];
+    console.log(`creating backup ${backupName}`);
+    const { output } = await trigger(
+      command,
+      params,
+      {},
+      {
+        ...DefaultTriggerResponse,
+        ...{ output: ['{"key": "key"}'] },
+      },
+    );
+    const { key } = JSON.parse(stripAnsi(output.join('')));
+    backupKey = key;
+    console.log(`backup created ${key}`);
+  },
+  1000 * 60 * 10,
+);
 
-afterAll(async () => {
-  await removeBackups();
-}, 1000 * 60 * 10);
+afterAll(
+  async () => {
+    await removeBackups();
+  },
+  1000 * 60 * 10,
+);
 
 describe('backup restore', async () => {
   it(
@@ -61,13 +67,13 @@ describe('backup restore', async () => {
         {
           ...DefaultTriggerResponse,
           ...{ err: ['Yay! Restore finished!'] },
-        }
+        },
       );
 
       expect(exitCode).toBe(0);
       expect(err.join()).toContain('Yay! Restore finished!');
     },
-    1000 * 60 * 10
+    1000 * 60 * 10,
   );
 });
 
@@ -87,7 +93,7 @@ const getBackups = async () => {
     {
       ...DefaultTriggerResponse,
       ...{ output: ['[]'] },
-    }
+    },
   );
   return JSON.parse(output.join(''));
 };

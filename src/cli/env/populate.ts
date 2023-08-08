@@ -29,7 +29,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const proceed = await confirmRemoval(
     argv,
     `environment ${environment}`,
-    'replace database with a sample for'
+    'replace database with a sample for',
   );
 
   if (proceed) {
@@ -38,7 +38,7 @@ export const handler = async (argv: Arguments<Options>) => {
       argv,
       result.task_id,
       `Populating database: ${argv.environment}`,
-      'Yay! Database populated!'
+      'Yay! Database populated!',
     );
   }
 };

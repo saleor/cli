@@ -23,7 +23,7 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor checkout deploy --no-github-prompt', '')
     .example(
       'saleor checkout deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt',
-      ''
+      '',
     );
 
 export const handler = async (argv: Arguments<Deploy>) => {
@@ -47,7 +47,7 @@ export const handler = async (argv: Arguments<Deploy>) => {
     const { checkoutAppURL, appId } = await setupSaleorAppCheckout(
       endpoint,
       vercel,
-      argv
+      argv,
     );
 
     const app = encodeURIComponent(appId);

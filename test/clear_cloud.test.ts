@@ -9,7 +9,7 @@ describe('Clean test account on cloud', async () => {
       console.log('removing all projects');
       await clearProjects(true);
     },
-    1000 * 60 * 5
+    1000 * 60 * 5,
   );
 
   it('should return 0 projects', async () => {

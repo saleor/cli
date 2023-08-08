@@ -17,7 +17,7 @@ describe('show organization details', async () => {
         ...{
           output: [`slug: ${testOrganization}`],
         },
-      }
+      },
     );
     expect(exitCode).toBe(0);
     expect(output.join()).toContain(`slug: ${testOrganization}`);
@@ -29,7 +29,7 @@ describe('show organization details', async () => {
       command,
       params,
       {},
-      { ...DefaultTriggerResponse, ...{ exitCode: 1 } }
+      { ...DefaultTriggerResponse, ...{ exitCode: 1 } },
     );
 
     expect(exitCode).not.toBe(0);

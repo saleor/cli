@@ -20,7 +20,7 @@ export const handler = async () => {
 
   console.log(`
 Saleor Telemetry is ${chalk.underline(
-    'anonymous'
+    'anonymous',
   )}. Thank you for participating!
 Learn more: ${chalk.gray('https://saleor.io/')}${chalk.blueBright('telemetry')}
   `);

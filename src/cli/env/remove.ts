@@ -49,7 +49,7 @@ const removeCurrentEnvironment = async (environment: string) => {
     console.log(
       'Default environment unset. Use ',
       chalk.bold('saleor environment switch'),
-      ' to choose default one'
+      ' to choose default one',
     );
   }
 };

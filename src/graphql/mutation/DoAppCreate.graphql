@@ -1,4 +1,4 @@
-mutation AppCreate($name: String, $permissions: [PermissionEnum!] ) {
+mutation AppCreate($name: String, $permissions: [PermissionEnum!]) {
   appCreate(input: { name: $name, permissions: $permissions }) {
     app {
       id

@@ -24,7 +24,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
 export const updateWebhook = async (
   endpoint: string,
-  json: boolean | undefined
+  json: boolean | undefined,
 ) => {
   const headers = await Config.getBearerHeader();
 
@@ -94,7 +94,7 @@ const runUpdateWebhook = async (
   headers: Record<string, string>,
   endpoint: string,
   id: string,
-  targetUrl: string | null
+  targetUrl: string | null,
 ) => {
   const { errors }: any = await got
     .post(endpoint, {

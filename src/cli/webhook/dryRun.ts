@@ -31,7 +31,7 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor webhook dry-run', '')
     .example(
       'saleor webhook dry-run --query=\'subscription { event { ... on ProductCreated { product { id name } } } }\'',
-      ''
+      '',
     )
     .example('saleor webhook dry-run --object-id=\'UHJvZHVjdDo3Mg==\'', '');
 
@@ -93,7 +93,7 @@ export const handler = async (argv: Arguments<WebhookDryRunArgs>) => {
 
     if (errors.length) {
       throw new Error(
-        errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join()
+        errors.map((e: WebhookError) => `\n ${e.field} - ${e.message}`).join(),
       );
     }
 
@@ -103,7 +103,7 @@ export const handler = async (argv: Arguments<WebhookDryRunArgs>) => {
       const { statusCode } = error.response;
       if (statusCode === 400) {
         throw new Error(
-          'Seems the selected environment doesn\'t support dry run feature. Required Saleor Version ^3.11'
+          'Seems the selected environment doesn\'t support dry run feature. Required Saleor Version ^3.11',
         );
       }
     }

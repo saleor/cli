@@ -29,7 +29,7 @@ describe('create new environment', async () => {
       const { exitCode } = await trigger(command, params, {});
       expect(exitCode).toBe(0);
     },
-    1000 * 60 * 10
+    1000 * 60 * 10,
   );
 
   it('`env list` contains newly created env', async () => {
@@ -46,7 +46,7 @@ describe('create new environment', async () => {
       {
         ...DefaultTriggerResponse,
         ...{ output: [envName] },
-      }
+      },
     );
     expect(exitCode).toBe(0);
     expect(output.join()).toContain(envName);
@@ -73,7 +73,7 @@ describe('create new environment', async () => {
             'database_population: sample',
           ],
         },
-      }
+      },
     );
     expect(exitCode).toBe(0);
     expect(output.join()).toContain(`name: ${envName}`);

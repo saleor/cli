@@ -24,7 +24,7 @@ describe('storefront show', async () => {
       {
         ...DefaultTriggerResponse,
         ...{ output: [`key: ${key}`] },
-      }
+      },
     );
 
     expect(exitCode).toBe(0);
@@ -37,7 +37,7 @@ describe('storefront show', async () => {
       command,
       params,
       {},
-      { ...DefaultTriggerResponse, ...{ exitCode: 1 } }
+      { ...DefaultTriggerResponse, ...{ exitCode: 1 } },
     );
 
     expect(exitCode).not.toBe(0);

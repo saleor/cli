@@ -20,7 +20,7 @@ export const handler = async () => {
 
   console.log(`
 You have opted-out of our ${chalk.underline(
-    'anonymous'
+    'anonymous',
   )} telemetry program. We won't be collecting data from your machine.
 Learn more: ${chalk.gray('https://saleor.io/')}${chalk.blueBright('telemetry')}
   `);

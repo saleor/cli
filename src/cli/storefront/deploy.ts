@@ -51,7 +51,7 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor storefront deploy --no-github-prompt --with-checkout', '')
     .example(
       'saleor storefront deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt --with-checkout',
-      ''
+      '',
     );
 
 export const handler = async (argv: Arguments<StoreDeploy>) => {
@@ -62,8 +62,8 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
 
   console.log(
     `\nDeploying... ${chalk.cyan(name)} (the name inferred from ${chalk.yellow(
-      'package.json'
-    )})`
+      'package.json',
+    )})`,
   );
 
   const { vercel_token: vercelToken } = await Config.get();
@@ -84,7 +84,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
     const { checkoutAppURL, authToken, appId } = await setupSaleorAppCheckout(
       endpoint,
       vercel,
-      argv
+      argv,
     );
 
     Object.assign(envs, {
@@ -101,7 +101,7 @@ export const handler = async (argv: Arguments<StoreDeploy>) => {
     vercel,
     formatEnvironmentVariables(envs),
     'cd ../.. && npx turbo run build --filter="storefront..."',
-    'apps/storefront'
+    'apps/storefront',
   );
   debug(`created a project in Vercel: ${id}`);
 

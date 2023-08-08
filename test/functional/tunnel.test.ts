@@ -18,14 +18,17 @@ import {
 const appName = 'tunnel-app';
 const appCwd = `${process.cwd()}/${appName}`;
 
-beforeAll(async () => {
-  await fs.rm(appCwd, { recursive: true, force: true });
-  await prepareEnvironment();
-  const params = ['app', 'create', appName];
-  console.log(`creating an app ${appName}`);
+beforeAll(
+  async () => {
+    await fs.rm(appCwd, { recursive: true, force: true });
+    await prepareEnvironment();
+    const params = ['app', 'create', appName];
+    console.log(`creating an app ${appName}`);
 
-  await trigger(command, params, {});
-}, 1000 * 60 * 10);
+    await trigger(command, params, {});
+  },
+  1000 * 60 * 10,
+);
 
 afterAll(async () => {
   await fs.rm(appCwd, { recursive: true, force: true });
@@ -84,7 +87,7 @@ it(
       await killPid(app.pid);
     }
   },
-  1000 * 60 * 3
+  1000 * 60 * 3,
 );
 
 const checkTunnelUrl = async (tunnelUrl: string) => {

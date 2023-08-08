@@ -24,8 +24,8 @@ export const handler = async (argv: Arguments) => {
 
   console.log(
     `\nUse the following link:\n${chalk.blue(
-      link
-    )}\nto create a Saleor Cloud account.\n`
+      link,
+    )}\nto create a Saleor Cloud account.\n`,
   );
 
   if (!(await canOpen())) {

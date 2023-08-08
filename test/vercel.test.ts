@@ -21,13 +21,13 @@ const myProject1 = {
 
 const handlers = [
   rest.get('https://rest.example/path/to/posts', (req, res, ctx) =>
-    res(ctx.status(200), ctx.json(myProject1))
+    res(ctx.status(200), ctx.json(myProject1)),
   ),
   rest.get(`${VercelURL}/v9/projects/my-project-1`, (req, res, ctx) =>
-    res(ctx.status(200), ctx.json(myProject1))
+    res(ctx.status(200), ctx.json(myProject1)),
   ),
   rest.get(`${VercelURL}/v13/deployments/xxx`, (req, res, ctx) =>
-    res(ctx.status(200), ctx.json([]))
+    res(ctx.status(200), ctx.json([])),
   ),
 ];
 
