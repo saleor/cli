@@ -116,9 +116,9 @@ dependencies:
   simple-git:
     specifier: ^3.19.1
     version: 3.19.1
-  slugify:
-    specifier: ^1.6.6
-    version: 1.6.6
+  slug:
+    specifier: ^8.2.3
+    version: 8.2.3
   tar:
     specifier: ^6.1.15
     version: 6.1.15
@@ -172,6 +172,9 @@ devDependencies:
   '@types/semver':
     specifier: ^7.5.0
     version: 7.5.0
+  '@types/slug':
+    specifier: ^5.0.3
+    version: 5.0.3
   '@types/tar':
     specifier: ^6.1.5
     version: 6.1.5
@@ -2363,6 +2366,10 @@ packages:
     resolution: {integrity: sha512-7QhnH7bi+6KAhBB+Auejz1uV9DHiopZqu7LfR/5gZZTkejJV5nYeZZpgfFoE0N8aDsXuiYpfKyfyMatCwQhyTQ==}
     dependencies:
       '@types/node': 20.4.8
+    dev: true
+
+  /@types/slug@5.0.3:
+    resolution: {integrity: sha512-yPX0bb1SvrpaGlHuSiz6EicgRI4VBE+LO7IANlZagQwtaoKjLLcZc8y6s13vKp41mYvMCSzjtObxvU7/0JRPaA==}
     dev: true
 
   /@types/tar@6.1.5:
@@ -7634,9 +7641,9 @@ packages:
       is-fullwidth-code-point: 3.0.0
     dev: true
 
-  /slugify@1.6.6:
-    resolution: {integrity: sha512-h+z7HKHYXj6wJU+AnS/+IH8Uh9fdcX1Lrhg1/VMdf9PwoBQXFcXiAdsy2tSK0P6gKwJLXp02r90ahUCqHk9rrw==}
-    engines: {node: '>=8.0.0'}
+  /slug@8.2.3:
+    resolution: {integrity: sha512-fXjhAZszNecz855GUNIwW0+sFPi9WV4bMiEKDOCA4wcq1ts1UnUVNy/F78B0Aat7/W3rA+se//33ILKNMrbeYQ==}
+    hasBin: true
     dev: false
 
   /smart-buffer@4.2.0:

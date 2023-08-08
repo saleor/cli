@@ -3,7 +3,7 @@ import Debug from 'debug';
 import Enquirer from 'enquirer';
 import { HTTPError, Response } from 'got';
 import logSymbols from 'log-symbols';
-import slugify from 'slugify';
+import slugify from 'slug';
 import { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET, POST, PUT } from '../../lib/index.js';
