@@ -155,3 +155,50 @@ export interface User {
 export interface EnvironmentList extends BaseOptions {
   extended: boolean;
 }
+
+export interface Project {
+  slug: string;
+  name: string;
+  region: string;
+  plan: Plan;
+}
+
+export interface Plan {
+  name: string;
+  slug: string;
+  type: string;
+}
+
+export interface Region {
+  name: string;
+}
+
+export interface Backup {
+  key: string;
+  name: string;
+  project: {
+    slug: string;
+    name: string;
+    is_deleted: boolean;
+  };
+  saleor_version: string;
+  created: string;
+}
+
+export interface Webhook {
+  id: string;
+  name: string;
+  isActive: boolean;
+  targetUrl: string;
+  syncEvents: string[];
+  asyncEvents: string[];
+}
+
+export interface App {
+  id: string;
+  name: string;
+  isActive: boolean;
+  type: string;
+  webhooks: Webhook[];
+  permissions: string[];
+}

@@ -42,14 +42,12 @@ const getService = async (argv: Arguments<Options>) => {
   }
 
   const env = await getEnvironment(argv);
-  const data = await promptCompatibleVersion(
-    {
-      ...argv,
-      region: env.service.region,
-      serviceName: `?compatible_with=${env.service.version}`,
-    },
-    'PRODUCTION',
-  );
+  const data = await promptCompatibleVersion({
+    ...argv,
+    region: env.service.region,
+    serviceName: `?compatible_with=${env.service.version}`,
+    service: 'PRODUCTION',
+  });
 
   return data;
 };
