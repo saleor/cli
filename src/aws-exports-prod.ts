@@ -8,7 +8,7 @@ const awsmobile = {
   aws_user_pools_id: 'us-east-1_FZpwvYl4o',
   aws_user_pools_web_client_id: 'saleor-cli',
   oauth: {
-    domain: 'auth-next.saleor.io',
+    domain: 'auth.saleor.io',
     scope: ['email', 'openid', 'profile'],
     redirectSignIn: 'https://cloud.saleor.io/',
     redirectSignOut: 'https://cloud.saleor.io/',
