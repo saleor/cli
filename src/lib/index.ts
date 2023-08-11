@@ -1,5 +1,5 @@
 import Debug from 'debug';
-import type { CancelableRequest } from 'got';
+import type { CancelableRequest, OptionsOfTextResponseBody } from 'got';
 import got from 'got';
 import { Argv, CommandBuilder } from 'yargs';
 
@@ -35,8 +35,17 @@ export const getAmplifyConfig = async () => {
 type DefaultURLPath = (_: Options) => string;
 
 const handleAuthAndConfig =
-  (func: (path: string, options?: any) => any) =>
-  async (pathFunc: DefaultURLPath, argv: Options, options: any = {}) => {
+  (
+    func: (
+      path: string,
+      options?: OptionsOfTextResponseBody,
+    ) => CancelableRequest,
+  ) =>
+  async (
+    pathFunc: DefaultURLPath,
+    argv: Options,
+    options: OptionsOfTextResponseBody = {},
+  ) => {
     const path = pathFunc(argv);
     const environment = await getEnvironment();
     const { cloudApiUrl } = configs[environment];
@@ -58,13 +67,13 @@ const handleAuthAndConfig =
     return func(path, opts) as CancelableRequest;
   };
 
-const doGETRequest = (path: string, options?: any) =>
+const doGETRequest = (path: string, options?: OptionsOfTextResponseBody) =>
   got(path, { ...options }).json();
-const doPOSTRequest = (path: string, options?: any) =>
+const doPOSTRequest = (path: string, options?: OptionsOfTextResponseBody) =>
   got.post(path, { ...options }).json();
-const doDELETERequest = (path: string, options: any) =>
+const doDELETERequest = (path: string, options?: OptionsOfTextResponseBody) =>
   got.delete(path, { ...options }).json();
-const doPUTRequest = (path: string, options: any) =>
+const doPUTRequest = (path: string, options?: OptionsOfTextResponseBody) =>
   got.put(path, { ...options }).json();
 
 export const GET = handleAuthAndConfig(doGETRequest);
@@ -106,6 +115,6 @@ export const API: Record<string, DefaultURLPath> = {
 
 export const NoCommandBuilderSetup: CommandBuilder = (_: Argv) => _;
 
-export const Region = 'us-east-1';
+export const DefaultRegion = 'us-east-1';
 export type Plan = 'startup' | 'pro' | 'dev' | 'enterprise' | 'staging';
 export const DefaultSaleorEndpoint = 'https://vercel.saleor.cloud/graphql/';

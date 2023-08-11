@@ -12,7 +12,7 @@ import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
 import { gitCopy } from '../../lib/download.js';
 import { setupGitRepository } from '../../lib/git.js';
-import { API, GET, POST } from '../../lib/index.js';
+import { API, DefaultRegion,GET, POST } from '../../lib/index.js';
 import {
   capitalize,
   checkPnpmPresence,
@@ -100,7 +100,7 @@ const createProject = async (argv: Arguments<StoreCreate>) => {
     json: {
       name: demoName,
       plan: 'dev',
-      region: 'us-east-1',
+      region: DefaultRegion,
     },
   })) as any;
 
@@ -114,7 +114,7 @@ const prepareEnvironment = async (
   project: any,
 ) => {
   const user = (await GET(API.User, argv)) as User;
-  const services = (await getSortedServices(argv)) as any[];
+  const services = (await getSortedServices({})) as any[];
 
   const service = services.filter(
     ({ service_type: serviceType }) => serviceType === 'SANDBOX',
