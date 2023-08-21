@@ -1325,7 +1325,7 @@ Commands:
   saleor app install            Install a Saleor App by URL
   saleor app uninstall <appId>  Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.
   saleor app create [name]      Create a new Saleor Local App
-  saleor app tunnel [port]      Expose your Saleor app remotely via tunnel
+  saleor app tunnel [port]      Expose your Saleor app remotely with ngrok tunnel
   saleor app token              Create a Saleor App token
   saleor app permission         Add or remove permission for a Saleor App
   saleor app template [name]    Create an App with Saleor App Template
@@ -1450,7 +1450,7 @@ Help output:
 ```
 saleor app tunnel [port]
 
-Expose your Saleor app remotely via tunnel
+Expose your Saleor app remotely with ngrok tunnel
 
 Positionals:
   port  [number] [default: 3000]

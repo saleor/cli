@@ -7,6 +7,7 @@ import enquirer from 'enquirer';
 import fs from 'fs-extra';
 import got, { HTTPError } from 'got';
 import logSymbols from 'log-symbols';
+import { lookpath } from 'lookpath';
 import ora from 'ora';
 import path from 'path';
 import { Arguments } from 'yargs';
@@ -20,6 +21,7 @@ import { isNotFound } from '../lib/response.js';
 import {
   AuthError,
   createProject,
+  NgrokError,
   printlnSuccess,
   promptCompatibleVersion,
   promptDatabaseTemplate,
@@ -49,14 +51,14 @@ export const useToken = async ({ token }: Options) => {
       console.error(
         chalk(
           'If you have an account - login using',
-          chalk.bold.green('saleor login')
-        )
+          chalk.bold.green('saleor login'),
+        ),
       );
       console.error(
         chalk(
           'If you don\'t have an account - register using',
-          chalk.bold.green('saleor register')
-        )
+          chalk.bold.green('saleor register'),
+        ),
       );
 
       process.exit(1);
@@ -112,7 +114,7 @@ export const useAppConfig = async (_argv: Options) => {
   try {
     const content = await fs.readFile(
       path.join(process.cwd(), 'saleor.config.json'),
-      'utf-8'
+      'utf-8',
     );
     const config = JSON.parse(content);
     const instance = config.SaleorInstanceURL;
@@ -149,7 +151,7 @@ export const useOrganization = async ({
     console.warn(
       chalk.green(logSymbols.success),
       chalk.bold('Organization ·'),
-      chalk.cyan(opts.organization)
+      chalk.cyan(opts.organization),
     );
   }
 
@@ -159,7 +161,7 @@ export const useOrganization = async ({
 const getEnvironmentByName = async (
   token: string,
   organization: string,
-  environment: string
+  environment: string,
 ) => {
   const environments = (await GET(API.Environment, {
     token,
@@ -167,7 +169,7 @@ const getEnvironmentByName = async (
   })) as Environment[];
   const { key } =
     environments.filter(
-      ({ name }: { name: string }) => name === environment
+      ({ name }: { name: string }) => name === environment,
     )[0] || {};
 
   return key;
@@ -176,10 +178,10 @@ const getEnvironmentByName = async (
 export const verifyEnvironment = async (
   token: string,
   organization: string,
-  environment: string
+  environment: string,
 ) => {
   const spinner = ora(
-    chalk(chalk.bold('Environment ·'), chalk.cyan(environment))
+    chalk(chalk.bold('Environment ·'), chalk.cyan(environment)),
   ).start();
   let env: Environment;
 
@@ -204,8 +206,8 @@ export const verifyEnvironment = async (
           chalk.red(
             chalk.bold('Environment ·'),
             environment,
-            `- not found in the scope of '${organization}' organization in the Saleor Cloud`
-          )
+            `- not found in the scope of '${organization}' organization in the Saleor Cloud`,
+          ),
         );
         process.exit(1);
       }
@@ -215,7 +217,7 @@ export const verifyEnvironment = async (
   }
 
   spinner.succeed(
-    chalk(chalk.bold('Environment ·'), chalk.cyan(`${env.name} - ${env.key}`))
+    chalk(chalk.bold('Environment ·'), chalk.cyan(`${env.name} - ${env.key}`)),
   );
 
   return env;
@@ -233,7 +235,7 @@ export const useEnvironment = async ({
     throw chalk(
       'Missing auth token. Run',
       chalk.green('saleor login'),
-      'to authenticate Saleor CLI to Saleor Cloud'
+      'to authenticate Saleor CLI to Saleor Cloud',
     );
   }
 
@@ -241,7 +243,7 @@ export const useEnvironment = async ({
     throw chalk(
       'Missing organization. Run',
       chalk.green('saleor organization switch'),
-      'to choose default one'
+      'to choose default one',
     );
   }
 
@@ -249,7 +251,7 @@ export const useEnvironment = async ({
     const env: Environment = await verifyEnvironment(
       token,
       organization,
-      environment
+      environment,
     );
     opts = { ...opts, ...{ environment: env.key } };
   } else {
@@ -269,8 +271,8 @@ export const useEnvironment = async ({
         printlnSuccess(
           chalk(
             chalk.bold('Environment ·'),
-            chalk.cyan(`${env.name} - ${env.value}`)
-          )
+            chalk.cyan(`${env.name} - ${env.value}`),
+          ),
         );
       }
     }
@@ -389,13 +391,13 @@ export const useOnlineChecker = async () => {
   if (!process.env.CI) {
     try {
       await util.promisify(exec)(
-        `ping ${process.platform === 'win32' ? '-n' : '-c'} 1 1.1.1.1`
+        `ping ${process.platform === 'win32' ? '-n' : '-c'} 1 1.1.1.1`,
       );
     } catch (error) {
       console.error(
         `You are ${chalk.red(
-          'offline'
-        )}. Saleor CLI requires Internet access to operate. Check your connection.`
+          'offline',
+        )}. Saleor CLI requires Internet access to operate. Check your connection.`,
       );
       process.exit(1);
     }
@@ -450,7 +452,7 @@ export const useGithub = async () => {
   if (!githubToken) {
     console.error(chalk.red('\nYou are not logged into Github\n'));
     console.log(
-      chalk('Run', chalk.bold.green('saleor github login'), 'command to login')
+      chalk('Run', chalk.bold.green('saleor github login'), 'command to login'),
     );
 
     process.exit(1);
@@ -465,7 +467,7 @@ export const useVercel = async () => {
   if (!vercelToken) {
     console.error(chalk.red('\nYou are not logged into Vercel\n'));
     console.log(
-      chalk('Run', chalk.bold.green('saleor vercel login'), 'command to login')
+      chalk('Run', chalk.bold.green('saleor vercel login'), 'command to login'),
     );
 
     process.exit(1);
@@ -476,7 +478,7 @@ export const useVercel = async () => {
 
 export const useAvailabilityChecker = async (argv: Options) => {
   const { maintenance_mode: maintenance, disabled } = await getEnv(
-    argv as Arguments
+    argv as Arguments,
   );
 
   if (maintenance) {
@@ -485,7 +487,7 @@ export const useAvailabilityChecker = async (argv: Options) => {
 
   if (disabled) {
     throw new Error(
-      'The selected environment has exceeded maximum request count'
+      'The selected environment has exceeded maximum request count',
     );
   }
 
@@ -494,7 +496,7 @@ export const useAvailabilityChecker = async (argv: Options) => {
 
 export const useBlockingTasksChecker = async (argv: Options) => {
   const { blocking_tasks_in_progress: blockingTasksInProgress } = await getEnv(
-    argv as Arguments
+    argv as Arguments,
   );
 
   if (blockingTasksInProgress) {
@@ -502,20 +504,28 @@ export const useBlockingTasksChecker = async (argv: Options) => {
     const pending = jobs
       .filter(
         ({ status, is_blocking: isBlocking }) =>
-          isBlocking && ['IN_PROGRESS', 'PENDING'].includes(status)
+          isBlocking && ['IN_PROGRESS', 'PENDING'].includes(status),
       )
       .map(
         ({ job_name: jobName, status }) =>
-          ` ${jobName.split('-').reverse().shift()} - ${status}\n`
+          ` ${jobName.split('-').reverse().shift()} - ${status}\n`,
       );
 
     throw new Error(
       `The selected operation can't be performed at the moment.
  Please wait for pending jobs to finish.\n
 ${pending}
- Use ${chalk.green('saleor job list')} command to list jobs`
+ Use ${chalk.green('saleor job list')} command to list jobs`,
     );
   }
 
   return {};
+};
+
+export const useNgrokBinary = async () => {
+  const isNgrokInstalled = await lookpath('ngrok');
+  if (!isNgrokInstalled)
+    throw new NgrokError(
+      '`ngrok` binary not found\n Visit https://ngrok.com/ for installation instructions',
+    );
 };
