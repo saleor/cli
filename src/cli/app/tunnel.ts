@@ -3,7 +3,6 @@ import path from 'path';
 import chalk from 'chalk';
 import Debug from 'debug';
 import fs from 'fs-extra';
-import { lookpath } from 'lookpath';
 import ora from 'ora';
 import { Arguments, CommandBuilder } from 'yargs';
 
@@ -17,7 +16,6 @@ import {
 import {
   contentBox,
   delay,
-  NgrokError,
   obfuscateArgv,
   print,
   println,
@@ -26,13 +24,14 @@ import {
   useAppConfig,
   useAvailabilityChecker,
   useInstanceConnector,
+  useNgrokBinary,
 } from '../../middleware/index.js';
 import { AppTunnel } from '../../types.js';
 
 const debug = Debug('saleor-cli:app:tunnel');
 
 export const command = 'tunnel [port]';
-export const desc = 'Expose your Saleor app remotely via tunnel';
+export const desc = 'Expose your Saleor app remotely with ngrok tunnel';
 
 export const builder: CommandBuilder = (_) =>
   _.positional('port', { type: 'number', default: 3000 })
@@ -74,10 +73,6 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
     const content = await fs.readFile(packagePath, 'utf-8');
     appName = JSON.parse(content).name;
   }
-
-  // ngrok tunnel
-  const isNgrokInstalled = await lookpath('ngrok');
-  if (!isNgrokInstalled) throw new NgrokError('`ngrok` binary not found');
 
   debug(`Starting the tunnel with the port: ${port}`);
   const p = spawn(
@@ -160,6 +155,7 @@ export const middlewares = [
   verifyIsSaleorAppDirectory,
   verifyIfSaleorAppRunning,
   useAppConfig,
+  useNgrokBinary,
   useInstanceConnector,
   useAvailabilityChecker,
 ];

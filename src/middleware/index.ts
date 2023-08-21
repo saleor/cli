@@ -8,6 +8,7 @@ import enquirer from 'enquirer';
 import fs from 'fs-extra';
 import got, { HTTPError } from 'got';
 import logSymbols from 'log-symbols';
+import { lookpath } from 'lookpath';
 import ora from 'ora';
 import { Arguments } from 'yargs';
 
@@ -20,6 +21,7 @@ import { isNotFound } from '../lib/response.js';
 import {
   AuthError,
   createProject,
+  NgrokError,
   printlnSuccess,
   promptCompatibleVersion,
   promptDatabaseTemplate,
@@ -518,4 +520,12 @@ ${pending}
   }
 
   return {};
+};
+
+export const useNgrokBinary = async () => {
+  const isNgrokInstalled = await lookpath('ngrok');
+  if (!isNgrokInstalled)
+    throw new NgrokError(
+      '`ngrok` binary not found\n Visit https://ngrok.com/ for installation instructions',
+    );
 };
