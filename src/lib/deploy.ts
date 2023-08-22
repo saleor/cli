@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import path from 'path';
 import chalk from 'chalk';
 import Debug from 'debug';
@@ -8,15 +7,10 @@ import GitUrlParse from 'git-url-parse';
 import got from 'got';
 import { print } from 'graphql';
 import kebabCase from 'lodash.kebabcase';
-import fetch from 'node-fetch';
 import ora, { Ora } from 'ora';
 import { simpleGit } from 'simple-git';
-import { Arguments } from 'yargs';
 
-import { createAppToken } from '../cli/app/token.js';
 import { GetApps } from '../generated/graphql.js';
-import { Deploy, Options } from '../types.js';
-import { doSaleorAppInstall } from './common.js';
 import { Config } from './config.js';
 import {
   contentBox,
