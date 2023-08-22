@@ -298,9 +298,8 @@ export const interactiveDatabaseTemplate = async (argv: Options) => {
   if (!argv.database) {
     const db = await promptDatabaseTemplate();
     const backup = await checkBackup(argv, db);
-    return { database: db.value, ...backup };
+    return { database: db.value || null, ...backup };
   }
-
   if (argv.database === 'blank') return { database: null };
   if (argv.database === 'snapshot') return { database: null, restore: true };
 

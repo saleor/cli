@@ -13,7 +13,7 @@ import yaml from 'yaml';
 import { Arguments } from 'yargs';
 
 import { GetAppById, GetApps } from '../generated/graphql.js';
-import { API, DefaultRegion,GET, POST } from '../lib/index.js';
+import { API, DefaultRegion, GET, POST } from '../lib/index.js';
 import {
   Backup,
   BaseOptions,
@@ -171,7 +171,7 @@ const createPrompt = async <T>({
   name: string;
   message: string;
   fetcher: () => Promise<T[]> | T[];
-  extractor: (item: T) => { name: string; value: string | null };
+  extractor: (item: T) => { name: string; value: string; hint?: string };
   allowCreation?: boolean;
   json?: boolean;
 }) => {
@@ -306,14 +306,18 @@ export const promptSaleorApp = async (argv: Options) =>
 export const getSortedServices = async ({
   region = DefaultRegion,
   serviceName = undefined,
+  token,
 }: {
   region?: string;
   serviceName?: string;
+  token?: string;
 }) => {
   const services = (await GET(API.Services, {
     region,
     serviceName,
+    token,
   })) as Record<string, any>[];
+
   return services.sort((a, b) => b.version.localeCompare(a.version));
 };
 
@@ -322,17 +326,19 @@ export const promptCompatibleVersion = async ({
   serviceName = undefined,
   service = 'SANDBOX',
   json = false,
+  token,
 }: {
   region: string;
   serviceName?: string;
   service?: string;
   json?: boolean;
+  token?: string;
 }) =>
   createPrompt({
     name: 'production service',
     message: 'Select a Saleor service',
     fetcher: async () =>
-      (await getSortedServices({ region, serviceName }))
+      (await getSortedServices({ region, serviceName, token }))
         .filter(({ service_type: serviceType }: any) => serviceType === service)
         .sort((a, b) =>
           b.version
@@ -360,18 +366,19 @@ export const promptDatabaseTemplate = async () =>
       },
       {
         name: 'blank',
-        value: null,
+        value: '',
         hint: 'Contains no data and configuration settings',
       },
       {
         name: 'snapshot',
-        value: null,
+        value: '',
         hint: 'Import data from backups or your own snapshots',
       },
     ],
-    extractor: (_: { name: string; value: string | null; hint: string }) => ({
+    extractor: (_: { name: string; value: string; hint: string }) => ({
       name: _.name,
       value: _.value,
+      hint: _.hint,
     }),
     json: false,
   });
