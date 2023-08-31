@@ -1,6 +1,6 @@
+import { access } from 'fs/promises';
 import chalk from 'chalk';
 import Debug from 'debug';
-import { access } from 'fs/promises';
 import kebabCase from 'lodash.kebabcase';
 import { customAlphabet } from 'nanoid';
 import ora from 'ora';
@@ -12,7 +12,7 @@ import * as Config from '../../config.js';
 import { run } from '../../lib/common.js';
 import { gitCopy } from '../../lib/download.js';
 import { setupGitRepository } from '../../lib/git.js';
-import { API, DefaultRegion,GET, POST } from '../../lib/index.js';
+import { API, DefaultRegion, GET, POST } from '../../lib/index.js';
 import {
   capitalize,
   checkPnpmPresence,
@@ -114,7 +114,9 @@ const prepareEnvironment = async (
   project: any,
 ) => {
   const user = (await GET(API.User, argv)) as User;
-  const services = (await getSortedServices({})) as any[];
+  const services = await getSortedServices({
+    token: argv.token || '',
+  });
 
   const service = services.filter(
     ({ service_type: serviceType }) => serviceType === 'SANDBOX',

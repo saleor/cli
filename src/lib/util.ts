@@ -310,7 +310,7 @@ export const getSortedServices = async ({
 }: {
   region?: string;
   serviceName?: string;
-  token?: string;
+  token: string;
 }) => {
   const services = (await GET(API.Services, {
     region,
@@ -338,7 +338,7 @@ export const promptCompatibleVersion = async ({
     name: 'production service',
     message: 'Select a Saleor service',
     fetcher: async () =>
-      (await getSortedServices({ region, serviceName, token }))
+      (await getSortedServices({ region, serviceName, token: token || '' }))
         .filter(({ service_type: serviceType }: any) => serviceType === service)
         .sort((a, b) =>
           b.version
