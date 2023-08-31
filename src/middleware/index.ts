@@ -284,7 +284,7 @@ export const useEnvironment = async ({
 export const interactiveProject = async (argv: Options) => {
   if (!argv.project) {
     const project = await promptProject(argv);
-    if (project.value === undefined) {
+    if (!project.value) {
       const newProject = await createProject(argv);
       return { project: newProject.value };
     }
