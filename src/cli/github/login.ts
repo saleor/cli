@@ -1,16 +1,14 @@
-import EventEmitter from 'events';
 import chalk from 'chalk';
 import Debug from 'debug';
-import detectPort from 'detect-port';
 import got from 'got';
-import { nanoid } from 'nanoid';
-import { ServerApp } from 'retes';
-import { Response } from 'retes/response';
-import { GET } from 'retes/route';
 import type { CommandBuilder } from 'yargs';
 
 import { Config } from '../../lib/config.js';
-import { delay, openURL, printlnSuccess, successPage } from '../../lib/util.js';
+import { contentBox, delay, printlnSuccess } from '../../lib/util.js';
+import {
+  GithubLoginDeviceCodeResponse,
+  GithubLoginDeviceResponse,
+} from '../../types.js';
 
 const debug = Debug('saleor-cli:github:login');
 
@@ -20,92 +18,62 @@ export const desc = 'Add integration for Saleor CLI';
 export const builder: CommandBuilder = (_) => _;
 
 export const handler = async () => {
-  const port = await detectPort(3000);
-  const RedirectURI = `http://localhost:${port}/github/callback`;
+  const { GithubClientID } = await Config.get();
 
-  const generatedState = nanoid();
-  const emitter = new EventEmitter();
+  const {
+    user_code: userCode,
+    device_code: deviceCode,
+    verification_uri: verificationUri,
+    interval,
+    expires_in: expiresIn,
+  } = (await got
+    .post('https://github.com/login/device/code', {
+      json: {
+        client_id: GithubClientID,
+        scope: 'repo',
+      },
+    })
+    .json()) as GithubLoginDeviceResponse;
 
-  const { GithubClientID, GithubClientSecret } = await Config.get();
+  contentBox(`
+    ${chalk.bold('Please open the following URL in your browser:')}
 
-  const Params = {
-    client_id: GithubClientID,
-    redirect_uri: RedirectURI,
-    scope: 'repo',
+    ${verificationUri}
+
+    ${chalk('And enter the following code:', chalk.bold(userCode))}`);
+
+  const pollForAccessToken = async () => {
+    const { access_token: accessToken } = (await got
+      .post('https://github.com/login/oauth/access_token', {
+        json: {
+          client_id: GithubClientID,
+          grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+          device_code: deviceCode,
+        },
+      })
+      .json()) as GithubLoginDeviceCodeResponse;
+
+    if (accessToken) {
+      await Config.set('github_token', `Bearer ${accessToken}`);
+      printlnSuccess(
+        chalk.bold(
+          'You\'ve successfully authenticated GitHub with the Saleor CLI!',
+        ),
+      );
+      process.exit(0);
+    }
   };
 
-  const QueryParams = new URLSearchParams({ ...Params, state: generatedState });
-  const url = `https://github.com/login/oauth/authorize?${QueryParams}`;
-  await openURL(url);
+  const expiry = Date.now() - expiresIn * 1000;
 
-  const app = new ServerApp([
-    GET('/github/callback', async ({ params }) => {
-      const { state, code } = params;
+  do {
+    debug(Date.now());
+    await delay(interval * 1000);
 
-      if (state !== generatedState) {
-        return Response.BadRequest('Wrong state');
-      }
-
-      const OauthParams = {
-        client_id: GithubClientID,
-        client_secret: GithubClientSecret,
-        code,
-        redirect_uri: RedirectURI,
-      };
-
-      try {
-        const data: any = await got
-          .post('https://github.com/login/oauth/access_token', {
-            form: OauthParams,
-          })
-          .json();
-
-        const { access_token: accessToken } = data;
-
-        await Config.set('github_token', `Bearer ${accessToken}`);
-        printlnSuccess(chalk.bold('success'));
-      } catch (error: any) {
-        console.log(error.message);
-        console.log(
-          chalk(
-            'Tip: in some cases',
-            chalk.green('saleor logout'),
-            'followed by',
-            chalk.green('saleor login'),
-            'may help',
-          ),
-        );
-
-        emitter.emit('finish');
-
-        return {
-          body: successPage('Login failed!'),
-          status: 200,
-          type: 'text/html',
-          headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-          },
-        };
-      }
-
-      emitter.emit('finish');
-
-      return {
-        body: successPage(
-          'You\'ve successfully authenticated Gitub with the Saleor CLI!',
-        ),
-        status: 200,
-        type: 'text/html',
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-        },
-      };
-    }),
-  ]);
-  await app.start(port);
-
-  emitter.on('finish', async () => {
-    await delay(1000);
-    await app.stop();
-  });
+    try {
+      await pollForAccessToken();
+    } catch {
+      return;
+    }
+  } while (Date.now() > expiry);
 };
