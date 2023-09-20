@@ -24,7 +24,6 @@ export type ConfigField =
   | 'VercelClientSecret'
   | 'SentryDSN'
   | 'GithubClientID'
-  | 'GithubClientSecret'
   | 'github_token'
   | 'lastUpdateCheck';
 
