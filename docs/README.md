@@ -78,15 +78,18 @@ for more information, find the documentation at https://saleor.io
   * [organization permissions](#organization-permissions)
   * [organization switch](#organization-switch)
 * [environment](#environment)
-  * [environment show](#environment-show)
-  * [environment list](#environment-list)
-  * [environment create](#environment-create)
-  * [environment switch](#environment-switch)
-  * [environment remove](#environment-remove)
-  * [environment upgrade](#environment-upgrade)
+  * [environment auth](#environment-auth)
   * [environment clear](#environment-clear)
+  * [environment create](#environment-create)
+  * [environment list](#environment-list)
+  * [environment maintenance](#environment-maintenance)
   * [environment populate](#environment-populate)
   * [environment promote](#environment-promote)
+  * [environment remove](#environment-remove)
+  * [environment show](#environment-show)
+  * [environment switch](#environment-switch)
+  * [environment update](#environment-update)
+  * [environment upgrade](#environment-upgrade)
 * [backup](#backup)
   * [backup list](#backup-list)
   * [backup create](#backup-create)
@@ -447,15 +450,18 @@ Help output:
 saleor environment [command]
 
 Commands:
-  saleor environment show [key|environment]      Show a specific environment
-  saleor environment list                        List environments
-  saleor environment create [name]               Create a new environment
-  saleor environment switch [key|environment]    Make the provided environment the default one
-  saleor environment remove [key|environment]    Delete an environment
-  saleor environment upgrade [key|environment]   Upgrade a Saleor version in a specific environment
-  saleor environment clear <key|environment>     Clear database for environment
-  saleor environment populate [key|environment]  Populate database for environment
-  saleor environment promote [key|environment]   Promote environment to production
+  saleor environment auth [key|environment]         Manage basic auth for a specific environment
+  saleor environment clear <key|environment>        Clear database for environment
+  saleor environment create [name]                  Create a new environment
+  saleor environment list                           List environments
+  saleor environment maintenance [key|environment]  Enable or disable maintenance mode in a specific environment
+  saleor environment populate [key|environment]     Populate database for environment
+  saleor environment promote [key|environment]      Promote environment to production
+  saleor environment remove [key|environment]       Delete an environment
+  saleor environment show [key|environment]         Show a specific environment
+  saleor environment switch [key|environment]       Make the provided environment the default one
+  saleor environment update [key|environment]       Update name of the environment
+  saleor environment upgrade [key|environment]      Upgrade a Saleor version in a specific environment
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
@@ -465,48 +471,59 @@ Options:
   -h, --help             Show help  [boolean]
 ```
 
-#### environment show
+#### environment auth
 
 ```sh
-$ saleor environment show --help
+$ saleor environment auth --help
 ```
 
 Help output:
 
 ```
-saleor environment show [key|environment]
+saleor environment auth [key|environment]
 
-Show a specific environment
+Manage basic auth for a specific environment
 
 Positionals:
   key, environment  key of the environment  [string]
 
 Options:
-      --json             Output the data as JSON  [boolean] [default: false]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  Saleor instance to work with  [string]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
+      --json              Output the data as JSON  [boolean] [default: false]
+      --short             Output data as text  [boolean] [default: false]
+  -u, --instance, --url   Saleor instance to work with  [string]
+      --login             basic auth login of the environment  [string]
+      --password, --pass  basic auth password of the environment  [string]
+      --disable           disable basic auth for the environment  [boolean]
+  -V, --version           Show version number  [boolean]
+  -h, --help              Show help  [boolean]
+
+Examples:
+  saleor env auth
+  saleor env auth my-environment
+  saleor env auth my-environment --login=saleor --password=saleor
+  saleor env auth my-environment --disable
 ```
 
-#### environment list
+#### environment clear
 
 ```sh
-$ saleor environment list --help
+$ saleor environment clear --help
 ```
 
 Help output:
 
 ```
-saleor environment list
+saleor environment clear <key|environment>
 
-List environments
+Clear database for environment
+
+Positionals:
+  key, environment  key of the environment  [string] [required]
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  Saleor instance to work with  [string]
-      --extended         show extended table  [boolean] [default: false]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
@@ -548,18 +565,40 @@ Examples:
   saleor env create my-environment --organization=organization-slug --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict
 ```
 
-#### environment switch
+#### environment list
 
 ```sh
-$ saleor environment switch --help
+$ saleor environment list --help
 ```
 
 Help output:
 
 ```
-saleor environment switch [key|environment]
+saleor environment list
 
-Make the provided environment the default one
+List environments
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+      --extended         show extended table  [boolean] [default: false]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+```
+
+#### environment maintenance
+
+```sh
+$ saleor environment maintenance --help
+```
+
+Help output:
+
+```
+saleor environment maintenance [key|environment]
+
+Enable or disable maintenance mode in a specific environment
 
 Positionals:
   key, environment  key of the environment  [string]
@@ -568,81 +607,16 @@ Options:
       --json             Output the data as JSON  [boolean] [default: false]
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  Saleor instance to work with  [string]
+      --enable           enable maintenance mode  [boolean]
+      --disable          disable maintenance mode  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
-```
 
-#### environment remove
-
-```sh
-$ saleor environment remove --help
-```
-
-Help output:
-
-```
-saleor environment remove [key|environment]
-
-Delete an environment
-
-Positionals:
-  key, environment  key of the environment  [string]
-
-Options:
-      --json             Output the data as JSON  [boolean] [default: false]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  Saleor instance to work with  [string]
-      --force            skip confirmation prompt  [boolean]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
-```
-
-#### environment upgrade
-
-```sh
-$ saleor environment upgrade --help
-```
-
-Help output:
-
-```
-saleor environment upgrade [key|environment]
-
-Upgrade a Saleor version in a specific environment
-
-Positionals:
-  key, environment  key of the environment  [string]
-
-Options:
-      --json             Output the data as JSON  [boolean] [default: false]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  Saleor instance to work with  [string]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
-```
-
-#### environment clear
-
-```sh
-$ saleor environment clear --help
-```
-
-Help output:
-
-```
-saleor environment clear <key|environment>
-
-Clear database for environment
-
-Positionals:
-  key, environment  key of the environment  [string] [required]
-
-Options:
-      --json             Output the data as JSON  [boolean] [default: false]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  Saleor instance to work with  [string]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
+Examples:
+  saleor env maintenance
+  saleor env maintenance my-environment
+  saleor env maintenance my-environment --enable
+  saleor env maintenance my-environment --disable
 ```
 
 #### environment populate
@@ -690,6 +664,133 @@ Options:
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  Saleor instance to work with  [string]
       --saleor           specify the Saleor version  [string]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+```
+
+#### environment remove
+
+```sh
+$ saleor environment remove --help
+```
+
+Help output:
+
+```
+saleor environment remove [key|environment]
+
+Delete an environment
+
+Positionals:
+  key, environment  key of the environment  [string]
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+      --force            skip confirmation prompt  [boolean]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+```
+
+#### environment show
+
+```sh
+$ saleor environment show --help
+```
+
+Help output:
+
+```
+saleor environment show [key|environment]
+
+Show a specific environment
+
+Positionals:
+  key, environment  key of the environment  [string]
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+```
+
+#### environment switch
+
+```sh
+$ saleor environment switch --help
+```
+
+Help output:
+
+```
+saleor environment switch [key|environment]
+
+Make the provided environment the default one
+
+Positionals:
+  key, environment  key of the environment  [string]
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+```
+
+#### environment update
+
+```sh
+$ saleor environment update --help
+```
+
+Help output:
+
+```
+saleor environment update [key|environment]
+
+Update name of the environment
+
+Positionals:
+  key, environment  key of the environment  [string]
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+      --name             name of the environment  [string]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+
+Examples:
+  saleor env update
+  saleor env update my-environment
+  saleor env update my-environment --name=renamed-env
+```
+
+#### environment upgrade
+
+```sh
+$ saleor environment upgrade --help
+```
+
+Help output:
+
+```
+saleor environment upgrade [key|environment]
+
+Upgrade a Saleor version in a specific environment
+
+Positionals:
+  key, environment  key of the environment  [string]
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```

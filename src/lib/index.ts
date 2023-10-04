@@ -75,11 +75,14 @@ const doDELETERequest = (path: string, options?: OptionsOfTextResponseBody) =>
   got.delete(path, { ...options }).json();
 const doPUTRequest = (path: string, options?: OptionsOfTextResponseBody) =>
   got.put(path, { ...options }).json();
+const doPATCHRequest = (path: string, options?: OptionsOfTextResponseBody) =>
+  got.patch(path, { ...options }).json();
 
 export const GET = handleAuthAndConfig(doGETRequest);
 export const POST = handleAuthAndConfig(doPOSTRequest);
 export const PUT = handleAuthAndConfig(doPUTRequest);
 export const DELETE = handleAuthAndConfig(doDELETERequest);
+export const PATCH = handleAuthAndConfig(doPATCHRequest);
 
 export const API: Record<string, DefaultURLPath> = {
   User: () => 'user',
