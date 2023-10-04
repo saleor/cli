@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   DefaultTriggerResponse,
@@ -6,10 +6,6 @@ import {
   testOrganization,
   trigger,
 } from '../../helper';
-
-beforeAll(async () => {
-  await prepareEnvironment();
-});
 
 describe('storefront show', async () => {
   const command = 'saleor';
