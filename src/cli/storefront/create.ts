@@ -1,4 +1,4 @@
-import { access } from 'fs/promises';
+import fs from 'fs/promises';
 import chalk from 'chalk';
 import Debug from 'debug';
 import kebabCase from 'lodash.kebabcase';
@@ -35,7 +35,7 @@ export const builder: CommandBuilder = (_) =>
   _.positional('name', {
     type: 'string',
     demandOption: true,
-    default: 'saleor-demo',
+    default: 'saleor-storefront',
   })
     .option('demo', {
       type: 'boolean',
@@ -178,8 +178,13 @@ const prepareEnvironment = async (
   return environment;
 };
 
+const addHttps = (url: string) =>
+  url.startsWith('http://') || url.startsWith('https://')
+    ? url
+    : `https://${url}`;
+
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
-  await checkPnpmPresence('react-storefront project');
+  await checkPnpmPresence('storefront project');
 
   const { name, template, branch, instance } = argv;
 
@@ -197,10 +202,11 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   });
 
   if (instance) {
+    await fs.copyFile('.env.example', '.env');
     await replace.replaceInFile({
       files: '.env',
       from: /SALEOR_API_URL=.*/g,
-      to: `SALEOR_API_URL=${instance}/graphql/`,
+      to: `SALEOR_API_URL=${addHttps(instance)}/graphql/`,
     });
   }
 
@@ -232,7 +238,7 @@ const getFolderName = async (name: string): Promise<string> => {
 
 const dirExists = async (name: string): Promise<boolean> => {
   try {
-    await access(name);
+    await fs.access(name);
     return true;
   } catch (error) {
     return false;

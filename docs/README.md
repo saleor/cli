@@ -1139,7 +1139,7 @@ saleor storefront create [name]
 Bootstrap example [name]
 
 Positionals:
-  name  [string] [default: "saleor-demo"]
+  name  [string] [default: "saleor-storefront"]
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
@@ -1147,8 +1147,8 @@ Options:
   -u, --instance, --url  Saleor instance to work with  [string]
       --demo             specify demo process  [boolean] [default: false]
       --environment      specify environment id  [string]
-  -t, --template  [string] [default: "saleor/react-storefront"]
-  -b, --branch  [string] [default: "main"]
+  -t, --template  [string] [default: "saleor/storefront"]
+  -b, --branch  [string] [default: "canary"]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 ```
