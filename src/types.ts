@@ -107,6 +107,14 @@ export interface Environment {
   maintenance_mode: boolean;
   blocking_tasks_in_progress: boolean;
   disabled: boolean;
+  allowed_client_origins: string[];
+  allowed_cors_origins: null | string | string[];
+  protected: boolean;
+}
+
+export interface EnvironmentMaintenance extends BaseOptions {
+  enable?: boolean;
+  disable?: boolean;
 }
 
 export interface Task {
