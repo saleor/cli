@@ -20,7 +20,11 @@ import {
   obfuscateArgv,
   printlnSuccess,
 } from '../../lib/util.js';
-import { useOrganization, useToken } from '../../middleware/index.js';
+import {
+  useInstanceValidator,
+  useOrganization,
+  useToken,
+} from '../../middleware/index.js';
 import { StoreCreate, User } from '../../types.js';
 import { createEnvironment } from '../env/create.js';
 
@@ -178,11 +182,6 @@ const prepareEnvironment = async (
   return environment;
 };
 
-const addHttps = (url: string) =>
-  url.startsWith('http://') || url.startsWith('https://')
-    ? url
-    : `https://${url}`;
-
 export const createStorefront = async (argv: Arguments<StoreCreate>) => {
   await checkPnpmPresence('storefront project');
 
@@ -205,8 +204,8 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
     await fs.copyFile('.env.example', '.env');
     await replace.replaceInFile({
       files: '.env',
-      from: /SALEOR_API_URL=.*/g,
-      to: `SALEOR_API_URL=${addHttps(instance)}/graphql/`,
+      from: /NEXT_PUBLIC_SALEOR_API_URL=.*/g,
+      to: `NEXT_PUBLIC_SALEOR_API_URL=${instance}`,
     });
   }
 
@@ -244,3 +243,5 @@ const dirExists = async (name: string): Promise<boolean> => {
     return false;
   }
 };
+
+export const middlewares = [useInstanceValidator];

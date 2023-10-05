@@ -68,11 +68,24 @@ export const useToken = async ({ token }: Options) => {
   return opts;
 };
 
+export const useInstanceValidator = async (argv: Options) => {
+  const { instance } = argv;
+  if (instance) {
+    const instanceURL = await validateInstance(instance);
+    return {
+      ...argv,
+      instance: instanceURL,
+    };
+  }
+
+  return argv;
+};
+
 export const useInstanceConnector = async (argv: Options) => {
   const { instance } = argv;
 
   if (instance) {
-    const instanceURL = validateInstance(instance);
+    const instanceURL = await validateInstance(instance);
     const _argv = {
       ...(await useToken(argv)),
       instance: instanceURL,
