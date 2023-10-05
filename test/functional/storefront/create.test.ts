@@ -23,6 +23,50 @@ afterAll(
 
 describe('storefront create --demo', async () => {
   it(
+    'should create a storefront with a valid URL',
+    async () => {
+      const params = [
+        'storefront',
+        'create',
+        storefrontName,
+        '--url https://zaiste.saleor.cloud/graphql/',
+      ];
+      const { exitCode, output } = await trigger(
+        command,
+        params,
+        {},
+        { ...DefaultTriggerResponse, ...{ output: [storefrontName] } },
+      );
+
+      expect(exitCode).toBe(0);
+      expect(output.join()).toContain(storefrontName);
+    },
+    1000 * 60 * 10,
+  );
+
+  it(
+    'should not create a storefront with an invalid URL',
+    async () => {
+      const params = [
+        'storefront',
+        'create',
+        storefrontName,
+        '--url https://zaiste.saleor.cloud/raphql/',
+      ];
+      const { exitCode } = await trigger(
+        command,
+        params,
+        {},
+        DefaultTriggerResponse,
+      );
+      expect(exitCode).toBe(1);
+    },
+    1000 * 60 * 10,
+  );
+});
+
+describe('storefront create --demo', async () => {
+  it(
     'should create a demo storefront',
     async () => {
       const params = [

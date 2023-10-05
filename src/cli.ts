@@ -147,7 +147,7 @@ const parser = yargs(hideBin(process.argv))
   .option('instance', {
     alias: ['u', 'url'],
     type: 'string',
-    desc: 'Saleor instance to work with',
+    desc: 'Saleor instance API URL (must start with the protocol, i.e. https:// or http://)',
   })
   .strictCommands()
   .middleware([useOnlineChecker, useTelemetry(pkg.version)])

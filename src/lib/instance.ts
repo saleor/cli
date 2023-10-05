@@ -1,14 +1,29 @@
 import ora from 'ora';
+import { print } from 'graphql';
+import { got } from 'got';
 
 import { API, GET } from '../lib/index.js';
 import { Environment, Options, Organization } from '../types.js';
+import { Introspection } from '../generated/graphql.js';
 
-export const validateInstance = (instance: string) => {
+export const validateInstance = async (instance: string) => {
   try {
-    const { protocol, host } = new URL(instance);
-    return `${protocol}//${host}`;
+    // verify if instance is a valid URL
+    const { href } = new URL(instance);
+    const instanceURL = href;
+
+    // verify if instance is a valid GraphQL endpoint
+    await got
+      .post(instanceURL, {
+        json: {
+          query: print(Introspection),
+        },
+      })
+      .json();
+
+    return instanceURL;
   } catch (error) {
-    throw new Error('Provided URL is invalid');
+    throw new Error('Provided URL is not a valid GraphQL endpoint');
   }
 };
 

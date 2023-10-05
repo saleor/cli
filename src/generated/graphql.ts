@@ -256,3 +256,10 @@ export const GetWebhookSyncEventEnum = gql`
     }
   }
 `;
+export const Introspection = gql`
+  query Introspection {
+    __schema {
+      __typename
+    }
+  }
+`;
