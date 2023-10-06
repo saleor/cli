@@ -32,7 +32,7 @@ import {
   promptSaleorApp,
   promptWebhook,
 } from '../lib/util.js';
-import { CreatePromptResult, Environment, Job, Options } from '../types.js';
+import { CreatePromptResult, Environment, Options, Tasks } from '../types.js';
 
 const debug = Debug('saleor-cli:middleware');
 
@@ -499,8 +499,8 @@ export const useBlockingTasksChecker = async (argv: Options) => {
   );
 
   if (blockingTasksInProgress) {
-    const jobs = (await GET(API.Job, argv)) as Job[];
-    const pending = jobs
+    const jobs = (await GET(API.Task, argv)) as Tasks;
+    const pending = jobs.results
       .filter(
         ({ status, is_blocking: isBlocking }) =>
           isBlocking && ['IN_PROGRESS', 'PENDING'].includes(status),

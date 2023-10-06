@@ -30,6 +30,7 @@ export interface Options extends BaseOptions {
   saleorApiUrl?: string;
   appId?: string;
   permissions?: string[];
+  params?: string;
 }
 
 export interface CreatePromptResult {
@@ -130,6 +131,13 @@ export type Config = {
 export type ConfigMap = {
   [key: string]: Config;
 };
+
+export interface Tasks {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Job[];
+}
 
 export type Job = {
   job_name: string;
