@@ -51,18 +51,20 @@ export const handler = async (argv: Arguments<EnvironmentMaintenance>) => {
   }
 
   const { maintenanceMode } = await Enquirer.prompt<{
-    maintenanceMode: boolean;
+    maintenanceMode: string;
   }>({
     type: 'select',
     name: 'maintenanceMode',
     choices: [
-      { message: 'disable maintenance mode', name: '', value: false },
-      { message: 'enable maintenance mode', name: 'true', value: true },
+      { message: 'disable maintenance mode', name: 'disable' },
+      { message: 'enable maintenance mode', name: 'enable' },
     ],
     message: 'Choose an option',
   });
 
-  await updateEnvironment(argv, { maintenance_mode: Boolean(maintenanceMode) });
+  await updateEnvironment(argv, {
+    maintenance_mode: maintenanceMode === 'enable',
+  });
 };
 
 const updateEnvironment = async (
