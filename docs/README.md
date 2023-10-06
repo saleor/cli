@@ -40,6 +40,7 @@ Commands:
   saleor organization [command]  [aliases: org]
   saleor environment [command]  [aliases: env]
   saleor backup [command]
+  saleor task [command]
   saleor job [command]
   saleor project [command]
   saleor storefront [command]  [aliases: store]
@@ -96,6 +97,8 @@ for more information, find the documentation at https://saleor.io
   * [backup show](#backup-show)
   * [backup remove](#backup-remove)
   * [backup restore](#backup-restore)
+* [task](#task)
+  * [task list](#task-list)
 * [job](#job)
   * [job list](#job-list)
 * [project](#project)
@@ -937,6 +940,61 @@ Options:
   -h, --help                  Show help  [boolean]
 ```
 
+### task
+
+```sh
+$ saleor task --help
+```
+
+Help output:
+
+```
+saleor task [command]
+
+Commands:
+  saleor task list  List tasks
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+```
+
+#### task list
+
+```sh
+$ saleor task list --help
+```
+
+Help output:
+
+```
+saleor task list
+
+List tasks
+
+Options:
+      --json                        Output the data as JSON  [boolean] [default: false]
+      --short                       Output data as text  [boolean] [default: false]
+  -u, --instance, --url             Saleor instance to work with  [string]
+      --env  [string]
+      --page                        A page number within the paginated result set  [number]
+      --page-size, --page_size      Number of results to return per page  [number]
+      --is-blocking, --is_blocking  Filter by non/blocking tasks  [boolean]
+      --status                      Filter by status: active, completed, failed, successful  [string]
+  -V, --version                     Show version number  [boolean]
+  -h, --help                        Show help  [boolean]
+
+Examples:
+  saleor task list
+  saleor task list my-environment --page=2
+  saleor task list my-environment --page-size=100
+  saleor task list my-environment --is-blocking
+  saleor task list my-environment --status=active
+```
+
 ### job
 
 ```sh
@@ -949,7 +1007,7 @@ Help output:
 saleor job [command]
 
 Commands:
-  saleor job list  List jobs
+  saleor job list  List tasks
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
@@ -970,15 +1028,26 @@ Help output:
 ```
 saleor job list
 
-List jobs
+List tasks
 
 Options:
-      --json             Output the data as JSON  [boolean] [default: false]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  Saleor instance to work with  [string]
+      --json                        Output the data as JSON  [boolean] [default: false]
+      --short                       Output data as text  [boolean] [default: false]
+  -u, --instance, --url             Saleor instance to work with  [string]
       --env  [string]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
+      --page                        A page number within the paginated result set  [number]
+      --page-size, --page_size      Number of results to return per page  [number]
+      --is-blocking, --is_blocking  Filter by non/blocking tasks  [boolean]
+      --status                      Filter by status: active, completed, failed, successful  [string]
+  -V, --version                     Show version number  [boolean]
+  -h, --help                        Show help  [boolean]
+
+Examples:
+  saleor task list
+  saleor task list my-environment --page=2
+  saleor task list my-environment --page-size=100
+  saleor task list my-environment --is-blocking
+  saleor task list my-environment --status=active
 ```
 
 ### project

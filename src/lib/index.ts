@@ -8,7 +8,7 @@ import amplifyStagingConfig from '../aws-exports-staging.js'; // esl
 import { ConfigMap, Options } from '../types.js';
 import { Config } from './config.js';
 
-const debug = Debug('lib:index');
+const debug = Debug('saleor-cli:lib:index');
 
 export const configs: ConfigMap = {
   staging: {
@@ -97,8 +97,10 @@ export const API: Record<string, DefaultURLPath> = {
     `organizations/${_.organization}/environments/${_.environment}/populate-database`,
   ClearDatabase: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/clear-database`,
-  Job: (_) =>
-    `organizations/${_.organization}/environments/${_.environment}/jobs`,
+  Task: (_) =>
+    `organizations/${_.organization}/environments/${_.environment}/tasks${
+      _.params || ''
+    }`,
   TaskStatus: (_) => `service/task-status/${_.task}`,
   Backup: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/backups/${

@@ -19,7 +19,7 @@ import environment from './cli/env/index.js';
 import * as example from './cli/example.js';
 import github from './cli/github/index.js';
 import * as info from './cli/info.js';
-import job from './cli/job/index.js';
+import task from './cli/task/index.js';
 import * as login from './cli/login.js';
 import * as logout from './cli/logout.js';
 import * as open from './cli/open.js';
@@ -123,7 +123,8 @@ const parser = yargs(hideBin(process.argv))
   .command(['organization [command]', 'org'], '', organization)
   .command(['environment [command]', 'env'], '', environment)
   .command(['backup [command]'], '', backup)
-  .command(['job [command]'], '', job)
+  .command(['task [command]'], '', task)
+  .command(['job [command]'], '', task)
   .command(['project [command]'], '', project)
   .command(['storefront [command]', 'store'], '', storefront)
   .command(['telemetry [command]', 'tele'], '', telemetry)
