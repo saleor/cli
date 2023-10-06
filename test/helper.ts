@@ -3,6 +3,9 @@ import GitUrlParse from 'git-url-parse';
 import got from 'got';
 
 import { Config } from '../src/lib/config.js';
+import { API, GET, PATCH } from '../src/lib/index.js';
+import { Environment } from '../src/types.js';
+import { delay } from '../src/lib/util.js';
 
 export const currentDate = () => Date.now().toString();
 
@@ -11,6 +14,7 @@ export const command = 'node';
 export const buildPath = `${process.env.PWD}/dist/saleor.js`;
 export const testOrganization = 'devtools';
 export const testEnvironmentName = 'saleor-test';
+export const newTestEnvironmentName = 'updated-name';
 export const testProjectName = 'cli-test';
 export const region = 'us-east-1';
 interface DefaultTriggerResponse {
@@ -282,4 +286,88 @@ export const removeProject = async (projectName: string) => {
   console.log('params', params);
 
   await trigger(command, params, {});
+};
+
+export const getToken = async () => {
+  const { token } = await Config.get();
+  return token;
+};
+
+export const getEnvironment = async (envKey: string) => {
+  if (shouldMockTests) {
+    return {
+      key: envKey,
+      name: newTestEnvironmentName,
+      maintenance_mode: true,
+      protected: true,
+      blocking_tasks_in_progress: false,
+    };
+  }
+
+  const token = await getToken();
+
+  const environment = await (GET(API.Environment, {
+    environment: envKey,
+    organization: testOrganization,
+    token,
+  }) as Promise<Environment>);
+
+  return environment;
+};
+
+export const removeEnvironment = async (env: string) => {
+  const params = [
+    'env',
+    'remove',
+    env,
+    `--organization=${testOrganization}`,
+    '--force',
+  ];
+
+  console.log('params', params);
+
+  await trigger(command, params, {});
+};
+
+export const cleanEnvAfterUpdate = async (envKey: string) => {
+  if (shouldMockTests) {
+    return {
+      key: envKey,
+      name: testEnvironmentName,
+      maintenance_mode: false,
+      protected: false,
+    };
+  }
+
+  const token = await getToken();
+
+  await waitForBlockingTasks(envKey);
+
+  const environment = await (PATCH(
+    API.Environment,
+    { environment: envKey, organization: testOrganization, token },
+    {
+      json: {
+        maintenance_mode: false,
+        login: null,
+        password: null,
+        name: testEnvironmentName,
+      },
+    },
+  ) as Promise<Environment>);
+
+  await waitForBlockingTasks(envKey);
+
+  return environment;
+};
+
+export const waitForBlockingTasks = async (envKey: string) => {
+  const environment = await getEnvironment(envKey);
+  let { blocking_tasks_in_progress: blockingTasksInProgress } = environment;
+
+  do {
+    delay(1000);
+    const current = await getEnvironment(envKey);
+    blockingTasksInProgress = current.blocking_tasks_in_progress;
+  } while (blockingTasksInProgress);
 };
