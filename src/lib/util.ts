@@ -556,6 +556,15 @@ export const validatePresence = (value: string): boolean => {
   return true;
 };
 
+export const validateURL = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export const checkIfJobSucceeded = async (taskId: string): Promise<boolean> => {
   const result = (await GET(API.TaskStatus, { task: taskId })) as any;
   return result.status === 'SUCCEEDED';

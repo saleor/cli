@@ -7,15 +7,12 @@ import {
   getEnvironment,
   newTestEnvironmentName,
   prepareEnvironment,
-  removeEnvironment,
   testOrganization,
   trigger,
   waitForBlockingTasks,
 } from '../../helper';
 
 const envKey = await prepareEnvironment();
-
-afterAll(async () => removeEnvironment(envKey));
 
 describe('update environment', async () => {
   await waitForBlockingTasks(envKey);

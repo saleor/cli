@@ -17,6 +17,7 @@ import {
   formatConfirm,
   obfuscateArgv,
   println,
+  validateURL,
   without,
 } from '../../lib/util.js';
 import { interactiveSaleorApp } from '../../middleware/index.js';
@@ -64,14 +65,7 @@ export const handler = async (argv: Arguments<Options>) => {
       message: 'Target URL',
       initial: argv.targetUrl,
       required: true,
-      validate: (value) => {
-        try {
-          const _ = new URL(value);
-          return true;
-        } catch {
-          return false;
-        }
-      },
+      validate: (value) => validateURL(value),
       skip: !!argv.targetUrl,
     },
     {
