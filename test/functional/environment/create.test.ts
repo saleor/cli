@@ -1,15 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  clearProjects,
   command,
   currentDate,
   DefaultTriggerResponse,
+  prepareEnvironment,
   testOrganization,
   testProjectName,
   trigger,
 } from '../../helper';
 
 const envName = `test-env-${currentDate()}`;
+
+beforeAll(
+  async () => {
+    await clearProjects(true);
+    await prepareEnvironment();
+  },
+  1000 * 60 * 5,
+);
 
 describe('create new environment', async () => {
   it(
@@ -79,5 +89,44 @@ describe('create new environment', async () => {
     expect(output.join()).toContain(`name: ${envName}`);
     expect(output.join()).toContain(`domain: ${envName}`);
     expect(output.join()).toContain('database_population: sample');
+  });
+
+  it('`environment remove` removes environment', async () => {
+    const params = [
+      'environment',
+      'remove',
+      envName,
+      `--organization=${testOrganization}`,
+      '--force',
+    ];
+
+    const { exitCode } = await trigger(
+      command,
+      params,
+      {},
+      {
+        ...DefaultTriggerResponse,
+      },
+    );
+    expect(exitCode).toBe(0);
+  });
+
+  it('`env list` does not contain newly created env after removal', async () => {
+    const params = [
+      'environment',
+      'list',
+      `--organization=${testOrganization}`,
+    ];
+
+    const { exitCode, output } = await trigger(
+      command,
+      params,
+      {},
+      {
+        ...DefaultTriggerResponse,
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(output.join()).not.toContain(envName);
   });
 });

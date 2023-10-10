@@ -301,6 +301,8 @@ export const getEnvironment = async (envKey: string) => {
       maintenance_mode: true,
       protected: true,
       blocking_tasks_in_progress: false,
+      allowed_cors_origins: ['https://example.com', 'https://test.com'],
+      allowed_client_origins: ['https://example.com', 'https://test.com'],
     };
   }
 
@@ -336,6 +338,8 @@ export const cleanEnvAfterUpdate = async (envKey: string) => {
       name: testEnvironmentName,
       maintenance_mode: false,
       protected: false,
+      allowed_cors_origins: '*',
+      allowed_client_origins: [],
     };
   }
 

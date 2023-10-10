@@ -80,9 +80,11 @@ for more information, find the documentation at https://saleor.io
 * [environment](#environment)
   * [environment auth](#environment-auth)
   * [environment clear](#environment-clear)
+  * [environment cors](#environment-cors)
   * [environment create](#environment-create)
   * [environment list](#environment-list)
   * [environment maintenance](#environment-maintenance)
+  * [environment origins](#environment-origins)
   * [environment populate](#environment-populate)
   * [environment promote](#environment-promote)
   * [environment remove](#environment-remove)
@@ -452,9 +454,11 @@ saleor environment [command]
 Commands:
   saleor environment auth [key|environment]         Manage basic auth for a specific environment
   saleor environment clear <key|environment>        Clear database for environment
+  saleor environment cors [key|environment]         Manage environment's CORS
   saleor environment create [name]                  Create a new environment
   saleor environment list                           List environments
   saleor environment maintenance [key|environment]  Enable or disable maintenance mode in a specific environment
+  saleor environment origins [key|environment]      Manage environment's trusted client origins
   saleor environment populate [key|environment]     Populate database for environment
   saleor environment promote [key|environment]      Promote environment to production
   saleor environment remove [key|environment]       Delete an environment
@@ -526,6 +530,39 @@ Options:
   -u, --instance, --url  Saleor instance to work with  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+```
+
+#### environment cors
+
+```sh
+$ saleor environment cors --help
+```
+
+Help output:
+
+```
+saleor environment cors [key|environment]
+
+Manage environment's CORS
+
+Positionals:
+  key, environment  key of the environment  [string]
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+      --all              All origins are allowed  [boolean]
+      --dashboard        Only dashboard is allowed  [boolean]
+      --selected         Only specified origins are allowed  [array]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+
+Examples:
+  saleor env cors
+  saleor env cors my-environment --all
+  saleor env cors my-environment --dashboard
+  saleor env cors my-environment --selected="https://example.com"
 ```
 
 #### environment create
@@ -617,6 +654,35 @@ Examples:
   saleor env maintenance my-environment
   saleor env maintenance my-environment --enable
   saleor env maintenance my-environment --disable
+```
+
+#### environment origins
+
+```sh
+$ saleor environment origins --help
+```
+
+Help output:
+
+```
+saleor environment origins [key|environment]
+
+Manage environment's trusted client origins
+
+Positionals:
+  key, environment  key of the environment  [string]
+
+Options:
+      --json             Output the data as JSON  [boolean] [default: false]
+      --short            Output data as text  [boolean] [default: false]
+  -u, --instance, --url  Saleor instance to work with  [string]
+      --origin           Allowed domains  [array]
+  -V, --version          Show version number  [boolean]
+  -h, --help             Show help  [boolean]
+
+Examples:
+  saleor env origins
+  saleor env origins my-environment --origin=https://trusted-origin.com
 ```
 
 #### environment populate

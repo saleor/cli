@@ -13,15 +13,16 @@ import {
 
 const envKey = await prepareEnvironment();
 
-describe('update auth in environment', async () => {
+describe('update CORS origins in environment', async () => {
   await waitForBlockingTasks(envKey);
 
-  it('`env auth` enables the basic auth on the environment', async () => {
+  it('`env cors` updates the environments CORS origins', async () => {
     const params = [
       'env',
-      'auth',
+      'cors',
       envKey,
-      '--login=saleor',
+      '--selected="https://example.com"',
+      '--selected="https://test.com"',
       '--password=saleor',
       `--organization=${testOrganization}`,
     ];
@@ -37,7 +38,8 @@ describe('update auth in environment', async () => {
     expect(exitCode).toBe(0);
 
     const environment = await getEnvironment(envKey);
-    expect(environment.protected).toBeTruthy();
+    expect(environment.allowed_cors_origins).toHaveLength(2);
+    expect(environment.allowed_cors_origins).toContain('https://example.com');
   });
 
   await cleanEnvAfterUpdate(envKey);

@@ -1,4 +1,4 @@
-import { describe, expect, it, afterAll } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   cleanEnvAfterUpdate,
@@ -13,16 +13,16 @@ import {
 
 const envKey = await prepareEnvironment();
 
-describe('update auth in environment', async () => {
+describe('update trusted origins in environment', async () => {
   await waitForBlockingTasks(envKey);
 
-  it('`env auth` enables the basic auth on the environment', async () => {
+  it('`env origins` update trusted origins in the environment', async () => {
     const params = [
       'env',
-      'auth',
+      'origins',
       envKey,
-      '--login=saleor',
-      '--password=saleor',
+      '--origin="https://example.com"',
+      '--origin="https://test.com"',
       `--organization=${testOrganization}`,
     ];
 
@@ -37,7 +37,8 @@ describe('update auth in environment', async () => {
     expect(exitCode).toBe(0);
 
     const environment = await getEnvironment(envKey);
-    expect(environment.protected).toBeTruthy();
+    expect(environment.allowed_cors_origins).toHaveLength(2);
+    expect(environment.allowed_cors_origins).toContain('https://example.com');
   });
 
   await cleanEnvAfterUpdate(envKey);

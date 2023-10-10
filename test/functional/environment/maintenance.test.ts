@@ -9,12 +9,9 @@ import {
   testOrganization,
   trigger,
   waitForBlockingTasks,
-  removeEnvironment,
 } from '../../helper';
 
 const envKey = await prepareEnvironment();
-
-afterAll(async () => removeEnvironment(envKey));
 
 describe('update maintenance mode in the environment', async () => {
   await waitForBlockingTasks(envKey);
