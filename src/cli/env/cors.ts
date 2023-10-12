@@ -151,6 +151,8 @@ export const handler = async (argv: Arguments<Options>) => {
     (argv.selected as string[]) || (allowedCorsOrigins as string[]) || [];
   let addMore = true;
 
+  const addNewMsg = 'Add a new CORS origin';
+
   const { origins } = await Enquirer.prompt<{
     origins: string;
   }>([
@@ -159,7 +161,7 @@ export const handler = async (argv: Arguments<Options>) => {
       name: 'origins',
       message:
         'Define Selected Origins\n (use the arrows to navigate and the space bar to select)',
-      choices: [...selected, 'Add a new CORS origin'],
+      choices: [...selected, addNewMsg],
       initial: selected,
     },
   ]);
@@ -168,7 +170,7 @@ export const handler = async (argv: Arguments<Options>) => {
     if (origins.length === 0) {
       return;
     }
-    if (origins.includes('Add a new CORS origin')) {
+    if (origins.includes(addNewMsg)) {
       const form = await promptOrigin();
       selected.push(form.origin);
       addMore = form.addMore;
