@@ -2,9 +2,6 @@ import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import Enquirer from 'enquirer';
-import { ar } from 'date-fns/locale';
-import { error } from 'console';
-import chalk from 'chalk';
 import { API, PATCH } from '../../lib/index.js';
 import { obfuscateArgv, println, printlnSuccess } from '../../lib/util.js';
 import {
@@ -107,16 +104,16 @@ export const handler = async (argv: Arguments<Options>) => {
       message: 'Choose allowed API origins ',
       choices: [
         {
-          name: 'Allow all origins',
-          value: 'all',
+          message: 'Allow all origins',
+          name: 'all',
         },
         {
-          name: 'Selected Origins',
-          value: 'selected',
+          message: 'Selected Origins',
+          name: 'selected',
         },
         {
-          name: 'Dashboard only',
-          value: 'dashboard',
+          message: 'Dashboard only',
+          name: 'dashboard',
         },
       ],
       initial: () => {
@@ -162,7 +159,7 @@ export const handler = async (argv: Arguments<Options>) => {
       name: 'origins',
       message:
         'Define Selected Origins\n (use the arrows to navigate and the space bar to select)',
-      choices: [...selected, 'Add a new origin'],
+      choices: [...selected, 'Add a new CORS origin'],
       initial: selected,
     },
   ]);
