@@ -12,7 +12,7 @@ import { Options } from '../../types.js';
 const debug = Debug('saleor-cli:env:populate');
 
 export const command = 'populate [key|environment]';
-export const desc = 'Populate database for environment';
+export const desc = 'Populate database for an environment';
 
 export const builder: CommandBuilder = (_) =>
   _.positional('key', {

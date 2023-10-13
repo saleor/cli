@@ -6,7 +6,7 @@ import { useInstanceConnector } from '../middleware/index.js';
 import { Options } from '../types.js';
 
 export const command = 'open [resource]';
-export const desc = 'Open resource in browser';
+export const desc = 'Open resource in a browser';
 
 const resources: Record<string, string> = {
   dashboard: '/dashboard',
@@ -14,12 +14,10 @@ const resources: Record<string, string> = {
   docs: 'https://docs.saleor.io/docs/3.x/',
   'docs/api': 'https://docs.saleor.io/docs/3.x/developer',
   'docs/apps':
-    'https://docs.saleor.io/docs/3.x/developer/extending/apps/key-concepts',
+    'https://docs.saleor.io/docs/3.x/developer/extending/apps/quickstart',
   'docs/webhooks':
-    'https://docs.saleor.io/docs/3.x/developer/extending/apps/asynchronous-webhooks',
-  'docs/checkout':
-    'https://github.com/saleor/react-storefront/blob/canary/apps/saleor-app-checkout/README.md',
-  'docs/storefront': 'https://github.com/saleor/react-storefront',
+    'https://docs.saleor.io/docs/3.x/developer/extending/webhooks/overview',
+  'docs/storefront': 'https://github.com/saleor/storefront',
   'docs/cli': 'https://docs.saleor.io/docs/3.x/cli',
 };
 

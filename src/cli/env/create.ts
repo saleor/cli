@@ -62,15 +62,15 @@ export const builder: CommandBuilder = (_) =>
     })
     .option('login', {
       type: 'string',
-      desc: 'specify the api Basic Auth login',
+      desc: 'specify the API Basic Auth login',
     })
     .option('pass', {
       type: 'string',
-      desc: 'specify the api Basic Auth password',
+      desc: 'specify the API Basic Auth password',
     })
     .option('restore-from', {
       type: 'string',
-      desc: 'specify snapshot id to restore database from',
+      desc: 'specify snapshot id to restore the database from',
     })
     .option('skip-restrict', {
       type: 'boolean',

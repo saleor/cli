@@ -20,7 +20,7 @@ export const builder: CommandBuilder = (_) =>
   _.option('from', {
     type: 'string',
     demandOption: false,
-    desc: 'key of the snapshot',
+    desc: 'the key of the snapshot',
   }).option('skip-webhooks-update', {
     type: 'boolean',
     demandOption: false,

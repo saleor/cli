@@ -9,7 +9,7 @@ import { Options } from '../../types.js';
 const debug = Debug('saleor-cli:env:clear');
 
 export const command = 'clear <key|environment>';
-export const desc = 'Clear database for environment';
+export const desc = 'Clear database for an environment';
 
 export const builder: CommandBuilder = (_) =>
   _.positional('key', {

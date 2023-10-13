@@ -38,12 +38,12 @@ export const builder: CommandBuilder = (_) =>
   _.option('token', {
     type: 'string',
     demandOption: false,
-    desc: 'use with headless flag, create token at https://cloud.saleor.io/tokens',
+    desc: 'use with headless flag, create a token at https://cloud.saleor.io/tokens',
   })
     .option('headless', {
       type: 'boolean',
       default: false,
-      desc: 'login without the need of a browser',
+      desc: 'login without the need for a browser',
     })
     .example('saleor login', '')
     .example('saleor login --headless', '')
