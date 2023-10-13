@@ -14,7 +14,7 @@ import { getEnvironment, promptOrigin } from '../../lib/environment.js';
 const debug = Debug('saleor-cli:env:auth');
 
 export const command = 'origins [key|environment]';
-export const desc = 'Manage environment\'s trusted client origins';
+export const desc = 'Manage the environment\'s trusted client origins';
 
 export const builder: CommandBuilder = (_) =>
   _.positional('key', {

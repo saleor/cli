@@ -18,7 +18,7 @@ import { Options } from '../../types.js';
 const debug = Debug('saleor-cli:env:update');
 
 export const command = 'update [key|environment]';
-export const desc = 'Update name of the environment';
+export const desc = 'Update the name of the environment';
 
 export const builder: CommandBuilder = (_) =>
   _.positional('key', {

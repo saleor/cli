@@ -120,18 +120,38 @@ const parser = yargs(hideBin(process.argv))
   .command(example)
   .command(register)
   .command(trigger)
-  .command(['organization [command]', 'org'], '', organization)
-  .command(['environment [command]', 'env'], '', environment)
-  .command(['backup [command]'], '', backup)
-  .command(['task [command]'], '', task)
-  .command(['job [command]'], '', task)
-  .command(['project [command]'], '', project)
-  .command(['storefront [command]', 'store'], '', storefront)
-  .command(['telemetry [command]', 'tele'], '', telemetry)
-  .command(['webhook [command]', 'hook'], '', webhook)
-  .command(['app [command]'], '', app)
-  .command(['vercel [command]'], '', vercel)
-  .command(['github [command]'], '', github)
+  .command(
+    ['organization [command]', 'org'],
+    'Manage Saleor Cloud organizations',
+    organization,
+  )
+  .command(
+    ['environment [command]', 'env'],
+    'Manage Saleor Cloud environments',
+    environment,
+  )
+  .command(['backup [command]'], 'Manage Saleor Cloud backups', backup)
+  .command(['task [command]'], 'Manage Saleor Cloud tasks', task)
+  .command(['job [command]'], 'Manage Saleor Cloud tasks', task)
+  .command(['project [command]'], 'Manage Saleor Cloud projects', project)
+  .command(
+    ['storefront [command]', 'store'],
+    'Create a Next.js Storefront ',
+    storefront,
+  )
+  .command(
+    ['telemetry [command]', 'tele'],
+    'Manage telemetry preferences',
+    telemetry,
+  )
+  .command(
+    ['webhook [command]', 'hook'],
+    'Manage the environment\'s webhooks',
+    webhook,
+  )
+  .command(['app [command]'], 'Manage Saleor Apps', app)
+  .command(['vercel [command]'], 'Integrate with Vercel', vercel)
+  .command(['github [command]'], 'Integrate with GitHub', github)
   .command(['dev [command]'], false, dev)
   .command(open)
   .option('json', {

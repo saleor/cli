@@ -37,19 +37,19 @@ Commands:
   saleor example [name]          Setup an official Saleor example locally
   saleor register                Create a Saleor Cloud account  [aliases: signup]
   saleor trigger [event]         This triggers a Saleor event
-  saleor organization [command]  [aliases: org]
-  saleor environment [command]  [aliases: env]
-  saleor backup [command]
-  saleor task [command]
-  saleor job [command]
-  saleor project [command]
-  saleor storefront [command]  [aliases: store]
-  saleor telemetry [command]  [aliases: tele]
-  saleor webhook [command]  [aliases: hook]
-  saleor app [command]
-  saleor vercel [command]
-  saleor github [command]
-  saleor open [resource]         Open resource in browser
+  saleor organization [command]  Manage Saleor Cloud organizations  [aliases: org]
+  saleor environment [command]   Manage Saleor Cloud environments  [aliases: env]
+  saleor backup [command]        Manage Saleor Cloud backups
+  saleor task [command]          Manage Saleor Cloud tasks
+  saleor job [command]           Manage Saleor Cloud tasks
+  saleor project [command]       Manage Saleor Cloud projects
+  saleor storefront [command]    Create a Next.js Storefront  [aliases: store]
+  saleor telemetry [command]     Manage telemetry preferences  [aliases: tele]
+  saleor webhook [command]       Manage the environment's webhooks  [aliases: hook]
+  saleor app [command]           Manage Saleor Apps
+  saleor vercel [command]        Integrate with Vercel
+  saleor github [command]        Integrate with GitHub
+  saleor open [resource]         Open resource in a browser
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
@@ -196,8 +196,8 @@ Options:
       --json             Output the data as JSON  [boolean] [default: false]
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
-      --token            use with headless flag, create token at https://cloud.saleor.io/tokens  [string]
-      --headless         login without the need of a browser  [boolean] [default: false]
+      --token            use with headless flag, create a token at https://cloud.saleor.io/tokens  [string]
+      --headless         login without the need for a browser  [boolean] [default: false]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
@@ -312,6 +312,8 @@ Help output:
 
 ```
 saleor organization [command]
+
+Manage Saleor Cloud organizations
 
 Commands:
   saleor organization show [slug|organization]         Show a specific organization
@@ -454,20 +456,22 @@ Help output:
 ```
 saleor environment [command]
 
+Manage Saleor Cloud environments
+
 Commands:
   saleor environment auth [key|environment]         Manage basic auth for a specific environment
-  saleor environment clear <key|environment>        Clear database for environment
+  saleor environment clear <key|environment>        Clear database for an environment
   saleor environment cors [key|environment]         Manage environment's CORS
   saleor environment create [name]                  Create a new environment
   saleor environment list                           List environments
   saleor environment maintenance [key|environment]  Enable or disable maintenance mode in a specific environment
-  saleor environment origins [key|environment]      Manage environment's trusted client origins
-  saleor environment populate [key|environment]     Populate database for environment
+  saleor environment origins [key|environment]      Manage the environment's trusted client origins
+  saleor environment populate [key|environment]     Populate database for an environment
   saleor environment promote [key|environment]      Promote environment to production
   saleor environment remove [key|environment]       Delete an environment
   saleor environment show [key|environment]         Show a specific environment
   saleor environment switch [key|environment]       Make the provided environment the default one
-  saleor environment update [key|environment]       Update name of the environment
+  saleor environment update [key|environment]       Update the name of the environment
   saleor environment upgrade [key|environment]      Upgrade a Saleor version in a specific environment
 
 Options:
@@ -522,7 +526,7 @@ Help output:
 ```
 saleor environment clear <key|environment>
 
-Clear database for environment
+Clear database for an environment
 
 Positionals:
   key, environment  key of the environment  [string] [required]
@@ -592,9 +596,9 @@ Options:
       --database         specify how to populate the database  [string]
       --saleor           specify the Saleor version  [string]
       --domain           specify the domain for the environment  [string]
-      --login            specify the api Basic Auth login  [string]
-      --pass             specify the api Basic Auth password  [string]
-      --restore-from     specify snapshot id to restore database from  [string]
+      --login            specify the API Basic Auth login  [string]
+      --pass             specify the API Basic Auth password  [string]
+      --restore-from     specify snapshot id to restore the database from  [string]
       --skip-restrict    skip Basic Auth restriction prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
@@ -670,7 +674,7 @@ Help output:
 ```
 saleor environment origins [key|environment]
 
-Manage environment's trusted client origins
+Manage the environment's trusted client origins
 
 Positionals:
   key, environment  key of the environment  [string]
@@ -699,7 +703,7 @@ Help output:
 ```
 saleor environment populate [key|environment]
 
-Populate database for environment
+Populate database for an environment
 
 Positionals:
   key, environment  key of the environment  [string]
@@ -821,7 +825,7 @@ Help output:
 ```
 saleor environment update [key|environment]
 
-Update name of the environment
+Update the name of the environment
 
 Positionals:
   key, environment  key of the environment  [string]
@@ -874,6 +878,8 @@ Help output:
 
 ```
 saleor backup [command]
+
+Manage Saleor Cloud backups
 
 Commands:
   saleor backup list [key|environment]    List backups of the environment
@@ -1000,7 +1006,7 @@ Options:
       --json                  Output the data as JSON  [boolean] [default: false]
       --short                 Output data as text  [boolean] [default: false]
   -u, --instance, --url       Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
-      --from                  key of the snapshot  [string]
+      --from                  the key of the snapshot  [string]
       --skip-webhooks-update  skip webhooks update prompt  [boolean]
   -V, --version               Show version number  [boolean]
   -h, --help                  Show help  [boolean]
@@ -1016,6 +1022,8 @@ Help output:
 
 ```
 saleor task [command]
+
+Manage Saleor Cloud tasks
 
 Commands:
   saleor task list  List tasks
@@ -1072,6 +1080,8 @@ Help output:
 ```
 saleor job [command]
 
+Manage Saleor Cloud tasks
+
 Commands:
   saleor job list  List tasks
 
@@ -1126,6 +1136,8 @@ Help output:
 
 ```
 saleor project [command]
+
+Manage Saleor Cloud projects
 
 Commands:
   saleor project list            List projects
@@ -1248,6 +1260,8 @@ Help output:
 ```
 saleor storefront [command]
 
+Create a Next.js Storefront
+
 Commands:
   saleor storefront create [name]  Bootstrap example [name]
   saleor storefront deploy         Deploy this `react-storefront` to Vercel
@@ -1325,6 +1339,8 @@ Help output:
 
 ```
 saleor telemetry [command]
+
+Manage telemetry preferences
 
 Commands:
   saleor telemetry disable  Disable the telemetry
@@ -1412,6 +1428,8 @@ Help output:
 
 ```
 saleor webhook [command]
+
+Manage the environment's webhooks
 
 Commands:
   saleor webhook list     List webhooks for an environment
@@ -1550,6 +1568,8 @@ Help output:
 
 ```
 saleor app [command]
+
+Manage Saleor Apps
 
 Commands:
   saleor app list               List installed Saleor Apps for an environment
@@ -1818,6 +1838,8 @@ Help output:
 ```
 saleor vercel [command]
 
+Integrate with Vercel
+
 Commands:
   saleor vercel login  Add integration for Saleor CLI
 
@@ -1860,6 +1882,8 @@ Help output:
 
 ```
 saleor github [command]
+
+Integrate with GitHub
 
 Commands:
   saleor github login  Add integration for Saleor CLI
@@ -1904,10 +1928,10 @@ Help output:
 ```
 saleor open [resource]
 
-Open resource in browser
+Open resource in a browser
 
 Positionals:
-  resource  [string] [choices: "dashboard", "api", "docs", "docs/api", "docs/apps", "docs/webhooks", "docs/checkout", "docs/storefront", "docs/cli"]
+  resource  [string] [choices: "dashboard", "api", "docs", "docs/api", "docs/apps", "docs/webhooks", "docs/storefront", "docs/cli"]
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
