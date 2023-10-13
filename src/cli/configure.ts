@@ -76,7 +76,7 @@ const chooseOrganization = async (token: string | undefined) => {
       name: 'orgSetup',
       initial: 'yes',
       format: formatConfirm,
-      message: 'Would you like to choose the default organization?',
+      message: 'Would you like to select a default organization?',
     })) as { orgSetup: boolean };
 
     if (orgSetup) {
@@ -101,7 +101,7 @@ const chooseEnv = async (
       name: 'envSetup',
       initial: 'yes',
       format: formatConfirm,
-      message: 'Would you like to choose the default environment',
+      message: 'Would you like to select a default environment',
     })) as { envSetup: boolean };
 
     if (envSetup) {
