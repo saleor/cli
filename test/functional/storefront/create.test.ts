@@ -57,7 +57,7 @@ describe('storefront create --demo', async () => {
         command,
         params,
         {},
-        DefaultTriggerResponse,
+        { ...DefaultTriggerResponse, ...{ exitCode: 1 } },
       );
       expect(exitCode).toBe(1);
     },
