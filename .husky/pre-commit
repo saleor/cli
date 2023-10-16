@@ -2,5 +2,5 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 node './dist/saleor.js' dev docs
-git add docs/README.md
+git add docs/
 npx lint-staged
