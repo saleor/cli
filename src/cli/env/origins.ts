@@ -22,14 +22,14 @@ export const builder: CommandBuilder = (_) =>
     demandOption: false,
     desc: 'key of the environment',
   })
-    .option('origin', {
+    .option('origins', {
       type: 'array',
       demandOption: false,
       desc: 'Allowed domains',
     })
     .example('saleor env origins', '')
     .example(
-      'saleor env origins my-environment --origin=https://trusted-origin.com',
+      'saleor env origins my-environment --origins=https://trusted-origin.com',
       '',
     );
 
@@ -39,10 +39,10 @@ export const handler = async (argv: Arguments<Options>) => {
   const { allowed_client_origins: allowedClientOrigins } =
     await getEnvironment(argv);
 
-  if (((argv.origin as undefined | string[]) || [])?.length > 0) {
+  if (((argv.origins as undefined | string[]) || [])?.length > 0) {
     await PATCH(API.Environment, argv, {
       json: {
-        allowed_client_origins: argv.origin,
+        allowed_client_origins: argv.origins,
       },
     });
 

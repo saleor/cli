@@ -683,13 +683,13 @@ Options:
       --json             Output the data as JSON  [boolean] [default: false]
       --short            Output data as text  [boolean] [default: false]
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
-      --origin           Allowed domains  [array]
+      --origins          Allowed domains  [array]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
 
 Examples:
   saleor env origins
-  saleor env origins my-environment --origin=https://trusted-origin.com
+  saleor env origins my-environment --origins=https://trusted-origin.com
 ```
 
 #### environment populate
