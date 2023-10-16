@@ -169,6 +169,12 @@ const parser = yargs(hideBin(process.argv))
 
       try {
         const errors = JSON.parse(body);
+        if (errors.detail === 'Invalid token.') {
+          await Config.reset();
+          console.error(chalk.red('Invalid or expired token. Please login.'));
+          return;
+        }
+
         console.error(
           emphasize.highlight('yaml', yaml.stringify({ errors }), {
             attr: chalk.red,
