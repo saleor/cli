@@ -278,7 +278,7 @@ packages:
       '@babel/generator': 7.23.0
       '@babel/parser': 7.23.0
       '@babel/runtime': 7.23.1
-      '@babel/traverse': 7.23.0
+      '@babel/traverse': 7.23.2
       '@babel/types': 7.23.0
       babel-preset-fbjs: 3.4.0(@babel/core@7.23.0)
       chalk: 4.1.2
@@ -329,7 +329,7 @@ packages:
       '@babel/helpers': 7.23.1
       '@babel/parser': 7.23.0
       '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.0
+      '@babel/traverse': 7.23.2
       '@babel/types': 7.23.0
       convert-source-map: 2.0.0
       debug: 4.3.4(supports-color@8.1.1)
@@ -343,7 +343,7 @@ packages:
     resolution: {integrity: sha512-W1lG5vUwFvfMd8HVXqdfbuG7RuaSrTCCD8cl8fP8wOivdbtbIg2Db3IWUcgvfxKbbn6ZBGYRW/Zk1MIwK49mgw==}
     engines: {node: '>=6.9.0'}
     dependencies:
-      '@babel/types': 7.19.0
+      '@babel/types': 7.23.0
       '@jridgewell/gen-mapping': 0.3.3
       jsesc: 2.5.2
     dev: true
@@ -495,7 +495,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.0
+      '@babel/traverse': 7.23.2
       '@babel/types': 7.23.0
     transitivePeerDependencies:
       - supports-color
@@ -513,7 +513,7 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
     dependencies:
-      '@babel/types': 7.19.0
+      '@babel/types': 7.23.0
     dev: true
 
   /@babel/parser@7.23.0:
@@ -832,8 +832,8 @@ packages:
       '@babel/parser': 7.23.0
       '@babel/types': 7.23.0
 
-  /@babel/traverse@7.23.0:
-    resolution: {integrity: sha512-t/QaEvyIoIkwzpiZ7aoSKK8kObQYeF7T2v+dazAYCb8SXtp58zEVkWW7zAnju8FNKNdr4ScAOEDmMItbyOmEYw==}
+  /@babel/traverse@7.23.2:
+    resolution: {integrity: sha512-azpe59SQ48qG6nu2CzcMLbxUudtN+dOM9kDbUqGq3HXUJRlo7i8fvPoxQUzYgLZ4cMVmuZgm8vvBpNeRhd6XSw==}
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/code-frame': 7.22.13
@@ -1625,7 +1625,7 @@ packages:
       '@babel/core': 7.23.0
       '@babel/parser': 7.23.0
       '@babel/plugin-syntax-import-assertions': 7.22.5(@babel/core@7.23.0)
-      '@babel/traverse': 7.23.0
+      '@babel/traverse': 7.23.2
       '@babel/types': 7.23.0
       '@graphql-tools/utils': 10.0.6(graphql@16.8.1)
       graphql: 16.8.1
@@ -6529,7 +6529,7 @@ packages:
       type-fest: 2.19.0
     dev: true
 
-  /next@13.1.1(@babel/core@7.23.0)(react-dom@18.2.0)(react@18.2.0):
+  /next@13.1.1(@babel/core@7.23.0)(react-dom@16.14.0)(react@16.14.0):
     resolution: {integrity: sha512-R5eBAaIa3X7LJeYvv1bMdGnAVF4fVToEjim7MkflceFPuANY3YyvFxXee/A+acrSYwYPvOvf7f6v/BM/48ea5w==}
     engines: {node: '>=14.6.0'}
     hasBin: true
@@ -6551,9 +6551,9 @@ packages:
       '@swc/helpers': 0.4.14
       caniuse-lite: 1.0.30001546
       postcss: 8.4.14
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
-      styled-jsx: 5.1.1(@babel/core@7.23.0)(react@18.2.0)
+      react: 16.14.0
+      react-dom: 16.14.0(react@16.14.0)
+      styled-jsx: 5.1.1(@babel/core@7.23.0)(react@16.14.0)
     optionalDependencies:
       '@next/swc-android-arm-eabi': 13.1.1
       '@next/swc-android-arm64': 13.1.1
@@ -7206,7 +7206,6 @@ packages:
       loose-envify: 1.4.0
       object-assign: 4.1.1
       react-is: 16.13.1
-    dev: true
 
   /proto-list@1.2.4:
     resolution: {integrity: sha512-vtK/94akxsTMhe0/cbfpR+syPuszcuwhqVjJq26CuNDgFGj682oRBXOP5MJpv2r7JtE8MsiepGIqvvOTBwn2vA==}
@@ -7296,21 +7295,9 @@ packages:
       prop-types: 15.8.1
       react: 16.14.0
       scheduler: 0.19.1
-    dev: true
-
-  /react-dom@18.2.0(react@18.2.0):
-    resolution: {integrity: sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g==}
-    peerDependencies:
-      react: ^18.2.0
-    dependencies:
-      loose-envify: 1.4.0
-      react: 18.2.0
-      scheduler: 0.23.0
-    dev: false
 
   /react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
-    dev: true
 
   /react-is@18.2.0:
     resolution: {integrity: sha512-xWGDIW6x921xtzPkhiULtthJHoJvBbF3q26fzloPCK0hsvxtPVelvftw3zjbHWSkR2km9Z+4uxbDDK/6Zw9B8w==}
@@ -7338,14 +7325,6 @@ packages:
       loose-envify: 1.4.0
       object-assign: 4.1.1
       prop-types: 15.8.1
-    dev: true
-
-  /react@18.2.0:
-    resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      loose-envify: 1.4.0
-    dev: false
 
   /read@1.0.7:
     resolution: {integrity: sha512-rSOKNYUmaxy0om1BNjMN4ezNT6VKK+2xF4GBhc81mkH7L60i6dp8qPYrkndNLT3QPphoII3maL9PVC9XmhHwVQ==}
@@ -7572,7 +7551,7 @@ packages:
       next: 13.1.1
     dependencies:
       busboy: 1.6.0
-      next: 13.1.1(@babel/core@7.23.0)(react-dom@18.2.0)(react@18.2.0)
+      next: 13.1.1(@babel/core@7.23.0)(react-dom@16.14.0)(react@16.14.0)
       tslog: 4.9.2
       zod: 3.22.4
     dev: false
@@ -7676,13 +7655,6 @@ packages:
     dependencies:
       loose-envify: 1.4.0
       object-assign: 4.1.1
-    dev: true
-
-  /scheduler@0.23.0:
-    resolution: {integrity: sha512-CtuThmgHNg7zIZWAXi3AsyIzA3n4xx7aNyjwC2VJldO2LMVDhFK+63xGqq6CsJH4rTAt6/M+N4GhZiDYPx9eUw==}
-    dependencies:
-      loose-envify: 1.4.0
-    dev: false
 
   /scuid@1.1.0:
     resolution: {integrity: sha512-MuCAyrGZcTLfQoH2XoBlQ8C6bzwN88XT/0slOGz0pn8+gIP85BOAfYa44ZXQUTOwRwPU0QvgU+V+OSajl/59Xg==}
@@ -8087,7 +8059,7 @@ packages:
       acorn: 8.10.0
     dev: true
 
-  /styled-jsx@5.1.1(@babel/core@7.23.0)(react@18.2.0):
+  /styled-jsx@5.1.1(@babel/core@7.23.0)(react@16.14.0):
     resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -8102,7 +8074,7 @@ packages:
     dependencies:
       '@babel/core': 7.23.0
       client-only: 0.0.1
-      react: 18.2.0
+      react: 16.14.0
     dev: false
 
   /supports-color@5.5.0:
