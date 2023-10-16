@@ -29,7 +29,7 @@ describe('storefront create --demo', async () => {
         'storefront',
         'create',
         storefrontName,
-        '--url https://zaiste.saleor.cloud/graphql/',
+        '--url="https://zaiste.saleor.cloud/graphql/"',
       ];
       const { exitCode, output } = await trigger(
         command,
@@ -51,7 +51,7 @@ describe('storefront create --demo', async () => {
         'storefront',
         'create',
         storefrontName,
-        '--url https://zaiste.saleor.cloud/raphql/',
+        '--url="https://zaiste.saleor.cloud/raphql/"',
       ];
       const { exitCode } = await trigger(
         command,
