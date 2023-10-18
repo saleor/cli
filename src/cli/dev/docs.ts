@@ -308,7 +308,7 @@ const overview = [
   '**Alias:** `-u`, `--url`',
   '',
   '```bash',
-  'saleor app install --instance="https://vercel.saleor.cloud"',
+  'saleor app install --instance="https://vercel.saleor.cloud/graphql/"',
   '```',
   '',
   '### --version',
