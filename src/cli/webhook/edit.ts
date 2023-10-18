@@ -29,7 +29,6 @@ export const builder = NoCommandBuilderSetup;
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
   const { environment, webhookID, instance } = argv;
-  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   const query = `query getWebhook($id: ID!) {
@@ -51,7 +50,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const {
     data: { webhook },
   } = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query,
@@ -94,7 +93,7 @@ export const handler = async (argv: Arguments<Options>) => {
   ]);
 
   await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(WebhookUpdate),

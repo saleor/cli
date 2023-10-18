@@ -32,10 +32,9 @@ export const doSaleorAppDelete = async (argv: any) => {
   const headers = await Config.getBearerHeader();
 
   const { instance, appId: app } = argv;
-  const endpoint = `${instance}/graphql/`;
 
   const { data }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(AppDelete),
@@ -53,7 +52,6 @@ export const doSaleorAppDelete = async (argv: any) => {
 
 export const doSaleorAppInstall = async (argv: any) => {
   const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   if (!argv.manifestURL) {
@@ -87,7 +85,7 @@ export const doSaleorAppInstall = async (argv: any) => {
 
   if (!argv.viaDashboard) {
     const { data, errors }: any = await got
-      .post(endpoint, {
+      .post(instance, {
         headers,
         json: {
           query: print(AppInstall),
@@ -139,11 +137,10 @@ export const doSaleorAppInstall = async (argv: any) => {
 };
 
 const waitForAppInstallation = async (argv: any, id: string) => {
-  const endpoint = `${argv.instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
-    .post(endpoint, {
+    .post(argv.instance, {
       headers,
       json: {
         query: print(AppsInstallations),
@@ -180,11 +177,10 @@ export const buildManifestURL = (path: string, origin: string) => {
 };
 
 export const fetchSaleorAppList = async (argv: any) => {
-  const endpoint = `${argv.instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
-    .post(endpoint, {
+    .post(argv.instance, {
       headers,
       json: {
         query: print(GetApps),

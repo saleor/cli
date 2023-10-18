@@ -119,11 +119,10 @@ export const handler = async (argv: Arguments<Options>) => {
   ]);
 
   const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   const { data }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(WebhookCreate),

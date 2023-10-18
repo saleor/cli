@@ -21,7 +21,10 @@ const isHttpBasicAuthProtected = (response: Response) => {
 const getAuth = async (argv: Arguments<Options>) => {
   console.log('The selected environment is restricted with Basic Auth');
   const { token } = await Config.get();
-  const user = (await GET(API.User, { token })) as User;
+  const user = (await GET(API.User, {
+    token,
+    instance: argv.instance,
+  })) as User;
 
   const data = await Enquirer.prompt<{ username: string; password: string }>([
     {
@@ -66,15 +69,15 @@ const checkAuth = async (endpoint: string, argv: Arguments<Options>) => {
 };
 
 export const POST = async (
-  endpoint: string,
+  instance: string,
   headers: Record<string, string>,
   json: Record<string, unknown>,
   argv: Arguments<Options>,
 ) => {
-  const auth = await checkAuth(endpoint, argv);
+  const auth = await checkAuth(instance, argv);
 
   const { data } = await got
-    .post(endpoint, {
+    .post(instance, {
       headers: {
         ...headers,
         ...auth,

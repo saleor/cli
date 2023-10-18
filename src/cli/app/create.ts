@@ -58,15 +58,14 @@ export const handler = async (argv: Arguments<any>) => {
   debug(`Using the name: ${name}`);
 
   const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
-  const availablePermissions = await getPermissionsEnum(endpoint);
+  const availablePermissions = await getPermissionsEnum(instance);
 
   const permissions =
     argv.permissions ?? (await choosePermissions(availablePermissions, 0));
 
   const { data }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(AppCreate),

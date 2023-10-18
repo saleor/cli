@@ -2,7 +2,7 @@ export interface BaseOptions {
   token?: string;
   organization?: string;
   environment?: string;
-  instance?: string;
+  instance: string;
   json?: boolean;
 }
 

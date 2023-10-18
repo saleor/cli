@@ -119,7 +119,7 @@ export const useInstanceAttacher = async (argv: Options) => {
 
   return {
     ...argv,
-    instance: `https://${instance.domain}`,
+    instance: `https://${instance.domain}/graphql/`,
   };
 };
 
@@ -353,11 +353,8 @@ mutation login($email: String!, $password: String!) {
       message: 'Your password?',
     });
 
-    const { instance } = argv;
-    const endpoint = `${instance}/graphql/`;
-
     const { data, errors }: any = await got
-      .post(endpoint, {
+      .post(argv.instance, {
         json: {
           query: doLogin,
           variables: { email, password },

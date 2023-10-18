@@ -49,6 +49,10 @@ Options:
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor backup list
+  saleor backup list --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### backup create
@@ -96,6 +100,11 @@ Options:
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor backup show
+  saleor backup show backup-key
+  saleor backup show backup-key --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### backup remove
@@ -121,6 +130,11 @@ Options:
       --force            skip confirmation prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor backup remove
+  saleor backup remove backup-key --force
+  saleor backup remove backup-key --force --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### backup restore
@@ -144,4 +158,9 @@ Options:
       --skip-webhooks-update  skip webhooks update prompt  [boolean]
   -V, --version               Show version number  [boolean]
   -h, --help                  Show help  [boolean]
+
+Examples:
+  saleor backup restore
+  saleor backup restore --from="backup-key" --skip-webhooks-update
+  saleor backup restore --from="backup-key" --skip-webhooks-update --organization="organization-slug" --environment="env-id-or-name"
 ```

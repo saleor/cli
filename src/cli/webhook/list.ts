@@ -17,12 +17,11 @@ export const desc = 'List webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
-  const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
+  const { instance, json } = argv;
   const headers = await Config.getBearerHeader();
 
   const { data }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(WebhookList),
@@ -30,7 +29,7 @@ export const handler = async (argv: Arguments<Options>) => {
     })
     .json();
 
-  const apps = getAppsFromResult(data, argv.json);
+  const apps = getAppsFromResult(data, json);
 
   const webhookList = apps.map((app: any) => app.node.webhooks).flat();
 
@@ -50,7 +49,7 @@ export const handler = async (argv: Arguments<Options>) => {
     process.exit(0);
   }
 
-  if (argv.json) {
+  if (json) {
     console.log(JSON.stringify(webhookList, null, 2));
     return;
   }

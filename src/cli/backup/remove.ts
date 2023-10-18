@@ -20,10 +20,17 @@ export const builder: CommandBuilder = (_) =>
     type: 'string',
     demandOption: false,
     desc: 'key of the backup',
-  }).option('force', {
-    type: 'boolean',
-    desc: 'skip confirmation prompt',
-  });
+  })
+    .option('force', {
+      type: 'boolean',
+      desc: 'skip confirmation prompt',
+    })
+    .example('saleor backup remove', '')
+    .example('saleor backup remove backup-key --force', '')
+    .example(
+      'saleor backup remove backup-key --force --organization="organization-slug" --environment="env-id-or-name"',
+      '',
+    );
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
