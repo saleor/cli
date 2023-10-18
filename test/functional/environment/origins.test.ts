@@ -21,8 +21,8 @@ describe('update trusted origins in environment', async () => {
       'env',
       'origins',
       envKey,
-      '--origin="https://example.com"',
-      '--origin="https://test.com"',
+      '--origins="https://example.com"',
+      '--origins="https://test.com"',
       `--organization=${testOrganization}`,
     ];
 
