@@ -47,17 +47,15 @@ export const handler = async (argv: Arguments<Options>) => {
   printContext(argv);
 
   const { instance, appId, json } = argv;
-  const endpoint = `${instance}/graphql/`;
-  debug(`Saleor endpoint: ${endpoint}`);
 
-  const { app, apps } = await getSaleorApp({ endpoint, appId, json });
+  const { app, apps } = await getSaleorApp({ instance, appId, json });
   const permissions =
-    argv.permissions ?? (await getPermissions(endpoint, apps, app));
+    argv.permissions ?? (await getPermissions(instance, apps, app));
 
   debug(`Attempting to update the permissions for the app: ${app}`);
   const headers = await Config.getBearerHeader();
   await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(AppUpdate),
@@ -83,7 +81,7 @@ export const choosePermissions = async (choices: any, initial: number) => {
   return permissions;
 };
 
-export const getPermissionsEnum = async (endpoint: string) => {
+export const getPermissionsEnum = async (instance: string) => {
   const headers = await Config.getBearerHeader();
   debug('Fetching permission enum list');
   const {
@@ -91,7 +89,7 @@ export const getPermissionsEnum = async (endpoint: string) => {
       __type: { enumValues },
     },
   }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(GetPermissionEnum),
@@ -104,7 +102,7 @@ export const getPermissionsEnum = async (endpoint: string) => {
 };
 
 const getPermissions = async (
-  endpoint: string,
+  instance: string,
   apps: any,
   app: string | undefined,
 ) => {
@@ -113,7 +111,7 @@ const getPermissions = async (
     process.exit(0);
   }
 
-  const enumValues = await getPermissionsEnum(endpoint);
+  const enumValues = await getPermissionsEnum(instance);
 
   const choices2 = enumValues.map((node: any) => ({
     name: node.name,

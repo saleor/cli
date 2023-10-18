@@ -65,11 +65,8 @@ export const handler = async (argv: Arguments<Deploy>) => {
   const vercel = new Vercel(vercelToken);
   const repoUrl = await getRepoUrl(name, argv.githubPrompt);
 
-  const endpoint = `${argv.instance!}/graphql/`;
-  debug(`Saleor endpoint: ${endpoint}`);
-
   const envs = {
-    SALEOR_API_URL: endpoint,
+    SALEOR_API_URL: argv.instance,
   };
 
   console.log('\nDeploying Storefront to Vercel');

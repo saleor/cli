@@ -39,8 +39,7 @@ export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const { instance, appId, json } = argv;
-  const endpoint = `${instance}/graphql/`;
-  const { app } = await getSaleorApp({ endpoint, appId, json });
+  const { app } = await getSaleorApp({ instance, appId, json });
 
   const proceed = await confirmRemoval(argv, `app ${app}`);
 
@@ -48,7 +47,7 @@ export const handler = async (argv: Arguments<any>) => {
     const headers = await Config.getBearerHeader();
 
     const { data }: any = await got
-      .post(endpoint, {
+      .post(instance, {
         headers,
         json: {
           query: print(AppDelete),

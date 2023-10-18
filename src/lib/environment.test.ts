@@ -20,7 +20,7 @@ const argv = {
   token: 'XYZ',
   organization: 'test_org',
   environment: 'test',
-  instance: 'https://test-environment.test.saleor.cloud',
+  instance: 'https://test-environment.test.saleor.cloud/graphql/',
 } as Arguments<Options>;
 
 const handlers = [
@@ -52,12 +52,11 @@ describe('getEnvironment', () => {
   });
 });
 
-describe('get Saleor API endpoint', () => {
-  it('should return the environment\'s graphql endpoint', async () => {
+describe('get Saleor API instance', () => {
+  it('should return the environment\'s graphql instance', async () => {
     const { instance } = argv;
-    const endpoint = `${instance}/graphql/`;
 
-    expect(endpoint).toEqual(
+    expect(instance).toEqual(
       'https://test-environment.test.saleor.cloud/graphql/',
     );
   });

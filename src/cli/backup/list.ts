@@ -1,7 +1,7 @@
 import { CliUx } from '@oclif/core';
 import chalk from 'chalk';
 import Debug from 'debug';
-import { Arguments } from 'yargs';
+import { Arguments, CommandBuilder } from 'yargs';
 
 import { API, GET } from '../../lib/index.js';
 import {
@@ -15,6 +15,12 @@ const debug = Debug('saleor-cli:backup:list');
 
 export const command = 'list [key|environment]';
 export const desc = 'List backups of the environment';
+
+export const builder: CommandBuilder = (_) =>
+  _.example('saleor backup list', '').example(
+    'saleor backup list --organization="organization-slug" --environment="env-id-or-name"',
+    '',
+  );
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));

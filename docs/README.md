@@ -537,6 +537,10 @@ Options:
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor env clear my-environment
+  saleor env clear my-environment --organization=organization-slug
 ```
 
 #### environment cors
@@ -915,6 +919,10 @@ Options:
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor backup list
+  saleor backup list --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### backup create
@@ -962,6 +970,11 @@ Options:
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor backup show
+  saleor backup show backup-key
+  saleor backup show backup-key --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### backup remove
@@ -987,6 +1000,11 @@ Options:
       --force            skip confirmation prompt  [boolean]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor backup remove
+  saleor backup remove backup-key --force
+  saleor backup remove backup-key --force --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### backup restore
@@ -1010,6 +1028,11 @@ Options:
       --skip-webhooks-update  skip webhooks update prompt  [boolean]
   -V, --version               Show version number  [boolean]
   -h, --help                  Show help  [boolean]
+
+Examples:
+  saleor backup restore
+  saleor backup restore --from="backup-key" --skip-webhooks-update
+  saleor backup restore --from="backup-key" --skip-webhooks-update --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 ### task
@@ -1572,15 +1595,15 @@ saleor app [command]
 Manage Saleor Apps
 
 Commands:
-  saleor app list               List installed Saleor Apps for an environment
-  saleor app install            Install a Saleor App by URL
-  saleor app uninstall <appId>  Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.
-  saleor app create [name]      Create a new Saleor Local App
-  saleor app tunnel [port]      Expose your Saleor app remotely with ngrok tunnel
-  saleor app token              Create a Saleor App token
-  saleor app permission         Add or remove permission for a Saleor App
-  saleor app template [name]    Create an App with Saleor App Template
-  saleor app remove [app-id]    Create a new Saleor Local App
+  saleor app list                List installed Saleor Apps for an environment
+  saleor app install             Install a Saleor App by URL
+  saleor app uninstall <app-id>  Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.
+  saleor app create [name]       Create a new Saleor Local App
+  saleor app tunnel [port]       Expose your Saleor app remotely with ngrok tunnel
+  saleor app token               Create a Saleor App token
+  saleor app permission          Add or remove permission for a Saleor App
+  saleor app template [name]     Create an App with Saleor App Template
+  saleor app remove [app-id]     Create a new Saleor Local App
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
@@ -1609,6 +1632,9 @@ Options:
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor app list
 ```
 
 #### app install
@@ -1649,9 +1675,12 @@ $ saleor app uninstall --help
 Help output:
 
 ```
-saleor app uninstall <appId>
+saleor app uninstall <app-id>
 
 Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.
+
+Positionals:
+  app-id  The Saleor App id  [string] [required]
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
@@ -1659,6 +1688,10 @@ Options:
   -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor app uninstall app-id
+  saleor app uninstall app-id --organization=organization-slug --environment=env-id-or-name
 ```
 
 #### app create
@@ -1743,6 +1776,11 @@ Options:
       --app-id           The Saleor App id  [string]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
+
+Examples:
+  saleor app token
+  saleor app token --app-id="app-id"
+  saleor app token --app-id="app-id=" --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### app permission

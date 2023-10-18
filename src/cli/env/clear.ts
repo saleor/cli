@@ -16,7 +16,12 @@ export const builder: CommandBuilder = (_) =>
     type: 'string',
     demandOption: false,
     desc: 'key of the environment',
-  });
+  })
+    .example('saleor env clear my-environment', '')
+    .example(
+      'saleor env clear my-environment --organization=organization-slug',
+      '',
+    );
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));

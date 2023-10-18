@@ -22,7 +22,7 @@ export const builder: CommandBuilder = (_) =>
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
-  const { id } = argv;
+  const { id, instance } = argv;
   let { event } = argv;
 
   const {
@@ -63,8 +63,6 @@ export const handler = async (argv: Arguments<Options>) => {
     `\n  GraphQL Operation for ${chalk.underline(event)} available\n`,
   );
 
-  const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   // FIXME
@@ -73,7 +71,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   try {
     const result = await request(
-      endpoint,
+      instance,
       (SaleorGraphQL as any)[operationName],
       {
         id,

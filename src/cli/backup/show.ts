@@ -1,7 +1,7 @@
 import Debug from 'debug';
 import type { Arguments, CommandBuilder } from 'yargs';
 
-import { API, GET, NoCommandBuilderSetup } from '../../lib/index.js';
+import { API, GET } from '../../lib/index.js';
 import { obfuscateArgv, showResult } from '../../lib/util.js';
 import { Options } from '../../types.js';
 
@@ -10,7 +10,13 @@ const debug = Debug('saleor-cli:backup:show');
 export const command = 'show [backup|backup-key]';
 export const desc = 'Show a specific backup';
 
-export const builder: CommandBuilder = NoCommandBuilderSetup;
+export const builder: CommandBuilder = (_) =>
+  _.example('saleor backup show', '')
+    .example('saleor backup show backup-key', '')
+    .example(
+      'saleor backup show backup-key --organization="organization-slug" --environment="env-id-or-name"',
+      '',
+    );
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));

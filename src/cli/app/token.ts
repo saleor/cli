@@ -30,7 +30,13 @@ export const builder: CommandBuilder = (_) =>
     type: 'string',
     demandOption: false,
     desc: 'The Saleor App id',
-  });
+  })
+    .example('saleor app token', '')
+    .example('saleor app token --app-id="app-id"', '')
+    .example(
+      'saleor app token --app-id="app-id=" --organization="organization-slug" --environment="env-id-or-name"',
+      '',
+    );
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -39,13 +45,10 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const { instance, json, short } = argv;
 
-  const endpoint = `${instance}/graphql/`;
-  debug(`Saleor endpoint: ${endpoint}`);
-
   let appId: string;
 
   if (!argv.appId) {
-    const { app } = await getSaleorApp({ endpoint, json });
+    const { app } = await getSaleorApp({ instance, json });
     appId = app!;
   } else {
     appId = argv.appId as string;
@@ -53,7 +56,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   debug(`Creating auth token for ${appId}`);
   try {
-    const authToken = await createAppToken(endpoint, appId);
+    const authToken = await createAppToken(instance, appId);
 
     if (short) {
       print(authToken);
@@ -93,11 +96,11 @@ export const createAppToken = async (url: string, app: string) => {
 };
 
 export const getSaleorApp = async ({
-  endpoint,
+  instance,
   appId = undefined,
   json,
 }: {
-  endpoint: string;
+  instance: string;
   appId?: string | undefined;
   json: boolean | undefined;
 }) => {
@@ -105,7 +108,7 @@ export const getSaleorApp = async ({
 
   debug('Fetching Saleor Apps');
   const { data }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: gqlPrint(GetApps),

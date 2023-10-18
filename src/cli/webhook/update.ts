@@ -17,19 +17,17 @@ export const desc = 'Update webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
-  const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
-  await updateWebhook(endpoint, argv.json);
+  await updateWebhook(argv.instance, argv.json);
 };
 
 export const updateWebhook = async (
-  endpoint: string,
+  instance: string,
   json: boolean | undefined,
 ) => {
   const headers = await Config.getBearerHeader();
 
   const { data }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(WebhookList),
@@ -63,7 +61,7 @@ export const updateWebhook = async (
       for (const { id, targetUrl } of webhooks) {
         const url = new URL(targetUrl);
         const newTargetUrl = `${webhooksDomain}${url.pathname}`;
-        await runUpdateWebhook(headers, endpoint, id, newTargetUrl);
+        await runUpdateWebhook(headers, instance, id, newTargetUrl);
       }
     }
 
@@ -83,7 +81,7 @@ export const updateWebhook = async (
         });
 
         const spinner = ora('Updating...').start();
-        await runUpdateWebhook(headers, endpoint, id, newTargetUrl);
+        await runUpdateWebhook(headers, instance, id, newTargetUrl);
         spinner.succeed('Updated');
       }
     }
@@ -92,12 +90,12 @@ export const updateWebhook = async (
 
 const runUpdateWebhook = async (
   headers: Record<string, string>,
-  endpoint: string,
+  instance: string,
   id: string,
   targetUrl: string | null,
 ) => {
   const { errors }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(WebhookUpdate),

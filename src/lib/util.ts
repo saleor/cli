@@ -200,12 +200,10 @@ const createPrompt = async <T>({
 };
 
 export const makeRequestAppList = async (argv: Options) => {
-  const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
-    .post(endpoint, {
+    .post(argv.instance, {
       headers,
       json: { query: gqlPrint(GetApps) },
     })
@@ -258,14 +256,11 @@ export const promptWebhook = async (argv: Options) =>
     name: 'webhookID',
     message: 'Select a Webhook',
     fetcher: async () => {
-      const { instance } = argv;
-      const endpoint = `${instance}/graphql/`;
       const headers = await Config.getBearerHeader();
-
-      const { app: appID } = argv;
+      const { app: appID, instance } = argv;
 
       const { data, errors }: any = await got
-        .post(endpoint, {
+        .post(instance, {
           headers,
           json: {
             query: gqlPrint(GetAppById),

@@ -62,13 +62,11 @@ export const handler = async (argv: Arguments<WebhookDryRunArgs>) => {
     },
   ]);
 
-  const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
   const headers = await Config.getBearerHeader();
 
   try {
     const { data }: any = await got
-      .post(endpoint, {
+      .post(argv.instance, {
         headers,
         json: {
           query: print(WebhookDryRun),

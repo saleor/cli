@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import Debug from 'debug';
 import got from 'got';
 import { print } from 'graphql';
-import { Arguments } from 'yargs';
+import { Arguments, CommandBuilder } from 'yargs';
 
 import { GetApps } from '../../generated/graphql.js';
 import { Config } from '../../lib/config.js';
@@ -24,19 +24,19 @@ const debug = Debug('saleor-cli:app:list');
 export const command = 'list';
 export const desc = 'List installed Saleor Apps for an environment';
 
+export const builder: CommandBuilder = (_) => _.example('saleor app list', '');
+
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const { ux: cli } = CliUx;
   const headers = await Config.getBearerHeader();
 
-  const { instance } = argv;
-  const endpoint = `${instance}/graphql/`;
-  debug(`Saleor endpoint: ${endpoint}`);
+  const { instance, json } = argv;
 
   debug('Fetching Saleor Apps');
   const { data }: any = await got
-    .post(endpoint, {
+    .post(instance, {
       headers,
       json: {
         query: print(GetApps),
@@ -45,11 +45,11 @@ export const handler = async (argv: Arguments<Options>) => {
     })
     .json();
 
-  const apps = getAppsFromResult(data, argv.json);
+  const apps = getAppsFromResult(data, json);
 
   const collection: any[] = apps.map(({ node }: any) => ({ ...node }));
 
-  if (argv.json) {
+  if (json) {
     console.log(JSON.stringify(collection, null, 2));
     return;
   }

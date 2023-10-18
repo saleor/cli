@@ -17,11 +17,22 @@ import { Options } from '../../types.js';
 
 const debug = Debug('saleor-cli:app:uninstall');
 
-export const command = 'uninstall <appId>';
+export const command = 'uninstall <app-id>';
 export const desc =
   'Uninstall a Saleor App by ID. You need to provide `appId`. List available apps and their IDs with `saleor app list`.';
 
-export const builder: CommandBuilder = (_) => _;
+export const builder: CommandBuilder = (_) =>
+  _.positional('app-id', {
+    type: 'string',
+    demandOption: false,
+    desc: 'The Saleor App id',
+  })
+
+    .example('saleor app uninstall app-id', '')
+    .example(
+      'saleor app uninstall app-id --organization=organization-slug --environment=env-id-or-name',
+      '',
+    );
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));

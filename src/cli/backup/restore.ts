@@ -21,11 +21,21 @@ export const builder: CommandBuilder = (_) =>
     type: 'string',
     demandOption: false,
     desc: 'the key of the snapshot',
-  }).option('skip-webhooks-update', {
-    type: 'boolean',
-    demandOption: false,
-    desc: 'skip webhooks update prompt',
-  });
+  })
+    .option('skip-webhooks-update', {
+      type: 'boolean',
+      demandOption: false,
+      desc: 'skip webhooks update prompt',
+    })
+    .example('saleor backup restore', '')
+    .example(
+      'saleor backup restore --from="backup-key" --skip-webhooks-update',
+      '',
+    )
+    .example(
+      'saleor backup restore --from="backup-key" --skip-webhooks-update --organization="organization-slug" --environment="env-id-or-name"',
+      '',
+    );
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -55,9 +65,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   if (update) {
     const { instance } = argv;
-    const endpoint = `${instance}/graphql/`;
-    debug(`Saleor endpoint: ${endpoint}`);
-    await updateWebhook(endpoint, argv.json);
+    await updateWebhook(instance, argv.json);
   }
 };
 
