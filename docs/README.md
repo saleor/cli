@@ -110,7 +110,6 @@ for more information, find the documentation at https://saleor.io
   * [project show](#project-show)
 * [storefront](#storefront)
   * [storefront create](#storefront-create)
-  * [storefront deploy](#storefront-deploy)
 * [telemetry](#telemetry)
   * [telemetry disable](#telemetry-disable)
   * [telemetry enable](#telemetry-enable)
@@ -1287,7 +1286,6 @@ Create a Next.js Storefront
 
 Commands:
   saleor storefront create [name]  Bootstrap example [name]
-  saleor storefront deploy         Deploy this `react-storefront` to Vercel
 
 Options:
       --json             Output the data as JSON  [boolean] [default: false]
@@ -1323,33 +1321,6 @@ Options:
   -b, --branch  [string] [default: "canary"]
   -V, --version          Show version number  [boolean]
   -h, --help             Show help  [boolean]
-```
-
-#### storefront deploy
-
-```sh
-$ saleor storefront deploy --help
-```
-
-Help output:
-
-```
-saleor storefront deploy
-
-Deploy this `react-storefront` to Vercel
-
-Options:
-      --json             Output the data as JSON  [boolean] [default: false]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  Saleor instance API URL (must start with the protocol, i.e. https:// or http://)  [string]
-      --dispatch         dispatch deployment and don't wait till it ends  [boolean] [default: false]
-      --github-prompt    specify prompt presence for repository creation on Github  [boolean] [default: "true"]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
-
-Examples:
-  saleor storefront deploy --no-github-prompt
-  saleor storefront deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt
 ```
 
 ### telemetry
