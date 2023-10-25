@@ -18,6 +18,7 @@ import {
   checkPnpmPresence,
   getSortedServices,
   obfuscateArgv,
+  println,
   printlnSuccess,
 } from '../../lib/util.js';
 import {
@@ -216,15 +217,32 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   spinner.succeed(
     chalk(
-      'Your Saleor Storefront is ready in the',
+      'Your Saleor Storefront Example is ready in the',
       chalk.yellow(target),
       'directory\n',
     ),
   );
 
-  console.log('  To start your application:\n');
-  console.log(`    cd ${target}`);
-  console.log('    pnpm dev');
+  if (!instance) {
+    println(chalk.bold('  To finalize prepare the `.env` file:\n'));
+    println(`    cd ${target}`);
+    println('    cp .env.example .env');
+    println(
+      '    set NEXT_PUBLIC_SALEOR_API_URL value to your Saleor GraphQL endpoint URL\n',
+    );
+  }
+
+  println(chalk.bold('  To setup payments:\n'));
+  println('    install and configure the Saleor payment App in your dashboard');
+  if ((instance || '').includes('saleor.cloud/graphql/')) {
+    println(`    ${instance.replace('graphql/', '')}dashboard/apps/`);
+  }
+
+  println(
+    chalk('\n', chalk.bold(' To start your Saleor Storefront Example:\n')),
+  );
+  println(`    cd ${target}`);
+  println('    pnpm dev\n');
 };
 
 const getFolderName = async (name: string): Promise<string> => {
