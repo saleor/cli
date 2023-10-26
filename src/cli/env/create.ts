@@ -29,6 +29,7 @@ interface CommandOptions extends Options {
   pass?: string;
   restore: boolean;
   restoreFrom: string;
+  skipWebhooksUpdate: boolean;
   skipRestrict: boolean;
 }
 
@@ -72,6 +73,11 @@ export const builder: CommandBuilder = (_) =>
       type: 'string',
       desc: 'specify snapshot id to restore the database from',
     })
+    .option('skip-webhooks-update', {
+      type: 'boolean',
+      demandOption: false,
+      desc: 'use with `restore-from` option, skip webhooks update prompt when restoring from snapshot',
+    })
     .option('skip-restrict', {
       type: 'boolean',
       desc: 'skip Basic Auth restriction prompt',
@@ -96,6 +102,7 @@ export const handler = async (argv: Arguments<CommandOptions>) => {
     const { update } = await Enquirer.prompt<{ update: string }>({
       type: 'confirm',
       name: 'update',
+      skip: !!argv.skipWebhooksUpdate,
       message: 'Would you like to update webhooks targetUrl',
     });
 
