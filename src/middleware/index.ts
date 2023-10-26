@@ -43,26 +43,33 @@ export const useToken = async ({ token }: Options) => {
     const config = await Config.get();
     const { token: configToken } = config;
 
+    if (process.env.SALEOR_CLI_TOKEN) {
+      debug('token read from env');
+      opts = { ...opts, token: `TOKEN ${process.env.SALEOR_CLI_TOKEN}` };
+      return opts;
+    }
+
     if (configToken) {
       debug('token read from file');
       opts = { ...opts, token: configToken };
-    } else {
-      console.error(chalk.red('\nYou are not logged in\n'));
-      console.error(
-        chalk(
-          'If you have an account - login using',
-          chalk.bold.green('saleor login'),
-        ),
-      );
-      console.error(
-        chalk(
-          'If you don\'t have an account - register using',
-          chalk.bold.green('saleor register'),
-        ),
-      );
-
-      process.exit(1);
+      return opts;
     }
+
+    console.error(chalk.red('\nYou are not logged in\n'));
+    console.error(
+      chalk(
+        'If you have an account - login using',
+        chalk.bold.green('saleor login'),
+      ),
+    );
+    console.error(
+      chalk(
+        'If you don\'t have an account - register using',
+        chalk.bold.green('saleor register'),
+      ),
+    );
+
+    process.exit(1);
   }
 
   return opts;
