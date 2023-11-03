@@ -88,7 +88,6 @@ export const API: Record<string, DefaultURLPath> = {
   User: () => 'user',
   Organization: (_) => `organizations/${_.organization || ''}`,
   OrganizationPermissions: (_) => `organizations/${_.organization}/permissions`,
-  OrganizationBackups: (_) => `organizations/${_.organization}/backups`,
   UpgradeEnvironment: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/upgrade`,
   Environment: (_) =>
@@ -102,10 +101,11 @@ export const API: Record<string, DefaultURLPath> = {
       _.params || ''
     }`,
   TaskStatus: (_) => `service/task-status/${_.task}`,
-  Backup: (_) =>
+  EnvironmentBackup: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/backups/${
       _.backup || ''
     }`,
+  Backup: (_) => `organizations/${_.organization}/backups/${_.backup || ''}`,
   Restore: (_) =>
     `organizations/${_.organization}/environments/${_.environment}/restore`,
   Project: (_) => `organizations/${_.organization}/projects/${_.project || ''}`,

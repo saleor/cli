@@ -9,6 +9,7 @@ import {
   validateLength,
   waitForTask,
 } from '../../lib/util.js';
+import { useEnvironment } from '../../middleware/index.js';
 
 const debug = Debug('saleor-cli:backup:create');
 
@@ -22,7 +23,10 @@ export const builder: CommandBuilder = (_) =>
     desc: 'name for the new backup',
   })
     .example('saleor backup create', '')
-    .example('saleor backup create my-backup --environment=env-id-or-name', '');
+    .example(
+      'saleor backup create my-backup --organization="organization-slug"',
+      '',
+    );
 
 export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -41,7 +45,7 @@ export const handler = async (argv: Arguments<any>) => {
 
   debug(`Using the name: ${name}`);
 
-  const result = (await POST(API.Backup, argv, {
+  const result = (await POST(API.EnvironmentBackup, argv, {
     json: {
       name,
     },
@@ -56,3 +60,5 @@ export const handler = async (argv: Arguments<any>) => {
   );
   showResult(result, argv);
 };
+
+export const middlewares = [useEnvironment];

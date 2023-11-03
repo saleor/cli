@@ -185,17 +185,18 @@ export interface Region {
   name: string;
 }
 
-export interface Backup {
+export type Backup = {
   key: string;
+  url: string;
+  project: Project;
   name: string;
-  project: {
-    slug: string;
-    name: string;
-    is_deleted: boolean;
-  };
-  saleor_version: string;
   created: string;
-}
+  environment_name: string;
+  environment_service_type: string;
+  saleor_version: string;
+  backup_type: string;
+  environment: string;
+};
 
 export interface Webhook {
   id: string;
