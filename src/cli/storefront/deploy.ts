@@ -25,7 +25,7 @@ export const builder: CommandBuilder = (_) =>
     })
     .example('saleor storefront deploy --no-github-prompt', '')
     .example(
-      'saleor storefront deploy --organization=organization-slug --environment=env-id-or-name --no-github-prompt',
+      'saleor storefront deploy --organization="organization-slug" --environment="env-id-or-name" --no-github-prompt',
       '',
     );
 
