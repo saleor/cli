@@ -28,7 +28,7 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor backup remove', '')
     .example('saleor backup remove backup-key --force', '')
     .example(
-      'saleor backup remove backup-key --force --organization="organization-slug" --environment="env-id-or-name"',
+      'saleor backup remove backup-key --force --organization="organization-slug"',
       '',
     );
 

@@ -432,8 +432,7 @@ export const promptOrganizationBackup = async (argv: Options) =>
   createPrompt({
     name: 'backup',
     message: 'Select Snapshot',
-    fetcher: async () =>
-      GET(API.OrganizationBackups, argv) as Promise<Backup[]>,
+    fetcher: async () => GET(API.Backup, argv) as Promise<Backup[]>,
     extractor: (_: Backup) => ({
       name: chalk(
         chalk.bold(_.project.name),

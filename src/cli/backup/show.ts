@@ -12,9 +12,10 @@ export const desc = 'Show a specific backup';
 
 export const builder: CommandBuilder = (_) =>
   _.example('saleor backup show', '')
+    .example('saleor backup show', '')
     .example('saleor backup show backup-key', '')
     .example(
-      'saleor backup show backup-key --organization="organization-slug" --environment="env-id-or-name"',
+      'saleor backup show backup-key --organization="organization-slug"',
       '',
     );
 

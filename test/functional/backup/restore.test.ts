@@ -20,7 +20,6 @@ beforeAll(
       'backup',
       'create',
       backupName,
-      `--environment=${testEnvironmentName}`,
       `--organization=${testOrganization}`,
       '--json',
     ];
@@ -81,7 +80,6 @@ const getBackups = async () => {
   const params = [
     'backup',
     'list',
-    `--environment=${testEnvironmentName}`,
     `--organization=${testOrganization}`,
     '--json',
   ];
@@ -106,7 +104,6 @@ const removeBackups = async () => {
       'backup',
       'remove',
       backup.key,
-      `--environment=${testEnvironmentName}`,
       `--organization=${testOrganization}`,
       '--force',
     ];
