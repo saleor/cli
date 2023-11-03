@@ -30,7 +30,7 @@ export const builder: CommandBuilder = (_) =>
 
     .example('saleor app uninstall app-id', '')
     .example(
-      'saleor app uninstall app-id --organization=organization-slug --environment=env-id-or-name',
+      'saleor app uninstall app-id --organization="organization-slug" --environment="env-id-or-name"',
       '',
     );
 

@@ -19,7 +19,7 @@ export const builder: CommandBuilder = (_) =>
   })
     .example('saleor env clear my-environment', '')
     .example(
-      'saleor env clear my-environment --organization=organization-slug',
+      'saleor env clear my-environment --organization="organization-slug"',
       '',
     );
 

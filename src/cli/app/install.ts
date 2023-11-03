@@ -39,7 +39,7 @@ export const builder: CommandBuilder = (_) =>
       '',
     )
     .example(
-      'saleor app install --organization=organization-slug --environment=env-id-or-name --app-name="Saleor app" --manifest-URL="https://my-saleor-app.com/api/manifest',
+      'saleor app install --organization="organization-slug" --environment="env-id-or-name" --app-name="Saleor app" --manifest-URL="https://my-saleor-app.com/api/manifest"',
       '',
     );
 

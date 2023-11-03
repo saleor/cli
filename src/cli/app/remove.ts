@@ -31,7 +31,7 @@ export const builder: CommandBuilder = (_) =>
     })
     .example('saleor app remove', '')
     .example(
-      'saleor app remove --app-id=APP-ID --environment=env-id-or-name --force',
+      'saleor app remove --app-id="app-id" --environment="env-id-or-name" --force',
       '',
     );
 

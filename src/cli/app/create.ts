@@ -32,11 +32,11 @@ export const builder: CommandBuilder = (_) =>
       desc: 'The array of permissions',
     })
     .example(
-      'saleor app create --name=my-saleor-app --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
+      'saleor app create --name="my saleor app" --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
       '',
     )
     .example(
-      'saleor app create --name=my-saleor-app --organization=organization-slug --environment=env-id-or-name --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
+      'saleor app create --name="my saleor app" --organization="organization-slug" --environment="env-id-or-name" --permissions=MANAGE_USERS --permissions=MANAGE_STAFF',
       '',
     );
 

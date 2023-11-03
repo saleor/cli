@@ -84,11 +84,11 @@ export const builder: CommandBuilder = (_) =>
     })
     .example('saleor env create my-environment', '')
     .example(
-      'saleor env create my-environment --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict',
+      'saleor env create my-environment --project="project-name" --database="sample" --saleor="saleor-master-staging" --domain="project-domain" --skip-restrict',
       '',
     )
     .example(
-      'saleor env create my-environment --organization=organization-slug --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict',
+      'saleor env create my-environment --organization="organization-slug" --project="project-name" --database="sample" --saleor="saleor-master-staging" --domain="project-domain" --skip-restrict',
       '',
     );
 

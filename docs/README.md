@@ -539,7 +539,7 @@ Options:
 
 Examples:
   saleor env clear my-environment
-  saleor env clear my-environment --organization=organization-slug
+  saleor env clear my-environment --organization="organization-slug"
 ```
 
 #### environment cors
@@ -609,8 +609,8 @@ Options:
 
 Examples:
   saleor env create my-environment
-  saleor env create my-environment --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict
-  saleor env create my-environment --organization=organization-slug --project=project-name --database=sample --saleor=saleor-master-staging --domain=project-domain --skip-restrict
+  saleor env create my-environment --project="project-name" --database="sample" --saleor="saleor-master-staging" --domain="project-domain" --skip-restrict
+  saleor env create my-environment --organization="organization-slug" --project="project-name" --database="sample" --saleor="saleor-master-staging" --domain="project-domain" --skip-restrict
 ```
 
 #### environment list
@@ -1638,7 +1638,7 @@ Options:
 Examples:
   saleor app install --manifest-URL="https://my-saleor-app.com/api/manifest
   saleor app install --manifest-URL="https://my-saleor-app.com/api/manifest --app-name="Saleor app"
-  saleor app install --organization=organization-slug --environment=env-id-or-name --app-name="Saleor app" --manifest-URL="https://my-saleor-app.com/api/manifest
+  saleor app install --organization="organization-slug" --environment="env-id-or-name" --app-name="Saleor app" --manifest-URL="https://my-saleor-app.com/api/manifest"
 ```
 
 #### app uninstall
@@ -1666,7 +1666,7 @@ Options:
 
 Examples:
   saleor app uninstall app-id
-  saleor app uninstall app-id --organization=organization-slug --environment=env-id-or-name
+  saleor app uninstall app-id --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### app create
@@ -1694,8 +1694,8 @@ Options:
   -h, --help             Show help  [boolean]
 
 Examples:
-  saleor app create --name=my-saleor-app --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
-  saleor app create --name=my-saleor-app --organization=organization-slug --environment=env-id-or-name --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
+  saleor app create --name="my saleor app" --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
+  saleor app create --name="my saleor app" --organization="organization-slug" --environment="env-id-or-name" --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
 ```
 
 #### app tunnel
@@ -1727,8 +1727,8 @@ Options:
 Examples:
   saleor app tunnel --name="Custom name"
   saleor app tunnel --force-install
-  saleor app tunnel --manifest-path=/app/manifest
-  saleor app tunnel --organization=organization-slug --environment=env-id-or-name
+  saleor app tunnel --manifest-path="/app/manifest"
+  saleor app tunnel --organization="organization-slug" --environment="env-id-or-name"
 ```
 
 #### app token
@@ -1781,8 +1781,8 @@ Options:
   -h, --help             Show help  [boolean]
 
 Examples:
-  saleor app permission --app-id=APP-ID --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
-  saleor app permission --organization=organization-slug --environment=env-id-or-name --app-id=APP-ID --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
+  saleor app permission --app-id="app-id" --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
+  saleor app permission --organization="organization-slug" --environment="env-id-or-name" --app-id="app-id" --permissions=MANAGE_USERS --permissions=MANAGE_STAFF
 ```
 
 #### app template
@@ -1837,7 +1837,7 @@ Options:
 
 Examples:
   saleor app remove
-  saleor app remove --app-id=APP-ID --environment=env-id-or-name --force
+  saleor app remove --app-id="app-id" --environment="env-id-or-name" --force
 ```
 
 ### vercel

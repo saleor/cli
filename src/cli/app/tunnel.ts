@@ -52,9 +52,9 @@ export const builder: CommandBuilder = (_) =>
     })
     .example('saleor app tunnel --name="Custom name"', '')
     .example('saleor app tunnel --force-install', '')
-    .example('saleor app tunnel --manifest-path=/app/manifest', '')
+    .example('saleor app tunnel --manifest-path="/app/manifest"', '')
     .example(
-      'saleor app tunnel --organization=organization-slug --environment=env-id-or-name',
+      'saleor app tunnel --organization="organization-slug" --environment="env-id-or-name"',
       '',
     );
 
