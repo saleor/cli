@@ -9,7 +9,10 @@ import {
   validateLength,
   waitForTask,
 } from '../../lib/util.js';
-import { useEnvironment } from '../../middleware/index.js';
+import {
+  useBlockingTasksChecker,
+  useInstanceConnector,
+} from '../../middleware/index.js';
 
 const debug = Debug('saleor-cli:backup:create');
 
@@ -61,4 +64,4 @@ export const handler = async (argv: Arguments<any>) => {
   showResult(result, argv);
 };
 
-export const middlewares = [useEnvironment];
+export const middlewares = [useInstanceConnector, useBlockingTasksChecker];

@@ -186,6 +186,7 @@ const getEnvironmentByName = async (
   const environments = (await GET(API.Environment, {
     token,
     organization,
+    instance: '',
   })) as Environment[];
   const { key } =
     environments.filter(
@@ -210,6 +211,7 @@ export const verifyEnvironment = async (
       token,
       organization,
       environment,
+      instance: '',
     })) as Environment;
   } catch (error) {
     const key = await getEnvironmentByName(token, organization, environment);
@@ -219,6 +221,7 @@ export const verifyEnvironment = async (
         token,
         organization,
         environment: key,
+        instance: '',
       })) as Environment;
     } else {
       if (isNotFound(error)) {

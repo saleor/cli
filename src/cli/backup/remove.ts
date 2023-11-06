@@ -9,6 +9,11 @@ import {
   printlnSuccess,
 } from '../../lib/util.js';
 import { Options } from '../../types.js';
+import {
+  useBlockingTasksChecker,
+  useOrganization,
+  useToken,
+} from '../../middleware/index.js';
 
 const debug = Debug('saleor-cli:backup:remove');
 
@@ -45,3 +50,5 @@ export const handler = async (argv: Arguments<Options>) => {
     printlnSuccess(chalk.bold('Backup has been successfully removed'));
   }
 };
+
+export const middlewares = [useToken, useOrganization, useBlockingTasksChecker];

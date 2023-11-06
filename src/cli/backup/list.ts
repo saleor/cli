@@ -10,6 +10,11 @@ import {
   verifyResultLength,
 } from '../../lib/util.js';
 import { Backup, Options } from '../../types.js';
+import {
+  useBlockingTasksChecker,
+  useOrganization,
+  useToken,
+} from '../../middleware/index.js';
 
 const debug = Debug('saleor-cli:backup:list');
 
@@ -83,3 +88,5 @@ export const handler = async (argv: Arguments<Options>) => {
     key: { minWidth: 2 },
   });
 };
+
+export const middlewares = [useToken, useOrganization, useBlockingTasksChecker];

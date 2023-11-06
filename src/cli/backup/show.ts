@@ -4,6 +4,11 @@ import type { Arguments, CommandBuilder } from 'yargs';
 import { API, GET } from '../../lib/index.js';
 import { obfuscateArgv, showResult } from '../../lib/util.js';
 import { Options } from '../../types.js';
+import {
+  useBlockingTasksChecker,
+  useOrganization,
+  useToken,
+} from '../../middleware/index.js';
 
 const debug = Debug('saleor-cli:backup:show');
 
@@ -25,3 +30,5 @@ export const handler = async (argv: Arguments<Options>) => {
   const result = (await GET(API.Backup, argv)) as any;
   showResult(result, argv);
 };
+
+export const middlewares = [useToken, useOrganization, useBlockingTasksChecker];
