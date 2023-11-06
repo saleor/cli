@@ -10,7 +10,10 @@ import {
 } from '../../lib/util.js';
 import { Options } from '../../types.js';
 import { updateWebhook } from '../webhook/update.js';
-import { useEnvironment } from '../../middleware/index.js';
+import {
+  useBlockingTasksChecker,
+  useInstanceConnector,
+} from '../../middleware/index.js';
 
 const debug = Debug('saleor-cli:backup:restore');
 
@@ -80,4 +83,4 @@ const getBackup = async (argv: Arguments<Options>) => {
   return data;
 };
 
-export const middlewares = [useEnvironment];
+export const middlewares = [useInstanceConnector, useBlockingTasksChecker];
