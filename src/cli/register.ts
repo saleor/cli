@@ -17,7 +17,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'specify sign up via CLI',
   });
 
-export const handler = async (argv: Arguments) => {
+export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const link = 'https://cloud.saleor.io/signup';

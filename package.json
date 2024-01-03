@@ -93,7 +93,7 @@
     "fetch-repo-dir": "^1.0.6",
     "fs-extra": "^11.2.0",
     "git-url-parse": "^14.0.0",
-    "got": "^14.0.0",
+    "got": "^12.0.0",
     "graphql": "^16.8.1",
     "graphql-request": "^6.1.0",
     "graphql-tag": "^2.12.6",

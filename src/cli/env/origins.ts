@@ -53,18 +53,15 @@ export const handler = async (argv: Arguments<Options>) => {
   const selected: string[] = (allowedClientOrigins as string[]) || [];
   let addMore = true;
 
-  const { origins } = await Enquirer.prompt<{
-    origins: string;
-  }>([
-    {
-      type: 'multiselect',
-      name: 'origins',
-      message:
-        'Define Trusted Origins\n (use the arrows to navigate and the space bar to select)',
-      choices: [...selected, 'Add a new trusted origin'],
-      initial: selected,
-    },
-  ]);
+  const originsPrompt = new (Enquirer as any).MultiSelect({
+    name: 'origins',
+    message:
+      'Define Trusted Origins\n (use the arrows to navigate and the space bar to select)',
+    choices: [...selected, 'Add a new trusted origin'],
+    initial: selected,
+  });
+
+  const origins = (await originsPrompt.run()) as string;
 
   do {
     if (origins.length === 0) {

@@ -29,7 +29,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'skip additional prompts',
   });
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const { token, force } = argv;
