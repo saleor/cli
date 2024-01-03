@@ -29,7 +29,7 @@ export const builder: CommandBuilder = (_) =>
     desc: 'skip additional prompts',
   });
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const { token, force } = argv;
@@ -63,12 +63,16 @@ Learn more: ${chalk.gray('https://saleor.io/')}${chalk.blueBright('telemetry')}
 };
 
 const validateToken = async (token: string) => {
-  const user = (await GET(API.User, { token: `Token ${token}` })) as any;
+  const user = (await GET(API.User, {
+    token: `Token ${token}`,
+  } as Options)) as any;
   console.log(`${chalk.green('Success')}. Logged as ${user.email}\n`);
 };
 
 const chooseOrganization = async (token: string | undefined) => {
-  const organizations = (await GET(API.Organization, { token })) as any[];
+  const organizations = (await GET(API.Organization, {
+    token,
+  } as Options)) as any[];
 
   if (organizations.length) {
     const { orgSetup } = (await Enquirer.prompt({
@@ -80,7 +84,7 @@ const chooseOrganization = async (token: string | undefined) => {
     })) as { orgSetup: boolean };
 
     if (orgSetup) {
-      const organization = await promptOrganization({ token });
+      const organization = await promptOrganization({ token } as Options);
       await chooseEnv(token, organization.value);
     }
   }
@@ -93,7 +97,7 @@ const chooseEnv = async (
   const envs = (await GET(API.Environment, {
     token,
     organization: organizationSlug,
-  })) as any[];
+  } as Options)) as any[];
 
   if (envs.length) {
     const { envSetup } = (await Enquirer.prompt({
@@ -108,7 +112,7 @@ const chooseEnv = async (
       const env = await promptEnvironment({
         token,
         organization: organizationSlug,
-      });
+      } as Options);
       await Config.set('environment_id', env.value);
     }
   }

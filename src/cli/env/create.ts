@@ -29,7 +29,7 @@ interface CommandOptions extends Options {
   pass?: string;
   restore: boolean;
   restoreFrom: string;
-  skipWebhooksUpdate: boolean;
+  skipWebhooksUpdate?: boolean;
   skipRestrict: boolean;
 }
 

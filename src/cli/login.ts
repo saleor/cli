@@ -24,7 +24,7 @@ import {
   println,
   successPage,
 } from '../lib/util.js';
-import { BaseOptions } from '../types.js';
+import { Options } from '../types.js';
 
 const environment = await getEnvironment();
 const RedirectURI = `http://127.0.0.1:${SaleorCLIPort}/`;
@@ -49,7 +49,7 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor login --headless', '')
     .example('saleor login --headless --token=TOKEN', '');
 
-export const handler = async (argv: Arguments<BaseOptions>) => {
+export const handler = async (argv: Arguments<any>) => {
   if (argv.headless) {
     const { ux: cli } = CliUx;
     let { token } = argv;
@@ -155,7 +155,7 @@ export const doLogin = async () => {
 
         const { token }: any = await POST(API.Token, {
           token: `Bearer ${idToken}`,
-        });
+        } as Options);
 
         await createConfig(token, secrets);
       } catch (error) {
