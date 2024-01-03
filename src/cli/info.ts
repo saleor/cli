@@ -63,7 +63,7 @@ export const handler = async (): Promise<void> => {
 
   try {
     const { token } = await Config.get();
-    const user = (await GET(API.User, { token })) as User;
+    const user = (await GET(API.User, { token } as Options)) as User;
 
     if (hasEmail(user)) {
       const environment = await getEnvironment();

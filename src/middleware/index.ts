@@ -122,7 +122,7 @@ export const useInstanceConnector = async (argv: Options) => {
 };
 
 export const useInstanceAttacher = async (argv: Options) => {
-  const instance = await getEnv(argv as Arguments);
+  const instance = await getEnv(argv as Arguments<Options>);
 
   return {
     ...argv,
@@ -160,7 +160,7 @@ export const useOrganization = async ({
       debug('org read from file');
       opts = { ...opts, ...{ organization: organizationSlug } };
     } else {
-      const org = await promptOrganization(opts);
+      const org = await promptOrganization(opts as Options);
       await Config.set('organization_slug', org.value);
       await Config.set('organization_name', org.name);
       opts = { ...opts, ...{ organization: org.value } };
@@ -287,7 +287,7 @@ export const useEnvironment = async ({
       await verifyEnvironment(token, organization, environmentId);
       opts = { ...opts, ...{ environment: environmentId } };
     } else {
-      const env = await promptEnvironment(opts);
+      const env = await promptEnvironment(opts as Options);
       opts = { ...opts, ...{ environment: env.value } };
 
       if (!json) {
@@ -497,7 +497,7 @@ export const useVercel = async () => {
 
 export const useAvailabilityChecker = async (argv: Options) => {
   const { maintenance_mode: maintenance, disabled } = await getEnv(
-    argv as Arguments,
+    argv as Arguments<Options>,
   );
 
   if (maintenance) {
@@ -515,7 +515,7 @@ export const useAvailabilityChecker = async (argv: Options) => {
 
 export const useBlockingTasksChecker = async (argv: Options) => {
   const { blocking_tasks_in_progress: blockingTasksInProgress } = await getEnv(
-    argv as Arguments,
+    argv as Arguments<Options>,
   );
 
   if (blockingTasksInProgress) {
