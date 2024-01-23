@@ -107,6 +107,7 @@ export const doLogin = async () => {
   })}`;
 
   try {
+    debug(`opening browser with URL: ${url}`);
     await openURL(url);
   } catch (error) {
     invariant(error instanceof Error, 'Must be an error');
