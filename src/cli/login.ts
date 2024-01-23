@@ -21,6 +21,8 @@ import {
   getEnvironment,
   POST,
   getCloudApiAuthDomain,
+  defaultCloudApiUrl,
+  defaultCloudApiAuthDomain,
 } from '../lib/index.js';
 import {
   CannotOpenURLError,
@@ -260,11 +262,11 @@ const createConfig = async (
   await Config.set('saleor_env', environment);
   await Config.set(
     'cloud_api_url',
-    process.env.SALEOR_CLI_ENV_URL || 'https://cloud.saleor.io/platform/api',
+    process.env.SALEOR_CLI_ENV_URL || defaultCloudApiUrl,
   );
   await Config.set(
     'cloud_api_auth_domain',
-    process.env.SALEOR_CLI_ENV_AUTH_DOMAIN || 'auth.saleor.io',
+    process.env.SALEOR_CLI_ENV_AUTH_DOMAIN || defaultCloudApiAuthDomain,
   );
   await Config.set('user_session', userSession);
   for (const [name, value] of Object.entries(secrets)) {

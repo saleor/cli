@@ -8,24 +8,25 @@ import { Config } from './config.js';
 
 const debug = Debug('saleor-cli:lib:index');
 
+export const defaultCloudApiUrl = 'https://cloud.saleor.io/platform/api';
+export const defaultCloudApiAuthDomain = 'auth.saleor.io';
+
 export const getCloudApiUrl = async () => {
   if (await isLoggedIn()) {
     const { cloud_api_url: cloudApiUrl } = await Config.get();
-    return cloudApiUrl;
+    return cloudApiUrl || defaultCloudApiUrl;
   }
 
-  return (
-    process.env.SALEOR_CLI_ENV_URL || 'https://cloud.saleor.io/platform/api'
-  );
+  return process.env.SALEOR_CLI_ENV_URL || defaultCloudApiUrl;
 };
 
 export const getCloudApiAuthDomain = async () => {
   if (await isLoggedIn()) {
     const { cloud_api_auth_domain: cloudApiAuthDomain } = await Config.get();
-    return cloudApiAuthDomain;
+    return cloudApiAuthDomain || defaultCloudApiAuthDomain;
   }
 
-  return process.env.SALEOR_CLI_ENV_AUTH_DOMAIN || 'auth.saleor.io';
+  return process.env.SALEOR_CLI_ENV_AUTH_DOMAIN || defaultCloudApiAuthDomain;
 };
 
 export const isLoggedIn = async () => {
