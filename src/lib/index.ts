@@ -58,7 +58,6 @@ const handleAuthAndConfig =
     options: OptionsOfTextResponseBody = {},
   ) => {
     const path = pathFunc(argv);
-    const environment = await getEnvironment();
     const cloudApiUrl = await getCloudApiUrl();
 
     debug(path);
