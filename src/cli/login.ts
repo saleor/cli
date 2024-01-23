@@ -259,7 +259,7 @@ const createConfig = async (
 
   await Config.reset();
   await Config.set('token', `Token ${token}`);
-  await Config.set('saleor_env', environment);
+  await Config.set('saleor_env', process.env.SALEOR_CLI_ENV || 'production');
   await Config.set(
     'cloud_api_url',
     process.env.SALEOR_CLI_ENV_URL || defaultCloudApiUrl,
