@@ -10,7 +10,6 @@ import {
   GET,
   defaultCloudApiAuthDomain,
   defaultCloudApiUrl,
-  getEnvironment,
 } from '../lib/index.js';
 import {
   formatConfirm,
