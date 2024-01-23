@@ -122,16 +122,6 @@ export interface Task {
   task_id: string;
 }
 
-export type Config = {
-  cloudApiUrl: string;
-  amplifyConfig: any;
-  captchaKey?: string | null;
-};
-
-export type ConfigMap = {
-  [key: string]: Config;
-};
-
 export interface Tasks {
   count: number;
   next: string | null;

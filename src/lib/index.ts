@@ -3,22 +3,34 @@ import type { CancelableRequest, OptionsOfTextResponseBody } from 'got';
 import got from 'got';
 import { Argv, CommandBuilder } from 'yargs';
 
-import amplifyProdConfig from '../aws-exports-prod.js';
-import amplifyStagingConfig from '../aws-exports-staging.js'; // esl
-import { ConfigMap, Options } from '../types.js';
+import { Options } from '../types.js';
 import { Config } from './config.js';
 
 const debug = Debug('saleor-cli:lib:index');
 
-export const configs: ConfigMap = {
-  staging: {
-    cloudApiUrl: 'https://staging-cloud.saleor.io/platform/api',
-    amplifyConfig: amplifyStagingConfig,
-  },
-  production: {
-    cloudApiUrl: 'https://cloud.saleor.io/platform/api',
-    amplifyConfig: amplifyProdConfig,
-  },
+export const getCloudApiUrl = async () => {
+  if (await isLoggedIn()) {
+    const { cloud_api_url: cloudApiUrl } = await Config.get();
+    return cloudApiUrl;
+  }
+
+  return (
+    process.env.SALEOR_CLI_ENV_URL || 'https://cloud.saleor.io/platform/api'
+  );
+};
+
+export const getCloudApiAuthDomain = async () => {
+  if (await isLoggedIn()) {
+    const { cloud_api_auth_domain: cloudApiAuthDomain } = await Config.get();
+    return cloudApiAuthDomain;
+  }
+
+  return process.env.SALEOR_CLI_ENV_AUTH_DOMAIN || 'auth.saleor.io';
+};
+
+export const isLoggedIn = async () => {
+  const { token } = await Config.get();
+  return !!token;
 };
 
 export const getEnvironment = async () => {
@@ -28,12 +40,6 @@ export const getEnvironment = async () => {
   }
 
   return process.env.SALEOR_CLI_ENV || 'production';
-};
-
-export const getAmplifyConfig = async () => {
-  const environment = await getEnvironment();
-  const { amplifyConfig } = configs[environment];
-  return amplifyConfig;
 };
 
 type DefaultURLPath = (_: Options) => string;
@@ -52,7 +58,7 @@ const handleAuthAndConfig =
   ) => {
     const path = pathFunc(argv);
     const environment = await getEnvironment();
-    const { cloudApiUrl } = configs[environment];
+    const cloudApiUrl = await getCloudApiUrl();
 
     debug(path);
     debug('cli options', argv);

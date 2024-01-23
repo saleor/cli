@@ -150,11 +150,6 @@ node build/cli.js ...
 
 ### Environment variables
 
-`SALEOR_CLI_ENV`
-
-Set to `staging` to use the CLI with staging Saleor Cloud
-
-
 `RUN_FUNCTIONAL_TESTS`
 
 Set to `true` to enable functional tests

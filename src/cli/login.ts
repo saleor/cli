@@ -16,7 +16,12 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { Config, ConfigField, SaleorCLIPort } from '../lib/config.js';
 import { checkPort } from '../lib/detectPort.js';
-import { API, getAmplifyConfig, getEnvironment, POST } from '../lib/index.js';
+import {
+  API,
+  getEnvironment,
+  POST,
+  getCloudApiAuthDomain,
+} from '../lib/index.js';
 import {
   CannotOpenURLError,
   delay,
@@ -69,9 +74,6 @@ export const doLogin = async () => {
   debug('check if port for the temporary HTTP server is free');
   await checkPort(SaleorCLIPort);
 
-  debug('get AWS Amplify Configuration');
-  const amplifyConfig = await getAmplifyConfig();
-
   const { code_challenge: codeChallenge, code_verifier: codeVerifier } =
     await pkceChallenge();
 
@@ -79,9 +81,9 @@ export const doLogin = async () => {
 
   const BaseParams = {
     response_type: 'code',
-    client_id: amplifyConfig.aws_user_pools_web_client_id,
+    client_id: 'saleor-cli',
     redirect_uri: RedirectURI,
-    scope: amplifyConfig.oauth.scope.join(' '),
+    scope: 'email openid profile',
     state: generatedState,
   };
 
@@ -100,11 +102,13 @@ export const doLogin = async () => {
     `prepare the Base OAuth params: ${JSON.stringify(BaseParams, null, 2)}`,
   );
 
-  const url = `https://${
-    amplifyConfig.oauth.domain
-  }/realms/saleor-cloud/protocol/openid-connect/auth?${new URLSearchParams({
-    ...KeycloakParams,
-  })}`;
+  const cloudApiAuthDomain = await getCloudApiAuthDomain();
+
+  const url = `https://${cloudApiAuthDomain}/realms/saleor-cloud/protocol/openid-connect/auth?${new URLSearchParams(
+    {
+      ...KeycloakParams,
+    },
+  )}`;
 
   try {
     debug(`opening browser with URL: ${url}`);
@@ -134,12 +138,12 @@ export const doLogin = async () => {
         grant_type: 'authorization_code',
         code,
         code_verifier: codeVerifier,
-        client_id: amplifyConfig.aws_user_pools_web_client_id,
+        client_id: 'saleor-cli',
         redirect_uri: RedirectURI,
       };
 
       try {
-        const tokenURL = `https://${amplifyConfig.oauth.domain}/realms/saleor-cloud/protocol/openid-connect/token`;
+        const tokenURL = `https://${cloudApiAuthDomain}/realms/saleor-cloud/protocol/openid-connect/token`;
 
         const response: any = await got
           .post(tokenURL, {
@@ -254,6 +258,14 @@ const createConfig = async (
   await Config.reset();
   await Config.set('token', `Token ${token}`);
   await Config.set('saleor_env', environment);
+  await Config.set(
+    'cloud_api_url',
+    process.env.SALEOR_CLI_ENV_URL || 'https://cloud.saleor.io/platform/api',
+  );
+  await Config.set(
+    'cloud_api_auth_domain',
+    process.env.SALEOR_CLI_ENV_AUTH_DOMAIN || 'auth.saleor.io',
+  );
   await Config.set('user_session', userSession);
   for (const [name, value] of Object.entries(secrets)) {
     await Config.set(name as ConfigField, value);
