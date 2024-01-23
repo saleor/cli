@@ -5,7 +5,13 @@ import Enquirer from 'enquirer';
 import type { Arguments, CommandBuilder } from 'yargs';
 
 import { Config } from '../lib/config.js';
-import { API, GET } from '../lib/index.js';
+import {
+  API,
+  GET,
+  defaultCloudApiAuthDomain,
+  defaultCloudApiUrl,
+  getEnvironment,
+} from '../lib/index.js';
 import {
   formatConfirm,
   obfuscateArgv,
@@ -123,5 +129,14 @@ export const configure = async (providedToken: string | undefined) => {
   Config.reset();
   const header = `Token ${token}`;
   await Config.set('token', header);
+  await Config.set('saleor_env', process.env.SALEOR_CLI_ENV || 'production');
+  await Config.set(
+    'cloud_api_url',
+    process.env.SALEOR_CLI_ENV_URL || defaultCloudApiUrl,
+  );
+  await Config.set(
+    'cloud_api_auth_domain',
+    process.env.SALEOR_CLI_ENV_AUTH_DOMAIN || defaultCloudApiAuthDomain,
+  );
   return header;
 };
