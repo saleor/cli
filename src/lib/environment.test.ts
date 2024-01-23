@@ -6,7 +6,6 @@ import { Arguments } from 'yargs';
 
 import { Options } from '../types.js';
 import { getEnvironment } from './environment.js';
-import { configs } from './index.js';
 
 const environment = {
   name: 'Test environment',
@@ -28,11 +27,7 @@ const handlers = [
     res(ctx.status(200), ctx.json(environment)),
   ),
   rest.get(
-    `${configs.production.cloudApiUrl}/organizations/${argv.organization}/environments/${argv.environment}`,
-    (req, res, ctx) => res(ctx.status(200), ctx.json(environment)),
-  ),
-  rest.get(
-    `${configs.staging.cloudApiUrl}/organizations/${argv.organization}/environments/${argv.environment}`,
+    `https://cloud.saleor.io/platform/api/organizations/${argv.organization}/environments/${argv.environment}`,
     (req, res, ctx) => res(ctx.status(200), ctx.json(environment)),
   ),
 ];
