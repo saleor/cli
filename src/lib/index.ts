@@ -22,8 +22,12 @@ export const configs: ConfigMap = {
 };
 
 export const getEnvironment = async () => {
-  const { saleor_env: saleorEnv } = await Config.get();
-  return process.env.SALEOR_CLI_ENV || saleorEnv || 'production';
+  const { saleor_env: saleorEnv, token } = await Config.get();
+  if (token) {
+    return saleorEnv;
+  }
+
+  return process.env.SALEOR_CLI_ENV || 'production';
 };
 
 export const getAmplifyConfig = async () => {
