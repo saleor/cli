@@ -173,6 +173,7 @@ git pull origin main
 
 - check for the type errors with `pnpm tsc`
 - check if the bundling finishes `pnpm bundle`
+- publishing step involves uploading source maps to Sentry, log in with `sentry-cli login` if you intend to upload source maps
 
 ### Release
 
@@ -229,3 +230,12 @@ or
 ```
 pnpm publish --tag next
 ```
+
+> [!IMPORTANT]
+> CLI is currently published in an identical form to three packages in npmjs.com:
+> - https://www.npmjs.com/package/@saleor/cli
+> - https://www.npmjs.com/package/saleor-cli
+> - https://www.npmjs.com/package/saleor
+>
+> When releasing a new version, modify name in `package.json` to `saleor-cli` and `saleor` respectively and repeat `pnpm publish` step.
+> Do not commit these `package.json` changes.
