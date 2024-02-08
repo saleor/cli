@@ -35,7 +35,7 @@ jobs:
           CLI_GITHUB_TOKEN: ${{ secrets.CLI_GITHUB_TOKEN }}
           CLI_VERCEL_TOKEN: ${{ secrets.CLI_VERCEL_TOKEN }}
           TEST_COMMAND: 'node dist/saleor.js'
-        run: echo '{"token":"${{ secrets.CLI_ACCESS_TOKEN }}","telemetry":"false", "github_token":"${{ secrets.CLI_GITHUB_TOKEN }}", "vercel_token":"${{ secrets.CLI_VERCEL_TOKEN }}"  }' > ~/.config/saleor.json
+        run: echo '{"token":"${{ secrets.CLI_ACCESS_TOKEN }}","telemetry":"false","saleor_env":"staging","cloud_api_url":"https://staging-cloud.saleor.io/platform/api", "github_token":"${{ secrets.CLI_GITHUB_TOKEN }}", "vercel_token":"${{ secrets.CLI_VERCEL_TOKEN }}"  }' > ~/.config/saleor.json
 
       - name: pre run
         env:
@@ -55,7 +55,6 @@ jobs:
 
       - name: run tests
         env:
-          SALEOR_CLI_ENV: staging
           RUN_FUNCTIONAL_TESTS: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
