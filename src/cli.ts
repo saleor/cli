@@ -3,7 +3,7 @@
 import * as Sentry from '@sentry/node';
 import chalk from 'chalk';
 import Debug from 'debug';
-import { emphasize } from 'emphasize';
+import { createEmphasize, common } from 'emphasize';
 import { HTTPError, Response, TimeoutError } from 'got';
 import { createRequire } from 'module';
 import semver from 'semver';
@@ -42,7 +42,7 @@ import {
   fetchLatestPackageVersion,
 } from './lib/util.js';
 import { useOnlineChecker, useTelemetry } from './middleware/index.js';
-import { User } from './types.js';
+import { Options, User } from './types.js';
 
 const debug = Debug('saleor-cli');
 
@@ -195,6 +195,7 @@ const parser = yargs(hideBin(process.argv))
           return;
         }
 
+        const emphasize = createEmphasize(common);
         console.error(
           emphasize.highlight('yaml', yaml.stringify({ errors }), {
             attr: chalk.red,
@@ -230,7 +231,7 @@ const parser = yargs(hideBin(process.argv))
             email,
           } = (await GET(API.User, {
             token,
-          })) as User;
+          } as Options)) as User;
           const user = [firstName, lastName].join(' ');
 
           console.log(chalk.blue(`\nLogged as ${user} ${email}\n`));
