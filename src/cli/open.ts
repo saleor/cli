@@ -3,14 +3,13 @@ import { Arguments, CommandBuilder } from 'yargs';
 
 import { openURL } from '../lib/util.js';
 import { useInstanceConnector } from '../middleware/index.js';
-import { Options } from '../types.js';
 
 export const command = 'open [resource]';
 export const desc = 'Open resource in a browser';
 
 const resources: Record<string, string> = {
-  dashboard: '/dashboard',
-  api: '/graphql/',
+  dashboard: 'dashboard',
+  api: 'graphql/',
   docs: 'https://docs.saleor.io/docs/3.x/',
   'docs/api': 'https://docs.saleor.io/docs/3.x/developer',
   'docs/apps':
@@ -31,7 +30,7 @@ export const builder: CommandBuilder = (_) =>
     .example('saleor open api', 'Open instance GraphQL endpoint')
     .example('saleor open docs', 'Open Saleor documentation page');
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async (argv: Arguments<any>) => {
   const choices = Object.keys(resources);
 
   const { resource } = await Enquirer.prompt<{ resource: string }>({
@@ -53,7 +52,7 @@ export const handler = async (argv: Arguments<Options>) => {
   await openURL(path);
 };
 
-const getURL = async (path: string, argv: Arguments<Options>) => {
+const getURL = async (path: string, argv: Arguments<any>) => {
   const _argv = await useInstanceConnector(argv);
   const { instance } = _argv;
   return `${instance}${path}`;

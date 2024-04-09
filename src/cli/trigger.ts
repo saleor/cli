@@ -9,7 +9,6 @@ import { Config } from '../lib/config.js';
 import { DefaultSaleorEndpoint } from '../lib/index.js';
 import { capitalize, obfuscateArgv, SaleorEventError } from '../lib/util.js';
 import { useAppConfig, useInstanceConnector } from '../middleware/index.js';
-import { Options } from '../types.js';
 
 const debug = Debug('saleor-cli:trigger');
 
@@ -19,7 +18,7 @@ export const desc = 'This triggers a Saleor event';
 export const builder: CommandBuilder = (_) =>
   _.option('event', { type: 'string' }).option('id', { type: 'string' });
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const { id, instance } = argv;
@@ -90,8 +89,6 @@ export const handler = async (argv: Arguments<Options>) => {
       console.error(message);
     }
   }
-
-  process.exit(0);
 };
 
 export const middlewares = [useAppConfig, useInstanceConnector];

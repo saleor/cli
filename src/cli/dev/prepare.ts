@@ -9,16 +9,12 @@ import { Config } from '../../lib/config.js';
 import { GitError, obfuscateArgv, printlnSuccess } from '../../lib/util.js';
 import { useGithub } from '../../middleware/index.js';
 
-interface Options {
-  branch?: string;
-}
-
 const debug = Debug('saleor-cli:dev:prepare');
 
 export const command = 'prepare [branch|prURL]';
 export const desc = 'Build cli from branch or pull request URL';
 
-export const handler = async (argv: Arguments<Options>) => {
+export const handler = async (argv: Arguments<any>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
 
   const git = simpleGit();

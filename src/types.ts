@@ -84,10 +84,6 @@ export interface AppDeploy extends Deploy {
   manifestPath: string;
 }
 
-export interface Open extends BaseOptions {
-  resource?: string;
-}
-
 export interface WebhookDryRun extends BaseOptions {
   objectId?: string;
   query?: string;
