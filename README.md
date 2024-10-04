@@ -17,6 +17,8 @@
   <a href="https://docs.saleor.io/docs/3.x/cli">Docs</a>
 </div>
 
+> [!TIP]
+> Questions or issues? Check our [discord](https://discord.gg/H52JTZAtSH) channel for help.
 
 **Saleor CLI** is designed to boost your productivity and improve development experience with Saleor and Saleor Cloud. It will take the burden of spawning new storefronts and apps locally, managing and connecting them with Saleor instances, or establishing tunnels for local development in seconds.
 
