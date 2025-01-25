@@ -8,7 +8,7 @@ import type { CommandBuilder } from 'yargs';
 import { Config } from '../lib/config.js';
 import { header } from '../lib/images.js';
 import { API, GET, getEnvironment } from '../lib/index.js';
-import { User } from '../types.js';
+import { Options, User } from '../types.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -63,7 +63,7 @@ export const handler = async (): Promise<void> => {
 
   try {
     const { token } = await Config.get();
-    const user = (await GET(API.User, { token })) as User;
+    const user = (await GET(API.User, { token } as Options)) as User;
 
     if (hasEmail(user)) {
       const environment = await getEnvironment();

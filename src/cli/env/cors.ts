@@ -95,42 +95,39 @@ export const handler = async (argv: Arguments<Options>) => {
   }
 
   // First form to check current
-  const { kind } = await Enquirer.prompt<{
-    kind: string;
-  }>([
-    {
-      type: 'select',
-      name: 'kind',
-      message: 'Choose allowed API origins ',
-      choices: [
-        {
-          message: 'Allow all origins',
-          name: 'all',
-        },
-        {
-          message: 'Selected Origins',
-          name: 'selected',
-        },
-        {
-          message: 'Dashboard only',
-          name: 'dashboard',
-        },
-      ],
-      initial: () => {
-        if (allowedCorsOrigins === '*') {
-          return 1;
-        }
-        if (allowedCorsOrigins == null) {
-          return 2;
-        }
-        if (Array.isArray(allowedCorsOrigins)) {
-          return 3;
-        }
-
-        return 1;
+  const kindPrompt = new (Enquirer as any).Select({
+    name: 'kind',
+    message: 'Choose allowed API origins ',
+    choices: [
+      {
+        message: 'Allow all origins',
+        name: 'all',
       },
+      {
+        message: 'Selected Origins',
+        name: 'selected',
+      },
+      {
+        message: 'Dashboard only',
+        name: 'dashboard',
+      },
+    ],
+    initial: () => {
+      if (allowedCorsOrigins === '*') {
+        return 1;
+      }
+      if (allowedCorsOrigins == null) {
+        return 2;
+      }
+      if (Array.isArray(allowedCorsOrigins)) {
+        return 3;
+      }
+
+      return 1;
     },
-  ]);
+  });
+
+  const kind = (await kindPrompt.run()) as string;
 
   // Trigger an update for all and dashboard
   if (['all', 'dashboard'].includes(kind)) {
@@ -153,18 +150,15 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const addNewMsg = 'Add a new CORS origin';
 
-  const { origins } = await Enquirer.prompt<{
-    origins: string;
-  }>([
-    {
-      type: 'multiselect',
-      name: 'origins',
-      message:
-        'Define Selected Origins\n (use the arrows to navigate and the space bar to select)',
-      choices: [...selected, addNewMsg],
-      initial: selected,
-    },
-  ]);
+  const originsPrompt = new (Enquirer as any).MultiSelect({
+    name: 'origins',
+    message:
+      'Define Trusted Origins\n (use the arrows to navigate and the space bar to select)',
+    choices: [...selected, addNewMsg],
+    initial: selected,
+  });
+
+  const origins = (await originsPrompt.run()) as string;
 
   do {
     if (origins.length === 0) {

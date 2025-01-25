@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import chalk from 'chalk';
 import { format } from 'date-fns';
-import { emphasize } from 'emphasize';
+import { createEmphasize, common } from 'emphasize';
 import Enquirer from 'enquirer';
 import got from 'got';
 import { print as gqlPrint } from 'graphql';
@@ -311,7 +311,7 @@ export const getSortedServices = async ({
     region,
     serviceName,
     token,
-  })) as Record<string, any>[];
+  } as Options)) as Record<string, any>[];
 
   return services.sort((a, b) => b.version.localeCompare(a.version));
 };
@@ -560,7 +560,9 @@ export const validateURL = (value: string): boolean => {
 };
 
 export const checkIfJobSucceeded = async (taskId: string): Promise<boolean> => {
-  const result = (await GET(API.TaskStatus, { task: taskId })) as any;
+  const result = (await GET(API.TaskStatus, {
+    task: taskId,
+  } as Options)) as any;
   return result.status === 'SUCCEEDED';
 };
 
@@ -642,6 +644,7 @@ export const showResult = (
   if (json) {
     print(JSON.stringify(result, null, 2));
   } else {
+    const emphasize = createEmphasize(common);
     console.log(
       emphasize.highlight('yaml', yaml.stringify(result), {
         attr: chalk.blue,
