@@ -6,6 +6,7 @@ import fs from 'fs-extra';
 import ora from 'ora';
 import { Arguments, CommandBuilder } from 'yargs';
 
+import logSymbols from 'log-symbols';
 import {
   buildManifestURL,
   doSaleorAppInstall,
@@ -92,6 +93,11 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
 
     p.on('close', (exitCode) => {
       if (exitCode !== 0) {
+        println(
+          chalk.red(
+            `${logSymbols.error} Failed to start ngrok tunnel. Check the ngrok output below:`,
+          ),
+        );
         print(err.join());
         process.exit(1);
       }
@@ -112,9 +118,9 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
   const saleorAppName = `    Saleor App Name: ${chalk.yellow(appName)}`;
   const saleorAppURLMessage = `     Saleor App URL: ${chalk.blue(tunnelURL)}`;
   const dashboardMsg = `   Saleor Dashboard: ${chalk.blue(
-    `${baseURL}/dashboard/`,
+    `${baseURL}dashboard/`,
   )}`;
-  const gqlMsg = ` GraphQL Playground: ${chalk.blue(`${baseURL}/graphql/`)}`;
+  const gqlMsg = ` GraphQL Playground: ${chalk.blue(`${baseURL}`)}`;
 
   contentBox(
     `${saleorAppName}\n${saleorAppURLMessage}\n\n${dashboardMsg}\n${gqlMsg}`,
@@ -134,13 +140,21 @@ export const handler = async (argv: Arguments<AppTunnel>): Promise<void> => {
 
   if (!app || argv.forceInstall) {
     const spinner = ora('Installing... \n').start();
-    await doSaleorAppInstall(_argv);
+
+    try {
+      await doSaleorAppInstall(_argv);
+    } catch (error: unknown) {
+      spinner.fail('App installation failed');
+      p.kill();
+      throw error;
+    }
+
     spinner.stop();
 
     app = await findSaleorAppByName(appName, _argv);
   }
 
-  const appDashboardURL = `${baseURL}/dashboard/apps/${encodeURIComponent(
+  const appDashboardURL = `${baseURL}dashboard/apps/${encodeURIComponent(
     app || '',
   )}/app`;
   contentBox(`Open app in Dashboard: ${chalk.blue(appDashboardURL)}`);
