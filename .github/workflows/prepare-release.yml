@@ -22,9 +22,9 @@ jobs:
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
       - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4.2.0
         with:
-          node-version: 16
+          node-version: 18
           cache: pnpm
       - name: Install the dependencies
         run: pnpm install
