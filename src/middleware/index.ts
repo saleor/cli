@@ -423,37 +423,6 @@ export const useOnlineChecker = async () => {
   }
 };
 
-export const useTelemetry = (version: string) => async (argv: Arguments) => {
-  const command = argv._.join(' ');
-
-  const { telemetry } = await Config.get();
-  const isTelemetryEnabled = telemetry === undefined;
-
-  const environment = await getEnvironment();
-  const { user_session: userSession } = await Config.get();
-
-  debug('is telemetry enabled', isTelemetryEnabled);
-
-  if (isTelemetryEnabled) {
-    debug('telemetry', argv._);
-
-    got
-      .post(Configuration.TelemetryDomain, {
-        json: { command, environment, version, user_session: userSession },
-        timeout: {
-          request: 2000,
-        },
-      })
-      .catch((error) => {
-        if (error instanceof HTTPError) {
-          console.warn(`${chalk.yellow('Warning')} Telemetry is down `);
-        }
-
-        // FIXME notify Sentry
-      });
-  }
-};
-
 const checkBackup = async (argv: Options, chosenBackup: CreatePromptResult) => {
   const { name } = chosenBackup;
 

@@ -17,7 +17,6 @@ export type ConfigField =
   | 'environment_id'
   | 'vercel_token'
   | 'vercel_team_id'
-  | 'telemetry'
   | 'saleor_env'
   | 'cloud_api_url'
   | 'cloud_api_auth_domain'
