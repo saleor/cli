@@ -44,7 +44,7 @@ Commands:
   saleor job [command]           Manage Saleor Cloud tasks
   saleor project [command]       Manage Saleor Cloud projects
   saleor storefront [command]    Create a Next.js Storefront  [aliases: store]
-  saleor telemetry [command]     Manage telemetry preferences  [aliases: tele]
+  saleor telemetry [command]     DEPRECATED. Manage telemetry preferences  [aliases: tele]
   saleor webhook [command]       Manage the environment's webhooks  [aliases: hook]
   saleor app [command]           Manage Saleor Apps
   saleor vercel [command]        Integrate with Vercel
@@ -1338,7 +1338,7 @@ Help output:
 ```
 saleor telemetry [command]
 
-Manage telemetry preferences
+DEPRECATED. Manage telemetry preferences
 
 Commands:
   saleor telemetry disable  Disable the telemetry

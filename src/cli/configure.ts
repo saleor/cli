@@ -40,28 +40,8 @@ export const handler = async (argv: Arguments<Options>) => {
   const { token, force } = argv;
   const legitToken = await configure(token);
 
-  console.log(`
-Saleor Telemetry is ${chalk.underline(
-    'completely anonymous and optional',
-  )} information about general usage.
-You may opt-out at any time (check 'saleor telemetry').
-Learn more: ${chalk.gray('https://saleor.io/')}${chalk.blueBright('telemetry')}
-  `);
-
   if (force) {
     process.exit(0);
-  }
-
-  const { telemetry } = (await Enquirer.prompt({
-    type: 'confirm',
-    name: 'telemetry',
-    initial: 'yes',
-    format: formatConfirm,
-    message: 'Are you OK with leaving telemetry enabled?',
-  })) as { telemetry: boolean };
-
-  if (!telemetry) {
-    await Config.set('telemetry', 'false');
   }
 
   await chooseOrganization(legitToken);

@@ -41,7 +41,7 @@ import {
   contentBox,
   fetchLatestPackageVersion,
 } from './lib/util.js';
-import { useOnlineChecker, useTelemetry } from './middleware/index.js';
+import { useOnlineChecker } from './middleware/index.js';
 import { User } from './types.js';
 
 const debug = Debug('saleor-cli');
@@ -141,7 +141,7 @@ const parser = yargs(hideBin(process.argv))
   )
   .command(
     ['telemetry [command]', 'tele'],
-    'Manage telemetry preferences',
+    'DEPRECATED. Manage telemetry preferences',
     telemetry,
   )
   .command(
@@ -170,7 +170,7 @@ const parser = yargs(hideBin(process.argv))
     desc: 'Saleor instance API URL (must start with the protocol, i.e. https:// or http://)',
   })
   .strictCommands()
-  .middleware([useOnlineChecker, useTelemetry(pkg.version)])
+  .middleware([useOnlineChecker])
   .demandCommand(1, 'You need at least one command before moving on')
   .alias('h', 'help')
   .wrap(null)
