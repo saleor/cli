@@ -111,7 +111,6 @@ Commands:
   saleor job [command]
   saleor project [command]
   saleor storefront [command]  [aliases: store]
-  saleor telemetry [command]  [aliases: tele]
   saleor webhook [command]  [aliases: hook]
   saleor app [command]
   saleor vercel [command]
