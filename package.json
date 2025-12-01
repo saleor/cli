@@ -127,7 +127,12 @@
   "pnpm": {
     "overrides": {
       "uuid": "8.3.2"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@sentry/cli",
+      "esbuild",
+      "msw"
+    ]
   },
   "lint-staged": {
     "*.{js,ts}": "eslint --cache --fix",
