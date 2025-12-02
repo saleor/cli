@@ -14,7 +14,7 @@ import { getEnvironment, promptOrigin } from '../../lib/environment.js';
 const debug = Debug('saleor-cli:env:auth');
 
 export const command = 'origins [key|environment]';
-export const desc = 'Manage the environment\'s trusted client origins';
+export const desc = "Manage the environment's trusted client origins";
 
 export const builder: CommandBuilder = (_) =>
   _.positional('key', {
@@ -55,16 +55,14 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const { origins } = await Enquirer.prompt<{
     origins: string;
-  }>([
-    {
-      type: 'multiselect',
-      name: 'origins',
-      message:
-        'Define Trusted Origins\n (use the arrows to navigate and the space bar to select)',
-      choices: [...selected, 'Add a new trusted origin'],
-      initial: selected,
-    },
-  ]);
+  }>({
+    type: 'multiselect',
+    name: 'origins',
+    message:
+      'Define Trusted Origins\n (use the arrows to navigate and the space bar to select)',
+    choices: [...selected, 'Add a new trusted origin'],
+    initial: selected,
+  } as any);
 
   do {
     if (origins.length === 0) {

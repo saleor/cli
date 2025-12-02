@@ -203,7 +203,7 @@ export const makeRequestAppList = async (argv: Options) => {
   const headers = await Config.getBearerHeader();
 
   const { data, errors }: any = await got
-    .post(argv.instance, {
+    .post(argv.instance!, {
       headers,
       json: { query: gqlPrint(GetApps) },
     })
@@ -260,7 +260,7 @@ export const promptWebhook = async (argv: Options) =>
       const { app: appID, instance } = argv;
 
       const { data, errors }: any = await got
-        .post(instance, {
+        .post(instance!, {
           headers,
           json: {
             query: gqlPrint(GetAppById),

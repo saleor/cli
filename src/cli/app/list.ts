@@ -36,7 +36,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   debug('Fetching Saleor Apps');
   const { data }: any = await got
-    .post(instance, {
+    .post(instance!, {
       headers,
       json: {
         query: print(GetApps),

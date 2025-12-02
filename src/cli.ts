@@ -146,7 +146,7 @@ const parser = yargs(hideBin(process.argv))
   )
   .command(
     ['webhook [command]', 'hook'],
-    'Manage the environment\'s webhooks',
+    "Manage the environment's webhooks",
     webhook,
   )
   .command(['app [command]'], 'Manage Saleor Apps', app)

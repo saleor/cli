@@ -177,6 +177,7 @@ const prepareEnvironment = async (
     ...json,
     ...{
       skipRestrict: true,
+      skipWebhooksUpdate: true,
     },
   });
 
@@ -234,7 +235,7 @@ export const createStorefront = async (argv: Arguments<StoreCreate>) => {
 
   println(chalk.bold('  To setup payments:\n'));
   println('    install and configure the Saleor payment App in your dashboard');
-  if ((instance || '').includes('saleor.cloud/graphql/')) {
+  if (instance?.includes('saleor.cloud/graphql/')) {
     println(`    ${instance.replace('graphql/', '')}dashboard/apps/`);
   }
 

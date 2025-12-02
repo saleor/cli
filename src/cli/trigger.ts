@@ -71,7 +71,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   try {
     const result = await request(
-      instance,
+      instance!,
       (SaleorGraphQL as any)[operationName],
       {
         id,

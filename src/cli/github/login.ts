@@ -57,7 +57,7 @@ export const handler = async () => {
       await Config.set('github_token', `Bearer ${accessToken}`);
       printlnSuccess(
         chalk.bold(
-          'You\'ve successfully authenticated GitHub with the Saleor CLI!',
+          "You've successfully authenticated GitHub with the Saleor CLI!",
         ),
       );
       process.exit(0);

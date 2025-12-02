@@ -48,7 +48,7 @@ export const handler = async (argv: Arguments<Options>) => {
   let appId: string;
 
   if (!argv.appId) {
-    const { app } = await getSaleorApp({ instance, json });
+    const { app } = await getSaleorApp({ instance: instance!, json });
     appId = app!;
   } else {
     appId = argv.appId as string;
@@ -56,7 +56,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   debug(`Creating auth token for ${appId}`);
   try {
-    const authToken = await createAppToken(instance, appId);
+    const authToken = await createAppToken(instance!, appId);
 
     if (short) {
       print(authToken);

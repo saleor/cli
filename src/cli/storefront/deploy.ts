@@ -15,7 +15,7 @@ export const builder: CommandBuilder = (_) =>
     type: 'boolean',
     demandOption: false,
     default: false,
-    desc: 'dispatch deployment and don\'t wait till it ends',
+    desc: "dispatch deployment and don't wait till it ends",
   })
     .option('github-prompt', {
       type: 'boolean',

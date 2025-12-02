@@ -93,7 +93,7 @@ export const handler = async () => {
 
       return {
         body: successPage(
-          'You\'ve successfully authenticated Vercel with the Saleor CLI!',
+          "You've successfully authenticated Vercel with the Saleor CLI!",
         ),
         status: 200,
         type: 'text/html',

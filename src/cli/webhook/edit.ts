@@ -50,7 +50,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const {
     data: { webhook },
   } = await got
-    .post(instance, {
+    .post(instance!, {
       headers,
       json: {
         query,
@@ -93,7 +93,7 @@ export const handler = async (argv: Arguments<Options>) => {
   ]);
 
   await got
-    .post(instance, {
+    .post(instance!, {
       headers,
       json: {
         query: print(WebhookUpdate),

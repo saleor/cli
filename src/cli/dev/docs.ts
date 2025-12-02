@@ -263,7 +263,7 @@ const overview = [
   '',
   'The `saleor login` command allows you to establish the current user session in CLI. This will initiate an OAuth process. A browser window will open with the Saleor Cloud login page. Once authenticated, the CLI will receive an authentication token that will be stored locally for the CLI to access.',
   '',
-  'If your environment doesn\'t support the browser use the `--headless` flag. The CLI will prompt for an Access Token skipping the need of browser operations. Create the Access Token at https://cloud.saleor.io/tokens.',
+  "If your environment doesn't support the browser use the `--headless` flag. The CLI will prompt for an Access Token skipping the need of browser operations. Create the Access Token at https://cloud.saleor.io/tokens.",
   '',
   'Video introduction to Saleor CLI',
   '',

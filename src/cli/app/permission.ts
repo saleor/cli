@@ -48,14 +48,18 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const { instance, appId, json } = argv;
 
-  const { app, apps } = await getSaleorApp({ instance, appId, json });
+  const { app, apps } = await getSaleorApp({
+    instance: instance!,
+    appId,
+    json,
+  });
   const permissions =
-    argv.permissions ?? (await getPermissions(instance, apps, app));
+    argv.permissions ?? (await getPermissions(instance!, apps, app));
 
   debug(`Attempting to update the permissions for the app: ${app}`);
   const headers = await Config.getBearerHeader();
   await got
-    .post(instance, {
+    .post(instance!, {
       headers,
       json: {
         query: print(AppUpdate),

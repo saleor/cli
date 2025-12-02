@@ -2,8 +2,13 @@ export interface BaseOptions {
   token?: string;
   organization?: string;
   environment?: string;
-  instance: string;
+  instance?: string;
   json?: boolean;
+}
+
+/** Options with instance guaranteed by middleware */
+export interface InstanceOptions extends BaseOptions {
+  instance: string;
 }
 
 export interface Options extends BaseOptions {

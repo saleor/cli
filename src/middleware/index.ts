@@ -364,7 +364,7 @@ mutation login($email: String!, $password: String!) {
     });
 
     const { data, errors }: any = await got
-      .post(argv.instance, {
+      .post(argv.instance!, {
         json: {
           query: doLogin,
           variables: { email, password },

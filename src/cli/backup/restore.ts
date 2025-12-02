@@ -69,7 +69,7 @@ export const handler = async (argv: Arguments<Options>) => {
 
   if (update) {
     const { instance } = argv;
-    await updateWebhook(instance, argv.json);
+    await updateWebhook(instance!, argv.json);
   }
 };
 

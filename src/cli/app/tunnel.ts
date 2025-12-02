@@ -48,7 +48,7 @@ export const builder: CommandBuilder = (_) =>
     .option('manifest-path', {
       type: 'string',
       default: '/api/manifest',
-      desc: 'The application\'s manifest path',
+      desc: "The application's manifest path",
     })
     .example('saleor app tunnel --name="Custom name"', '')
     .example('saleor app tunnel --force-install', '')

@@ -30,10 +30,10 @@ export const builder: CommandBuilder = (_) =>
     })
     .example('saleor webhook dry-run', '')
     .example(
-      'saleor webhook dry-run --query=\'subscription { event { ... on ProductCreated { product { id name } } } }\'',
+      "saleor webhook dry-run --query='subscription { event { ... on ProductCreated { product { id name } } } }'",
       '',
     )
-    .example('saleor webhook dry-run --object-id=\'UHJvZHVjdDo3Mg==\'', '');
+    .example("saleor webhook dry-run --object-id='UHJvZHVjdDo3Mg=='", '');
 
 export const handler = async (argv: Arguments<WebhookDryRunArgs>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
@@ -66,7 +66,7 @@ export const handler = async (argv: Arguments<WebhookDryRunArgs>) => {
 
   try {
     const { data }: any = await got
-      .post(argv.instance, {
+      .post(argv.instance!, {
         headers,
         json: {
           query: print(WebhookDryRun),
@@ -83,7 +83,7 @@ export const handler = async (argv: Arguments<WebhookDryRunArgs>) => {
     println('');
 
     if (!webhookDryRun) {
-      println(chalk.red('Couldn\'t find the provided object'));
+      println(chalk.red("Couldn't find the provided object"));
       return;
     }
 
@@ -101,7 +101,7 @@ export const handler = async (argv: Arguments<WebhookDryRunArgs>) => {
       const { statusCode } = error.response;
       if (statusCode === 400) {
         throw new Error(
-          'Seems the selected environment doesn\'t support dry run feature. Required Saleor Version ^3.11',
+          "Seems the selected environment doesn't support dry run feature. Required Saleor Version ^3.11",
         );
       }
     }

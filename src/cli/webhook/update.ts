@@ -17,7 +17,7 @@ export const desc = 'Update webhooks for an environment';
 
 export const handler = async (argv: Arguments<Options>) => {
   debug('command arguments: %O', obfuscateArgv(argv));
-  await updateWebhook(argv.instance, argv.json);
+  await updateWebhook(argv.instance!, argv.json);
 };
 
 export const updateWebhook = async (

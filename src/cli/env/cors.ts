@@ -14,7 +14,7 @@ import { getEnvironment, promptOrigin } from '../../lib/environment.js';
 const debug = Debug('saleor-cli:env:auth');
 
 export const command = 'cors [key|environment]';
-export const desc = 'Manage environment\'s CORS';
+export const desc = "Manage environment's CORS";
 
 export const builder: CommandBuilder = (_) =>
   _.positional('key', {
@@ -97,40 +97,38 @@ export const handler = async (argv: Arguments<Options>) => {
   // First form to check current
   const { kind } = await Enquirer.prompt<{
     kind: string;
-  }>([
-    {
-      type: 'select',
-      name: 'kind',
-      message: 'Choose allowed API origins ',
-      choices: [
-        {
-          message: 'Allow all origins',
-          name: 'all',
-        },
-        {
-          message: 'Selected Origins',
-          name: 'selected',
-        },
-        {
-          message: 'Dashboard only',
-          name: 'dashboard',
-        },
-      ],
-      initial: () => {
-        if (allowedCorsOrigins === '*') {
-          return 1;
-        }
-        if (allowedCorsOrigins == null) {
-          return 2;
-        }
-        if (Array.isArray(allowedCorsOrigins)) {
-          return 3;
-        }
-
-        return 1;
+  }>({
+    type: 'select',
+    name: 'kind',
+    message: 'Choose allowed API origins ',
+    choices: [
+      {
+        message: 'Allow all origins',
+        name: 'all',
       },
-    },
-  ]);
+      {
+        message: 'Selected Origins',
+        name: 'selected',
+      },
+      {
+        message: 'Dashboard only',
+        name: 'dashboard',
+      },
+    ],
+    initial: (() => {
+      if (allowedCorsOrigins === '*') {
+        return 1;
+      }
+      if (allowedCorsOrigins == null) {
+        return 2;
+      }
+      if (Array.isArray(allowedCorsOrigins)) {
+        return 3;
+      }
+
+      return 1;
+    })(),
+  } as any);
 
   // Trigger an update for all and dashboard
   if (['all', 'dashboard'].includes(kind)) {
@@ -155,16 +153,14 @@ export const handler = async (argv: Arguments<Options>) => {
 
   const { origins } = await Enquirer.prompt<{
     origins: string;
-  }>([
-    {
-      type: 'multiselect',
-      name: 'origins',
-      message:
-        'Define Selected Origins\n (use the arrows to navigate and the space bar to select)',
-      choices: [...selected, addNewMsg],
-      initial: selected,
-    },
-  ]);
+  }>({
+    type: 'multiselect',
+    name: 'origins',
+    message:
+      'Define Selected Origins\n (use the arrows to navigate and the space bar to select)',
+    choices: [...selected, addNewMsg],
+    initial: selected,
+  } as any);
 
   do {
     if (origins.length === 0) {

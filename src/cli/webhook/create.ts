@@ -122,7 +122,7 @@ export const handler = async (argv: Arguments<Options>) => {
   const headers = await Config.getBearerHeader();
 
   const { data }: any = await got
-    .post(instance, {
+    .post(instance!, {
       headers,
       json: {
         query: print(WebhookCreate),
