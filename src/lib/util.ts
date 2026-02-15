@@ -515,10 +515,7 @@ export const validateLength = (
   }
 
   if (value.length > maxLength) {
-    console.log(
-      chalk.red(`${name} please use ${maxLength} characters maximum`),
-    );
-    return false;
+    return chalk.red(`${name} please use ${maxLength} characters maximum`);
   }
 
   return true;
@@ -534,17 +531,15 @@ export const validateEmail = (
 
   const re = /\S+@\S+\.\S+/;
   if (!re.test(value)) {
-    console.log(chalk.red('please provide valid email'));
-    return false;
+    return chalk.red('please provide valid email');
   }
 
   return true;
 };
 
-export const validatePresence = (value: string): boolean => {
+export const validatePresence = (value: string) => {
   if (value.length < 1) {
-    console.log(chalk.red('please provide value'));
-    return false;
+    return chalk.red('please provide value');
   }
 
   return true;

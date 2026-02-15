@@ -11,6 +11,7 @@ import {
   contentBox,
   formatConfirm,
   obfuscateArgv,
+  println,
   SaleorEnvironmentError,
   validateLength,
   waitForTask,
@@ -250,9 +251,7 @@ const getDomain = async (
         return chalk.red(errorMsg);
       }
 
-      validateLength(value, 40);
-
-      return true;
+      return validateLength(value, 100);
     },
   });
 
@@ -282,7 +281,7 @@ const validateDomain = async (
         for (const [errorMsg] of Object.values(errors)) {
           switch (errorMsg) {
             case 'environment with this domain label already exists.': {
-              console.log(chalk.red(msg));
+              println(chalk.red(msg));
               domain = await getDomain(argv, name, msg, json.domain_label);
               json.domain_label = domain;
               break;
