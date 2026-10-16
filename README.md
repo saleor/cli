@@ -67,4 +67,4 @@ pnpm saleor env delete preview --force
 
 Deletion is permanent. Production environments cannot be deleted through the CLI. Paid projects require `--plan <slug> --confirm-paid-plan`; additional sandboxes in paid projects may also incur charges. Paid provisioning has not been tested live.
 
-See `pnpm saleor --help` for more commands and [validation and limits](docs/poc.md) for known limitations.
+See `pnpm saleor --help` for more commands and [known limitations](docs/limitations.md).
