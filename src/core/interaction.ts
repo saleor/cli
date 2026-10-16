@@ -51,24 +51,23 @@ export const openBrowser = (url: string) =>
 
 // Destructive actions: `--force` is the only way to skip the question. Without a person
 // at a terminal there is nobody to ask, so the command refuses instead of guessing.
-export const confirmDestructive = (question: string, force: boolean) =>
+export const confirmDestructive = (
+  action: { readonly question: string; readonly refusal: string },
+  force: boolean
+) =>
   Effect.gen(function* () {
     if (force) {
       return;
     }
 
     if (!(yield* isInteractive)) {
-      return yield* fail(
-        "CONFIRMATION_REQUIRED",
-        `${question} Refusing without confirmation.`,
-        {
-          suggestion: `Re-run with --force to confirm: ${yield* rerunCommand(["--force"])}`,
-        }
-      );
+      return yield* fail("CONFIRMATION_REQUIRED", action.refusal, {
+        suggestion: `To confirm, run: ${yield* rerunCommand(["--force"])}`,
+      });
     }
 
     const answer = yield* Effect.promise(() =>
-      confirm({ initialValue: false, message: question })
+      confirm({ initialValue: false, message: action.question })
     );
 
     // Ctrl-C at the prompt is an interruption (exit 130), not a refusal.
@@ -77,9 +76,6 @@ export const confirmDestructive = (question: string, force: boolean) =>
     }
 
     if (answer !== true) {
-      return yield* fail(
-        "CONFIRMATION_REQUIRED",
-        "Cancelled; nothing was deleted."
-      );
+      return yield* fail("CANCELLED", "Cancelled. Nothing was deleted.");
     }
   });

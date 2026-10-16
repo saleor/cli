@@ -29,6 +29,7 @@ export type ErrorCode =
   | "ENVIRONMENT_LIMIT_REACHED"
   | "PAID_PLAN_NOT_CONFIRMED"
   | "CONFIRMATION_REQUIRED"
+  | "CANCELLED"
   | "PRODUCTION_DELETE_REFUSED"
   | "PROJECT_NOT_EMPTY"
   | "NOT_READY"
@@ -59,9 +60,9 @@ export const fail = (
 export const internalFailure = (cause: Cause.Cause<unknown>) =>
   fail(
     "INTERNAL_ERROR",
-    `Unexpected error: ${Cause.pretty(cause).split("\n")[0]}`,
+    `Something went wrong: ${Cause.pretty(cause).split("\n")[0]}`,
     {
       suggestion:
-        "Re-run with --log-level debug and report the output if this persists.",
+        "This is a bug in the Saleor CLI. Please report it, with the command you ran and this message.",
     }
   );

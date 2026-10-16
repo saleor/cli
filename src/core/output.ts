@@ -7,7 +7,7 @@ export type OutputFormat = "text" | "json";
 export const OutputFlag = GlobalFlag.Setting("output")({
   flag: Flag.Literals("output", ["text", "json"]).pipe(
     Flag.withDescription(
-      "Output format. Defaults to text in a terminal and json for pipes and coding agents."
+      "Output format: text for people, json for scripts and coding agents. Defaults to text in a terminal, json otherwise. --json is short for --output json."
     ),
     Flag.optional
   ),
@@ -128,16 +128,50 @@ export const writeText = (text: string) =>
     }
   });
 
+export const useColors = (stream: NodeJS.WriteStream = process.stdout) =>
+  stream.isTTY === true &&
+  process.env.NO_COLOR === undefined &&
+  process.env.TERM !== "dumb";
+
+// People get the message and what to do next; the error code is for programs and is
+// only in the json output (and the exit code).
 export const writeTextFailure = (failure: CliFailure) =>
   Effect.sync(() => {
-    const lines = [`✗ ${failure.message}`, `  code: ${failure.code}`];
+    const colors = useColors(process.stderr);
+    const mark = colors ? "\x1b[31m✗\x1b[0m " : "✗ ";
+
+    const lines = [
+      `${failure.code === "CANCELLED" ? "" : mark}${failure.message}`,
+    ];
 
     if (failure.suggestion) {
-      lines.push(`  ${failure.suggestion}`);
+      lines.push(...failure.suggestion.split("\n").map((line) => `  ${line}`));
     }
 
     process.stderr.write(`${lines.join("\n")}\n`);
   });
+
+// Aligned columns for list output. The first row is the header.
+export const columns = (
+  rows: readonly (readonly (string | null | undefined)[])[]
+) => {
+  const cells = rows.map((row) => row.map((cell) => cell ?? ""));
+
+  const widths = cells[0]?.map((_, i) =>
+    Math.max(...cells.map((row) => row[i]?.length ?? 0))
+  );
+
+  return cells
+    .map((row) =>
+      row
+        .map((cell, i) =>
+          i === row.length - 1 ? cell : cell.padEnd(widths?.[i] ?? 0)
+        )
+        .join("   ")
+        .trimEnd()
+    )
+    .join("\n");
+};
 
 // Progress and instructions for the human (device codes, waiting notices) always go to
 // stderr, so stdout carries exactly one result document in json mode.

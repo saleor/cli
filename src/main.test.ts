@@ -211,6 +211,29 @@ describe("real CLI process", () => {
     expect(out.data.error.code).toBe("USAGE_ERROR");
     expect(requests).toEqual([]);
   });
+  it("renders a text usage error as one message, without the help page", async () => {
+    const out = await cli(["env", "lst", "--output", "text"]);
+
+    expect(out.code).toBe(1);
+    expect(out.stdout).toBe("");
+    expect(out.stderr).toBe(
+      [
+        '✗ Unknown command "saleor env lst".',
+        "  Did you mean: saleor env list",
+        "  See all options with: saleor env --help",
+        "",
+      ].join("\n")
+    );
+  });
+  it("leaves Effect's wizard and log-level flags out of help", async () => {
+    const out = await cli(["--help", "--output", "text"]);
+
+    expect(out.code).toBe(0);
+    expect(out.stdout).toContain("--output <text|json>");
+    expect(out.stdout).not.toContain("--wizard");
+    expect(out.stdout).not.toContain("--log-level");
+    expect((await cli(["--wizard"])).data.error.code).toBe("USAGE_ERROR");
+  });
   it("rejects negative timeouts before any Cloud action", async () => {
     const out = await cli([
       "env",

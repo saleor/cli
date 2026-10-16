@@ -2,6 +2,7 @@ import { Effect, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
 import { confirmDestructive } from "../../../core/interaction.ts";
+import { columns } from "../../../core/output.ts";
 import { describeProject, findProject, listProjects } from "../lookup.ts";
 import {
   deleteProject,
@@ -9,7 +10,7 @@ import {
   requireEmptyProject,
 } from "../provision.ts";
 import { orgFlag, resolveScope } from "../scope.ts";
-import { forceFlag } from "./flags.ts";
+import { forceFlag, regionDescription } from "./flags.ts";
 
 const projectList = Command.make("list", { org: orgFlag }, (flags) =>
   run(
@@ -22,37 +23,40 @@ const projectList = Command.make("list", { org: orgFlag }, (flags) =>
 
       return result(
         projects,
-        projects
-          .map(
-            (p) => `${p.slug}  ${p.name}  plan=${p.plan}  region=${p.region}`
-          )
-          .join("\n") || `No projects in ${organization}.`
+        projects.length === 0
+          ? `No projects in ${organization}. Create one with: saleor project create <name>`
+          : columns([
+              ["PROJECT", "NAME", "PLAN", "REGION"],
+              ...projects.map((p) => [p.slug, p.name, p.plan, p.region]),
+            ])
       );
     })
   )
-).pipe(Command.withDescription("List projects in an organization."));
+).pipe(Command.withDescription("List the projects in an organization."));
 
 const projectCreate = Command.make(
   "create",
   {
     confirmPaidPlan: Flag.Boolean("confirm-paid-plan").pipe(
       Flag.withDescription(
-        "Accept the cost of a paid plan. Without it a paid plan is refused and its pricing shown."
+        "Agree to pay for a paid --plan. Without it, a paid plan is refused and its price is shown."
       ),
       Flag.withDefault(false)
     ),
     name: Argument.String("name").pipe(
       Argument.withDescription(
-        "Project name. Re-running with the same name reuses it."
+        "Name for the project. If a project with this name exists, it is reused."
       )
     ),
     org: orgFlag,
     plan: Flag.String("plan").pipe(
-      Flag.withDescription('Plan slug (default "dev", the free plan).'),
+      Flag.withMetavar("slug"),
+      Flag.withDescription('Billing plan. Defaults to "dev", the free plan.'),
       Flag.optional
     ),
     region: Flag.String("region").pipe(
-      Flag.withDescription('Region (default "us-east-1").'),
+      Flag.withMetavar("region"),
+      Flag.withDescription(regionDescription),
       Flag.optional
     ),
   },
@@ -73,16 +77,18 @@ const projectCreate = Command.make(
 
         return result(
           { ...details, created },
-          `${created ? "✓ Created" : "✓ Reusing"} project ${details.slug} (plan ${details.plan}, ${details.region}).`
+          `${created ? "✓ Created project" : "✓ Project already exists:"} ${details.slug} (plan ${details.plan}, ${details.region}).`
         );
       })
     )
 ).pipe(
-  Command.withDescription("Create a project, or reuse the one with this name."),
+  Command.withDescription(
+    "Create a project. If one with this name already exists, it is reused."
+  ),
   Command.withExamples([
     {
       command: "saleor project create my-store --org acme",
-      description: "Free dev-plan project",
+      description: "Create a project on the free plan",
     },
   ])
 );
@@ -105,7 +111,7 @@ const projectDelete = Command.make(
         if (Option.isNone(found)) {
           return result(
             { deleted: false, organization, project: flags.name },
-            `Project ${flags.name} does not exist; nothing to delete.`
+            `Project "${flags.name}" does not exist, so there is nothing to delete.`
           );
         }
 
@@ -113,20 +119,31 @@ const projectDelete = Command.make(
 
         yield* requireEmptyProject(organization, project);
         yield* confirmDestructive(
-          `Delete project "${project.slug}" in ${organization}?`,
+          {
+            question: `Delete project "${project.slug}" in ${organization}? This cannot be undone.`,
+            refusal: `Not deleting project "${project.slug}" without confirmation.`,
+          },
           flags.force
         );
         yield* deleteProject(organization, project);
 
         return result(
           { deleted: true, organization, project: project.slug },
-          `✓ Deleted project ${project.slug}.`
+          `✓ Deleted project "${project.slug}".`
         );
       })
     )
-).pipe(Command.withDescription("Delete an empty project."));
+).pipe(
+  Command.withDescription(
+    "Delete a project. It must have no environments left; delete them first with saleor env delete."
+  ),
+  Command.withShortDescription("Delete an empty project.")
+);
 
 export const projectCommand = Command.make("project").pipe(
-  Command.withDescription("Saleor Cloud projects."),
+  Command.withDescription(
+    "Create, list and delete Saleor Cloud projects. A project groups environments and sets their billing plan and region."
+  ),
+  Command.withShortDescription("Manage projects."),
   Command.withSubcommands([projectList, projectCreate, projectDelete])
 );

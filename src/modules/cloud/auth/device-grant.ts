@@ -69,8 +69,8 @@ const postForm = (url: string, form: Record<string, string>) =>
         Effect.mapError(() =>
           fail(
             "NETWORK_ERROR",
-            `Could not reach the Saleor login server at ${authRealmUrl()}.`,
-            { retry: true }
+            `Could not reach the Saleor Cloud login server at ${authRealmUrl()}.`,
+            { retry: true, suggestion: "Check your internet connection." }
           )
         )
       );
@@ -95,9 +95,11 @@ export const requestDeviceCode = Effect.gen(function* () {
   if (status !== 200) {
     return yield* fail(
       "API_ERROR",
-      `The login server refused to start a device login (HTTP ${status}).`,
+      `The Saleor Cloud login server could not start a login (HTTP ${status}).`,
       {
         details: body,
+        retry: true,
+        suggestion: "Try again in a moment.",
       }
     );
   }
@@ -108,7 +110,7 @@ export const requestDeviceCode = Effect.gen(function* () {
     Effect.mapError(() =>
       fail(
         "API_ERROR",
-        "The login server returned an unexpected device-code response."
+        "The Saleor Cloud login server sent a response this version of the CLI does not understand."
       )
     )
   );
@@ -152,10 +154,10 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
       if (Date.now() >= grant.expiresAt) {
         return yield* fail(
           "AUTH_DEVICE_CODE_EXPIRED",
-          "The login code expired before it was approved.",
+          "The login link expired before the request was approved.",
           {
             retry: true,
-            suggestion: "Run `saleor login` again to get a new code.",
+            suggestion: "To get a new link, run: saleor login",
           }
         );
       }
@@ -178,7 +180,7 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
           Effect.mapError(() =>
             fail(
               "API_ERROR",
-              "The login server returned an unexpected token response."
+              "The Saleor Cloud login server sent a response this version of the CLI does not understand."
             )
           )
         );
@@ -197,18 +199,18 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
         case "access_denied":
           return yield* fail(
             "AUTH_DEVICE_ACCESS_DENIED",
-            "The login was denied in the browser.",
+            "The login request was denied in the browser.",
             {
-              suggestion: "Run `saleor login` again and approve the request.",
+              suggestion: "To try again, run: saleor login",
             }
           );
         case "expired_token":
           return yield* fail(
             "AUTH_DEVICE_CODE_EXPIRED",
-            "The login code expired before it was approved.",
+            "The login link expired before the request was approved.",
             {
               retry: true,
-              suggestion: "Run `saleor login` again to get a new code.",
+              suggestion: "To get a new link, run: saleor login",
             }
           );
         default:
@@ -217,7 +219,7 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
 
       return yield* fail(
         "API_ERROR",
-        `The login failed: ${error || `HTTP ${status}`}.`,
+        `Login failed: ${String(body.error_description ?? "") || error || `HTTP ${status}`}.`,
         { details: body }
       );
     }
@@ -239,7 +241,7 @@ export const refreshTokens = (tokens: DeviceTokens) =>
         "AUTH_REQUIRED",
         "Your Saleor Cloud login has expired.",
         {
-          suggestion: "Run `saleor login`.",
+          suggestion: "Log in again with: saleor login",
         }
       );
     }
@@ -248,7 +250,7 @@ export const refreshTokens = (tokens: DeviceTokens) =>
       Effect.mapError(() =>
         fail(
           "API_ERROR",
-          "The login server returned an unexpected token response."
+          "The Saleor Cloud login server sent a response this version of the CLI does not understand."
         )
       )
     );

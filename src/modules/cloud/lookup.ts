@@ -18,6 +18,10 @@ export type Environment = EnvironmentResponse;
 export const isSandbox = (env: Environment) =>
   env.service.service_type === "SANDBOX";
 
+// "sandbox", "production", …; for messages.
+export const serviceTypeLabel = (env: Environment) =>
+  env.service.service_type?.toLowerCase() ?? "non-sandbox";
+
 export const graphqlUrlOf = (env: Environment) =>
   `https://${env.domain}/graphql/`;
 
@@ -92,10 +96,14 @@ const uniqueMatch = <A extends { readonly name: string }>(
 
   if (matches.length > 1) {
     return Effect.fail(
-      fail("NAME_CONFLICT", `More than one ${kind} is named "${ref}".`, {
-        details: { matches: matches.map(key) },
-        suggestion: "Select a project slug or an environment key explicitly.",
-      })
+      fail(
+        "NAME_CONFLICT",
+        `More than one ${kind} is named "${ref}": ${matches.map(key).join(", ")}.`,
+        {
+          details: { matches: matches.map(key) },
+          suggestion: `Use the ${kind === "project" ? "project slug" : "environment key"} instead of the name.`,
+        }
+      )
     );
   }
 
@@ -115,7 +123,7 @@ export const requireProject = (organization: string, ref: string) =>
           "NOT_FOUND",
           `Project "${ref}" does not exist in organization "${organization}".`,
           {
-            suggestion: `Create it with \`saleor project create ${ref} --org ${organization}\`.`,
+            suggestion: `See existing projects with: saleor project list --org ${organization}\nOr create it with: saleor project create ${ref} --org ${organization}`,
           }
         ),
       onSome: Effect.succeed,
@@ -171,8 +179,12 @@ export const requireEnvironment = (
       onNone: () =>
         fail(
           "NOT_FOUND",
-          `Environment "${ref}" does not exist in organization "${organization}".`,
-          { suggestion: "List them with `saleor env list`." }
+          projectSlug === undefined
+            ? `Environment "${ref}" does not exist in organization "${organization}".`
+            : `Environment "${ref}" does not exist in project "${projectSlug}".`,
+          {
+            suggestion: `List environments with: saleor env list --org ${organization}${projectSlug === undefined ? "" : ` --project ${projectSlug}`}`,
+          }
         ),
       onSome: Effect.succeed,
     })

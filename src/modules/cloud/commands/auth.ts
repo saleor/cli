@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
 import { openBrowser } from "../../../core/interaction.ts";
-import { notice } from "../../../core/output.ts";
+import { columns, notice } from "../../../core/output.ts";
 import { CloudApi, orDescribe } from "../api/client.ts";
 import { retrieveUserWithOnboardingInfo } from "../api/generated.ts";
 import {
@@ -47,13 +47,12 @@ const deviceLogin = (openInBrowser: boolean) =>
     const opened = openInBrowser ? yield* openBrowser(url) : false;
     yield* notice(
       [
-        "To log in to Saleor Cloud, approve this request in your browser:",
-        `  ${url}`,
-        `  Code: ${grant.userCode}`,
         opened
-          ? "(Opened in your browser.)"
-          : "(Open the link above to continue.)",
-        "Waiting for approval…",
+          ? "To log in, approve the request in the browser window that just opened:"
+          : "To log in, open this link in your browser and approve the request:",
+        `  ${url}`,
+        `  Check that the page shows the code ${grant.userCode}.`,
+        "Waiting for approval… (Ctrl+C to cancel)",
       ].join("\n")
     );
 
@@ -66,9 +65,7 @@ export const login = Command.make(
   "login",
   {
     noBrowser: Flag.Boolean("no-browser").pipe(
-      Flag.withDescription(
-        "Print the login link instead of opening the browser."
-      ),
+      Flag.withDescription("Only print the login link; do not open a browser."),
       Flag.withDefault(false)
     ),
   },
@@ -93,15 +90,16 @@ export const login = Command.make(
             credentialStore: status.store,
           },
           status.source === "env"
-            ? `Using SALEOR_CLOUD_TOKEN for ${user.email}; no login needed.`
+            ? `SALEOR_CLOUD_TOKEN is set, so no login is needed. Using it as ${user.email}.`
             : `✓ Logged in as ${user.email}.`
         );
       })
     )
 ).pipe(
   Command.withDescription(
-    "Log in to Saleor Cloud with a device code: approve it in the browser and the command finishes by itself."
-  )
+    "Log in to Saleor Cloud. Opens your browser to approve the login; the command finishes once you do. Not needed when SALEOR_CLOUD_TOKEN is set."
+  ),
+  Command.withShortDescription("Log in to Saleor Cloud in your browser.")
 );
 
 export const logout = Command.make("logout", {}, () =>
@@ -116,7 +114,7 @@ export const logout = Command.make("logout", {}, () =>
         [
           removed ? "✓ Logged out." : "You were not logged in.",
           envStillSet
-            ? "SALEOR_CLOUD_TOKEN is still set in this shell and will keep being used."
+            ? "SALEOR_CLOUD_TOKEN is still set in this shell, so commands keep using it. Unset it to log out completely."
             : "",
         ]
           .filter(Boolean)
@@ -124,7 +122,7 @@ export const logout = Command.make("logout", {}, () =>
       );
     })
   )
-).pipe(Command.withDescription("Remove the stored Saleor Cloud login."));
+).pipe(Command.withDescription("Log out of Saleor Cloud on this computer."));
 
 export const whoami = Command.make("whoami", {}, () =>
   run(
@@ -143,18 +141,32 @@ export const whoami = Command.make("whoami", {}, () =>
         })),
       };
 
+      const storedIn =
+        status.store === "keyring" ? "the system keychain" : "a local file";
+
+      const via =
+        status.source === "env"
+          ? "using SALEOR_CLOUD_TOKEN"
+          : `login saved in ${storedIn}`;
+
       return result(
         data,
         [
-          `${label} (credentials: ${status.source})`,
-          "Organizations:",
-          ...data.organizations.map((org) => `  ${org.slug}  ${org.name}`),
+          `Logged in as ${label} (${via}).`,
+          "",
+          data.organizations.length === 0
+            ? "You do not belong to any organization yet. Create one at https://cloud.saleor.io"
+            : columns([
+                ["ORGANIZATION", "NAME"],
+                ...data.organizations.map((org) => [org.slug, org.name]),
+              ]),
         ].join("\n")
       );
     })
   )
 ).pipe(
   Command.withDescription(
-    "Show the logged-in Saleor Cloud user and their organizations."
-  )
+    "Show who you are logged in as and which organizations you belong to."
+  ),
+  Command.withShortDescription("Show who you are logged in as.")
 );

@@ -75,36 +75,57 @@ const retryTransient = Schedule.exponential(Duration.millis(400));
 export const describeApiError = (error: ApiStatusError): CliFailure => {
   switch (error.status) {
     case 401:
-      return fail("AUTH_INVALID", "Saleor Cloud rejected the credentials.", {
-        suggestion: "Run `saleor login`, or check SALEOR_CLOUD_TOKEN.",
-      });
+      return fail(
+        "AUTH_INVALID",
+        process.env.SALEOR_CLOUD_TOKEN
+          ? "Saleor Cloud rejected SALEOR_CLOUD_TOKEN."
+          : "Your Saleor Cloud login is no longer valid.",
+        {
+          suggestion: process.env.SALEOR_CLOUD_TOKEN
+            ? "Check the token. To use your own login instead, unset SALEOR_CLOUD_TOKEN and run: saleor login"
+            : "Log in again with: saleor login",
+        }
+      );
     case 403:
       return fail(
         "FORBIDDEN",
-        "Your account is not allowed to do this in that organization.",
+        "Your account does not have permission to do this.",
         {
           details: error.body,
+          suggestion:
+            "Check that you belong to the organization and that your role allows this.\nSee your organizations with: saleor whoami",
         }
       );
     case 404:
-      return fail("NOT_FOUND", `Not found (${error.operation}).`, {
-        details: error.body,
-      });
+      return fail(
+        "NOT_FOUND",
+        "Saleor Cloud could not find what this command asked for.",
+        {
+          details: { body: error.body, operation: error.operation },
+          suggestion:
+            "Check the organization, project and environment names.\nSee your organizations with: saleor whoami",
+        }
+      );
     default:
       if (error.status >= 400 && error.status < 500) {
         return fail(
           "API_VALIDATION_ERROR",
-          `Saleor Cloud rejected the request: ${flattenMessages(error.body)}`,
+          `Saleor Cloud rejected the request: ${flattenMessages(error.body) || `HTTP ${error.status}`}`,
           {
             details: error.body,
           }
         );
       }
 
-      return fail("API_ERROR", `Saleor Cloud answered HTTP ${error.status}.`, {
-        details: error.body,
-        retry: true,
-      });
+      return fail(
+        "API_ERROR",
+        `Saleor Cloud returned an error (HTTP ${error.status}).`,
+        {
+          details: error.body,
+          retry: true,
+          suggestion: "Try again in a moment.",
+        }
+      );
   }
 };
 
@@ -223,9 +244,10 @@ export const CloudApiLive = Layer.effect(
             Predicate.isTagged(error, "TransientError")
               ? fail(
                   "API_ERROR",
-                  `Saleor Cloud is unavailable (HTTP ${error.status}).`,
+                  `Saleor Cloud is temporarily unavailable (HTTP ${error.status}).`,
                   {
                     retry: true,
+                    suggestion: "Try again in a moment.",
                   }
                 )
               : fail(
@@ -233,8 +255,9 @@ export const CloudApiLive = Layer.effect(
                   `Could not reach Saleor Cloud at ${baseUrl}.`,
                   {
                     retry: true,
-                    suggestion:
-                      "Check your connection or SALEOR_CLOUD_API_URL.",
+                    suggestion: process.env.SALEOR_CLOUD_API_URL
+                      ? "Check your internet connection and the SALEOR_CLOUD_API_URL setting."
+                      : "Check your internet connection.",
                   }
                 )
           )
@@ -259,8 +282,12 @@ export const CloudApiLive = Layer.effect(
           Effect.mapError((issue) =>
             fail(
               "API_ERROR",
-              `Saleor Cloud returned an unexpected response for ${operation.path}.`,
-              { details: String(issue) }
+              "Saleor Cloud returned a response this version of the CLI does not understand.",
+              {
+                details: { issue: String(issue), operation: operation.path },
+                suggestion:
+                  "Update the Saleor CLI. If it still happens, please report it.",
+              }
             )
           )
         );

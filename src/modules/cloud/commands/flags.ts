@@ -5,15 +5,22 @@ export const timeoutFlag = Flag.Int("timeout").pipe(
   Flag.withSchema(
     Schema.Int.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0)))
   ),
+  Flag.withMetavar("seconds"),
   Flag.withDescription(
-    "Seconds to wait before returning NOT_READY (exit 75). Re-running continues the wait."
+    "How long to wait (default 600). The work continues in Saleor Cloud after that; run the same command again to keep waiting (exit code 75 until then)."
   ),
   Flag.withDefault(600)
 );
 
 export const forceFlag = Flag.Boolean("force").pipe(
   Flag.withDescription(
-    "Confirm a destructive action without being asked. Required when there is no terminal."
+    "Skip the confirmation question. Required when not running in a terminal."
   ),
   Flag.withDefault(false)
 );
+
+export const domainLabelDescription =
+  "Subdomain for the environment (<label>.saleor.cloud). Without it, Saleor Cloud picks one and can hand out an already-running environment, which is much faster.";
+
+export const regionDescription =
+  'Region for a new project. Defaults to "us-east-1".';

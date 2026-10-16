@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
@@ -17,7 +18,11 @@ import {
   resolveScope,
   writeLink,
 } from "../scope.ts";
-import { timeoutFlag } from "./flags.ts";
+import {
+  domainLabelDescription,
+  regionDescription,
+  timeoutFlag,
+} from "./flags.ts";
 
 export const link = Command.make(
   "link",
@@ -47,13 +52,16 @@ export const link = Command.make(
 
         return result(
           { file, ...linked },
-          `✓ Linked this directory to ${[linked.organization, linked.project, environment?.name].filter(Boolean).join(" / ")} (${file}).`
+          `✓ This directory now uses ${[linked.organization, linked.project, environment?.name].filter(Boolean).join(" / ")}. Saved in ${path.relative(process.cwd(), file) || file}.`
         );
       })
     )
 ).pipe(
   Command.withDescription(
-    "Remember the organization, project and environment for this directory in .saleor/link.json (names and keys only, no secrets)."
+    "Set the organization, project and environment that commands use in this directory, so you can leave out --org, --project and --env. Saved in .saleor/link.json, which holds names only, no secrets. Replaces any earlier link."
+  ),
+  Command.withShortDescription(
+    "Set the default org, project and environment for this directory."
   )
 );
 
@@ -63,22 +71,28 @@ export const init = Command.make(
   "init",
   {
     domainLabel: Flag.String("domain-label").pipe(
-      Flag.withDescription("Subdomain; omit for a pre-warmed environment."),
+      Flag.withMetavar("label"),
+      Flag.withDescription(domainLabelDescription),
       Flag.optional
     ),
     env: Flag.String("env").pipe(
-      Flag.withDescription("Environment name to create or reuse.")
+      Flag.withMetavar("name"),
+      Flag.withDescription("Environment name. Created, or reused if it exists.")
     ),
     noLink: Flag.Boolean("no-link").pipe(
-      Flag.withDescription("Do not write .saleor/link.json."),
+      Flag.withDescription(
+        "Do not link this directory to the new environment."
+      ),
       Flag.withDefault(false)
     ),
     org: orgFlag,
     project: Flag.String("project").pipe(
-      Flag.withDescription("Project name to create or reuse.")
+      Flag.withMetavar("name"),
+      Flag.withDescription("Project name. Created, or reused if it exists.")
     ),
     region: Flag.String("region").pipe(
-      Flag.withDescription('Region for a new project (default "us-east-1").'),
+      Flag.withMetavar("region"),
+      Flag.withDescription(regionDescription),
       Flag.optional
     ),
     timeout: timeoutFlag,
@@ -133,10 +147,14 @@ export const init = Command.make(
             },
           },
           [
-            `✓ ${environment.name} is ready.`,
-            `  GraphQL:   ${environment.graphqlUrl}`,
-            `  Dashboard: ${environment.dashboardUrl}`,
-            linkFile ? `  Linked in ${linkFile}` : "",
+            "✓ Ready.",
+            `  Project:     ${projectOutcome.project.slug} (${projectOutcome.created ? "created" : "already existed"})`,
+            `  Environment: ${environment.name} (${envOutcome.created ? "created" : "already existed"})`,
+            `  GraphQL API: ${environment.graphqlUrl}`,
+            `  Dashboard:   ${environment.dashboardUrl}`,
+            linkFile
+              ? `This directory now uses it; saved in ${path.relative(process.cwd(), linkFile) || linkFile}.`
+              : "",
           ]
             .filter(Boolean)
             .join("\n")
@@ -145,12 +163,15 @@ export const init = Command.make(
     )
 ).pipe(
   Command.withDescription(
-    "Create or reuse a project and a sandbox environment, wait until it is ready, and link this directory."
+    "Set up a working store in one step: create the project and a sandbox environment (or reuse them if they exist), wait until it is ready, and link this directory to it. Safe to run again after an interruption."
+  ),
+  Command.withShortDescription(
+    "Create a project and sandbox environment and link this directory."
   ),
   Command.withExamples([
     {
       command: "saleor init --org acme --project my-store --env dev",
-      description: "One-shot setup",
+      description: "Set up the my-store project with a dev environment",
     },
   ])
 );

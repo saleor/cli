@@ -98,7 +98,7 @@ export const SessionLive = Layer.effect(
           "You are not logged in to Saleor Cloud.",
           {
             suggestion:
-              "Run `saleor login`, or set SALEOR_CLOUD_TOKEN for unattended use.",
+              "Log in with: saleor login\nFor CI and scripts, set SALEOR_CLOUD_TOKEN instead.",
           }
         );
       }

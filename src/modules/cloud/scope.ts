@@ -10,24 +10,27 @@ import { listOrganizations } from "./lookup.ts";
 // here, next to `resolveScope`, which applies that order. There is no global "current"
 // selection, so two directories never affect each other.
 export const orgFlag = Flag.String("org").pipe(
+  Flag.withMetavar("slug"),
   Flag.withDescription(
-    "Organization slug. Falls back to SALEOR_ORG, then the link file."
+    "Organization to use. Defaults to SALEOR_ORG, then the directory's link, then your only organization."
   ),
   Flag.withFallbackConfig(Config.String("SALEOR_ORG")),
   Flag.optional
 );
 
 export const projectFlag = Flag.String("project").pipe(
+  Flag.withMetavar("project"),
   Flag.withDescription(
-    "Project slug or name. Falls back to SALEOR_PROJECT, then the link file."
+    "Project slug or name. Defaults to SALEOR_PROJECT, then the directory's link."
   ),
   Flag.withFallbackConfig(Config.String("SALEOR_PROJECT")),
   Flag.optional
 );
 
 export const envFlag = Flag.String("env").pipe(
+  Flag.withMetavar("env"),
   Flag.withDescription(
-    "Environment name or key. Falls back to SALEOR_ENV, then the link file."
+    "Environment name or key. Defaults to SALEOR_ENV, then the directory's link."
   ),
   Flag.withFallbackConfig(Config.String("SALEOR_ENV")),
   Flag.optional
@@ -87,19 +90,18 @@ const chooseOrganization = (flag: Option.Option<string>, link: CloudLink) =>
     return yield* slugs.length === 0
       ? fail(
           "ORGANIZATION_REQUIRED",
-          "Your account has no Saleor Cloud organization.",
+          "Your account does not belong to any Saleor Cloud organization.",
           {
             suggestion:
-              "Create one at https://cloud.saleor.io (opens in the browser), then re-run.",
+              "Create one at https://cloud.saleor.io, then run this command again.",
           }
         )
       : fail(
           "CONTEXT_MISSING",
-          "More than one organization is available; choose one.",
+          `You belong to several organizations (${slugs.join(", ")}); choose one.`,
           {
             details: { organizations: slugs },
-            suggestion:
-              "Pass --org <slug>, set SALEOR_ORG, or run `saleor link --org <slug>`.",
+            suggestion: `Pass --org <slug> or set SALEOR_ORG.\nTo save it for this directory, run: saleor link --org ${slugs[0]}`,
           }
         );
   });
@@ -148,8 +150,8 @@ export const requireScoped = (
       fail("CONTEXT_MISSING", `No ${what} selected.`, {
         suggestion:
           what === "project"
-            ? "Pass --project <slug>, set SALEOR_PROJECT, or run `saleor link --project <slug>`."
-            : "Pass the environment name or key, set SALEOR_ENV, or run `saleor link --env <name>`.",
+            ? "Pass --project <project> or set SALEOR_PROJECT.\nTo save it for this directory, run: saleor link --project <project>"
+            : "Pass the environment name or key, or set SALEOR_ENV.\nTo save it for this directory, run: saleor link --env <env>",
       }),
     onSome: Effect.succeed,
   });

@@ -1,6 +1,7 @@
 import { Effect, Option } from "effect";
 import { Command, type HelpDoc } from "effect/cli";
 import { result, run } from "./command.ts";
+import { columns } from "./output.ts";
 
 type AnyCommand = Command.Command.Any;
 
@@ -23,6 +24,8 @@ export interface CatalogEntry {
     required: boolean;
     description: string | null;
   }>;
+  // One line, for listings; `description` has the full text.
+  readonly summary: string | null;
 }
 
 // Effect's Command keeps its parsed flag/argument model behind `buildHelpDoc`, the same
@@ -78,6 +81,7 @@ export const buildCatalog = (
           required: f.required,
           type: f.type,
         })),
+        summary: command.shortDescription ?? command.description ?? null,
       });
     }
 
@@ -101,14 +105,13 @@ export const catalogCommand = (roots: () => readonly AnyCommand[]) =>
 
         return result(
           entries,
-          entries
-            .map((e) => `${e.command.padEnd(28)} ${e.description ?? ""}`)
-            .join("\n")
+          columns(entries.map((e) => [e.command, e.summary ?? ""]))
         );
       })
     )
   ).pipe(
     Command.withDescription(
-      "List every command with its arguments and flags (use --output json for the machine-readable catalogue)."
-    )
+      "List every command. With --output json, also lists each command's arguments and flags, for scripts and coding agents."
+    ),
+    Command.withShortDescription("List every command.")
   );

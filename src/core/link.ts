@@ -36,7 +36,10 @@ const parseLinkFile = (file: string) =>
     ),
     Effect.flatMap(Schema.decodeUnknownEffect(Schema.JsonObject)),
     Effect.mapError(() =>
-      fail("USAGE_ERROR", `Invalid project link file: ${file}.`)
+      fail("USAGE_ERROR", `${file} is not valid JSON.`, {
+        suggestion:
+          "Fix or delete the file, then link the directory again with: saleor link",
+      })
     )
   );
 
@@ -59,7 +62,14 @@ export const readLinkSection = <A>(
         ? undefined
         : yield* Schema.decodeUnknownEffect(schema)(content[section]).pipe(
             Effect.mapError(() =>
-              fail("USAGE_ERROR", `Invalid ${section} context in ${file}.`)
+              fail(
+                "USAGE_ERROR",
+                `The "${section}" section of ${file} is not valid.`,
+                {
+                  suggestion:
+                    "Fix or delete the file, then link the directory again with: saleor link",
+                }
+              )
             )
           );
 

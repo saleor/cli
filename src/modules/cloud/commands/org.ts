@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { Command } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
+import { columns } from "../../../core/output.ts";
 import { listOrganizations } from "../lookup.ts";
 
 const orgList = Command.make("list", {}, () =>
@@ -13,7 +14,12 @@ const orgList = Command.make("list", {}, () =>
 
       return result(
         organizations,
-        organizations.map((org) => `${org.slug}  ${org.name}`).join("\n")
+        organizations.length === 0
+          ? "You do not belong to any organization yet. Create one at https://cloud.saleor.io"
+          : columns([
+              ["ORGANIZATION", "NAME"],
+              ...organizations.map((org) => [org.slug, org.name]),
+            ])
       );
     })
   )
@@ -22,6 +28,7 @@ const orgList = Command.make("list", {}, () =>
 );
 
 export const orgCommand = Command.make("org").pipe(
-  Command.withDescription("Saleor Cloud organizations."),
+  Command.withDescription("List the Saleor Cloud organizations you belong to."),
+  Command.withShortDescription("Manage organizations."),
   Command.withSubcommands([orgList])
 );

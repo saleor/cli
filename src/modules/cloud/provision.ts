@@ -1,5 +1,6 @@
 import { Effect, Option } from "effect";
 import { type CliFailure, fail } from "../../core/errors.ts";
+import { rerunCommand } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
 import {
   type ApiStatusError,
@@ -26,6 +27,7 @@ import {
   isSandbox,
   listEnvironments,
   type Project,
+  serviceTypeLabel,
 } from "./lookup.ts";
 import {
   type Deadline,
@@ -76,7 +78,7 @@ const requireSameSettings = (
           {
             details,
             suggestion:
-              "Use a different name, or drop the conflicting flags to reuse it.",
+              "Choose a different name, or leave out the conflicting flags to reuse it as it is.",
           }
         )
       );
@@ -101,6 +103,20 @@ export interface EnsureProjectInput {
   readonly region: Option.Option<string>;
 }
 
+const PERIOD_UNITS = new Map([
+  ["annually", "year"],
+  ["monthly", "month"],
+  ["yearly", "year"],
+]);
+
+// Plans are billed per period with a flat fee; usage above the allowance costs extra.
+const priceOf = (plan: Project["plan"]) => {
+  const fee = plan.pricing?.flat_fee;
+  const unit = PERIOD_UNITS.get(plan.allowance?.period ?? "");
+
+  return fee === undefined ? "" : ` (${fee}${unit ? ` per ${unit}` : ""})`;
+};
+
 const confirmPlanCost = (plan: Project["plan"], confirmed: boolean) =>
   Effect.gen(function* () {
     if (plan.type === "dev") {
@@ -110,21 +126,20 @@ const confirmPlanCost = (plan: Project["plan"], confirmed: boolean) =>
     if (!confirmed) {
       return yield* fail(
         "PAID_PLAN_NOT_CONFIRMED",
-        `Plan "${plan.slug}" is paid; nothing was created.`,
+        `The "${plan.slug}" plan is paid${priceOf(plan)}. Nothing was created.`,
         {
           details: {
             plan: plan.slug,
             pricing: plan.pricing ?? null,
             sandboxes: plan.allowance?.sandboxes ?? null,
           },
-          suggestion:
-            "Review the pricing in `details`, then re-run with --confirm-paid-plan to accept the cost.",
+          suggestion: `To accept the cost, run: ${yield* rerunCommand(["--confirm-paid-plan"])}`,
         }
       );
     }
 
     yield* notice(
-      `Paid plan "${plan.slug}" accepted. Published pricing: ${JSON.stringify(plan.pricing ?? {})}. Usage charges may apply.`
+      `Using the paid "${plan.slug}" plan${priceOf(plan)}. Usage above the plan's allowance may be charged.`
     );
   });
 
@@ -154,9 +169,11 @@ export const ensureProject = (input: EnsureProjectInput) =>
     const plan = plans.find((p) => p.slug === planSlug);
 
     if (plan === undefined) {
-      return yield* fail("USAGE_ERROR", `Unknown plan "${planSlug}".`, {
-        details: { plans: plans.map((p) => p.slug) },
-      });
+      return yield* fail(
+        "USAGE_ERROR",
+        `There is no "${planSlug}" plan. Available plans: ${plans.map((p) => p.slug).join(", ")}.`,
+        { details: { plans: plans.map((p) => p.slug) } }
+      );
     }
 
     yield* confirmPlanCost(plan, input.confirmPaidPlan);
@@ -172,6 +189,8 @@ export const ensureProject = (input: EnsureProjectInput) =>
       })
     );
 
+    const again = yield* rerunCommand();
+
     // The create response is a smaller shape; read the project back as list returns it.
     const project = yield* Effect.flatMap(
       findProject(input.organization, created.slug),
@@ -179,8 +198,11 @@ export const ensureProject = (input: EnsureProjectInput) =>
         onNone: () =>
           fail(
             "API_ERROR",
-            `Project "${created.slug}" was created but cannot be listed yet.`,
-            { retry: true }
+            `Project "${created.slug}" was created, but Saleor Cloud does not list it yet.`,
+            {
+              retry: true,
+              suggestion: `Run the same command again in a moment; it reuses the project: ${again}`,
+            }
           ),
         onSome: Effect.succeed,
       })
@@ -198,7 +220,7 @@ export const requireEmptyProject = (organization: string, project: Project) =>
     if (environments.length > 0) {
       return yield* fail(
         "PROJECT_NOT_EMPTY",
-        `Project "${project.slug}" still has ${environments.length} environment(s).`,
+        `Project "${project.slug}" still has ${environments.length === 1 ? "1 environment" : `${environments.length} environments`}: ${environments.map((env) => env.name).join(", ")}.`,
         {
           details: {
             environments: environments.map((env) => ({
@@ -206,7 +228,7 @@ export const requireEmptyProject = (organization: string, project: Project) =>
               name: env.name,
             })),
           },
-          suggestion: "Delete its environments first with `saleor env delete`.",
+          suggestion: `Delete them first, for example: saleor env delete ${environments[0]?.key ?? "<env>"} --org ${organization}`,
         }
       );
     }
@@ -228,9 +250,13 @@ export const deleteProject = (organization: string, project: Project) =>
           (error): Effect.Effect<void, ApiStatusError | CliFailure> =>
             error.status === 404
               ? Effect.void
-              : busyRejection(error, "Another task in this project", {
-                  project: project.slug,
-                })
+              : busyRejection(
+                  error,
+                  "Saleor Cloud is busy with another task in this project.",
+                  {
+                    project: project.slug,
+                  }
+                )
         ),
         orDescribe
       );
@@ -288,7 +314,16 @@ const pickSandboxService = (
     if (chosen === undefined) {
       return yield* fail(
         "USAGE_ERROR",
-        `No matching sandbox service is available for project "${project.slug}".`,
+        Option.isSome(requested)
+          ? `No available sandbox service is named "${requested.value}". Available: ${
+              services
+                .filter(
+                  (s) => s.service_type === "SANDBOX" && !s.maintenance_mode
+                )
+                .map((s) => s.name)
+                .join(", ") || "none"
+            }.`
+          : `No sandbox service is available for project "${project.slug}" right now.`,
         { details: { services: services.map((s) => s.name) } }
       );
     }
@@ -306,11 +341,11 @@ const classifyCreateRejection = (
     return Effect.fail(
       fail(
         "DOMAIN_LABEL_TAKEN",
-        `The domain label "${Option.getOrElse(domainLabel, () => "")}" is already used by another environment.`,
+        `The domain label "${Option.getOrElse(domainLabel, () => "")}" is already taken.`,
         {
           details: error.body,
           suggestion:
-            "Choose a different --domain-label, or omit it to let Saleor Cloud pick one.",
+            "Choose a different --domain-label, or leave it out and Saleor Cloud picks one.",
         }
       )
     );
@@ -320,11 +355,11 @@ const classifyCreateRejection = (
     return Effect.fail(
       fail(
         "ENVIRONMENT_LIMIT_REACHED",
-        "The project has no free sandbox environment left.",
+        "The project has reached its plan's limit of sandbox environments.",
         {
           details: error.body,
           suggestion:
-            "Delete an unused environment (`saleor env delete`) or move to a plan with more sandboxes.",
+            "Delete one you no longer need (saleor env delete <env>), or upgrade the project's plan in the Saleor Cloud dashboard.",
         }
       )
     );
@@ -379,7 +414,8 @@ export const ensureEnvironment = (input: EnsureEnvironmentInput) =>
       if (!isSandbox(existing)) {
         return yield* fail(
           "USAGE_ERROR",
-          `Environment "${input.name}" is not a sandbox; this command only creates or reuses sandboxes.`
+          `Environment "${input.name}" already exists and is a ${serviceTypeLabel(existing)} environment, not a sandbox. The CLI only creates and reuses sandboxes.`,
+          { suggestion: "Choose a different name." }
         );
       }
 
@@ -411,11 +447,11 @@ export const ensureEnvironment = (input: EnsureEnvironmentInput) =>
     const created = yield* requestEnvironment(input, service);
 
     yield* notice(
-      `Created environment "${input.name}" (${created.key}); waiting until it is ready…`
+      `Created environment "${input.name}" (${created.key}). Waiting until it is ready; this usually takes a few minutes…`
     );
 
     if (created.task_id) {
-      yield* waitForTask(created.task_id, input.deadline, "Provisioning");
+      yield* waitForTask(created.task_id, input.deadline, "Environment setup");
     }
 
     const ready = yield* waitUntilReady(
@@ -451,9 +487,13 @@ export const deleteEnvironment = (
             (error): Effect.Effect<boolean, ApiStatusError | CliFailure> =>
               error.status === 404
                 ? Effect.succeed(true)
-                : busyRejection(error, "Another task on this environment", {
-                    environment: env.key,
-                  }).pipe(
+                : busyRejection(
+                    error,
+                    "Saleor Cloud is busy with another task on this environment.",
+                    {
+                      environment: env.key,
+                    }
+                  ).pipe(
                     Effect.catchTag("CliFailure", (busy) =>
                       busy.code === "NOT_READY" && !isPast(deadline)
                         ? Effect.succeed(false)

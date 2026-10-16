@@ -22,13 +22,14 @@ export const deadlineIn = (seconds: number): Deadline => ({
 
 export const isPast = (deadline: Deadline) => Date.now() >= deadline.at;
 
-export const notReady = (what: string, details: CliFailure["details"]) =>
+// `message` says what is still happening; the work itself carries on in Saleor Cloud.
+export const notReady = (message: string, details: CliFailure["details"]) =>
   Effect.flatMap(rerunCommand(), (command) =>
     Effect.fail(
-      fail("NOT_READY", `${what} is still in progress.`, {
+      fail("NOT_READY", `Stopped waiting: ${message}`, {
         details,
         retry: true,
-        suggestion: `Run \`${command}\` again; it continues from where it stopped.`,
+        suggestion: `It continues in Saleor Cloud. To keep waiting, run the same command again: ${command}`,
       })
     )
   );
@@ -45,9 +46,13 @@ const taskFailed = (
   task: { readonly status: string; readonly status_message?: string | null },
   taskId: string
 ) =>
-  fail("TASK_FAILED", `${label} ended with status ${task.status}.`, {
-    details: { statusMessage: task.status_message ?? null, taskId },
-  });
+  fail(
+    "TASK_FAILED",
+    `${label} ${task.status === "TIMED_OUT" ? "timed out" : "failed"} in Saleor Cloud${task.status_message ? `: ${task.status_message}` : "."}`,
+    {
+      details: { statusMessage: task.status_message ?? null, taskId },
+    }
+  );
 
 export const waitForTask = (
   taskId: string,
@@ -82,7 +87,10 @@ export const waitForTask = (
       }
 
       if (isPast(deadline)) {
-        return yield* notReady(label, { status: task.status, taskId });
+        return yield* notReady(`${label.toLowerCase()} is still in progress.`, {
+          status: task.status,
+          taskId,
+        });
       }
 
       yield* Effect.sleep(POLL);
@@ -170,12 +178,14 @@ export const waitUntilReady = (
       const failed = tasks.find((task) => isFailedStatus(task.status));
 
       if (failed !== undefined) {
-        return yield* taskFailed("Provisioning", failed, failed.job_name);
+        return yield* taskFailed("Environment setup", failed, failed.job_name);
       }
 
       for (const task of tasks) {
-        yield* say("Waiting for Saleor Cloud to finish provisioning…");
-        yield* waitForTask(task.job_name, deadline, "Provisioning");
+        yield* say(
+          "Waiting for Saleor Cloud to finish setting up the environment…"
+        );
+        yield* waitForTask(task.job_name, deadline, "Environment setup");
       }
 
       const found = yield* findEnvironment(organization, envKey);
@@ -183,7 +193,7 @@ export const waitUntilReady = (
       if (Option.isNone(found)) {
         return yield* fail(
           "NOT_FOUND",
-          `Environment "${envKey}" disappeared while waiting.`
+          `Environment "${envKey}" was deleted while waiting for it to be ready.`
         );
       }
 
@@ -198,13 +208,16 @@ export const waitUntilReady = (
       }
 
       if (isPast(deadline)) {
-        return yield* notReady("Starting the store", {
-          environment: envKey,
-          graphqlUrl,
-        });
+        return yield* notReady(
+          "the environment is set up, but its GraphQL API is not responding yet.",
+          {
+            environment: envKey,
+            graphqlUrl,
+          }
+        );
       }
 
-      yield* say(`Waiting for ${graphqlUrl} to answer…`);
+      yield* say(`Waiting for the GraphQL API to respond at ${graphqlUrl}…`);
       yield* Effect.sleep(POLL);
     }
   });
@@ -221,7 +234,7 @@ export const waitUntilGone = (
       }
 
       if (isPast(deadline)) {
-        return yield* notReady("Deleting the environment", {
+        return yield* notReady("the environment is still being deleted.", {
           environment: envKey,
         });
       }

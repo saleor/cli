@@ -3,6 +3,7 @@ import { Argument, Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
 import { fail } from "../../../core/errors.ts";
 import { confirmDestructive } from "../../../core/interaction.ts";
+import { columns } from "../../../core/output.ts";
 import {
   describeEnvironment,
   type EnvironmentDetails,
@@ -12,18 +13,25 @@ import {
   projectSlugOf,
   requireEnvironment,
   requireProject,
+  serviceTypeLabel,
 } from "../lookup.ts";
 import { deleteEnvironment, ensureEnvironment } from "../provision.ts";
 import { deadlineIn } from "../readiness.ts";
 import { orgFlag, projectFlag, requireScoped, resolveScope } from "../scope.ts";
-import { forceFlag, timeoutFlag } from "./flags.ts";
+import { domainLabelDescription, forceFlag, timeoutFlag } from "./flags.ts";
 
 export const envText = (env: EnvironmentDetails) =>
   [
-    `${env.name} (${env.key}) in ${env.organization}/${env.project}`,
-    `  GraphQL:   ${env.graphqlUrl}`,
-    `  Dashboard: ${env.dashboardUrl}`,
-    `  Saleor ${env.saleorVersion ?? "?"} · ${env.serviceType} · ${env.region}`,
+    `Environment "${env.name}" (${env.key}) in ${env.organization} / ${env.project}`,
+    `  GraphQL API: ${env.graphqlUrl}`,
+    `  Dashboard:   ${env.dashboardUrl}`,
+    `  ${[
+      env.saleorVersion === null ? undefined : `Saleor ${env.saleorVersion}`,
+      env.serviceType?.toLowerCase(),
+      env.region,
+    ]
+      .filter(Boolean)
+      .join(" · ")}`,
   ].join("\n");
 
 const envList = Command.make(
@@ -44,21 +52,32 @@ const envList = Command.make(
           projectSlug
         )).map((env) => describeEnvironment(scope.organization, env));
 
+        const where = [scope.organization, projectSlug]
+          .filter(Boolean)
+          .join(" / ");
+
         return result(
           envs,
-          envs
-            .map(
-              (env) =>
-                `${env.key}  ${env.name}  ${env.project}  ${env.serviceType}  ${env.graphqlUrl}`
-            )
-            .join("\n") || "No environments."
+          envs.length === 0
+            ? `No environments in ${where}.`
+            : columns([
+                ["NAME", "KEY", "PROJECT", "TYPE", "GRAPHQL API"],
+                ...envs.map((env) => [
+                  env.name,
+                  env.key,
+                  env.project,
+                  env.serviceType?.toLowerCase() ?? "",
+                  env.graphqlUrl,
+                ]),
+              ])
         );
       })
     )
 ).pipe(
   Command.withDescription(
-    "List environments, optionally only those of one project."
-  )
+    "List environments in an organization. Narrowed to one project with --project or the directory's linked project."
+  ),
+  Command.withShortDescription("List environments.")
 );
 
 const envGet = Command.make(
@@ -66,7 +85,7 @@ const envGet = Command.make(
   {
     env: Argument.String("env").pipe(
       Argument.withDescription(
-        "Environment name or key. Falls back to SALEOR_ENV, then the link file."
+        "Environment name or key. Defaults to SALEOR_ENV, then the directory's link."
       ),
       Argument.withFallbackConfig(Config.String("SALEOR_ENV")),
       Argument.optional
@@ -96,27 +115,31 @@ const envGet = Command.make(
         return result(details, envText(details));
       })
     )
-).pipe(Command.withDescription("Show an environment's connection details."));
+).pipe(
+  Command.withDescription(
+    "Show an environment's GraphQL API and dashboard URLs."
+  )
+);
 
 const envCreate = Command.make(
   "create",
   {
     domainLabel: Flag.String("domain-label").pipe(
-      Flag.withDescription(
-        "Subdomain for <label>.saleor.cloud. Omit to take a pre-warmed environment (faster; Saleor Cloud picks the label)."
-      ),
+      Flag.withMetavar("label"),
+      Flag.withDescription(domainLabelDescription),
       Flag.optional
     ),
     name: Argument.String("name").pipe(
       Argument.withDescription(
-        "Environment name, unique in the project. Re-running with it continues or reuses."
+        "Name for the environment, unique within the project. If it already exists, it is reused."
       )
     ),
     org: orgFlag,
     project: projectFlag,
     service: Flag.String("service").pipe(
+      Flag.withMetavar("name"),
       Flag.withDescription(
-        "Saleor service (version) name. Default: newest sandbox service."
+        "Saleor Cloud service to run, which sets the Saleor version. Defaults to the newest sandbox service."
       ),
       Flag.optional
     ),
@@ -142,18 +165,21 @@ const envCreate = Command.make(
 
         return result(
           { ...details, created, ready: true },
-          `${created ? "✓ Created" : "✓ Ready (reused)"} ${envText(details)}`
+          `${created ? "✓ Created and ready." : "✓ Already exists and is ready."}\n${envText(details)}`
         );
       })
     )
 ).pipe(
   Command.withDescription(
-    "Create a sandbox environment and wait until its API answers. Safe to re-run after an interruption."
+    "Create a sandbox environment and wait until its GraphQL API responds. If the name already exists, the environment is reused, so re-running after an interruption picks up where it stopped."
+  ),
+  Command.withShortDescription(
+    "Create a sandbox environment and wait until it is ready."
   ),
   Command.withExamples([
     {
       command: "saleor env create dev --org acme --project my-store",
-      description: "Pre-warmed sandbox, ready in seconds when the pool has one",
+      description: "Create a sandbox named dev in the my-store project",
     },
   ])
 );
@@ -194,7 +220,7 @@ const envDelete = Command.make(
               environment: flags.env,
               organization: scope.organization,
             },
-            `Environment ${flags.env} does not exist; nothing to delete.`
+            `Environment "${flags.env}" does not exist, so there is nothing to delete.`
           );
         }
 
@@ -203,15 +229,18 @@ const envDelete = Command.make(
         if (!isSandbox(env)) {
           return yield* fail(
             "PRODUCTION_DELETE_REFUSED",
-            `"${env.name}" is a ${env.service.service_type} environment; this CLI only deletes sandboxes.`,
+            `"${env.name}" is a ${serviceTypeLabel(env)} environment. The CLI only deletes sandboxes.`,
             {
-              suggestion: `Delete it in the dashboard: https://cloud.saleor.io/org/${scope.organization}/environments/${env.key}`,
+              suggestion: `To delete it, use the Saleor Cloud dashboard: https://cloud.saleor.io/org/${scope.organization}/environments/${env.key}`,
             }
           );
         }
 
         yield* confirmDestructive(
-          `Delete environment "${env.name}" (${env.key}) and all its data?`,
+          {
+            question: `Delete environment "${env.name}" (${env.key}) and all its data? This cannot be undone.`,
+            refusal: `Not deleting environment "${env.name}" (${env.key}) without confirmation.`,
+          },
           flags.force
         );
         yield* deleteEnvironment(
@@ -228,17 +257,21 @@ const envDelete = Command.make(
             organization: scope.organization,
             project: env.project.slug,
           },
-          `✓ Deleted environment ${env.name} (${env.key}).`
+          `✓ Deleted environment "${env.name}" (${env.key}).`
         );
       })
     )
 ).pipe(
   Command.withDescription(
-    "Delete a sandbox environment. Production and other non-sandbox environments are refused."
-  )
+    "Delete a sandbox environment and all its data. Asks for confirmation unless --force is passed. Production environments can only be deleted in the dashboard."
+  ),
+  Command.withShortDescription("Delete a sandbox environment.")
 );
 
 export const envCommand = Command.make("env").pipe(
-  Command.withDescription("Saleor Cloud environments (stores)."),
+  Command.withDescription(
+    "Create, inspect and delete Saleor Cloud environments. An environment is one running Saleor instance with its own GraphQL API and dashboard."
+  ),
+  Command.withShortDescription("Manage environments."),
   Command.withSubcommands([envList, envGet, envCreate, envDelete])
 );
