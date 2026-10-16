@@ -3,6 +3,7 @@ import { Argument, Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
 import { confirmDestructive } from "../../../core/interaction.ts";
 import { columns } from "../../../core/output.ts";
+import { forceFlag, regionDescription } from "../flags.ts";
 import { describeProject, findProject, listProjects } from "../lookup.ts";
 import {
   deleteProject,
@@ -10,7 +11,6 @@ import {
   requireEmptyProject,
 } from "../provision.ts";
 import { orgFlag, resolveScope } from "../scope.ts";
-import { forceFlag, regionDescription } from "./flags.ts";
 
 const projectList = Command.make("list", { org: orgFlag }, (flags) =>
   run(

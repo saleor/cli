@@ -4,6 +4,7 @@ import { result, run } from "../../../core/command.ts";
 import { fail } from "../../../core/errors.ts";
 import { confirmDestructive } from "../../../core/interaction.ts";
 import { columns } from "../../../core/output.ts";
+import { domainLabelDescription, forceFlag, timeoutFlag } from "../flags.ts";
 import {
   describeEnvironment,
   type EnvironmentDetails,
@@ -18,7 +19,6 @@ import {
 import { deleteEnvironment, ensureEnvironment } from "../provision.ts";
 import { deadlineIn } from "../readiness.ts";
 import { orgFlag, projectFlag, requireScoped, resolveScope } from "../scope.ts";
-import { domainLabelDescription, forceFlag, timeoutFlag } from "./flags.ts";
 
 export const envText = (env: EnvironmentDetails) =>
   [
