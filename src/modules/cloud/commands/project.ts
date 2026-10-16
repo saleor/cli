@@ -2,13 +2,13 @@ import { Effect, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
 import { confirmDestructive } from "../../../core/interaction.ts";
-import { orgFlag, resolveScope } from "../context.ts";
 import { describeProject, findProject, listProjects } from "../lookup.ts";
 import {
   deleteProject,
   ensureProject,
   requireEmptyProject,
 } from "../provision.ts";
+import { orgFlag, resolveScope } from "../scope.ts";
 import { forceFlag } from "./flags.ts";
 
 const projectList = Command.make("list", { org: orgFlag }, (flags) =>

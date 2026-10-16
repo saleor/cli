@@ -2,14 +2,6 @@ import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
 import {
-  envFlag,
-  linkFor,
-  orgFlag,
-  projectFlag,
-  resolveScope,
-  writeLink,
-} from "../context.ts";
-import {
   describeEnvironment,
   describeProject,
   projectSlugOf,
@@ -17,6 +9,14 @@ import {
 } from "../lookup.ts";
 import { ensureEnvironment, ensureProject } from "../provision.ts";
 import { deadlineIn } from "../readiness.ts";
+import {
+  envFlag,
+  linkFor,
+  orgFlag,
+  projectFlag,
+  resolveScope,
+  writeLink,
+} from "../scope.ts";
 import { timeoutFlag } from "./flags.ts";
 
 export const link = Command.make(

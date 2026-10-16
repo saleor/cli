@@ -4,9 +4,11 @@ import { fail } from "../../core/errors.ts";
 import { readLinkSection, writeLinkSection } from "../../core/link.ts";
 import { listOrganizations } from "./lookup.ts";
 
-// Context resolution order: flag → environment variable → project link file
-// (.saleor/link.json, written by `saleor link` / `saleor init`). There is no global
-// "current" selection, so two directories never affect each other.
+// Scope: which organization, project and environment a command acts on. Every command
+// selects them the same way — flag → environment variable → project link file
+// (.saleor/link.json, written by `saleor link` / `saleor init`) — so the flags live
+// here, next to `resolveScope`, which applies that order. There is no global "current"
+// selection, so two directories never affect each other.
 export const orgFlag = Flag.String("org").pipe(
   Flag.withDescription(
     "Organization slug. Falls back to SALEOR_ORG, then the link file."
