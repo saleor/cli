@@ -55,7 +55,7 @@ export const createCliRuntime =
           }
         : globalThis.console;
 
-    // SAFETY: Command.Any erases module requirements. The composition root supplies the services for every registered module; integration tests exercise those commands.
+    // SAFETY: Command.Any erases module requirements. defineModule checks at compile time that each module's layer builds what its commands need, and the composition root merges those layers into `services`.
     return Command.runWith(command, {
       renderErrors: format === "text",
       version: options.version,

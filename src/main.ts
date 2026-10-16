@@ -6,7 +6,7 @@ import { catalogCommand } from "./core/catalog.ts";
 import { collectCommands } from "./core/module.ts";
 import { OutputFlag } from "./core/output.ts";
 import { createCliRuntime } from "./core/runtime.ts";
-import { cloudLayer, cloudModule } from "./modules/cloud/index.ts";
+import { cloudModule } from "./modules/cloud/index.ts";
 
 const modules = [cloudModule];
 const moduleCommands = collectCommands(modules);
@@ -23,6 +23,9 @@ export const root = Command.make("saleor").pipe(
 );
 
 export const main = createCliRuntime(root, {
-  services: Layer.mergeAll(cloudLayer, NodeServices.layer),
+  services: Layer.mergeAll(
+    NodeServices.layer,
+    ...modules.map((module) => module.layer)
+  ),
   version: packageJson.version,
 });

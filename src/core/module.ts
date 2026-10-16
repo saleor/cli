@@ -1,13 +1,34 @@
-import type { Command } from "effect/cli";
+import type { Layer } from "effect";
+import type { Command, GlobalFlag } from "effect/cli";
 
 // A module is a unit of code ownership (Cloud today; Storefront, Configurator later).
-// It owns one or more top-level command words. The words are what users and agents
-// type; the module is how the code is organised and grouped in help.
+// It owns one or more top-level command words, and the layer that builds the services
+// those commands run with. The words are what users and agents type; the module is how
+// the code is organised.
 export interface CliModule {
   readonly commands: readonly Command.Command.Any[];
   readonly description: string;
+  // Erased here; `defineModule` checked it against the commands' requirements.
+  readonly layer: Layer.Layer<never>;
   readonly name: string;
 }
+
+// Services the root command provides to every module: its global flags.
+export type CoreServices = GlobalFlag.Setting.Identifier<"output">;
+
+// Any command, keeping only what it requires to run.
+// biome-ignore lint/suspicious/noExplicitAny: Command names are invariant; a module holds commands of any name.
+type ModuleCommand<R> = Command.Command<any, never, unknown, unknown, R>;
+
+// Ties a module's commands to its layer at compile time: if a command needs a service
+// the layer does not build, this does not type-check. Registration itself erases the
+// types (Effect's subcommand list is `Command.Any`), so this is where they are checked.
+export const defineModule = <R>(module: {
+  readonly commands: readonly ModuleCommand<R>[];
+  readonly description: string;
+  readonly layer: Layer.Layer<NoInfer<Exclude<R, CoreServices>>>;
+  readonly name: string;
+}): CliModule => module;
 
 // Commands that belong to the CLI itself rather than to any module.
 export const RESERVED_WORDS = [

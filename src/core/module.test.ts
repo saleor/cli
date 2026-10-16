@@ -1,12 +1,15 @@
+import { Context, Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import { expect, it } from "vitest";
-import { type CliModule, collectCommands } from "./module.ts";
+import { collectCommands, defineModule } from "./module.ts";
 
-const module = (name: string, word: string): CliModule => ({
-  commands: [Command.make(word)],
-  description: name,
-  name,
-});
+const module = (name: string, word: string) =>
+  defineModule({
+    commands: [Command.make(word)],
+    description: name,
+    layer: Layer.empty,
+    name,
+  });
 
 it("rejects conflicting module ownership", () => {
   expect(() =>
@@ -18,4 +21,31 @@ it("reserves core command words", () => {
   expect(() => collectCommands([module("cloud", "commands")])).toThrow(
     'claimed by both "core" and "cloud"'
   );
+});
+
+it("requires a module's layer to build what its commands use", () => {
+  class Clock extends Context.Service<Clock, { readonly now: number }>()(
+    "test/Clock"
+  ) {}
+
+  const command = Command.make("time", {}, () =>
+    Effect.asVoid(Effect.service(Clock))
+  );
+
+  const complete = defineModule({
+    commands: [command],
+    description: "time",
+    layer: Layer.succeed(Clock, { now: 0 }),
+    name: "time",
+  });
+
+  defineModule({
+    commands: [command],
+    description: "time",
+    // @ts-expect-error The layer does not provide Clock.
+    layer: Layer.empty,
+    name: "time",
+  });
+
+  expect(complete.commands).toHaveLength(1);
 });
