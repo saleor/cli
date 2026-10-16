@@ -1,8 +1,8 @@
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -53,8 +53,11 @@ const fileStore = (dir: string): SecretStoreService => {
       return rmSync(file, { force: true });
     }
 
-    writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
-    chmodSync(file, 0o600);
+    // Write a private temp file and rename it over the old one, so a crash or a
+    // concurrent CLI process never sees a half-written credentials file.
+    const temp = `${file}.${process.pid}.tmp`;
+    writeFileSync(temp, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
+    renameSync(temp, file);
   };
 
   return {
@@ -62,6 +65,10 @@ const fileStore = (dir: string): SecretStoreService => {
     get: (key) => Effect.sync(() => read()[key]),
     remove: (key) =>
       Effect.sync(() => {
+        if (!existsSync(file)) {
+          return;
+        }
+
         const { [key]: _, ...rest } = read();
         write(rest);
       }),
@@ -69,23 +76,50 @@ const fileStore = (dir: string): SecretStoreService => {
   };
 };
 
-const keyringStore = (): SecretStoreService => ({
-  backend: "keyring",
-  get: (key) =>
-    Effect.sync(
-      () => new Entry(KEYRING_SERVICE, key).getPassword() ?? undefined
-    ),
-  remove: (key) =>
-    Effect.sync(() => {
-      try {
-        new Entry(KEYRING_SERVICE, key).deletePassword();
-      } catch {
-        // Already absent.
-      }
-    }),
-  set: (key, value) =>
-    Effect.sync(() => new Entry(KEYRING_SERVICE, key).setPassword(value)),
-});
+const succeeded = (action: () => void) => {
+  try {
+    action();
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// The keyring is preferred, but some platforms can read it and still refuse writes
+// (locked Secret Service, headless sessions). Such writes land in the file instead, and
+// reads look in both places, so a login is never lost to a keyring that half works.
+const keyringStore = (fallback: SecretStoreService): SecretStoreService => {
+  const entry = (key: string) => new Entry(KEYRING_SERVICE, key);
+
+  return {
+    backend: "keyring",
+    get: (key) =>
+      Effect.sync(() => {
+        let value: string | undefined;
+        succeeded(() => {
+          value = entry(key).getPassword() ?? undefined;
+        });
+
+        return value;
+      }).pipe(
+        Effect.filterOrElse(
+          (value): value is string => value !== undefined,
+          () => fallback.get(key)
+        )
+      ),
+    remove: (key) =>
+      Effect.andThen(
+        Effect.sync(() => succeeded(() => entry(key).deletePassword())),
+        fallback.remove(key)
+      ),
+    set: (key, value) =>
+      Effect.flatMap(
+        Effect.sync(() => succeeded(() => entry(key).setPassword(value))),
+        (stored) => (stored ? fallback.remove(key) : fallback.set(key, value))
+      ),
+  };
+};
 
 const keyringWorks = (): boolean => {
   try {
@@ -106,7 +140,9 @@ export const makeSecretStore = (
     return fileStore(configDir(env));
   }
 
-  return keyringWorks() ? keyringStore() : fileStore(configDir(env));
+  const file = fileStore(configDir(env));
+
+  return keyringWorks() ? keyringStore(file) : file;
 };
 
 export const SecretStoreLive = Layer.sync(SecretStore, () => makeSecretStore());

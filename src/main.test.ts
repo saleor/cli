@@ -606,6 +606,39 @@ describe("real CLI process", () => {
     expect(out.code).toBe(75);
     expect(out.data.error.code).toBe("NOT_READY");
   });
+  it("uses tokens another process refreshed when its own refresh is refused", async () => {
+    credentials = {};
+    const file = path.join(cwd, "config/credentials.json");
+
+    const stored = (refreshToken: string, accessExpiresAt: number) =>
+      JSON.stringify({
+        "cloud:credentials": JSON.stringify({
+          accessExpiresAt,
+          accessToken: `jwt.${refreshToken}.token`,
+          clientId: "jolly",
+          refreshToken,
+        }),
+      });
+
+    mkdirSync(path.join(cwd, "config"));
+    writeFileSync(file, stored("old", 0));
+    const fallback = handler;
+    handler = (method, url, body) => {
+      if (url.pathname.endsWith("/token")) {
+        // The other process wins the race: it rotated the refresh token first.
+        writeFileSync(file, stored("new", Date.now() + 600_000));
+
+        return [400, { error: "invalid_grant" }];
+      }
+
+      return fallback(method, url, body);
+    };
+
+    const out = await cli(["whoami"]);
+
+    expect(out.code).toBe(0);
+    expect(requests.at(-1)?.auth).toBe("Bearer jwt.new.token");
+  });
   it("resumes a pending device login, stores private credentials, refreshes and logs out", async () => {
     credentials = {};
     mkdirSync(path.join(cwd, "config"));

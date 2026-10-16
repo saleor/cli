@@ -24,6 +24,15 @@ export interface Credential {
 export const schemeFor = (token: string): Credential["scheme"] =>
   token.split(".").length === 3 ? "Bearer" : "Token";
 
+const isFresh = (tokens: DeviceTokens) =>
+  tokens.accessExpiresAt - EXPIRY_SKEW_MS > Date.now();
+
+const loginCredential = (tokens: DeviceTokens): Credential => ({
+  scheme: "Bearer",
+  source: "login",
+  token: tokens.accessToken,
+});
+
 export interface SessionService {
   readonly clearPendingGrant: Effect.Effect<void>;
   readonly credential: Effect.Effect<Credential, CliFailure>;
@@ -94,22 +103,31 @@ export const SessionLive = Layer.effect(
         );
       }
 
-      if (tokens.accessExpiresAt - EXPIRY_SKEW_MS > Date.now()) {
-        return {
-          scheme: "Bearer" as const,
-          source: "login" as const,
-          token: tokens.accessToken,
-        };
+      if (isFresh(tokens)) {
+        return loginCredential(tokens);
       }
 
-      const refreshed = yield* refreshTokens(tokens);
-      yield* store.set(CREDENTIALS_KEY, JSON.stringify(refreshed));
+      const refreshed = yield* refreshTokens(tokens).pipe(
+        Effect.tap((fresh) =>
+          store.set(CREDENTIALS_KEY, JSON.stringify(fresh))
+        ),
+        // Keycloak rotates refresh tokens, so when two CLI processes refresh at once
+        // the slower one is refused. If the other process already stored new tokens,
+        // use those instead of asking the person to log in again.
+        Effect.catchTag("CliFailure", (failure) =>
+          loadTokens.pipe(
+            Effect.filterOrFail(
+              (latest): latest is DeviceTokens =>
+                latest !== undefined &&
+                latest.refreshToken !== tokens.refreshToken &&
+                isFresh(latest),
+              () => failure
+            )
+          )
+        )
+      );
 
-      return {
-        scheme: "Bearer" as const,
-        source: "login" as const,
-        token: refreshed.accessToken,
-      };
+      return loginCredential(refreshed);
     });
 
     const http = yield* Effect.context<HttpClient.HttpClient>();
