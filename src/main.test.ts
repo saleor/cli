@@ -16,7 +16,8 @@ import samples from "./modules/cloud/api/fixtures/cloud-samples.json" with {
   type: "json",
 };
 
-const executable = path.resolve("bin/saleor.mjs");
+// SALEOR_CLI_BIN runs the same tests against another entry, such as the build output.
+const executable = path.resolve(process.env.SALEOR_CLI_BIN ?? "bin/saleor.mjs");
 let cwd: string;
 let base: string;
 

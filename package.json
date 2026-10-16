@@ -8,6 +8,7 @@
     "saleor": "./bin/saleor.mjs"
   },
   "scripts": {
+    "build": "tsdown",
     "check": "pnpm lint && pnpm check:generated && pnpm typecheck && pnpm test",
     "check:generated": "node scripts/generate-cloud-api.ts --check",
     "generate:api": "node scripts/generate-cloud-api.ts",
@@ -17,22 +18,24 @@
     "lint:fix": "oxlint -c anti-slop.config.ts --fix && ultracite fix",
     "saleor": "node bin/saleor.mjs",
     "test": "vitest run",
+    "test:build": "tsdown && SALEOR_CLI_BIN=dist/saleor.mjs vitest run src/main.test.ts",
     "test:live": "node scripts/live-smoke.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clack/prompts": "^1.8.1",
-    "@effect/platform-node": "4.0.5",
-    "@napi-rs/keyring": "^2.1.1",
-    "effect": "4.0.5"
+    "@napi-rs/keyring": "^2.1.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
+    "@clack/prompts": "^1.8.1",
+    "@effect/platform-node": "4.0.5",
     "@effect/tsgo": "0.53.2",
     "@effect/vitest": "4.0.5",
     "@oxlint/plugins": "1.88.0",
     "@types/node": "^26.6.5",
+    "effect": "4.0.5",
     "oxlint": "1.88.0",
+    "tsdown": "0.23.1",
     "typescript": "^7.0.2",
     "ultracite": "8.0.1",
     "vitest": "^5.0.4"

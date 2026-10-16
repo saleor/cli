@@ -1,6 +1,6 @@
 # Known limitations
 
-- Not installable yet: it runs only from this checkout (`pnpm saleor`), on Node 22.18+. Node cannot run TypeScript from inside `node_modules`, so a published package needs a compiled build first.
+- Not installable yet: `pnpm build` produces a standalone `dist/saleor.mjs`, but the package (`bin`, `files`, `private`) is not set up to publish it, and `pnpm saleor` runs the TypeScript sources on Node 22.18+.
 - Configurator, backups, restores, upgrades and organization creation are not supported.
 - Login uses Jolly's OAuth client (`jolly`) until device login is enabled for `saleor-cli`.
 - Browser approval and the OS keyring have not been tested end to end against production.
