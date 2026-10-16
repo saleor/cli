@@ -1,25 +1,23 @@
 import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
-import { fail } from "../../../core/errors.ts";
 import {
-  type CloudLink,
   envFlag,
+  linkFor,
   orgFlag,
   projectFlag,
-  resolveOrganization,
+  resolveScope,
   writeLink,
 } from "../context.ts";
 import {
-  deadlineIn,
   describeEnvironment,
   describeProject,
-  ensureEnvironment,
-  ensureProject,
-  findEnvironment,
-  requireProject,
-} from "../provision.ts";
-import { commandLine, timeoutFlag } from "./resources.ts";
+  projectSlugOf,
+  requireEnvironment,
+} from "../lookup.ts";
+import { ensureEnvironment, ensureProject } from "../provision.ts";
+import { deadlineIn } from "../readiness.ts";
+import { timeoutFlag } from "./flags.ts";
 
 export const link = Command.make(
   "link",
@@ -27,45 +25,23 @@ export const link = Command.make(
   (flags) =>
     run(
       Effect.gen(function* () {
-        const organization = yield* resolveOrganization(flags.org);
-
-        const project = Option.isSome(flags.project)
-          ? Option.some(
-              yield* requireProject(organization.slug, flags.project.value)
-            )
-          : Option.none();
+        // Only what is passed now is linked; the old link's selections are replaced.
+        const { organization } = yield* resolveScope({ org: flags.org });
+        const projectSlug = yield* projectSlugOf(organization, flags.project);
 
         const environment = Option.isSome(flags.env)
-          ? yield* Effect.flatMap(
-              findEnvironment(
-                organization.slug,
-                flags.env.value,
-                Option.getOrUndefined(project)?.slug
-              ),
-              (found) =>
-                Option.match(found, {
-                  onNone: () =>
-                    fail(
-                      "NOT_FOUND",
-                      `Environment "${Option.getOrThrow(flags.env)}" does not exist.`
-                    ),
-                  onSome: Effect.succeed,
-                })
+          ? yield* requireEnvironment(
+              organization,
+              flags.env.value,
+              projectSlug
             )
           : undefined;
 
-        const projectSlug =
-          Option.getOrUndefined(project)?.slug ?? environment?.project.slug;
-
-        let linked: CloudLink = { organization: organization.slug };
-
-        if (projectSlug) {
-          linked = { ...linked, project: projectSlug };
-        }
-
-        if (environment) {
-          linked = { ...linked, environment: environment.key };
-        }
+        const linked = linkFor(
+          organization,
+          projectSlug ?? environment?.project.slug,
+          environment?.key
+        );
 
         const file = yield* writeLink(linked);
 
@@ -110,36 +86,27 @@ export const init = Command.make(
   (flags) =>
     run(
       Effect.gen(function* () {
-        const organization = yield* resolveOrganization(flags.org);
-
-        const resume = commandLine(["init"], {
-          "domain-label": flags.domainLabel,
-          env: flags.env,
-          "no-link": flags.noLink,
-          org: organization.slug,
-          project: flags.project,
-          region: flags.region,
-        });
+        const { organization } = yield* resolveScope({ org: flags.org });
 
         const projectOutcome = yield* ensureProject({
           confirmPaidPlan: false,
           name: flags.project,
-          organization: organization.slug,
+          organization,
           plan: Option.none(),
           region: flags.region,
         });
 
         const envOutcome = yield* ensureEnvironment({
-          deadline: deadlineIn(flags.timeout, resume),
+          deadline: deadlineIn(flags.timeout),
           domainLabel: flags.domainLabel,
           name: flags.env,
-          organization: organization.slug,
+          organization,
           project: projectOutcome.project,
           service: Option.none(),
         });
 
         const environment = describeEnvironment(
-          organization.slug,
+          organization,
           envOutcome.environment
         );
 
@@ -147,7 +114,7 @@ export const init = Command.make(
           ? null
           : yield* writeLink({
               environment: environment.key,
-              organization: organization.slug,
+              organization,
               project: projectOutcome.project.slug,
             });
 
@@ -159,9 +126,9 @@ export const init = Command.make(
               ready: true,
             },
             linkFile,
-            organization: organization.slug,
+            organization,
             project: {
-              ...describeProject(organization.slug, projectOutcome.project),
+              ...describeProject(organization, projectOutcome.project),
               created: projectOutcome.created,
             },
           },

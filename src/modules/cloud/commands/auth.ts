@@ -4,24 +4,26 @@ import { result, run } from "../../../core/command.ts";
 import { openBrowser } from "../../../core/interaction.ts";
 import { notice } from "../../../core/output.ts";
 import { CloudApi, orDescribe } from "../api/client.ts";
-import {
-  listOrganizations,
-  retrieveUserWithOnboardingInfo,
-} from "../api/generated.ts";
+import { retrieveUserWithOnboardingInfo } from "../api/generated.ts";
 import {
   DEVICE_CLIENT_ID,
   pollForTokens,
   requestDeviceCode,
 } from "../auth/device-grant.ts";
 import { Session } from "../auth/session.ts";
+import { listOrganizations } from "../lookup.ts";
 
 const currentUser = Effect.gen(function* () {
   const api = yield* CloudApi;
   const user = yield* orDescribe(api.call(retrieveUserWithOnboardingInfo));
 
+  const name =
+    [user.first_name, user.last_name].filter(Boolean).join(" ") || null;
+
   return {
-    email: user.email ?? null,
-    name: [user.first_name, user.last_name].filter(Boolean).join(" ") || null,
+    email: user.email,
+    label: name === null ? user.email : `${name} <${user.email}>`,
+    name,
   };
 });
 
@@ -80,7 +82,7 @@ export const login = Command.make(
           yield* deviceLogin(!flags.noBrowser);
         }
 
-        const user = yield* currentUser;
+        const { label: _, ...user } = yield* currentUser;
         const status = yield* session.status;
 
         return result(
@@ -127,10 +129,9 @@ export const logout = Command.make("logout", {}, () =>
 export const whoami = Command.make("whoami", {}, () =>
   run(
     Effect.gen(function* () {
-      const api = yield* CloudApi;
       const session = yield* Session;
-      const user = yield* currentUser;
-      const organizations = yield* orDescribe(api.call(listOrganizations));
+      const { label, ...user } = yield* currentUser;
+      const organizations = yield* listOrganizations;
       const status = yield* session.status;
 
       const data = {
@@ -145,7 +146,7 @@ export const whoami = Command.make("whoami", {}, () =>
       return result(
         data,
         [
-          `${user.name ?? user.email} <${user.email}> (credentials: ${status.source})`,
+          `${label} (credentials: ${status.source})`,
           "Organizations:",
           ...data.organizations.map((org) => `  ${org.slug}  ${org.name}`),
         ].join("\n")

@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 import { CloudApi, type CloudApiService } from "./api/client.ts";
 import samples from "./api/fixtures/cloud-samples.json" with { type: "json" };
 import { ListProjectResponse } from "./api/generated.ts";
-import { deadlineIn, ensureEnvironment, probeGraphql } from "./provision.ts";
+import { ensureEnvironment } from "./provision.ts";
+import { deadlineIn, probeGraphql } from "./readiness.ts";
 
 const mockApi = (
   respond: (operation: { path: string; method: string }) => Schema.Json
@@ -71,7 +72,7 @@ describe("provisioning recovery", () => {
 
     const outcome = await Effect.runPromise(
       ensureEnvironment({
-        deadline: deadlineIn(1, "saleor env create blank"),
+        deadline: deadlineIn(1),
         domainLabel: Option.none(),
         name: environment.name,
         organization: "acme",
@@ -130,7 +131,7 @@ describe("provisioning recovery", () => {
 
     const outcome = await Effect.runPromise(
       ensureEnvironment({
-        deadline: deadlineIn(1, "saleor env create blank"),
+        deadline: deadlineIn(1),
         domainLabel: Option.none(),
         name: environment.name,
         organization: "acme",

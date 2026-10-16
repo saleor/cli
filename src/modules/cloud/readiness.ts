@@ -1,0 +1,231 @@
+import { Duration, Effect, Option, Schema } from "effect";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { type CliFailure, fail } from "../../core/errors.ts";
+import { rerunCommand } from "../../core/invocation.ts";
+import { notice } from "../../core/output.ts";
+import { CloudApi, orDescribe } from "./api/client.ts";
+import {
+  listEnvironmentTaskLists,
+  retrieveTaskStatus,
+} from "./api/generated.ts";
+import { type Environment, findEnvironment, graphqlUrlOf } from "./lookup.ts";
+
+// A wait budget for one command run. Running out is not a failure: the command returns
+// NOT_READY (exit 75) and running it again continues from Cloud's current state.
+export interface Deadline {
+  readonly at: number;
+}
+
+export const deadlineIn = (seconds: number): Deadline => ({
+  at: Date.now() + seconds * 1000,
+});
+
+export const isPast = (deadline: Deadline) => Date.now() >= deadline.at;
+
+export const notReady = (what: string, details: CliFailure["details"]) =>
+  Effect.flatMap(rerunCommand(), (command) =>
+    Effect.fail(
+      fail("NOT_READY", `${what} is still in progress.`, {
+        details,
+        retry: true,
+        suggestion: `Run \`${command}\` again; it continues from where it stopped.`,
+      })
+    )
+  );
+
+export const POLL = Duration.seconds(
+  Number(process.env.SALEOR_POLL_INTERVAL_SECONDS ?? 5)
+);
+
+const isFailedStatus = (status: string) =>
+  status === "FAILED" || status === "TIMED_OUT";
+
+const taskFailed = (
+  label: string,
+  task: { readonly status: string; readonly status_message?: string | null },
+  taskId: string
+) =>
+  fail("TASK_FAILED", `${label} ended with status ${task.status}.`, {
+    details: { statusMessage: task.status_message ?? null, taskId },
+  });
+
+export const waitForTask = (
+  taskId: string,
+  deadline: Deadline,
+  label: string
+) =>
+  Effect.gen(function* () {
+    const api = yield* CloudApi;
+
+    for (;;) {
+      const task = yield* api
+        .call(retrieveTaskStatus, { path: { job_name: taskId } })
+        .pipe(
+          // A task that was just queued may not be visible yet.
+          Effect.catchTag("ApiStatusError", (error) =>
+            error.status === 404
+              ? Effect.succeed({
+                  status: "PENDING" as const,
+                  status_message: null,
+                })
+              : Effect.fail(error)
+          ),
+          orDescribe
+        );
+
+      if (task.status === "SUCCEEDED") {
+        return;
+      }
+
+      if (isFailedStatus(task.status)) {
+        return yield* taskFailed(label, task, taskId);
+      }
+
+      if (isPast(deadline)) {
+        return yield* notReady(label, { status: task.status, taskId });
+      }
+
+      yield* Effect.sleep(POLL);
+    }
+  });
+
+// Cloud's `is_blocking` task filter returns the blocking tasks still running on an
+// environment *and* its failed creation, if any. That is found from Cloud itself, so a
+// re-run after an interruption needs no local record of the task id, and a creation
+// that failed while nobody was watching is reported instead of waited on.
+export const blockingTasks = (organization: string, envKey: string) =>
+  Effect.gen(function* () {
+    const api = yield* CloudApi;
+
+    const page = yield* orDescribe(
+      api.call(listEnvironmentTaskLists, {
+        path: { environment_pk: envKey, organization_slug: organization },
+        query: { is_blocking: "true" },
+      })
+    );
+
+    return page.results;
+  });
+
+// A finished task does not mean the store answers yet; cold starts can take minutes.
+export const probeGraphql = (graphqlUrl: string) =>
+  Effect.gen(function* () {
+    const http = yield* HttpClient.HttpClient;
+
+    const request = HttpClientRequest.post(graphqlUrl).pipe(
+      HttpClientRequest.bodyJsonUnsafe({ query: "query { shop { name } }" })
+    );
+
+    const response = yield* http
+      .execute(request)
+      .pipe(Effect.timeout(Duration.seconds(15)), Effect.option);
+
+    if (Option.isNone(response) || response.value.status !== 200) {
+      return false;
+    }
+
+    const body = yield* response.value.json.pipe(
+      Effect.flatMap(
+        Schema.decodeUnknownEffect(
+          Schema.Struct({
+            data: Schema.optionalKey(
+              Schema.Struct({
+                shop: Schema.optionalKey(
+                  Schema.NullOr(Schema.Struct({ name: Schema.String }))
+                ),
+              })
+            ),
+          })
+        )
+      ),
+      Effect.orElseSucceed(() => ({ data: undefined }))
+    );
+
+    return body.data?.shop !== undefined && body.data.shop !== null;
+  });
+
+// Prints each progress message once per run, on stderr.
+const progress = () => {
+  const shown = new Set<string>();
+
+  return (message: string) =>
+    shown.has(message)
+      ? Effect.void
+      : Effect.andThen(
+          Effect.sync(() => shown.add(message)),
+          notice(message)
+        );
+};
+
+export const waitUntilReady = (
+  organization: string,
+  envKey: string,
+  deadline: Deadline
+) =>
+  Effect.gen(function* () {
+    const say = progress();
+
+    for (;;) {
+      const tasks = yield* blockingTasks(organization, envKey);
+      const failed = tasks.find((task) => isFailedStatus(task.status));
+
+      if (failed !== undefined) {
+        return yield* taskFailed("Provisioning", failed, failed.job_name);
+      }
+
+      for (const task of tasks) {
+        yield* say("Waiting for Saleor Cloud to finish provisioning…");
+        yield* waitForTask(task.job_name, deadline, "Provisioning");
+      }
+
+      const found = yield* findEnvironment(organization, envKey);
+
+      if (Option.isNone(found)) {
+        return yield* fail(
+          "NOT_FOUND",
+          `Environment "${envKey}" disappeared while waiting.`
+        );
+      }
+
+      const env: Environment = found.value;
+      const graphqlUrl = graphqlUrlOf(env);
+
+      if (
+        !(env.blocking_tasks_in_progress || env.maintenance_mode) &&
+        (yield* probeGraphql(graphqlUrl))
+      ) {
+        return env;
+      }
+
+      if (isPast(deadline)) {
+        return yield* notReady("Starting the store", {
+          environment: envKey,
+          graphqlUrl,
+        });
+      }
+
+      yield* say(`Waiting for ${graphqlUrl} to answer…`);
+      yield* Effect.sleep(POLL);
+    }
+  });
+
+export const waitUntilGone = (
+  organization: string,
+  envKey: string,
+  deadline: Deadline
+) =>
+  Effect.gen(function* () {
+    for (;;) {
+      if (Option.isNone(yield* findEnvironment(organization, envKey))) {
+        return;
+      }
+
+      if (isPast(deadline)) {
+        return yield* notReady("Deleting the environment", {
+          environment: envKey,
+        });
+      }
+
+      yield* Effect.sleep(POLL);
+    }
+  });

@@ -5,11 +5,9 @@ import { SecretStoreLive } from "../../core/secret-store.ts";
 import { CloudApiLive } from "./api/client.ts";
 import { SessionLive } from "./auth/session.ts";
 import { login, logout, whoami } from "./commands/auth.ts";
-import {
-  envCommand,
-  orgCommand,
-  projectCommand,
-} from "./commands/resources.ts";
+import { envCommand } from "./commands/env.ts";
+import { orgCommand } from "./commands/org.ts";
+import { projectCommand } from "./commands/project.ts";
 import { init, link } from "./commands/workspace.ts";
 
 export const cloudModule: CliModule = {

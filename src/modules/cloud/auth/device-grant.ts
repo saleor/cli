@@ -1,8 +1,8 @@
-const TRAILING_SLASHES = /\/+$/;
-
 import { Duration, Effect, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { fail } from "../../../core/errors.ts";
+
+const TRAILING_SLASHES = /\/+$/;
 
 // TEMPORARY: the `saleor-cli` Keycloak client has the device grant disabled. Until
 // saleor-cloud-infra sets `oauth2_device_authorization_grant_enabled = true` on it

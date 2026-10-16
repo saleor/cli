@@ -1,5 +1,10 @@
 import { Cause, Effect, Option } from "effect";
-import { CliFailure, ExitCode, exitCodeFor } from "./errors.ts";
+import {
+  type CliFailure,
+  ExitCode,
+  exitCodeFor,
+  internalFailure,
+} from "./errors.ts";
 import {
   currentOutputFormat,
   failureEnvelope,
@@ -50,14 +55,7 @@ export const run = <A, R>(
         const failure = Cause.findErrorOption(cause);
 
         return renderFailure(
-          Option.isSome(failure)
-            ? failure.value
-            : new CliFailure({
-                code: "INTERNAL_ERROR",
-                message: `Unexpected error: ${Cause.pretty(cause).split("\n")[0]}`,
-                suggestion:
-                  "Re-run with --log-level debug and report the output if this persists.",
-              })
+          Option.isSome(failure) ? failure.value : internalFailure(cause)
         );
       },
       onSuccess: (outcome) =>

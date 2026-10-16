@@ -473,7 +473,9 @@ describe("real CLI process", () => {
 
     expect(out.code).toBe(75);
     expect(out.data.error).toMatchObject({ code: "NOT_READY", retry: true });
-    expect(out.data.error.suggestion).toContain("saleor env create dev");
+    expect(out.data.error.suggestion).toContain(
+      "saleor env create dev --org acme --project poc --timeout 0"
+    );
     expect(requests.some((req) => req.method === "POST")).toBe(false);
   });
   it.each([false, true])(
@@ -586,12 +588,76 @@ describe("real CLI process", () => {
     expect((await cli(args)).code).toBe(75);
     expect(requests.filter((req) => req.method === "POST")).toHaveLength(1);
   });
-  it("reports a delete blocked by another task as retryable", async () => {
+  it("waits out a delete blocked by another task, then reports NOT_READY with the same command", async () => {
     resourceRoutes([environment()]);
     const fallback = handler;
     handler = (method, url, body) =>
       method === "DELETE"
-        ? [409, { detail: "task running" }]
+        ? [400, { __all__: "There are active tasks in the environment" }]
+        : fallback(method, url, body);
+
+    const out = await cli([
+      "env",
+      "delete",
+      "env1",
+      "--org",
+      "acme",
+      "--force",
+      "--timeout",
+      "0",
+    ]);
+
+    expect(out.code).toBe(75);
+    expect(out.data.error.code).toBe("NOT_READY");
+    expect(out.data.error.suggestion).toContain(
+      "saleor env delete env1 --org acme --force --timeout 0"
+    );
+  });
+  it("retries a busy delete until Cloud accepts it, then waits until gone", async () => {
+    let envs = [environment()];
+    resourceRoutes();
+    let deletes = 0;
+    const fallback = handler;
+    handler = (method, url, body) => {
+      if (method === "DELETE") {
+        deletes += 1;
+
+        if (deletes === 1) {
+          return [
+            400,
+            { __all__: "There are active tasks in the environment" },
+          ];
+        }
+
+        envs = [];
+
+        return [202, { task_id: "delete" }];
+      }
+
+      return url.pathname.endsWith("/environments/")
+        ? [200, envs]
+        : fallback(method, url, body);
+    };
+
+    const out = await cli([
+      "env",
+      "delete",
+      "env1",
+      "--org",
+      "acme",
+      "--force",
+    ]);
+
+    expect(out.code).toBe(0);
+    expect(out.data.data.deleted).toBe(true);
+    expect(deletes).toBe(2);
+  });
+  it("does not retry a delete Cloud rejects for another reason", async () => {
+    resourceRoutes([environment()]);
+    const fallback = handler;
+    handler = (method, url, body) =>
+      method === "DELETE"
+        ? [400, { detail: "Environment is protected" }]
         : fallback(method, url, body);
 
     const out = await cli([
@@ -603,8 +669,120 @@ describe("real CLI process", () => {
       "--force",
     ]);
 
-    expect(out.code).toBe(75);
-    expect(out.data.error.code).toBe("NOT_READY");
+    expect(out.code).toBe(1);
+    expect(out.data.error.code).toBe("API_VALIDATION_ERROR");
+  });
+  it("refuses deleting any environment that is not a sandbox", async () => {
+    const env = environment();
+    env.service.service_type = "STAGING";
+    resourceRoutes([env]);
+
+    const out = await cli([
+      "env",
+      "delete",
+      "env1",
+      "--org",
+      "acme",
+      "--force",
+    ]);
+
+    expect(out.data.error.code).toBe("PRODUCTION_DELETE_REFUSED");
+    expect(requests.some((req) => req.method === "DELETE")).toBe(false);
+  });
+  it("reports a creation that failed while nobody was watching", async () => {
+    resourceRoutes([environment()]);
+    const fallback = handler;
+    handler = (method, url, body) =>
+      url.pathname.endsWith("/tasks/")
+        ? [
+            200,
+            { count: 1, next: null, previous: null, results: [task("FAILED")] },
+          ]
+        : fallback(method, url, body);
+
+    const out = await cli([
+      "env",
+      "create",
+      "dev",
+      "--org",
+      "acme",
+      "--project",
+      "poc",
+    ]);
+
+    expect(out.data.error.code).toBe("TASK_FAILED");
+    expect(
+      requests.find((req) => req.path.includes("/tasks/"))?.path
+    ).toContain("is_blocking=true");
+    expect(requests.some((req) => req.path.includes("/task-status/"))).toBe(
+      false
+    );
+  });
+  it("never applies a linked project or environment to another organization", async () => {
+    resourceRoutes([environment()]);
+    mkdirSync(path.join(cwd, ".saleor"));
+    writeFileSync(
+      path.join(cwd, ".saleor/link.json"),
+      JSON.stringify({
+        cloud: { environment: "env1", organization: "acme", project: "poc" },
+      })
+    );
+
+    const get = await cli(["env", "get", "--org", "other"]);
+    expect(get.data.error.code).toBe("CONTEXT_MISSING");
+
+    const list = await cli(["env", "list", "--org", "other"]);
+    expect(list.code).toBe(0);
+    expect(requests.some((req) => req.path.includes("/other/projects/"))).toBe(
+      false
+    );
+
+    // In its own organization the link still applies.
+    expect((await cli(["env", "get"])).data.data.key).toBe("env1");
+  });
+  it("finds an environment to delete outside the linked project", async () => {
+    const elsewhere = environment("env9", "other");
+    elsewhere.project = { ...elsewhere.project, slug: "other-project" };
+    let envs = [environment(), elsewhere];
+    resourceRoutes();
+    const fallback = handler;
+    handler = (method, url, body) => {
+      if (method === "DELETE") {
+        envs = envs.filter((env) => !url.pathname.includes(env.key));
+
+        return [202, { task_id: "delete" }];
+      }
+
+      return url.pathname.endsWith("/environments/")
+        ? [200, envs]
+        : fallback(method, url, body);
+    };
+
+    mkdirSync(path.join(cwd, ".saleor"));
+    writeFileSync(
+      path.join(cwd, ".saleor/link.json"),
+      JSON.stringify({ cloud: { organization: "acme", project: "poc" } })
+    );
+
+    const out = await cli(["env", "delete", "env9", "--force"]);
+
+    expect(out.data.data).toMatchObject({ deleted: true, environment: "env9" });
+  });
+  it("names the account once when it has no display name", async () => {
+    handler = (_method, url) => {
+      if (url.pathname.endsWith("/user/")) {
+        return [200, { ...samples.user, first_name: null, last_name: null }];
+      }
+
+      return url.pathname.endsWith("/organizations/")
+        ? [200, [samples.organization]]
+        : [404, {}];
+    };
+
+    const out = await cli(["whoami", "--output", "text"]);
+
+    expect(out.code).toBe(0);
+    expect(out.stdout.split(samples.user.email)).toHaveLength(2);
   });
   it("uses tokens another process refreshed when its own refresh is refused", async () => {
     credentials = {};

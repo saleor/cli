@@ -1,5 +1,3 @@
-const TRAILING_SLASHES = /\/+$/;
-
 import {
   Context,
   Data,
@@ -14,6 +12,8 @@ import {
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { type CliFailure, fail } from "../../../core/errors.ts";
 import { Session } from "../auth/session.ts";
+
+const TRAILING_SLASHES = /\/+$/;
 
 export const cloudApiBaseUrl = (env: NodeJS.ProcessEnv = process.env) =>
   (env.SALEOR_CLOUD_API_URL ?? "https://cloud.saleor.io/platform").replace(

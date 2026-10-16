@@ -1,7 +1,8 @@
 import { Cause, Console, Effect, type Layer, Option, Predicate } from "effect";
 import { CliError, Command } from "effect/cli";
 import { renderFailure } from "./command.ts";
-import { ExitCode, fail } from "./errors.ts";
+import { ExitCode, fail, internalFailure } from "./errors.ts";
+import { Invocation } from "./invocation.ts";
 import {
   OutputFlag,
   outputFormatFromArgv,
@@ -82,14 +83,12 @@ export const createCliRuntime =
           ? Effect.sync(() => {
               process.exitCode = ExitCode.Interrupted;
             })
-          : renderFailure(
-              fail(
-                "INTERNAL_ERROR",
-                `Unexpected error: ${Cause.pretty(cause).split("\n")[0]}`
-              )
-            ).pipe(Effect.provideService(OutputFlag, Option.some(format)))
+          : renderFailure(internalFailure(cause)).pipe(
+              Effect.provideService(OutputFlag, Option.some(format))
+            )
       ),
       Effect.provideService(Console.Console, consoleForFormat),
+      Effect.provideService(Invocation, rawArgv),
       Effect.provide(options.services)
     ) as Effect.Effect<void>;
   };

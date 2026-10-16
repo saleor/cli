@@ -1,4 +1,4 @@
-import { Data } from "effect";
+import { Cause, Data } from "effect";
 
 // Process exit codes. Everything that is not success, "not finished yet" or an
 // interruption exits 1; the reason is carried by `error.code` in the output.
@@ -54,3 +54,14 @@ export const fail = (
   message: string,
   options: { suggestion?: string; retry?: boolean; details?: unknown } = {}
 ) => new CliFailure({ code, message, ...options });
+
+// Anything that is not a CliFailure is a bug in the CLI, not a user or Cloud problem.
+export const internalFailure = (cause: Cause.Cause<unknown>) =>
+  fail(
+    "INTERNAL_ERROR",
+    `Unexpected error: ${Cause.pretty(cause).split("\n")[0]}`,
+    {
+      suggestion:
+        "Re-run with --log-level debug and report the output if this persists.",
+    }
+  );

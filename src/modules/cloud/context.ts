@@ -2,8 +2,7 @@ import { Config, Effect, Option, Schema } from "effect";
 import { Flag } from "effect/cli";
 import { fail } from "../../core/errors.ts";
 import { readLinkSection, writeLinkSection } from "../../core/link.ts";
-import { CloudApi, orDescribe } from "./api/client.ts";
-import { listOrganizations } from "./api/generated.ts";
+import { listOrganizations } from "./lookup.ts";
 
 // Context resolution order: flag → environment variable → project link file
 // (.saleor/link.json, written by `saleor link` / `saleor init`). There is no global
@@ -42,7 +41,20 @@ export type CloudLink = typeof CloudLink.Type;
 
 export const LINK_SECTION = "cloud";
 
-export type Source = "flag-or-env" | "link-file" | "only-organization";
+// An environment always belongs to the linked project, so it is only stored with one.
+export const linkFor = (
+  organization: string,
+  project: string | undefined,
+  environment: string | undefined
+): CloudLink => {
+  if (project === undefined) {
+    return { organization };
+  }
+
+  return environment === undefined
+    ? { organization, project }
+    : { environment, organization, project };
+};
 
 export const readLink = Effect.map(
   readLinkSection(LINK_SECTION, CloudLink),
@@ -52,70 +64,90 @@ export const readLink = Effect.map(
 export const writeLink = (link: CloudLink) =>
   writeLinkSection(LINK_SECTION, link);
 
-export const resolveOrganization = (flag: Option.Option<string>) =>
+const chooseOrganization = (flag: Option.Option<string>, link: CloudLink) =>
   Effect.gen(function* () {
     if (Option.isSome(flag)) {
-      return { slug: flag.value, source: "flag-or-env" as const };
+      return flag.value;
     }
-
-    const link = yield* readLink;
 
     if (link.organization) {
-      return { slug: link.organization, source: "link-file" as const };
+      return link.organization;
     }
 
-    const api = yield* CloudApi;
-    const organizations = yield* orDescribe(api.call(listOrganizations));
-    const [onlyOrganization] = organizations;
-
-    if (organizations.length === 1 && onlyOrganization) {
-      return {
-        slug: onlyOrganization.slug,
-        source: "only-organization" as const,
-      };
-    }
-
+    const organizations = yield* listOrganizations;
     const slugs = organizations.map((org) => org.slug);
+    const [only] = slugs;
 
-    return yield* fail(
-      organizations.length === 0 ? "ORGANIZATION_REQUIRED" : "CONTEXT_MISSING",
-      organizations.length === 0
-        ? "Your account has no Saleor Cloud organization."
-        : "More than one organization is available; choose one.",
-      {
-        details: { organizations: slugs },
+    if (slugs.length === 1 && only !== undefined) {
+      return only;
+    }
+
+    return yield* slugs.length === 0
+      ? fail(
+          "ORGANIZATION_REQUIRED",
+          "Your account has no Saleor Cloud organization.",
+          {
+            suggestion:
+              "Create one at https://cloud.saleor.io (opens in the browser), then re-run.",
+          }
+        )
+      : fail(
+          "CONTEXT_MISSING",
+          "More than one organization is available; choose one.",
+          {
+            details: { organizations: slugs },
+            suggestion:
+              "Pass --org <slug>, set SALEOR_ORG, or run `saleor link --org <slug>`.",
+          }
+        );
+  });
+
+export interface Scope {
+  readonly environment: Option.Option<string>;
+  readonly organization: string;
+  readonly project: Option.Option<string>;
+}
+
+export interface ScopeInput {
+  readonly env?: Option.Option<string>;
+  readonly org: Option.Option<string>;
+  readonly project?: Option.Option<string>;
+}
+
+// Resolves the organization, then the project and environment within it. The link
+// file's project and environment belong to the link's organization, so they are only
+// used when that is the organization selected; `--org other` in a linked directory
+// never picks up a project from somewhere else.
+export const resolveScope = (input: ScopeInput) =>
+  Effect.gen(function* () {
+    const link = yield* readLink;
+    const organization = yield* chooseOrganization(input.org, link);
+    const linked = link.organization === organization ? link : {};
+
+    const scope: Scope = {
+      environment: Option.orElse(input.env ?? Option.none(), () =>
+        Option.fromUndefinedOr(linked.environment)
+      ),
+      organization,
+      project: Option.orElse(input.project ?? Option.none(), () =>
+        Option.fromUndefinedOr(linked.project)
+      ),
+    };
+
+    return scope;
+  });
+
+export const requireScoped = (
+  value: Option.Option<string>,
+  what: "project" | "environment"
+) =>
+  Option.match(value, {
+    onNone: () =>
+      fail("CONTEXT_MISSING", `No ${what} selected.`, {
         suggestion:
-          organizations.length === 0
-            ? "Create one at https://cloud.saleor.io (opens in the browser), then re-run."
-            : "Pass --org <slug>, set SALEOR_ORG, or run `saleor link --org <slug>`.",
-      }
-    );
-  });
-
-export const resolveProjectRef = (flag: Option.Option<string>) =>
-  Effect.gen(function* () {
-    if (Option.isSome(flag)) {
-      return Option.some(flag.value);
-    }
-
-    const link = yield* readLink;
-
-    return Option.fromUndefinedOr(link.project);
-  });
-
-export const resolveEnvironmentRef = (value: Option.Option<string>) =>
-  Effect.gen(function* () {
-    if (Option.isSome(value)) {
-      return Option.some(value.value);
-    }
-
-    const fromEnv = process.env.SALEOR_ENV?.trim();
-
-    if (fromEnv) {
-      return Option.some(fromEnv);
-    }
-
-    const link = yield* readLink;
-
-    return Option.fromUndefinedOr(link.environment);
+          what === "project"
+            ? "Pass --project <slug>, set SALEOR_PROJECT, or run `saleor link --project <slug>`."
+            : "Pass the environment name or key, set SALEOR_ENV, or run `saleor link --env <name>`.",
+      }),
+    onSome: Effect.succeed,
   });
