@@ -17,20 +17,6 @@ Login prints a link and code for browser approval. `init` creates or reuses a pr
 
 For unattended use, set `SALEOR_CLOUD_TOKEN` to a Cloud API token from the Cloud dashboard. It overrides any saved login. Cloud tokens do not grant access to the store API.
 
-## Give your agent
-
-Copy this into your agent's instructions:
-
-```text
-Use `pnpm saleor` from this checkout to manage Saleor Cloud.
-Start with `pnpm saleor --help` to discover commands.
-Use `--json` for structured results and each command's `--help` for details.
-Read `ok` and `error.code`; progress goes to stderr.
-Exit code 75 means unfinished work: re-run the same command to resume.
-Avoid concurrent creates with identical names.
-Ask before deleting resources or confirming a paid plan.
-```
-
 ## Examples
 
 Find projects and environments:
