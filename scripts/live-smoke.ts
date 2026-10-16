@@ -58,9 +58,20 @@ if (writes && organization) {
   const name = `cli-poc-${Date.now().toString(36)}`;
   const context = ["--org", organization, "--project", name];
 
+  // Removes whatever this run created, even when it failed half-way, and reports both
+  // the test failure and a cleanup failure instead of letting one hide the other.
   const cleanup = async () => {
-    await run(["env", "delete", name, ...context, "--force"]);
-    await run(["project", "delete", name, "--org", organization, "--force"]);
+    const projects = await run(["project", "list", "--org", organization]);
+
+    const created = projects.data.some(
+      (project: { name: string }) => project.name === name
+    );
+
+    if (created) {
+      await run(["env", "delete", name, ...context, "--force"]);
+      await run(["project", "delete", name, "--org", organization, "--force"]);
+    }
+
     const remaining = await run(["project", "list", "--org", organization]);
 
     if (
@@ -69,8 +80,23 @@ if (writes && organization) {
       throw new Error("Project still present after cleanup.");
     }
 
+    const again = await run([
+      "env",
+      "delete",
+      name,
+      "--org",
+      organization,
+      "--force",
+    ]);
+
+    if (again.data.deleted !== false) {
+      throw new Error("Deleting an absent environment should be a no-op.");
+    }
+
     console.log(`PASS: removed test environment and project ${name}`);
   };
+
+  let failure: unknown;
 
   try {
     const initial = await run(
@@ -95,7 +121,19 @@ if (writes && organization) {
       "PASS: rerun reuses project/environment and verifies GraphQL readiness"
     );
     await run(["env", "get", ready.data.environment.key, ...context]);
-  } finally {
+  } catch (error) {
+    failure = error;
+  }
+
+  try {
     await cleanup();
+  } catch (error) {
+    throw failure === undefined
+      ? error
+      : new AggregateError([failure, error], "Smoke test and cleanup failed");
+  }
+
+  if (failure !== undefined) {
+    throw failure;
   }
 }
