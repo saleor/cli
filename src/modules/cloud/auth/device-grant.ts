@@ -1,0 +1,257 @@
+const TRAILING_SLASHES = /\/+$/;
+
+import { Duration, Effect, Schema } from "effect";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { fail } from "../../../core/errors.ts";
+
+// TEMPORARY: the `saleor-cli` Keycloak client has the device grant disabled. Until
+// saleor-cloud-infra sets `oauth2_device_authorization_grant_enabled = true` on it
+// (modules/aws/keycloak/finish/keycloak-config.tf), log in through Jolly's public client,
+// which has it enabled and is already accepted by the Cloud API (KEYCLOAK_AUDIENCES).
+export const DEVICE_CLIENT_ID = process.env.SALEOR_AUTH_CLIENT_ID ?? "jolly";
+
+export const authRealmUrl = (env: NodeJS.ProcessEnv = process.env) =>
+  (env.SALEOR_AUTH_URL ?? "https://auth.saleor.io/realms/saleor-cloud").replace(
+    TRAILING_SLASHES,
+    ""
+  );
+
+export const PendingDeviceGrant = Schema.Struct({
+  deviceCode: Schema.String,
+  expiresAt: Schema.Finite,
+  intervalSeconds: Schema.Finite,
+  userCode: Schema.String,
+  verificationUri: Schema.String,
+  verificationUriComplete: Schema.optionalKey(Schema.String),
+});
+
+export type PendingDeviceGrant = typeof PendingDeviceGrant.Type;
+
+export const DeviceTokens = Schema.Struct({
+  accessExpiresAt: Schema.Finite,
+  accessToken: Schema.String,
+  clientId: Schema.String,
+  refreshExpiresAt: Schema.optionalKey(Schema.Finite),
+  refreshToken: Schema.String,
+});
+
+export type DeviceTokens = typeof DeviceTokens.Type;
+
+const DeviceCodeResponse = Schema.Struct({
+  device_code: Schema.String,
+  expires_in: Schema.Finite,
+  interval: Schema.optionalKey(Schema.Finite),
+  user_code: Schema.String,
+  verification_uri: Schema.String,
+  verification_uri_complete: Schema.optionalKey(Schema.String),
+});
+
+const TokenResponse = Schema.Struct({
+  access_token: Schema.String,
+  expires_in: Schema.Finite,
+  refresh_expires_in: Schema.optionalKey(Schema.Finite),
+  refresh_token: Schema.String,
+});
+
+const postForm = (url: string, form: Record<string, string>) =>
+  Effect.gen(function* () {
+    const http = yield* HttpClient.HttpClient;
+
+    const response = yield* http
+      .execute(
+        HttpClientRequest.post(url).pipe(
+          HttpClientRequest.bodyUrlParams(form),
+          HttpClientRequest.acceptJson
+        )
+      )
+      .pipe(
+        Effect.timeout(Duration.seconds(30)),
+        Effect.mapError(() =>
+          fail(
+            "NETWORK_ERROR",
+            `Could not reach the Saleor login server at ${authRealmUrl()}.`,
+            { retry: true }
+          )
+        )
+      );
+
+    const body = yield* response.json.pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Schema.JsonObject)),
+      Effect.orElseSucceed((): Schema.JsonObject => ({}))
+    );
+
+    return { body, status: response.status };
+  });
+
+export const requestDeviceCode = Effect.gen(function* () {
+  const { status, body } = yield* postForm(
+    `${authRealmUrl()}/protocol/openid-connect/auth/device`,
+    {
+      client_id: DEVICE_CLIENT_ID,
+      scope: "openid",
+    }
+  );
+
+  if (status !== 200) {
+    return yield* fail(
+      "API_ERROR",
+      `The login server refused to start a device login (HTTP ${status}).`,
+      {
+        details: body,
+      }
+    );
+  }
+
+  const parsed = yield* Schema.decodeUnknownEffect(DeviceCodeResponse)(
+    body
+  ).pipe(
+    Effect.mapError(() =>
+      fail(
+        "API_ERROR",
+        "The login server returned an unexpected device-code response."
+      )
+    )
+  );
+
+  const grant: PendingDeviceGrant = {
+    deviceCode: parsed.device_code,
+    expiresAt: Date.now() + parsed.expires_in * 1000,
+    intervalSeconds: parsed.interval ?? 5,
+    userCode: parsed.user_code,
+    verificationUri: parsed.verification_uri,
+  };
+
+  return parsed.verification_uri_complete
+    ? { ...grant, verificationUriComplete: parsed.verification_uri_complete }
+    : grant;
+});
+
+const toTokens = (parsed: typeof TokenResponse.Type): DeviceTokens => {
+  const tokens: DeviceTokens = {
+    accessExpiresAt: Date.now() + parsed.expires_in * 1000,
+    accessToken: parsed.access_token,
+    clientId: DEVICE_CLIENT_ID,
+    refreshToken: parsed.refresh_token,
+  };
+
+  return parsed.refresh_expires_in
+    ? {
+        ...tokens,
+        refreshExpiresAt: Date.now() + parsed.refresh_expires_in * 1000,
+      }
+    : tokens;
+};
+
+// Polls until the person approves, honouring `interval` and `slow_down`, and stops when
+// the code expires.
+export const pollForTokens = (grant: PendingDeviceGrant) =>
+  Effect.gen(function* () {
+    let interval = grant.intervalSeconds;
+
+    for (;;) {
+      if (Date.now() >= grant.expiresAt) {
+        return yield* fail(
+          "AUTH_DEVICE_CODE_EXPIRED",
+          "The login code expired before it was approved.",
+          {
+            retry: true,
+            suggestion: "Run `saleor login` again to get a new code.",
+          }
+        );
+      }
+
+      yield* Effect.sleep(Duration.seconds(interval));
+
+      const { status, body } = yield* postForm(
+        `${authRealmUrl()}/protocol/openid-connect/token`,
+        {
+          client_id: DEVICE_CLIENT_ID,
+          device_code: grant.deviceCode,
+          grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+        }
+      );
+
+      if (status === 200) {
+        const parsed = yield* Schema.decodeUnknownEffect(TokenResponse)(
+          body
+        ).pipe(
+          Effect.mapError(() =>
+            fail(
+              "API_ERROR",
+              "The login server returned an unexpected token response."
+            )
+          )
+        );
+
+        return toTokens(parsed);
+      }
+
+      const error = String(body.error ?? "");
+
+      switch (error) {
+        case "authorization_pending":
+          continue;
+        case "slow_down":
+          interval += 5;
+          continue;
+        case "access_denied":
+          return yield* fail(
+            "AUTH_DEVICE_ACCESS_DENIED",
+            "The login was denied in the browser.",
+            {
+              suggestion: "Run `saleor login` again and approve the request.",
+            }
+          );
+        case "expired_token":
+          return yield* fail(
+            "AUTH_DEVICE_CODE_EXPIRED",
+            "The login code expired before it was approved.",
+            {
+              retry: true,
+              suggestion: "Run `saleor login` again to get a new code.",
+            }
+          );
+        default:
+          break;
+      }
+
+      return yield* fail(
+        "API_ERROR",
+        `The login failed: ${error || `HTTP ${status}`}.`,
+        { details: body }
+      );
+    }
+  });
+
+export const refreshTokens = (tokens: DeviceTokens) =>
+  Effect.gen(function* () {
+    const { status, body } = yield* postForm(
+      `${authRealmUrl()}/protocol/openid-connect/token`,
+      {
+        client_id: tokens.clientId,
+        grant_type: "refresh_token",
+        refresh_token: tokens.refreshToken,
+      }
+    );
+
+    if (status !== 200) {
+      return yield* fail(
+        "AUTH_REQUIRED",
+        "Your Saleor Cloud login has expired.",
+        {
+          suggestion: "Run `saleor login`.",
+        }
+      );
+    }
+
+    const parsed = yield* Schema.decodeUnknownEffect(TokenResponse)(body).pipe(
+      Effect.mapError(() =>
+        fail(
+          "API_ERROR",
+          "The login server returned an unexpected token response."
+        )
+      )
+    );
+
+    return toTokens(parsed);
+  });

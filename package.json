@@ -1,0 +1,44 @@
+{
+  "name": "@saleor/cli",
+  "version": "2.0.0-poc.0",
+  "private": true,
+  "description": "Saleor CLI: agent-first command line for Saleor (proof of concept)",
+  "type": "module",
+  "bin": {
+    "saleor": "./bin/saleor.mjs"
+  },
+  "scripts": {
+    "check": "pnpm lint && pnpm check:generated && pnpm typecheck && pnpm test",
+    "check:generated": "node scripts/generate-cloud-api.ts --check",
+    "generate:api": "node scripts/generate-cloud-api.ts",
+    "lint": "ultracite check && pnpm lint:anti-slop && pnpm lint:effect",
+    "lint:anti-slop": "oxlint -c anti-slop.config.ts --deny-warnings",
+    "lint:effect": "effect-tsgo diagnostics --project tsconfig.json --strict",
+    "lint:fix": "oxlint -c anti-slop.config.ts --fix && ultracite fix",
+    "saleor": "node bin/saleor.mjs",
+    "test": "vitest run",
+    "test:live": "node scripts/live-smoke.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "@effect/platform-node": "4.0.5",
+    "@napi-rs/keyring": "^2.1.1",
+    "effect": "4.0.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@effect/tsgo": "0.53.2",
+    "@effect/vitest": "4.0.5",
+    "@oxlint/plugins": "1.88.0",
+    "@types/node": "^26.6.5",
+    "oxlint": "1.88.0",
+    "typescript": "^7.0.2",
+    "ultracite": "8.0.1",
+    "vitest": "^5.0.4"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.18"
+  }
+}

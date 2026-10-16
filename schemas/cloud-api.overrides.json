@@ -1,0 +1,8 @@
+{
+  "$comment": "Known differences between openapi-schema.json and production (https://cloud.saleor.io/platform). notRequired: properties the schema marks required that production omits. login/password are write-only Basic Auth fields: observed missing on EnvironmentResponse (2026-10-16); applied to the create/obtain responses by analogy until a live create confirms it.",
+  "notRequired": {
+    "EnvironmentResponse": ["login", "password"],
+    "CreateEnvironmentResponse": ["login", "password"],
+    "ObtainEnvironmentResponse": ["login", "password"]
+  }
+}
