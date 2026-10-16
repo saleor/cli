@@ -2,6 +2,7 @@ import { Effect, Option } from "effect";
 import { type CliFailure, fail } from "../../core/errors.ts";
 import { rerunCommand } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
+import { type Deadline, isPast, notReady, POLL } from "../../core/readiness.ts";
 import {
   type ApiStatusError,
   CloudApi,
@@ -29,15 +30,7 @@ import {
   type Project,
   serviceTypeLabel,
 } from "./lookup.ts";
-import {
-  type Deadline,
-  isPast,
-  notReady,
-  POLL,
-  waitForTask,
-  waitUntilGone,
-  waitUntilReady,
-} from "./readiness.ts";
+import { waitForTask, waitUntilGone, waitUntilReady } from "./readiness.ts";
 
 export const DEFAULT_REGION = "us-east-1";
 export const DEFAULT_PLAN = "dev";

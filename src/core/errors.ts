@@ -37,6 +37,11 @@ export type ErrorCode =
   | "API_VALIDATION_ERROR"
   | "API_ERROR"
   | "NETWORK_ERROR"
+  | "DOCKER_MISSING"
+  | "DOCKER_NOT_RUNNING"
+  | "PORT_IN_USE"
+  | "IMAGE_PULL_FAILED"
+  | "TARGET_CREDENTIALS_REQUIRED"
   | "INTERNAL_ERROR";
 
 export class CliFailure extends Data.TaggedError("CliFailure")<{

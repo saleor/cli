@@ -6,14 +6,21 @@ import { catalogCommand } from "./core/catalog.ts";
 import { collectCommands } from "./core/module.ts";
 import { OutputFlag } from "./core/output.ts";
 import { createCliRuntime } from "./core/runtime.ts";
+import { collectTargetProviders } from "./core/target.ts";
 import { cloudModule } from "./modules/cloud/index.ts";
+import { localModule } from "./modules/local/index.ts";
+import { workspaceCommands } from "./workspace.ts";
 
-const modules = [cloudModule];
-const moduleCommands = collectCommands(modules);
+const modules = [cloudModule, localModule];
+
+const moduleCommands = [
+  ...collectCommands(modules),
+  ...workspaceCommands(collectTargetProviders(modules)),
+];
 
 export const root = Command.make("saleor").pipe(
   Command.withDescription(
-    "Manage Saleor Cloud projects and sandbox environments from your terminal."
+    "Set up and manage Saleor stores in Cloud or locally with Docker."
   ),
   Command.withSubcommands([
     ...moduleCommands,

@@ -1,9 +1,10 @@
 import { Effect, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
+import { forceFlag } from "../../../core/flags.ts";
 import { confirmDestructive } from "../../../core/interaction.ts";
 import { columns } from "../../../core/output.ts";
-import { forceFlag, regionDescription } from "../flags.ts";
+import { regionDescription } from "../flags.ts";
 import { describeProject, findProject, listProjects } from "../lookup.ts";
 import {
   deleteProject,

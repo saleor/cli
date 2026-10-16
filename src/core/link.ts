@@ -1,4 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { Effect, Schema } from "effect";
 import { fail } from "./errors.ts";
@@ -35,11 +41,27 @@ const parseLinkFile = (file: string) =>
       Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))
     ),
     Effect.flatMap(Schema.decodeUnknownEffect(Schema.JsonObject)),
+    Effect.flatMap((content) =>
+      content.version === undefined ||
+      content.version === 1 ||
+      content.version === 2
+        ? Effect.succeed(content)
+        : Effect.fail(
+            fail(
+              "USAGE_ERROR",
+              `Unsupported link file version in ${file}. Upgrade the CLI or recreate the link.`
+            )
+          )
+    ),
     Effect.mapError(() =>
-      fail("USAGE_ERROR", `${file} is not valid JSON.`, {
-        suggestion:
-          "Fix or delete the file, then link the directory again with: saleor link",
-      })
+      fail(
+        "USAGE_ERROR",
+        `${file} is not a supported link file. Expected a JSON object with version 1 or 2.`,
+        {
+          suggestion:
+            "Fix or delete the file, then link the directory again with: saleor link",
+        }
+      )
     )
   );
 
@@ -76,22 +98,43 @@ export const readLinkSection = <A>(
     return { file, value };
   });
 
-export const writeLinkSection = (
-  section: string,
-  value: Schema.Json,
+interface LinkDocument {
+  [key: string]: Schema.Json;
+}
+
+export const writeLinkSections = (
+  sections: Readonly<Record<string, Schema.Json | undefined>>,
   cwd: string = process.cwd()
 ) =>
   Effect.gen(function* () {
     const file = findLinkFile(cwd) ?? path.join(path.resolve(cwd), LINK_FILE);
     const content = existsSync(file) ? yield* parseLinkFile(file) : {};
+    const updated: LinkDocument = { ...content, version: 2 };
 
-    yield* Effect.sync(() => {
-      mkdirSync(path.dirname(file), { recursive: true });
-      writeFileSync(
-        file,
-        `${JSON.stringify({ ...content, [section]: value }, null, 2)}\n`
-      );
+    for (const [key, value] of Object.entries(sections)) {
+      if (value === undefined) {
+        delete updated[key];
+      } else {
+        updated[key] = value;
+      }
+    }
+
+    yield* Effect.try({
+      catch: () =>
+        fail("TASK_FAILED", `Could not save the directory link in ${file}.`),
+      try: () => {
+        mkdirSync(path.dirname(file), { recursive: true });
+        const temp = `${file}.${process.pid}.tmp`;
+        writeFileSync(temp, `${JSON.stringify(updated, null, 2)}\n`);
+        renameSync(temp, file);
+      },
     });
 
     return file;
   });
+
+export const writeLinkSection = (
+  section: string,
+  value: Schema.Json,
+  cwd?: string
+) => writeLinkSections({ [section]: value }, cwd);

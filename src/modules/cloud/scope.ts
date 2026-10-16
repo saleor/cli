@@ -1,7 +1,8 @@
 import { Config, Effect, Option, Schema } from "effect";
 import { Flag } from "effect/cli";
 import { fail } from "../../core/errors.ts";
-import { readLinkSection, writeLinkSection } from "../../core/link.ts";
+import { readLinkSection, writeLinkSections } from "../../core/link.ts";
+import { readTargetRef } from "../../core/target.ts";
 import { listOrganizations } from "./lookup.ts";
 
 // Scope: which organization, project and environment a command acts on. Every command
@@ -61,13 +62,37 @@ export const linkFor = (
     : { environment, organization, project };
 };
 
-export const readLink = Effect.map(
-  readLinkSection(LINK_SECTION, CloudLink),
-  (link) => link.value ?? {}
-);
+export const readLink = Effect.gen(function* () {
+  const link = (yield* readLinkSection(LINK_SECTION, CloudLink)).value ?? {};
+  const ref = yield* readTargetRef();
+
+  if (ref?.startsWith("cloud:")) {
+    const [organization, project, environment] = ref.slice(6).split("/");
+
+    if (organization && project && environment) {
+      return { environment, organization, project };
+    }
+  }
+
+  // Cloud defaults remain useful with a local target, but its environment cannot leak.
+  if (ref?.startsWith("local")) {
+    const { environment: _, ...defaults } = link;
+    const cloudDefaults: CloudLink = defaults;
+
+    return cloudDefaults;
+  }
+
+  return link;
+});
 
 export const writeLink = (link: CloudLink) =>
-  writeLinkSection(LINK_SECTION, link);
+  writeLinkSections({
+    cloud: link,
+    target:
+      link.organization && link.project && link.environment
+        ? `cloud:${link.organization}/${link.project}/${link.environment}`
+        : undefined,
+  });
 
 const chooseOrganization = (flag: Option.Option<string>, link: CloudLink) =>
   Effect.gen(function* () {

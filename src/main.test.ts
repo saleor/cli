@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -191,6 +192,83 @@ const resourceRoutes = (envs: ReturnType<typeof environment>[] = []) => {
 };
 
 describe("real CLI process", () => {
+  it("initializes and links a local store without Cloud credentials or requests", async () => {
+    credentials = {};
+    const fakeBin = path.join(cwd, "fake-bin");
+    mkdirSync(fakeBin);
+    const fakeDocker = path.join(fakeBin, "docker");
+    writeFileSync(
+      fakeDocker,
+      `#!${process.execPath}
+if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", State:"running"}));
+`
+    );
+    chmodSync(fakeDocker, 0o700);
+    const instance = path.join(cwd, "config/local/demo");
+    mkdirSync(instance, { recursive: true });
+    writeFileSync(
+      path.join(instance, "instance.json"),
+      JSON.stringify({
+        apiPort: Number(new URL(base).port),
+        dashboardPort: 9000,
+        initialized: true,
+        name: "demo",
+        saleorVersion: "3.23.41",
+        sampleData: false,
+      })
+    );
+    handler = () => [200, { data: { shop: { name: "Local" } } }];
+
+    const out = await cli(["init", "--local", "--name", "demo"], {
+      PATH: fakeBin,
+    });
+
+    expect(out.code).toBe(0);
+    expect(out.data.data.ref).toBe("local:demo");
+    expect(out.data.data.ready).toBe(true);
+    expect(
+      JSON.parse(readFileSync(path.join(cwd, ".saleor/link.json"), "utf8"))
+    ).toEqual({ target: "local:demo", version: 2 });
+    expect(
+      requests.every((request) => request.path === "/graphql/" && !request.auth)
+    ).toBe(true);
+    const linked = await cli(["link", "local:demo"]);
+    expect(linked.code).toBe(0);
+    expect(linked.data.data.ref).toBe("local:demo");
+  });
+
+  it("switches Cloud target refs back to partial Cloud links without retaining an environment", async () => {
+    resourceRoutes([environment()]);
+    expect((await cli(["link", "cloud:acme/poc/env1"])).code).toBe(0);
+    expect((await cli(["env", "get"])).data.data.key).toBe("env1");
+    expect(
+      (await cli(["link", "--org", "acme", "--project", "poc"])).code
+    ).toBe(0);
+    expect(
+      JSON.parse(readFileSync(path.join(cwd, ".saleor/link.json"), "utf8"))
+        .target
+    ).toBeUndefined();
+    expect((await cli(["env", "get"])).data.error.code).toBe("CONTEXT_MISSING");
+  });
+
+  it("rejects provider-specific init flags before provisioning", async () => {
+    const outcomes = await Promise.all(
+      [
+        ["init", "--local", "--project", "shop"],
+        ["init", "--sample-data", "--project", "shop", "--env", "dev"],
+        ["init"],
+      ].map((args) => cli(args))
+    );
+
+    expect(outcomes.map((outcome) => outcome.data.error.code)).toEqual([
+      "USAGE_ERROR",
+      "USAGE_ERROR",
+      "USAGE_ERROR",
+    ]);
+
+    expect(requests).toEqual([]);
+  });
+
   it("lists commands with input metadata, including the agreed --json shortcut", async () => {
     const out = await cli(["commands", "--json"]);
     expect(out.code).toBe(0);
@@ -296,6 +374,8 @@ describe("real CLI process", () => {
       JSON.parse(readFileSync(path.join(cwd, ".saleor/link.json"), "utf8"))
     ).toEqual({
       cloud: { environment: "env1", organization: "acme", project: "poc" },
+      target: "cloud:acme/poc/env1",
+      version: 2,
     });
     expect((await cli(["env", "get"])).data.data.key).toBe("env1");
     expect(

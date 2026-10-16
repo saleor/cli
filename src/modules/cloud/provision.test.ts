@@ -1,11 +1,11 @@
 import { Effect, Option, Schema } from "effect";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { describe, expect, it } from "vitest";
+import { deadlineIn, probeGraphql } from "../../core/readiness.ts";
 import { CloudApi, type CloudApiService } from "./api/client.ts";
 import samples from "./api/fixtures/cloud-samples.json" with { type: "json" };
 import { ListProjectResponse } from "./api/generated.ts";
 import { ensureEnvironment } from "./provision.ts";
-import { deadlineIn, probeGraphql } from "./readiness.ts";
 
 const mockApi = (
   respond: (operation: { path: string; method: string }) => Schema.Json

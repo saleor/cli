@@ -10,8 +10,10 @@
 - A create that fails ambiguously (timeout, 5xx) is not retried; re-run the command to find out whether it happened.
 - `--timeout` bounds waiting, not the whole command; API timeouts and retries can add to it.
 - Pre-warmed environments (no `--domain-label`) come with whatever database contents Cloud chose; an empty database is not guaranteed.
-- Readiness only checks that the GraphQL endpoint answers; no store credentials are returned.
+- Cloud readiness checks the public GraphQL payload; Cloud does not return store credentials. Local setup generates an admin login.
 - Concurrent CLI processes writing credentials are last-writer-wins (no file lock).
 - `saleor commands` reads an internal Effect API to list arguments and flags; an Effect upgrade can break it (a test catches this).
+- Local image downloads and migrations are outside the readiness timeout. Local ports may be claimed by another process between allocation and container startup; stop that process and retry if Docker reports a conflict.
+- Local stacks have been exercised with Docker, but the Dashboard UI and arbitrary API/Dashboard version combinations have not been reviewed in a browser.
 - All modules load at startup; there is no startup-time budget yet.
 - The production API omits `login` and `password` from environment responses, which the published schema marks required; the CLI treats them as optional.

@@ -2,9 +2,11 @@ import { Config, Effect, Option } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
 import { fail } from "../../../core/errors.ts";
+import { forceFlag, timeoutFlag } from "../../../core/flags.ts";
 import { confirmDestructive } from "../../../core/interaction.ts";
 import { columns } from "../../../core/output.ts";
-import { domainLabelDescription, forceFlag, timeoutFlag } from "../flags.ts";
+import { deadlineIn } from "../../../core/readiness.ts";
+import { domainLabelDescription } from "../flags.ts";
 import {
   describeEnvironment,
   type EnvironmentDetails,
@@ -17,7 +19,7 @@ import {
   serviceTypeLabel,
 } from "../lookup.ts";
 import { deleteEnvironment, ensureEnvironment } from "../provision.ts";
-import { deadlineIn } from "../readiness.ts";
+
 import { orgFlag, projectFlag, requireScoped, resolveScope } from "../scope.ts";
 
 export const envText = (env: EnvironmentDetails) =>
