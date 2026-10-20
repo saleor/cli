@@ -1,12 +1,12 @@
-# Targets and local Saleor
+# Local Saleor
 
-Core owns the target contract and directory link. Cloud and local own provisioning and resolve their own refs. Modules import core and their own files; an import-boundary test enforces this. `src/workspace.ts` is the composition root for the shared `init` and `link` journeys and combines provider flags and handlers. Adding a provider does not require importing it from another module.
+Cloud and local own their provisioning. Modules import core and their own files; an import-boundary test enforces this. `src/workspace.ts` is the composition root for the shared `init` journey and combines provider flags and handlers. Adding a provider does not require importing it from another module.
 
-A target contains its canonical ref, display name, GraphQL URL, optional Dashboard URL and version, and a lazy store-credential effect. Each module registers an optional target provider with a resolver that closes over its own layer. Registration rejects duplicate kinds. Credentials are omitted from public target metadata. Local credentials perform a store login only when requested; Cloud resolution explicitly reports that store token exchange is unavailable.
-
-Version 2 `.saleor/link.json` has a `target` ref and optional module defaults. Readers accept legacy Cloud links without changing the file. Writes upgrade atomically, retain unrelated sections and never include secrets. Switching to local retains Cloud organization/project defaults but drops the implicit Cloud environment selection. Cloud shorthand replaces the target, including clearing it for a partial link.
+Nothing about the chosen organization, project, environment or local instance is remembered between commands; only credentials are stored (in the secret store). Every command takes its target from arguments, flags or `SALEOR_*` environment variables, and prompts for what is missing when a person is at a terminal.
 
 Readiness probes, wait deadlines, timeout/confirmation flags and output are shared in core. Cloud owns its task polling and billing decisions. Local owns the Compose template, Docker subprocess service, instance configuration and lifecycle. Local Docker services have no Cloud API dependency; starting local does not request a Cloud session.
+
+`init` retains the Cloud default and adds `--local`; it creates/reuses a running store and prints how to reach it. It does not scaffold source files. Provider-specific flags used with the wrong provider fail explicitly. `local up/status/down` expose lifecycle control separately.
 
 `init` retains the Cloud default and adds `--local`; it creates/reuses a running store and links the directory. It does not scaffold source files. Provider-specific flags used with the wrong provider fail explicitly. `local up/status/down` expose lifecycle control separately. Local linking validates saved instance metadata and is allowed while the stack is stopped.
 

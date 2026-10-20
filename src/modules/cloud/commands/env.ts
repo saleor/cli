@@ -77,7 +77,7 @@ const envList = Command.make(
     )
 ).pipe(
   Command.withDescription(
-    "List environments in an organization. Narrowed to one project with --project or the directory's linked project."
+    "List environments in an organization. Narrowed to one project with --project."
   ),
   Command.withShortDescription("List environments.")
 );
@@ -87,7 +87,7 @@ const envGet = Command.make(
   {
     env: Argument.String("env").pipe(
       Argument.withDescription(
-        "Environment name or key. Defaults to SALEOR_ENV, then the directory's link."
+        "Environment name or key. Defaults to SALEOR_ENV."
       ),
       Argument.withFallbackConfig(Config.String("SALEOR_ENV")),
       Argument.optional

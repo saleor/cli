@@ -17,8 +17,8 @@ import {
   POLL,
   probeGraphql,
 } from "../../core/readiness.ts";
-import { SecretStore, SecretStoreLive } from "../../core/secret-store.ts";
-import { type Target, targetData, writeTargetRef } from "../../core/target.ts";
+import { SecretStore } from "../../core/secret-store.ts";
+import { type Target, targetData } from "../../core/target.ts";
 import type { LocalConfig } from "./compose.ts";
 import { checkDocker, Docker } from "./docker.ts";
 import {
@@ -102,63 +102,6 @@ with transaction.atomic():
 `;
 
 export const localTarget = (config: LocalConfig): Target => ({
-  credentials: Effect.gen(function* () {
-    const store = yield* SecretStore;
-    const raw = yield* store.get(secretKey(config.name));
-
-    if (!raw) {
-      return yield* fail(
-        "TARGET_CREDENTIALS_REQUIRED",
-        "The local admin credentials are missing. Run local up again."
-      );
-    }
-
-    const secrets: { password: string } = JSON.parse(raw);
-
-    const token = yield* Effect.tryPromise({
-      catch: () =>
-        fail(
-          "TARGET_CREDENTIALS_REQUIRED",
-          "Could not sign in to the local Saleor API.",
-          {
-            suggestion: `Start the instance with: saleor local up --name ${config.name}`,
-          }
-        ),
-      try: async () => {
-        const response = await fetch(
-          `http://localhost:${config.apiPort}/graphql/`,
-          {
-            body: JSON.stringify({
-              query:
-                "mutation Login($email: String!, $password: String!) { tokenCreate(email: $email, password: $password) { token errors { message } } }",
-              variables: { email: adminEmail, password: secrets.password },
-            }),
-            headers: { "content-type": "application/json" },
-            method: "POST",
-            signal: AbortSignal.timeout(15_000),
-          }
-        );
-
-        const body = Schema.decodeUnknownSync(
-          Schema.Struct({
-            data: Schema.Struct({
-              tokenCreate: Schema.Struct({
-                token: Schema.NullOr(Schema.String),
-              }),
-            }),
-          })
-        )(await response.json());
-
-        if (!(response.ok && body.data.tokenCreate.token)) {
-          throw new Error("Login failed");
-        }
-
-        return body.data.tokenCreate.token;
-      },
-    });
-
-    return { token };
-  }).pipe(Effect.provide(SecretStoreLive)),
   dashboardUrl: `http://localhost:${config.dashboardPort}/`,
   graphqlUrl: `http://localhost:${config.apiPort}/graphql/`,
   kind: "local",
@@ -168,7 +111,6 @@ export const localTarget = (config: LocalConfig): Target => ({
 });
 
 export interface LocalUpOptions {
-  readonly link: boolean;
   readonly name: string;
   readonly saleorVersion: string | undefined;
   readonly sampleData: boolean;
@@ -230,10 +172,6 @@ export const up = (options: LocalUpOptions) =>
         yield* compose(["up", "-d"]);
         const target = localTarget(config);
 
-        const linkFile = options.link
-          ? yield* writeTargetRef(target.ref)
-          : null;
-
         // Image downloads/migrations have their own Docker progress. The API wait budget
         // starts after the containers have been launched, so --timeout 0 still sets up.
         const deadline = deadlineIn(options.timeout);
@@ -243,7 +181,7 @@ export const up = (options: LocalUpOptions) =>
           if (isPast(deadline)) {
             return yield* notReady(
               "the local GraphQL API is not responding yet.",
-              { linkFile, target: targetData(target) },
+              { target: targetData(target) },
               "Docker"
             );
           }
@@ -255,7 +193,6 @@ export const up = (options: LocalUpOptions) =>
           ...targetData(target),
           admin: { email: adminEmail, password: secrets.password },
           created,
-          linkFile,
           ready: true,
         };
       })
@@ -361,13 +298,4 @@ export const down = (name: string, deleteData: boolean, force: boolean) =>
         return { deletedData: deleteData, name, state: "stopped" };
       })
     );
-  });
-
-export const resolveLocalTarget = (ref: string) =>
-  Effect.gen(function* () {
-    const explicitName = ref.startsWith("local:") ? ref.slice(6) : "";
-    const name = ref === "local" ? "default" : explicitName;
-    const config = yield* requireConfig(name);
-
-    return localTarget(config);
   });

@@ -94,7 +94,6 @@ const runLocal = <A, E>(
   );
 
 const options = {
-  link: false,
   name: "test",
   saleorVersion: undefined,
   sampleData: false,

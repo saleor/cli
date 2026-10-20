@@ -100,14 +100,14 @@ if (writes && organization) {
 
   try {
     const initial = await run(
-      ["init", ...context, "--env", name, "--no-link", "--timeout", "0"],
+      ["init", ...context, "--env", name, "--timeout", "0"],
       [0, 75]
     );
 
     console.log(
       `PASS: initial provisioning (${initial.ok ? "ready" : initial.error.code}) for ${name}`
     );
-    const ready = await run(["init", ...context, "--env", name, "--no-link"]);
+    const ready = await run(["init", ...context, "--env", name]);
 
     if (
       !ready.data.environment.ready ||

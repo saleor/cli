@@ -192,7 +192,7 @@ const resourceRoutes = (envs: ReturnType<typeof environment>[] = []) => {
 };
 
 describe("real CLI process", () => {
-  it("initializes and links a local store without Cloud credentials or requests", async () => {
+  it("initializes a local store without Cloud credentials or requests", async () => {
     credentials = {};
     const fakeBin = path.join(cwd, "fake-bin");
     mkdirSync(fakeBin);
@@ -227,28 +227,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(out.data.data.ref).toBe("local:demo");
     expect(out.data.data.ready).toBe(true);
     expect(
-      JSON.parse(readFileSync(path.join(cwd, ".saleor/link.json"), "utf8"))
-    ).toEqual({ target: "local:demo", version: 2 });
-    expect(
       requests.every((request) => request.path === "/graphql/" && !request.auth)
     ).toBe(true);
-    const linked = await cli(["link", "local:demo"]);
-    expect(linked.code).toBe(0);
-    expect(linked.data.data.ref).toBe("local:demo");
-  });
-
-  it("switches Cloud target refs back to partial Cloud links without retaining an environment", async () => {
-    resourceRoutes([environment()]);
-    expect((await cli(["link", "cloud:acme/poc/env1"])).code).toBe(0);
-    expect((await cli(["env", "get"])).data.data.key).toBe("env1");
-    expect(
-      (await cli(["link", "--org", "acme", "--project", "poc"])).code
-    ).toBe(0);
-    expect(
-      JSON.parse(readFileSync(path.join(cwd, ".saleor/link.json"), "utf8"))
-        .target
-    ).toBeUndefined();
-    expect((await cli(["env", "get"])).data.error.code).toBe("CONTEXT_MISSING");
   });
 
   it("rejects provider-specific init flags before provisioning", async () => {
@@ -355,56 +335,6 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       status === 401 ? "AUTH_INVALID" : "FORBIDDEN"
     );
   });
-  it("uses a link file, then environment context, then explicit flags", async () => {
-    resourceRoutes([environment()]);
-    expect(
-      (
-        await cli([
-          "link",
-          "--org",
-          "acme",
-          "--project",
-          "poc",
-          "--env",
-          "env1",
-        ])
-      ).code
-    ).toBe(0);
-    expect(
-      JSON.parse(readFileSync(path.join(cwd, ".saleor/link.json"), "utf8"))
-    ).toEqual({
-      cloud: { environment: "env1", organization: "acme", project: "poc" },
-      target: "cloud:acme/poc/env1",
-      version: 2,
-    });
-    expect((await cli(["env", "get"])).data.data.key).toBe("env1");
-    expect(
-      (await cli(["env", "get"], { SALEOR_ENV: "missing" })).data.error.code
-    ).toBe("NOT_FOUND");
-    await cli(["project", "list"], { SALEOR_ORG: "from-env" });
-    expect(requests.at(-1)?.path).toContain(
-      "/organizations/from-env/projects/"
-    );
-    await cli(["project", "list", "--org", "from-flag"], {
-      SALEOR_ORG: "from-env",
-    });
-    expect(requests.at(-1)?.path).toContain(
-      "/organizations/from-flag/projects/"
-    );
-  });
-  it.each(["{", "null", '{"cloud":{"organization":42}}'])(
-    "rejects invalid link context %s before making a Cloud request",
-    async (content) => {
-      mkdirSync(path.join(cwd, ".saleor"), { recursive: true });
-      writeFileSync(path.join(cwd, ".saleor/link.json"), content);
-
-      const out = await cli(["project", "list"]);
-
-      expect(out.code).toBe(1);
-      expect(out.data.error.code).toBe("USAGE_ERROR");
-      expect(requests).toHaveLength(0);
-    }
-  );
   it("refuses a mismatched project without writing anything", async () => {
     resourceRoutes();
 
@@ -822,29 +752,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       false
     );
   });
-  it("never applies a linked project or environment to another organization", async () => {
-    resourceRoutes([environment()]);
-    mkdirSync(path.join(cwd, ".saleor"));
-    writeFileSync(
-      path.join(cwd, ".saleor/link.json"),
-      JSON.stringify({
-        cloud: { environment: "env1", organization: "acme", project: "poc" },
-      })
-    );
-
-    const get = await cli(["env", "get", "--org", "other"]);
-    expect(get.data.error.code).toBe("CONTEXT_MISSING");
-
-    const list = await cli(["env", "list", "--org", "other"]);
-    expect(list.code).toBe(0);
-    expect(requests.some((req) => req.path.includes("/other/projects/"))).toBe(
-      false
-    );
-
-    // In its own organization the link still applies.
-    expect((await cli(["env", "get"])).data.data.key).toBe("env1");
-  });
-  it("finds an environment to delete outside the linked project", async () => {
+  it("finds an environment to delete in any project of the organization", async () => {
     const elsewhere = environment("env9", "other");
     elsewhere.project = { ...elsewhere.project, slug: "other-project" };
     let envs = [environment(), elsewhere];
@@ -862,13 +770,14 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         : fallback(method, url, body);
     };
 
-    mkdirSync(path.join(cwd, ".saleor"));
-    writeFileSync(
-      path.join(cwd, ".saleor/link.json"),
-      JSON.stringify({ cloud: { organization: "acme", project: "poc" } })
-    );
-
-    const out = await cli(["env", "delete", "env9", "--force"]);
+    const out = await cli([
+      "env",
+      "delete",
+      "env9",
+      "--org",
+      "acme",
+      "--force",
+    ]);
 
     expect(out.data.data).toMatchObject({ deleted: true, environment: "env9" });
   });

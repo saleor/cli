@@ -30,9 +30,6 @@ export const localUpText = (data: Effect.Success<ReturnType<typeof up>>) =>
     `  Dashboard:   ${data.dashboardUrl}`,
     `  Admin email: ${data.admin.email}`,
     `  Password:    ${data.admin.password}`,
-    data.linkFile
-      ? "This directory now uses this instance; saved in .saleor/link.json."
-      : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -41,10 +38,6 @@ const localUp = Command.make(
   "up",
   {
     ...localSetupFlags,
-    link: Flag.Boolean("link").pipe(
-      Flag.withDescription("Use this instance in the current directory."),
-      Flag.withDefault(false)
-    ),
     timeout: timeoutFlag,
   },
   (flags) =>

@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { defineModule } from "../../core/module.ts";
 import { SecretStoreLive } from "../../core/secret-store.ts";
@@ -10,7 +10,6 @@ import { logout } from "./commands/logout.ts";
 import { orgCommand } from "./commands/org.ts";
 import { projectCommand } from "./commands/project.ts";
 import { whoami } from "./commands/whoami.ts";
-import { resolveCloudTarget } from "./target.ts";
 
 const http = FetchHttpClient.layer;
 
@@ -30,8 +29,4 @@ export const cloudModule = defineModule({
     "Saleor Cloud: account, organizations, projects and environments.",
   layer: cloudLayer,
   name: "cloud",
-  target: {
-    kind: "cloud",
-    resolve: (ref) => resolveCloudTarget(ref).pipe(Effect.provide(cloudLayer)),
-  },
 });
