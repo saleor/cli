@@ -1,8 +1,11 @@
 import { Effect, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import type { CliFailure } from "./errors.ts";
+import { catalogInfo } from "./input-info.ts";
 
 export type OutputFormat = "text" | "json";
+
+catalogInfo.flag("output", { env: "SALEOR_OUTPUT" });
 
 export const OutputFlag = GlobalFlag.Setting("output")({
   flag: Flag.Literals("output", ["text", "json"]).pipe(
@@ -173,7 +176,26 @@ export const columns = (
     .join("\n");
 };
 
+// The format this process renders in, set once by the runtime so progress written from
+// anywhere follows it without depending on the output flag service.
+let progressFormat: OutputFormat = "text";
+
+export const setProgressFormat = (format: OutputFormat) => {
+  progressFormat = format;
+};
+
 // Progress and instructions for the human (device codes, waiting notices) always go to
-// stderr, so stdout carries exactly one result document in json mode.
-export const notice = (message: string) =>
-  Effect.sync(() => process.stderr.write(`${message}\n`));
+// stderr, so stdout carries exactly one result document in json mode. In json mode
+// each one is a JSON line, `{"event": "progress", "message": …}`, and `fields` add
+// structured data, such as the login link, for programs that act on it.
+export const notice = (
+  message: string,
+  fields: Readonly<Record<string, string | number | null>> = {}
+) =>
+  Effect.sync(() =>
+    process.stderr.write(
+      progressFormat === "json"
+        ? `${JSON.stringify({ event: "progress", message, ...fields })}\n`
+        : `${message}\n`
+    )
+  );

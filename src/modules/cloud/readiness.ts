@@ -1,42 +1,20 @@
-import { Duration, Effect, Option, Schema } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
-import { type CliFailure, fail } from "../../core/errors.ts";
-import { rerunCommand } from "../../core/invocation.ts";
+import { Effect, Option } from "effect";
+import { fail } from "../../core/errors.ts";
 import { notice } from "../../core/output.ts";
+import {
+  type Deadline,
+  heartbeat,
+  isPast,
+  notReady,
+  POLL,
+  probeGraphql,
+} from "../../core/readiness.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
 import {
   listEnvironmentTaskLists,
   retrieveTaskStatus,
 } from "./api/generated.ts";
 import { type Environment, findEnvironment, graphqlUrlOf } from "./lookup.ts";
-
-// A wait budget for one command run. Running out is not a failure: the command returns
-// NOT_READY (exit 75) and running it again continues from Cloud's current state.
-export interface Deadline {
-  readonly at: number;
-}
-
-export const deadlineIn = (seconds: number): Deadline => ({
-  at: Date.now() + seconds * 1000,
-});
-
-export const isPast = (deadline: Deadline) => Date.now() >= deadline.at;
-
-// `message` says what is still happening; the work itself carries on in Saleor Cloud.
-export const notReady = (message: string, details: CliFailure["details"]) =>
-  Effect.flatMap(rerunCommand(), (command) =>
-    Effect.fail(
-      fail("NOT_READY", `Stopped waiting: ${message}`, {
-        details,
-        retry: true,
-        suggestion: `It continues in Saleor Cloud. To keep waiting, run the same command again: ${command}`,
-      })
-    )
-  );
-
-export const POLL = Duration.seconds(
-  Number(process.env.SALEOR_POLL_INTERVAL_SECONDS ?? 5)
-);
 
 const isFailedStatus = (status: string) =>
   status === "FAILED" || status === "TIMED_OUT";
@@ -61,6 +39,7 @@ export const waitForTask = (
 ) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
+    const beat = heartbeat();
 
     for (;;) {
       const task = yield* api
@@ -93,6 +72,7 @@ export const waitForTask = (
         });
       }
 
+      yield* beat(`waiting for ${label.toLowerCase()}`);
       yield* Effect.sleep(POLL);
     }
   });
@@ -115,43 +95,6 @@ export const blockingTasks = (organization: string, envKey: string) =>
     return page.results;
   });
 
-// A finished task does not mean the store answers yet; cold starts can take minutes.
-export const probeGraphql = (graphqlUrl: string) =>
-  Effect.gen(function* () {
-    const http = yield* HttpClient.HttpClient;
-
-    const request = HttpClientRequest.post(graphqlUrl).pipe(
-      HttpClientRequest.bodyJsonUnsafe({ query: "query { shop { name } }" })
-    );
-
-    const response = yield* http
-      .execute(request)
-      .pipe(Effect.timeout(Duration.seconds(15)), Effect.option);
-
-    if (Option.isNone(response) || response.value.status !== 200) {
-      return false;
-    }
-
-    const body = yield* response.value.json.pipe(
-      Effect.flatMap(
-        Schema.decodeUnknownEffect(
-          Schema.Struct({
-            data: Schema.optionalKey(
-              Schema.Struct({
-                shop: Schema.optionalKey(
-                  Schema.NullOr(Schema.Struct({ name: Schema.String }))
-                ),
-              })
-            ),
-          })
-        )
-      ),
-      Effect.orElseSucceed(() => ({ data: undefined }))
-    );
-
-    return body.data?.shop !== undefined && body.data.shop !== null;
-  });
-
 // Prints each progress message once per run, on stderr.
 const progress = () => {
   const shown = new Set<string>();
@@ -172,6 +115,7 @@ export const waitUntilReady = (
 ) =>
   Effect.gen(function* () {
     const say = progress();
+    const beat = heartbeat();
 
     for (;;) {
       const tasks = yield* blockingTasks(organization, envKey);
@@ -218,6 +162,7 @@ export const waitUntilReady = (
       }
 
       yield* say(`Waiting for the GraphQL API to respond at ${graphqlUrl}…`);
+      yield* beat("waiting for the GraphQL API");
       yield* Effect.sleep(POLL);
     }
   });
@@ -228,10 +173,14 @@ export const waitUntilGone = (
   deadline: Deadline
 ) =>
   Effect.gen(function* () {
+    const beat = heartbeat();
+
     for (;;) {
       if (Option.isNone(yield* findEnvironment(organization, envKey))) {
         return;
       }
+
+      yield* beat("deleting");
 
       if (isPast(deadline)) {
         return yield* notReady("the environment is still being deleted.", {

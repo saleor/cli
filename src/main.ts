@@ -3,23 +3,30 @@ import { Layer } from "effect";
 import { Command } from "effect/cli";
 import packageJson from "../package.json" with { type: "json" };
 import { catalogCommand } from "./core/catalog.ts";
+import { NoInputFlag } from "./core/interaction.ts";
 import { collectCommands } from "./core/module.ts";
 import { OutputFlag } from "./core/output.ts";
-import { createCliRuntime } from "./core/runtime.ts";
+import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { cloudModule } from "./modules/cloud/index.ts";
+import { localModule } from "./modules/local/index.ts";
+import { workspaceCommands } from "./workspace.ts";
 
-const modules = [cloudModule];
-const moduleCommands = collectCommands(modules);
+const modules = [cloudModule, localModule];
+
+const moduleCommands = [...collectCommands(modules), ...workspaceCommands()];
 
 export const root = Command.make("saleor").pipe(
   Command.withDescription(
-    "Manage Saleor Cloud projects and sandbox environments from your terminal."
+    "Set up and manage Saleor stores in Cloud or locally with Docker."
   ),
   Command.withSubcommands([
     ...moduleCommands,
-    catalogCommand(() => moduleCommands),
+    catalogCommand(
+      () => moduleCommands,
+      [...builtIns, OutputFlag, NoInputFlag]
+    ),
   ]),
-  Command.withGlobalFlags([OutputFlag])
+  Command.withGlobalFlags([OutputFlag, NoInputFlag])
 );
 
 export const main = createCliRuntime(root, {

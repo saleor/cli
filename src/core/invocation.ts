@@ -24,3 +24,16 @@ export const rerunCommand = (extraFlags: readonly string[] = []) =>
       ...extraFlags.filter((flag) => !argv.includes(flag)),
     ])
   );
+
+// The current command line without a zero wait budget: after `--timeout 0` returns
+// NOT_READY, running the same line again would return at once instead of waiting.
+export const resumeCommand = Effect.map(Invocation, (argv) =>
+  shellCommand(
+    argv.filter(
+      (arg, i) =>
+        arg !== "--timeout=0" &&
+        !(arg === "--timeout" && argv[i + 1] === "0") &&
+        !(arg === "0" && argv[i - 1] === "--timeout")
+    )
+  )
+);

@@ -1,124 +1,177 @@
-import path from "node:path";
-import { Effect, Option } from "effect";
-import { Command, Flag } from "effect/cli";
-import { result, run } from "../../../core/command.ts";
-import {
-  domainLabelDescription,
-  regionDescription,
-  timeoutFlag,
-} from "../flags.ts";
-import { describeEnvironment, describeProject } from "../lookup.ts";
+import { Config, Effect, Option } from "effect";
+import { Flag } from "effect/cli";
+import { result } from "../../../core/command.ts";
+import { fail } from "../../../core/errors.ts";
+import { forceFlag, timeoutFlag } from "../../../core/flags.ts";
+import { isInteractive } from "../../../core/interaction.ts";
+import { Invocation, shellCommand } from "../../../core/invocation.ts";
+import { detectAgent } from "../../../core/output.ts";
+import { deadlineIn } from "../../../core/readiness.ts";
+import { domainLabelDescription, regionDescription } from "../flags.ts";
+import { describeEnvironment } from "../lookup.ts";
+import { promptInitChoices } from "../prompt.ts";
 import { ensureEnvironment, ensureProject } from "../provision.ts";
-import { deadlineIn } from "../readiness.ts";
-import { orgFlag, resolveScope, writeLink } from "../scope.ts";
 
-// One command for "give me a working store": project, environment, readiness, link.
+import { orgFlag, resolveScope } from "../scope.ts";
+
+// One command for "give me a working store": project, environment, readiness.
 // Every step is create-or-reuse by name, so re-running after an interruption continues.
-export const init = Command.make(
-  "init",
-  {
-    domainLabel: Flag.String("domain-label").pipe(
-      Flag.withMetavar("label"),
-      Flag.withDescription(domainLabelDescription),
-      Flag.optional
+export const cloudInitFlags = {
+  domainLabel: Flag.String("domain-label").pipe(
+    Flag.withMetavar("label"),
+    Flag.withDescription(domainLabelDescription),
+    Flag.optional
+  ),
+  env: Flag.String("env").pipe(
+    Flag.withMetavar("env"),
+    Flag.withDescription(
+      "Cloud environment name. Created, or reused if it exists. Defaults to SALEOR_ENV."
     ),
-    env: Flag.String("env").pipe(
-      Flag.withMetavar("name"),
-      Flag.withDescription("Environment name. Created, or reused if it exists.")
+    Flag.withFallbackConfig(Config.String("SALEOR_ENV")),
+    Flag.optional
+  ),
+  force: forceFlag,
+  org: orgFlag,
+  project: Flag.String("project").pipe(
+    Flag.withMetavar("project"),
+    Flag.withDescription(
+      "Cloud project name. Created, or reused if it exists. Defaults to SALEOR_PROJECT."
     ),
-    noLink: Flag.Boolean("no-link").pipe(
-      Flag.withDescription(
-        "Do not link this directory to the new environment."
-      ),
-      Flag.withDefault(false)
-    ),
-    org: orgFlag,
-    project: Flag.String("project").pipe(
-      Flag.withMetavar("name"),
-      Flag.withDescription("Project name. Created, or reused if it exists.")
-    ),
-    region: Flag.String("region").pipe(
-      Flag.withMetavar("region"),
-      Flag.withDescription(regionDescription),
-      Flag.optional
-    ),
-    timeout: timeoutFlag,
-  },
-  (flags) =>
-    run(
-      Effect.gen(function* () {
-        const { organization } = yield* resolveScope({ org: flags.org });
+    Flag.withFallbackConfig(Config.String("SALEOR_PROJECT")),
+    Flag.optional
+  ),
+  region: Flag.String("region").pipe(
+    Flag.withMetavar("region"),
+    Flag.withDescription(regionDescription),
+    Flag.optional
+  ),
+  timeout: timeoutFlag,
+};
 
-        const projectOutcome = yield* ensureProject({
-          confirmPaidPlan: false,
-          name: flags.project,
+const noRerunFlags: readonly string[] = [];
+
+const missingChoices = (
+  project: Option.Option<string>,
+  env: Option.Option<string>
+) => {
+  const missing = [
+    ...(Option.isNone(project) ? ["--project <project>"] : []),
+    ...(Option.isNone(env) ? ["--env <env>"] : []),
+  ];
+
+  const variables = [
+    ...(Option.isNone(project) ? ["SALEOR_PROJECT"] : []),
+    ...(Option.isNone(env) ? ["SALEOR_ENV"] : []),
+  ];
+
+  const agent = detectAgent();
+
+  return fail(
+    "CONTEXT_MISSING",
+    `Cloud setup needs ${missing.join(" and ")}.`,
+    {
+      details: { missing },
+      suggestion: [
+        `Pass ${missing.length > 1 ? "both flags" : "the flag"}, or set ${variables.join(" and ")}.`,
+        agent === undefined
+          ? "In a terminal, run saleor init without flags to be asked."
+          : `Questions are off because a coding agent was detected (${agent}); pass flags instead.`,
+        "For a local store, run: saleor init --local",
+      ].join("\n"),
+    }
+  );
+};
+
+export const initCloud = (flags: {
+  force: boolean;
+  org: Option.Option<string>;
+  project: Option.Option<string>;
+  env: Option.Option<string>;
+  region: Option.Option<string>;
+  domainLabel: Option.Option<string>;
+  timeout: number;
+}) =>
+  Effect.gen(function* () {
+    const { env, project } = flags;
+    const given = Option.all({ env, project });
+
+    // Checked before any request: bare `init` without a terminal fails offline.
+    if (Option.isNone(given) && !(yield* isInteractive)) {
+      return yield* missingChoices(project, env);
+    }
+
+    const { organization } = yield* resolveScope({ org: flags.org });
+
+    const choices = Option.isSome(given)
+      ? {
+          env: given.value.env,
+          project: given.value.project,
+          region: flags.region,
+          rerunFlags: noRerunFlags,
+        }
+      : yield* promptInitChoices({
+          env: flags.env,
           organization,
-          plan: Option.none(),
+          project: flags.project,
           region: flags.region,
         });
 
-        const envOutcome = yield* ensureEnvironment({
-          deadline: deadlineIn(flags.timeout),
-          domainLabel: flags.domainLabel,
-          name: flags.env,
-          organization,
-          project: projectOutcome.project,
-          service: Option.none(),
-        });
+    // Answers given at a prompt are not in the command line; a resume hint without them
+    // would ask the same questions again and could pick different resources.
+    const resumeArgv = [
+      ...(yield* Invocation),
+      ...(Option.isNone(flags.org) ? ["--org", organization] : []),
+      ...choices.rerunFlags,
+    ];
 
-        const environment = describeEnvironment(
-          organization,
-          envOutcome.environment
-        );
+    const resumeWith = Effect.provideService(Invocation, resumeArgv);
 
-        const linkFile = flags.noLink
-          ? null
-          : yield* writeLink({
-              environment: environment.key,
-              organization,
-              project: projectOutcome.project.slug,
-            });
+    const projectOutcome = yield* ensureProject({
+      confirmPaidPlan: false,
+      name: choices.project,
+      organization,
+      plan: Option.none(),
+      region: choices.region,
+    }).pipe(resumeWith);
 
-        return result(
-          {
-            environment: {
-              ...environment,
-              created: envOutcome.created,
-              ready: true,
-            },
-            linkFile,
-            organization,
-            project: {
-              ...describeProject(organization, projectOutcome.project),
-              created: projectOutcome.created,
-            },
-          },
-          [
-            "✓ Ready.",
-            `  Project:     ${projectOutcome.project.slug} (${projectOutcome.created ? "created" : "already existed"})`,
-            `  Environment: ${environment.name} (${envOutcome.created ? "created" : "already existed"})`,
-            `  GraphQL API: ${environment.graphqlUrl}`,
-            `  Dashboard:   ${environment.dashboardUrl}`,
-            linkFile
-              ? `This directory now uses it; saved in ${path.relative(process.cwd(), linkFile) || linkFile}.`
-              : "",
-          ]
-            .filter(Boolean)
-            .join("\n")
-        );
-      })
-    )
-).pipe(
-  Command.withDescription(
-    "Set up a working store in one step: create the project and a sandbox environment (or reuse them if they exist), wait until it is ready, and link this directory to it. Safe to run again after an interruption."
-  ),
-  Command.withShortDescription(
-    "Create a project and sandbox environment and link this directory."
-  ),
-  Command.withExamples([
-    {
-      command: "saleor init --org acme --project my-store --env dev",
-      description: "Set up the my-store project with a dev environment",
-    },
-  ])
-);
+    const envOutcome = yield* ensureEnvironment({
+      deadline: deadlineIn(flags.timeout),
+      domainLabel: flags.domainLabel,
+      force: flags.force,
+      name: choices.env,
+      organization,
+      project: projectOutcome.project,
+      service: Option.none(),
+    }).pipe(resumeWith);
+
+    // ensureEnvironment returns only once the GraphQL API answered.
+    const environment = describeEnvironment(
+      organization,
+      envOutcome.environment,
+      true
+    );
+
+    // The same instance shape as `env create` and `init --local`, plus the project.
+    return result<unknown>(
+      {
+        ...environment,
+        created: envOutcome.created,
+        projectCreated: projectOutcome.created,
+      },
+      [
+        `✓ Environment "${environment.name}" is ready (${envOutcome.created ? "created" : "already existed"}).`,
+        `  Project:     "${projectOutcome.project.slug}" (${projectOutcome.created ? "created" : "already existed"})`,
+        `  GraphQL API: ${environment.graphqlUrl}`,
+        `  Dashboard:   ${environment.dashboardUrl}`,
+        "",
+        "To use it in other commands, set:",
+        `  export SALEOR_ORG=${organization} SALEOR_PROJECT=${projectOutcome.project.slug} SALEOR_ENV=${environment.key}`,
+        ...(choices.rerunFlags.length > 0
+          ? [
+              "To run this setup again without questions:",
+              `  ${shellCommand(resumeArgv)}`,
+            ]
+          : []),
+      ].join("\n")
+    );
+  });

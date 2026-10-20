@@ -1,11 +1,12 @@
 import { Effect, Option, Schema } from "effect";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { describe, expect, it } from "vitest";
+import { OutputFlag } from "../../core/output.ts";
+import { deadlineIn, probeGraphql } from "../../core/readiness.ts";
 import { CloudApi, type CloudApiService } from "./api/client.ts";
 import samples from "./api/fixtures/cloud-samples.json" with { type: "json" };
 import { ListProjectResponse } from "./api/generated.ts";
 import { ensureEnvironment } from "./provision.ts";
-import { deadlineIn, probeGraphql } from "./readiness.ts";
 
 const mockApi = (
   respond: (operation: { path: string; method: string }) => Schema.Json
@@ -53,101 +54,128 @@ describe("provisioning recovery", () => {
   });
 
   const environment = { ...samples.environment, project };
-  it("reuses Cloud state after losing a create reply, rechecking readiness without another write", async () => {
-    const calls: string[] = [];
+  it.each([false, true])(
+    "reuses Cloud state without another write or confirmation (paid=%s)",
+    async (paid) => {
+      const calls: string[] = [];
 
-    const api = mockApi((operation) => {
-      calls.push(operation.path);
+      const api = mockApi((operation) => {
+        calls.push(operation.path);
 
-      if (operation.path.endsWith("/environments/")) {
-        return [environment];
-      }
+        if (operation.path.endsWith("/environments/")) {
+          return [environment];
+        }
 
-      if (operation.path.endsWith("/tasks/")) {
-        return { count: 0, results: [] };
-      }
+        if (operation.path.endsWith("/tasks/")) {
+          return { count: 0, results: [] };
+        }
 
-      throw new Error(`Unexpected operation: ${operation.path}`);
-    });
+        throw new Error(`Unexpected operation: ${operation.path}`);
+      });
 
-    const outcome = await Effect.runPromise(
-      ensureEnvironment({
-        deadline: deadlineIn(1),
-        domainLabel: Option.none(),
-        name: environment.name,
-        organization: "acme",
-        project,
-        service: Option.none(),
-      }).pipe(
-        Effect.provideService(CloudApi, api),
-        Effect.provideService(
-          HttpClient.HttpClient,
-          http({ data: { shop: { name: "Store" } } })
+      const outcome = await Effect.runPromise(
+        ensureEnvironment({
+          deadline: deadlineIn(1),
+          domainLabel: Option.none(),
+          name: environment.name,
+          organization: "acme",
+          project: paid
+            ? {
+                ...project,
+                plan: Schema.decodeUnknownSync(ListProjectResponse)({
+                  ...samples.project,
+                  plan: samples.plans[1],
+                }).plan,
+              }
+            : project,
+          service: Option.none(),
+        }).pipe(
+          Effect.provideService(OutputFlag, Option.some("json")),
+          Effect.provideService(CloudApi, api),
+          Effect.provideService(
+            HttpClient.HttpClient,
+            http({ data: { shop: { name: "Store" } } })
+          )
         )
-      )
-    );
+      );
 
-    expect(outcome.created).toBe(false);
-    expect(outcome.environment.key).toBe(environment.key);
-    expect(calls).toHaveLength(3);
-  });
-  it("waits for a newly created environment's task, then checks GraphQL", async () => {
-    const calls: string[] = [];
-    let created = false;
+      expect(outcome.created).toBe(false);
+      expect(outcome.environment.key).toBe(environment.key);
+      expect(calls).toHaveLength(3);
+    }
+  );
+  it.each([false, true])(
+    "creates and waits for readiness, accepting paid creation with force (paid=%s)",
+    async (paid) => {
+      const calls: string[] = [];
+      let created = false;
 
-    const api = mockApi((operation) => {
-      calls.push(operation.path);
+      const api = mockApi((operation) => {
+        calls.push(operation.path);
 
-      if (operation.path.endsWith("/obtain/")) {
-        created = true;
+        if (operation.path.endsWith("/obtain/")) {
+          created = true;
 
-        return {
-          ...environment,
-          project: project.url,
-          service: environment.service.url,
-          task_id: "task",
-          task_is_blocking: true,
-        };
-      }
+          return {
+            ...environment,
+            project: project.url,
+            service: environment.service.url,
+            task_id: "task",
+            task_is_blocking: true,
+          };
+        }
 
-      if (operation.path.endsWith("/environments/")) {
-        return created ? [environment] : [];
-      }
+        if (operation.path.endsWith("/environments/")) {
+          return created ? [environment] : [];
+        }
 
-      if (operation.path.endsWith("/services/")) {
-        return samples.services;
-      }
+        if (operation.path.endsWith("/services/")) {
+          return samples.services;
+        }
 
-      if (operation.path.includes("/task-status/")) {
-        return { ...samples.taskStatus, status: "SUCCEEDED" };
-      }
+        if (operation.path.includes("/task-status/")) {
+          return { ...samples.taskStatus, status: "SUCCEEDED" };
+        }
 
-      if (operation.path.endsWith("/tasks/")) {
-        return { count: 0, results: [] };
-      }
+        if (operation.path.endsWith("/tasks/")) {
+          return { count: 0, results: [] };
+        }
 
-      throw new Error(`Unexpected operation: ${operation.path}`);
-    });
+        throw new Error(`Unexpected operation: ${operation.path}`);
+      });
 
-    const outcome = await Effect.runPromise(
-      ensureEnvironment({
-        deadline: deadlineIn(1),
-        domainLabel: Option.none(),
-        name: environment.name,
-        organization: "acme",
-        project,
-        service: Option.none(),
-      }).pipe(
-        Effect.provideService(CloudApi, api),
-        Effect.provideService(
-          HttpClient.HttpClient,
-          http({ data: { shop: { name: "Store" } } })
+      const outcome = await Effect.runPromise(
+        ensureEnvironment({
+          deadline: deadlineIn(1),
+          domainLabel: Option.none(),
+          force: paid,
+          name: environment.name,
+          organization: "acme",
+          project: paid
+            ? {
+                ...project,
+                plan: Schema.decodeUnknownSync(ListProjectResponse)({
+                  ...samples.project,
+                  plan: samples.plans[1],
+                }).plan,
+              }
+            : project,
+          service: Option.none(),
+        }).pipe(
+          Effect.provideService(OutputFlag, Option.some("json")),
+          Effect.provideService(CloudApi, api),
+          Effect.provideService(
+            HttpClient.HttpClient,
+            http({ data: { shop: { name: "Store" } } })
+          )
         )
-      )
-    );
+      );
 
-    expect(outcome.created).toBe(true);
-    expect(calls.filter((route) => route.endsWith("/obtain/"))).toHaveLength(1);
-    expect(calls).toContain("/api/service/task-status/{job_name}/");
-  });
+      expect(outcome.created).toBe(true);
+      expect(calls.filter((route) => route.endsWith("/obtain/"))).toHaveLength(
+        1
+      );
+      expect(calls).toContain("/api/service/task-status/{job_name}/");
+    }
+  );
 });

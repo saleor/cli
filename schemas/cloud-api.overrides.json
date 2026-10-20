@@ -1,8 +1,8 @@
 {
-  "$comment": "Known differences between openapi-schema.json and production (https://cloud.saleor.io/platform). notRequired: properties the schema marks required that production omits. login/password are write-only Basic Auth fields: observed missing on EnvironmentResponse (2026-10-16); applied to the create/obtain responses by analogy until a live create confirms it.",
+  "$comment": "Known differences between openapi-schema.json and production (https://cloud.saleor.io/platform). notRequired: properties the schema marks required that production omits. login/password are write-only Basic Auth fields: observed missing on EnvironmentResponse (2026-10-16); applied to the create/obtain responses by analogy. restore_from: observed missing on the create response for a new environment with --domain-label (2026-10-20).",
   "notRequired": {
     "EnvironmentResponse": ["login", "password"],
-    "CreateEnvironmentResponse": ["login", "password"],
+    "CreateEnvironmentResponse": ["login", "password", "restore_from"],
     "ObtainEnvironmentResponse": ["login", "password"]
   }
 }

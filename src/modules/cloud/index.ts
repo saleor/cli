@@ -5,8 +5,6 @@ import { SecretStoreLive } from "../../core/secret-store.ts";
 import { CloudApiLive } from "./api/client.ts";
 import { SessionLive } from "./auth/session.ts";
 import { envCommand } from "./commands/env.ts";
-import { init } from "./commands/init.ts";
-import { link } from "./commands/link.ts";
 import { login } from "./commands/login.ts";
 import { logout } from "./commands/logout.ts";
 import { orgCommand } from "./commands/org.ts";
@@ -20,22 +18,15 @@ const session = SessionLive.pipe(
   Layer.provide(http)
 );
 
+export const cloudLayer = CloudApiLive.pipe(
+  Layer.provideMerge(session),
+  Layer.provideMerge(http)
+);
+
 export const cloudModule = defineModule({
-  commands: [
-    login,
-    logout,
-    whoami,
-    orgCommand,
-    projectCommand,
-    envCommand,
-    link,
-    init,
-  ],
+  commands: [login, logout, whoami, orgCommand, projectCommand, envCommand],
   description:
     "Saleor Cloud: account, organizations, projects and environments.",
-  layer: CloudApiLive.pipe(
-    Layer.provideMerge(session),
-    Layer.provideMerge(http)
-  ),
+  layer: cloudLayer,
   name: "cloud",
 });

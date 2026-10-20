@@ -501,7 +501,7 @@ export const CreateEnvironmentResponse = Schema.Struct({
   "allowed_cors_origins": Schema.NullOr(Schema.Union([Schema.NullOr(Schema.Array(Schema.String)), Schema.NullOr(Schema.Union([Schema.Literals(["*"]), Schema.String]))])),
   "disabled": Schema.Boolean,
   "maintenance_mode": Schema.Boolean,
-  "restore_from": Schema.NullOr(Schema.String)
+  "restore_from": Schema.optionalKey(Schema.NullOr(Schema.String))
 })
 export type CreateEnvironmentResponse = typeof CreateEnvironmentResponse.Type
 
