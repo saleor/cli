@@ -1,13 +1,14 @@
-import { Effect, Option } from "effect";
+import { Config, Effect, Option } from "effect";
 import { Flag } from "effect/cli";
 import { result } from "../../../core/command.ts";
 import { fail } from "../../../core/errors.ts";
-import { timeoutFlag } from "../../../core/flags.ts";
+import { forceFlag, timeoutFlag } from "../../../core/flags.ts";
 import { isInteractive } from "../../../core/interaction.ts";
-import { Invocation } from "../../../core/invocation.ts";
+import { Invocation, shellCommand } from "../../../core/invocation.ts";
+import { detectAgent } from "../../../core/output.ts";
 import { deadlineIn } from "../../../core/readiness.ts";
 import { domainLabelDescription, regionDescription } from "../flags.ts";
-import { describeEnvironment, describeProject } from "../lookup.ts";
+import { describeEnvironment } from "../lookup.ts";
 import { promptInitChoices } from "../prompt.ts";
 import { ensureEnvironment, ensureProject } from "../provision.ts";
 
@@ -22,18 +23,21 @@ export const cloudInitFlags = {
     Flag.optional
   ),
   env: Flag.String("env").pipe(
-    Flag.withMetavar("name"),
+    Flag.withMetavar("env"),
     Flag.withDescription(
-      "Cloud environment name. Created, or reused if it exists."
+      "Cloud environment name. Created, or reused if it exists. Defaults to SALEOR_ENV."
     ),
+    Flag.withFallbackConfig(Config.String("SALEOR_ENV")),
     Flag.optional
   ),
+  force: forceFlag,
   org: orgFlag,
   project: Flag.String("project").pipe(
-    Flag.withMetavar("name"),
+    Flag.withMetavar("project"),
     Flag.withDescription(
-      "Cloud project name. Created, or reused if it exists."
+      "Cloud project name. Created, or reused if it exists. Defaults to SALEOR_PROJECT."
     ),
+    Flag.withFallbackConfig(Config.String("SALEOR_PROJECT")),
     Flag.optional
   ),
   region: Flag.String("region").pipe(
@@ -46,7 +50,40 @@ export const cloudInitFlags = {
 
 const noRerunFlags: readonly string[] = [];
 
+const missingChoices = (
+  project: Option.Option<string>,
+  env: Option.Option<string>
+) => {
+  const missing = [
+    ...(Option.isNone(project) ? ["--project <project>"] : []),
+    ...(Option.isNone(env) ? ["--env <env>"] : []),
+  ];
+
+  const variables = [
+    ...(Option.isNone(project) ? ["SALEOR_PROJECT"] : []),
+    ...(Option.isNone(env) ? ["SALEOR_ENV"] : []),
+  ];
+
+  const agent = detectAgent();
+
+  return fail(
+    "CONTEXT_MISSING",
+    `Cloud setup needs ${missing.join(" and ")}.`,
+    {
+      details: { missing },
+      suggestion: [
+        `Pass ${missing.length > 1 ? "both flags" : "the flag"}, or set ${variables.join(" and ")}.`,
+        agent === undefined
+          ? "In a terminal, run saleor init without flags to be asked."
+          : `Questions are off because a coding agent was detected (${agent}); pass flags instead.`,
+        "For a local store, run: saleor init --local",
+      ].join("\n"),
+    }
+  );
+};
+
 export const initCloud = (flags: {
+  force: boolean;
   org: Option.Option<string>;
   project: Option.Option<string>;
   env: Option.Option<string>;
@@ -60,14 +97,7 @@ export const initCloud = (flags: {
 
     // Checked before any request: bare `init` without a terminal fails offline.
     if (Option.isNone(given) && !(yield* isInteractive)) {
-      return yield* fail(
-        "USAGE_ERROR",
-        "Cloud setup requires --project <name> and --env <name>.",
-        {
-          suggestion:
-            "Pass both flags, or run `saleor init` in a terminal to be asked.\nFor a local store, run: saleor init --local",
-        }
-      );
+      return yield* missingChoices(project, env);
     }
 
     const { organization } = yield* resolveScope({ org: flags.org });
@@ -88,14 +118,13 @@ export const initCloud = (flags: {
 
     // Answers given at a prompt are not in the command line; a resume hint without them
     // would ask the same questions again and could pick different resources.
-    const resumeWith = Effect.provideServiceEffect(
-      Invocation,
-      Effect.map(Invocation, (argv) => [
-        ...argv,
-        ...(Option.isNone(flags.org) ? ["--org", organization] : []),
-        ...choices.rerunFlags,
-      ])
-    );
+    const resumeArgv = [
+      ...(yield* Invocation),
+      ...(Option.isNone(flags.org) ? ["--org", organization] : []),
+      ...choices.rerunFlags,
+    ];
+
+    const resumeWith = Effect.provideService(Invocation, resumeArgv);
 
     const projectOutcome = yield* ensureProject({
       confirmPaidPlan: false,
@@ -108,41 +137,41 @@ export const initCloud = (flags: {
     const envOutcome = yield* ensureEnvironment({
       deadline: deadlineIn(flags.timeout),
       domainLabel: flags.domainLabel,
+      force: flags.force,
       name: choices.env,
       organization,
       project: projectOutcome.project,
       service: Option.none(),
     }).pipe(resumeWith);
 
+    // ensureEnvironment returns only once the GraphQL API answered.
     const environment = describeEnvironment(
       organization,
-      envOutcome.environment
+      envOutcome.environment,
+      true
     );
 
+    // The same instance shape as `env create` and `init --local`, plus the project.
     return result<unknown>(
       {
-        environment: {
-          ...environment,
-          created: envOutcome.created,
-          ready: true,
-        },
-        organization,
-        project: {
-          ...describeProject(organization, projectOutcome.project),
-          created: projectOutcome.created,
-        },
+        ...environment,
+        created: envOutcome.created,
+        projectCreated: projectOutcome.created,
       },
       [
-        projectOutcome.created || envOutcome.created
-          ? "✓ Ready."
-          : `✓ Nothing to create: "${environment.name}" already exists and is ready.`,
-        `  Project:     ${projectOutcome.project.slug} (${projectOutcome.created ? "created" : "already existed"})`,
-        `  Environment: ${environment.name} (${envOutcome.created ? "created" : "already existed"})`,
+        `✓ Environment "${environment.name}" is ready (${envOutcome.created ? "created" : "already existed"}).`,
+        `  Project:     "${projectOutcome.project.slug}" (${projectOutcome.created ? "created" : "already existed"})`,
         `  GraphQL API: ${environment.graphqlUrl}`,
         `  Dashboard:   ${environment.dashboardUrl}`,
-        `To use it in other commands: --org ${organization} --project ${projectOutcome.project.slug} (or SALEOR_ORG / SALEOR_PROJECT / SALEOR_ENV).`,
-      ]
-        .filter(Boolean)
-        .join("\n")
+        "",
+        "To use it in other commands, set:",
+        `  export SALEOR_ORG=${organization} SALEOR_PROJECT=${projectOutcome.project.slug} SALEOR_ENV=${environment.key}`,
+        ...(choices.rerunFlags.length > 0
+          ? [
+              "To run this setup again without questions:",
+              `  ${shellCommand(resumeArgv)}`,
+            ]
+          : []),
+      ].join("\n")
     );
   });

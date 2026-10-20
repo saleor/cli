@@ -23,7 +23,9 @@ import {
   OutputFlag,
   outputFormatFromArgv,
   resolveOutputFormat,
+  setProgressFormat,
   useColors,
+  writeJson,
 } from "./output.ts";
 
 interface CliRuntimeOptions<Services> {
@@ -33,6 +35,8 @@ interface CliRuntimeOptions<Services> {
 
 // Effect's parser messages, reworded to read like the rest of the CLI's errors.
 // "Expected: Schema validation failed: Expected a value …" → "a value …"
+const NUMBER_EXPECTATION = /a string representing an? (finite number|integer)/;
+
 const EXPECTED_PREFIX =
   /^(Expected:?\s*)?(Schema validation failed:\s*)?(Expected\s*)?/;
 
@@ -54,9 +58,11 @@ const describeUsageError = (error: CliError.CliError): string =>
 
       const name = e.kind === "flag" ? `--${e.option}` : `<${e.option}>`;
 
+      const readable = expected.replace(NUMBER_EXPECTATION, "a whole number");
+
       return e.value.length === 0
         ? `${name} needs a value.`
-        : `Invalid value "${e.value}" for ${name}: expected ${expected}.`;
+        : `Invalid value "${e.value}" for ${name}: expected ${readable}.`;
     }),
     Match.tag(
       "UnknownSubcommand",
@@ -96,10 +102,41 @@ const usageFailure = (error: CliError.CliError) => {
   });
 };
 
+// `saleor help env create` is `saleor env create --help`; `--json` is `--output json`.
+// When the output format is given more than once, the last one wins, as with any flag.
+const normalizeArgv = (rawArgv: readonly string[]) => {
+  const words =
+    rawArgv[0] === "help" ? [...rawArgv.slice(1), "--help"] : [...rawArgv];
+
+  const expanded = words.flatMap((arg) =>
+    arg === "--json" ? ["--output", "json"] : [arg]
+  );
+
+  let last = -1;
+
+  for (const [i, arg] of expanded.entries()) {
+    if (arg === "--output" || arg.startsWith("--output=")) {
+      last = i;
+    }
+  }
+
+  return expanded.filter((arg, i) => {
+    if (i === last || i === last + 1) {
+      return true;
+    }
+
+    if (arg === "--output" || arg.startsWith("--output=")) {
+      return false;
+    }
+
+    return expanded[i - 1] !== "--output";
+  });
+};
+
 // --wizard asks about every flag with Effect's fixed wording ("Set No browser?") and
 // --log-level has nothing to show because the CLI does not log. Commands that need
 // input prompt for it themselves.
-const builtIns = [
+export const builtIns = [
   GlobalFlag.Help,
   GlobalFlag.Version,
   GlobalFlag.Completions,
@@ -113,16 +150,26 @@ export const createCliRuntime =
     options: CliRuntimeOptions<Services>
   ) =>
   (rawArgv: readonly string[]): Effect.Effect<void> => {
-    const argv = rawArgv.flatMap((arg) =>
-      arg === "--json" ? ["--output", "json"] : [arg]
-    );
+    const argv = normalizeArgv(rawArgv);
 
-    const format = resolveOutputFormat(outputFormatFromArgv(argv));
+    const explicitFormat = outputFormatFromArgv(argv);
+    const format = resolveOutputFormat(explicitFormat);
+    setProgressFormat(format);
+
+    // `--version --json` answers like every other command in json mode. Without an
+    // explicit --json the plain line stays, so `$(saleor --version)` keeps working.
+    if (
+      Option.contains(explicitFormat, "json") &&
+      argv.some((arg) => arg === "--version" || arg === "-v") &&
+      !argv.some((arg) => arg === "--help" || arg === "-h")
+    ) {
+      return writeJson({ data: { version: options.version }, ok: true });
+    }
 
     // Effect writes help and the version through Console.log; nothing else does. It is
     // held back until the command finishes so a usage error can drop the help page and
-    // print one error instead, and in json mode it goes to stderr so stdout carries one
-    // result document only.
+    // print one error instead. Asked-for help and the version are the result of the
+    // command, so they go to stdout like any other result.
     const parserOutput: string[] = [];
     let showParserOutput = true;
 
@@ -135,8 +182,7 @@ export const createCliRuntime =
 
     const flushParserOutput = Effect.sync(() => {
       if (showParserOutput && parserOutput.length > 0) {
-        const stream = format === "json" ? process.stderr : process.stdout;
-        stream.write(`${parserOutput.join("\n")}\n`);
+        process.stdout.write(`${parserOutput.join("\n")}\n`);
       }
     });
 

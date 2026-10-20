@@ -1,5 +1,6 @@
 import { Effect, Option } from "effect";
 import { type CliFailure, fail } from "../../core/errors.ts";
+import { confirmDestructive } from "../../core/interaction.ts";
 import { rerunCommand } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
 import { type Deadline, isPast, notReady, POLL } from "../../core/readiness.ts";
@@ -16,6 +17,7 @@ import {
   destroyProject,
   listPlans,
   listProjectServices,
+  listRegions,
   obtainPreheatedEnvironmentObtainEnvironment,
 } from "./api/generated.ts";
 import {
@@ -40,6 +42,7 @@ const LIMIT_ERROR = /reach|exceed|maximum|limit/i;
 const SANDBOX_ERROR = /limit|sandbox/i;
 const DUPLICATE_ERROR = /exist|taken|unique/i;
 const DOMAIN_ERROR = /domain/i;
+const INVALID_ERROR = /invalid/i;
 
 // Cloud refuses deletes with HTTP 400 while a task runs ("There are active tasks in the
 // environment/project") or during maintenance ("… Please, try again in a moment").
@@ -103,7 +106,7 @@ const PERIOD_UNITS = new Map([
 ]);
 
 // Plans are billed per period with a flat fee; usage above the allowance costs extra.
-const priceOf = (plan: Project["plan"]) => {
+export const priceOf = (plan: Project["plan"]) => {
   const fee = plan.pricing?.flat_fee;
   const unit = PERIOD_UNITS.get(plan.allowance?.period ?? "");
 
@@ -136,7 +139,7 @@ const confirmPlanCost = (plan: Project["plan"], confirmed: boolean) =>
     );
   });
 
-export const ensureProject = (input: EnsureProjectInput) =>
+export const prepareProject = (input: EnsureProjectInput) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
     const existing = yield* findProject(input.organization, input.name);
@@ -154,7 +157,7 @@ export const ensureProject = (input: EnsureProjectInput) =>
         { project: describeProject(input.organization, project) }
       );
 
-      return { created: false, project };
+      return { existing: project, plan: project.plan, region: project.region };
     }
 
     const planSlug = Option.getOrElse(input.plan, () => DEFAULT_PLAN);
@@ -169,14 +172,42 @@ export const ensureProject = (input: EnsureProjectInput) =>
       );
     }
 
+    const region = Option.getOrElse(input.region, () => DEFAULT_REGION);
+
+    // Only for a clearer error than Cloud's own; a failed lookup leaves it to Cloud.
+    const regions = yield* api
+      .call(listRegions)
+      .pipe(Effect.orElseSucceed(() => []));
+
+    if (regions.length > 0 && !regions.some((r) => r.name === region)) {
+      return yield* fail(
+        "USAGE_ERROR",
+        `There is no "${region}" region. Available regions: ${regions.map((r) => r.name).join(", ")}.`,
+        { details: { regions: regions.map((r) => r.name) } }
+      );
+    }
+
+    return { existing: undefined, plan, region };
+  });
+
+export const ensureProject = (input: EnsureProjectInput) =>
+  Effect.gen(function* () {
+    const api = yield* CloudApi;
+    const prepared = yield* prepareProject(input);
+
+    if (prepared.existing !== undefined) {
+      return { created: false, project: prepared.existing };
+    }
+
+    const { plan, region } = prepared;
     yield* confirmPlanCost(plan, input.confirmPaidPlan);
 
     const created = yield* orDescribe(
       api.call(createCreateProject, {
         body: {
           name: input.name,
-          plan: planSlug,
-          region: Option.getOrElse(input.region, () => DEFAULT_REGION),
+          plan: plan.slug,
+          region,
         },
         path: { organization_slug: input.organization },
       })
@@ -260,6 +291,7 @@ export const deleteProject = (organization: string, project: Project) =>
 export interface EnsureEnvironmentInput {
   readonly deadline: Deadline;
   readonly domainLabel: Option.Option<string>;
+  readonly force?: boolean;
   readonly name: string;
   readonly organization: string;
   readonly project: Project;
@@ -326,9 +358,24 @@ const pickSandboxService = (
 
 const classifyCreateRejection = (
   error: ApiStatusError,
-  domainLabel: Option.Option<string>
+  domainLabel: Option.Option<string>,
+  project: Project
 ): Effect.Effect<never, ApiStatusError | CliFailure> => {
   const text = error.status === 400 ? flattenMessages(error.body) : "";
+
+  if (DOMAIN_ERROR.test(text) && INVALID_ERROR.test(text)) {
+    return Effect.fail(
+      fail(
+        "USAGE_ERROR",
+        `"${Option.getOrElse(domainLabel, () => "")}" is not a valid domain label.`,
+        {
+          details: error.body,
+          suggestion:
+            "Use lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen. Or leave out --domain-label and Saleor Cloud picks one.",
+        }
+      )
+    );
+  }
 
   if (DOMAIN_ERROR.test(text) && DUPLICATE_ERROR.test(text)) {
     return Effect.fail(
@@ -344,15 +391,17 @@ const classifyCreateRejection = (
     );
   }
 
+  const allowance = project.plan.allowance?.sandboxes;
+  const limit = allowance?.cap ?? allowance?.included ?? undefined;
+
   if (SANDBOX_ERROR.test(text) && LIMIT_ERROR.test(text)) {
     return Effect.fail(
       fail(
         "ENVIRONMENT_LIMIT_REACHED",
-        "The project has reached its plan's limit of sandbox environments.",
+        `Project "${project.slug}" has reached the limit of ${limit === undefined ? "" : `${limit} `}sandbox environments on its "${project.plan.slug}" plan.`,
         {
-          details: error.body,
-          suggestion:
-            "Delete one you no longer need (saleor env delete <env>), or upgrade the project's plan in the Saleor Cloud dashboard.",
+          details: { body: error.body, limit: limit ?? null },
+          suggestion: `Delete one you no longer need (see them with: saleor env list --project ${project.slug}), or upgrade the plan in the Saleor Cloud dashboard.`,
         }
       )
     );
@@ -388,13 +437,13 @@ const requestEnvironment = (input: EnsureEnvironmentInput, service: string) =>
 
     return yield* request.pipe(
       Effect.catchTag("ApiStatusError", (error) =>
-        classifyCreateRejection(error, input.domainLabel)
+        classifyCreateRejection(error, input.domainLabel, input.project)
       ),
       orDescribe
     );
   });
 
-export const ensureEnvironment = (input: EnsureEnvironmentInput) =>
+export const prepareEnvironment = (input: EnsureEnvironmentInput) =>
   Effect.gen(function* () {
     const envs = yield* listEnvironments(
       input.organization,
@@ -422,6 +471,23 @@ export const ensureEnvironment = (input: EnsureEnvironmentInput) =>
         { environment: describeEnvironment(input.organization, existing) }
       );
 
+      return { existing, service: existing.service.name };
+    }
+
+    const service = yield* pickSandboxService(
+      input.organization,
+      input.project,
+      input.service
+    );
+
+    return { existing: undefined, service };
+  });
+
+export const ensureEnvironment = (input: EnsureEnvironmentInput) =>
+  Effect.gen(function* () {
+    const { existing, service } = yield* prepareEnvironment(input);
+
+    if (existing !== undefined) {
       const ready = yield* waitUntilReady(
         input.organization,
         existing.key,
@@ -431,11 +497,17 @@ export const ensureEnvironment = (input: EnsureEnvironmentInput) =>
       return { created: false, environment: ready };
     }
 
-    const service = yield* pickSandboxService(
-      input.organization,
-      input.project,
-      input.service
-    );
+    if (input.project.plan.type !== "dev") {
+      const target = `environment "${input.name}" in ${input.organization} / ${input.project.slug}`;
+      const cost = `The "${input.project.plan.slug}" plan is paid${priceOf(input.project.plan)}; usage above its allowance may be charged.`;
+      yield* confirmDestructive(
+        {
+          question: `Create ${target}? ${cost}`,
+          refusal: `Not creating ${target} without confirmation. ${cost}`,
+        },
+        input.force ?? false
+      );
+    }
 
     const created = yield* requestEnvironment(input, service);
 

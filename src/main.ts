@@ -6,7 +6,7 @@ import { catalogCommand } from "./core/catalog.ts";
 import { NoInputFlag } from "./core/interaction.ts";
 import { collectCommands } from "./core/module.ts";
 import { OutputFlag } from "./core/output.ts";
-import { createCliRuntime } from "./core/runtime.ts";
+import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { cloudModule } from "./modules/cloud/index.ts";
 import { localModule } from "./modules/local/index.ts";
 import { workspaceCommands } from "./workspace.ts";
@@ -21,7 +21,10 @@ export const root = Command.make("saleor").pipe(
   ),
   Command.withSubcommands([
     ...moduleCommands,
-    catalogCommand(() => moduleCommands),
+    catalogCommand(
+      () => moduleCommands,
+      [...builtIns, OutputFlag, NoInputFlag]
+    ),
   ]),
   Command.withGlobalFlags([OutputFlag, NoInputFlag])
 );

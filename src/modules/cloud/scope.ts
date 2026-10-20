@@ -1,6 +1,7 @@
 import { Config, Effect, Option } from "effect";
 import { Flag } from "effect/cli";
 import { fail } from "../../core/errors.ts";
+import { catalogInfo } from "../../core/input-info.ts";
 import { isInteractive } from "../../core/interaction.ts";
 import { listOrganizations } from "./lookup.ts";
 import { ensureSignedIn, pickOrganization } from "./prompt.ts";
@@ -9,6 +10,12 @@ import { ensureSignedIn, pickOrganization } from "./prompt.ts";
 // selects them the same way — flag → environment variable → (for the organization) the
 // only one you belong to, or a question in a terminal. Nothing is remembered between
 // runs, so a command never acts on something you did not name this time.
+catalogInfo.flag("org", { env: "SALEOR_ORG" });
+
+catalogInfo.flag("project", { env: "SALEOR_PROJECT" });
+
+catalogInfo.flag("env", { env: "SALEOR_ENV" });
+
 export const orgFlag = Flag.String("org").pipe(
   Flag.withMetavar("slug"),
   Flag.withDescription(
@@ -32,7 +39,7 @@ export const envFlag = Flag.String("env").pipe(
   Flag.optional
 );
 
-const chooseOrganization = (flag: Option.Option<string>) =>
+const chooseOrganization = (flag: Option.Option<string>, allowInput: boolean) =>
   Effect.gen(function* () {
     if (Option.isSome(flag)) {
       return flag.value;
@@ -46,7 +53,7 @@ const chooseOrganization = (flag: Option.Option<string>) =>
       return only;
     }
 
-    if (slugs.length > 1 && (yield* isInteractive)) {
+    if (allowInput && slugs.length > 1 && (yield* isInteractive)) {
       return yield* pickOrganization();
     }
 
@@ -76,6 +83,7 @@ export interface Scope {
 }
 
 export interface ScopeInput {
+  readonly dryRun?: boolean;
   readonly env?: Option.Option<string>;
   readonly org: Option.Option<string>;
   readonly project?: Option.Option<string>;
@@ -84,11 +92,13 @@ export interface ScopeInput {
 // Resolves the organization; the project and environment are only what was passed.
 export const resolveScope = (input: ScopeInput) =>
   Effect.gen(function* () {
-    yield* ensureSignedIn;
+    if (!input.dryRun) {
+      yield* ensureSignedIn;
+    }
 
     const scope: Scope = {
       environment: input.env ?? Option.none(),
-      organization: yield* chooseOrganization(input.org),
+      organization: yield* chooseOrganization(input.org, !input.dryRun),
       project: input.project ?? Option.none(),
     };
 

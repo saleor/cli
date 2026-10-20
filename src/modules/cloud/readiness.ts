@@ -3,6 +3,7 @@ import { fail } from "../../core/errors.ts";
 import { notice } from "../../core/output.ts";
 import {
   type Deadline,
+  heartbeat,
   isPast,
   notReady,
   POLL,
@@ -38,6 +39,7 @@ export const waitForTask = (
 ) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
+    const beat = heartbeat();
 
     for (;;) {
       const task = yield* api
@@ -70,6 +72,7 @@ export const waitForTask = (
         });
       }
 
+      yield* beat(`waiting for ${label.toLowerCase()}`);
       yield* Effect.sleep(POLL);
     }
   });
@@ -112,6 +115,7 @@ export const waitUntilReady = (
 ) =>
   Effect.gen(function* () {
     const say = progress();
+    const beat = heartbeat();
 
     for (;;) {
       const tasks = yield* blockingTasks(organization, envKey);
@@ -158,6 +162,7 @@ export const waitUntilReady = (
       }
 
       yield* say(`Waiting for the GraphQL API to respond at ${graphqlUrl}…`);
+      yield* beat("waiting for the GraphQL API");
       yield* Effect.sleep(POLL);
     }
   });
@@ -168,10 +173,14 @@ export const waitUntilGone = (
   deadline: Deadline
 ) =>
   Effect.gen(function* () {
+    const beat = heartbeat();
+
     for (;;) {
       if (Option.isNone(yield* findEnvironment(organization, envKey))) {
         return;
       }
+
+      yield* beat("deleting");
 
       if (isPast(deadline)) {
         return yield* notReady("the environment is still being deleted.", {

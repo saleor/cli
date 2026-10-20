@@ -17,7 +17,7 @@ const orgList = Command.make("list", {}, () =>
         organizations.length === 0
           ? "You do not belong to any organization yet. Create one at https://cloud.saleor.io"
           : columns([
-              ["ORGANIZATION", "NAME"],
+              ["SLUG", "NAME"],
               ...organizations.map((org) => [org.slug, org.name]),
             ])
       );

@@ -8,7 +8,7 @@ import { CliOutput, type HelpDoc } from "effect/cli";
 
 const CHOICES = /\s*\(choices: ([^)]*)\)$/;
 
-const BUILT_IN_DESCRIPTIONS = new Map([
+export const BUILT_IN_DESCRIPTIONS = new Map([
   ["completions", "Print a shell completion script."],
   ["help", "Show help for a command."],
   ["version", "Print the CLI version."],
@@ -117,11 +117,22 @@ export const formatHelp = (doc: HelpDoc.HelpDoc, colors: boolean): string => {
     ])
   );
 
+  // The global flags are the same everywhere, so they are listed once, at the root.
   const globals = doc.globalFlags ?? [];
-  section(
-    "GLOBAL FLAGS",
-    globals.length > 0 ? table(globals.map(flagRow)) : []
-  );
+  const isRoot = doc.usage.startsWith("saleor <");
+
+  if (isRoot) {
+    section(
+      "GLOBAL FLAGS",
+      globals.length > 0 ? table(globals.map(flagRow)) : []
+    );
+  } else if (globals.length > 0) {
+    lines.push(
+      dim(
+        "Global flags (--output <text|json>, --json, --no-input, --help): see 'saleor --help'."
+      )
+    );
+  }
 
   if (commands.length > 0) {
     const path = doc.usage.split(" <")[0] ?? "saleor";

@@ -1,12 +1,16 @@
-// Derived from saleor/saleor-platform's Compose setup. Only API and Dashboard are
-// published, on loopback; database/cache stay inside the instance's Docker network.
+// Derived from saleor/saleor-platform's Compose setup. Only the API, Dashboard and the
+// mail inbox are published, on loopback; database/cache stay inside the instance's
+// Docker network.
 export const SALEOR_VERSION = "3.23.41";
 export const DASHBOARD_VERSION = "3.23.0";
+const MAILPIT_IMAGE = "axllent/mailpit:v1.27.8";
 
 export interface LocalConfig {
   readonly apiPort: number;
   readonly dashboardPort: number;
   readonly initialized: boolean;
+  // Absent in instances created before the mail inbox was published.
+  readonly mailPort?: number | undefined;
   readonly name: string;
   readonly saleorVersion: string;
   readonly sampleData: boolean;
@@ -22,6 +26,15 @@ export const composeTemplate = (config: LocalConfig) => {
     image: `ghcr.io/saleor/saleor:${config.saleorVersion}`,
     volumes: ["media:/app/media"],
   };
+
+  // The inbox is published only for instances that have a port for it.
+  const mailpit =
+    config.mailPort === undefined
+      ? { image: MAILPIT_IMAGE }
+      : {
+          image: MAILPIT_IMAGE,
+          ports: [`127.0.0.1:${config.mailPort}:8025`],
+        };
 
   // JSON is a YAML subset and avoids maintaining a second serializer.
   return JSON.stringify(
@@ -52,7 +65,7 @@ export const composeTemplate = (config: LocalConfig) => {
           image: "postgres:15.10-alpine",
           volumes: ["db:/var/lib/postgresql/data"],
         },
-        mailpit: { image: "axllent/mailpit:v1.27.8" },
+        mailpit,
         worker: {
           ...backend,
           command:

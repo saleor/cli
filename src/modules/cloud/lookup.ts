@@ -1,5 +1,6 @@
 import { Effect, Option } from "effect";
 import { fail } from "../../core/errors.ts";
+import { type InstanceState, instance } from "../../core/target.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
 import {
   type EnvironmentResponse,
@@ -27,33 +28,67 @@ export const graphqlUrlOf = (env: Environment) =>
 
 // ── Connection details ───────────────────────────────────────────────────
 
+// Without `apiAnswered` only what Cloud reports is known: a task running ("busy"),
+// maintenance, or neither ("running"). With it, the store itself was asked.
+const stateOf = (env: Environment, apiAnswered?: boolean): InstanceState => {
+  if (env.maintenance_mode) {
+    return "maintenance";
+  }
+
+  if (env.blocking_tasks_in_progress) {
+    return "busy";
+  }
+
+  if (apiAnswered === undefined) {
+    return "running";
+  }
+
+  return apiAnswered ? "ready" : "starting";
+};
+
 export const describeEnvironment = (
   organization: string,
-  env: Environment
+  env: Environment,
+  apiAnswered?: boolean
 ) => ({
-  blockingTasksInProgress: env.blocking_tasks_in_progress ?? false,
-  dashboardUrl: `https://${env.domain}/dashboard/`,
+  ...instance({
+    dashboardUrl: `https://${env.domain}/dashboard/`,
+    graphqlUrl: graphqlUrlOf(env),
+    kind: "cloud",
+    name: env.name,
+    ref: `cloud:${organization}/${env.key}`,
+    saleorVersion: env.service.version ?? null,
+    state: stateOf(env, apiAnswered),
+  }),
   domain: env.domain,
   domainLabel: env.domain_label,
-  graphqlUrl: graphqlUrlOf(env),
   key: env.key,
-  maintenanceMode: env.maintenance_mode ?? false,
-  name: env.name,
   organization,
   project: env.project.slug,
   region: env.service.region,
-  saleorVersion: env.service.version ?? null,
-  serviceType: env.service.service_type,
+  serviceType: env.service.service_type?.toLowerCase() ?? null,
 });
 
 export type EnvironmentDetails = ReturnType<typeof describeEnvironment>;
+
+export const describePricing = (
+  value: Readonly<Record<string, string>> | undefined
+) =>
+  value === undefined
+    ? null
+    : Object.fromEntries(
+        Object.entries(value).map(([key, item]) => [
+          key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase()),
+          item,
+        ])
+      );
 
 export const describeProject = (organization: string, project: Project) => ({
   name: project.name,
   organization,
   plan: project.plan.slug,
   planType: project.plan.type ?? null,
-  pricing: project.plan.pricing ?? null,
+  pricing: describePricing(project.plan.pricing),
   region: project.region,
   sandboxes: project.sandboxes?.count ?? null,
   slug: project.slug,
@@ -189,3 +224,25 @@ export const requireEnvironment = (
       onSome: Effect.succeed,
     })
   );
+
+// For commands that need a project: a missing one lists the choices, like a missing
+// organization does.
+export const requireProjectRef = (
+  organization: string,
+  ref: Option.Option<string>
+) =>
+  Effect.gen(function* () {
+    if (Option.isSome(ref)) {
+      return yield* requireProject(organization, ref.value);
+    }
+
+    const slugs = (yield* listProjects(organization)).map((p) => p.slug);
+
+    return yield* fail("CONTEXT_MISSING", "No project selected.", {
+      details: { projects: slugs },
+      suggestion:
+        slugs.length > 0
+          ? `Pass --project <project> or set SALEOR_PROJECT. Projects in ${organization}: ${slugs.join(", ")}.`
+          : `Pass --project <project> or set SALEOR_PROJECT. ${organization} has no projects yet; create one with: saleor project create <name> --org ${organization}`,
+    });
+  });

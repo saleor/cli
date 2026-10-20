@@ -1,7 +1,8 @@
 import { Duration, Effect, Option, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { type CliFailure, fail } from "./errors.ts";
-import { rerunCommand } from "./invocation.ts";
+import { resumeCommand } from "./invocation.ts";
+import { notice } from "./output.ts";
 
 // A wait budget for one command run. Running out is not a failure: the command returns
 // NOT_READY (exit 75) and running it again continues from Cloud's current state.
@@ -21,7 +22,7 @@ export const notReady = (
   details: CliFailure["details"],
   location = "Saleor Cloud"
 ) =>
-  Effect.flatMap(rerunCommand(), (command) =>
+  Effect.flatMap(resumeCommand, (command) =>
     Effect.fail(
       fail("NOT_READY", `Stopped waiting: ${message}`, {
         details,
@@ -71,3 +72,33 @@ export const probeGraphql = (graphqlUrl: string) =>
 
     return body.data?.shop !== undefined && body.data.shop !== null;
   });
+
+const HEARTBEAT_MS = Number(process.env.SALEOR_HEARTBEAT_SECONDS ?? 30) * 1000;
+
+const elapsed = (ms: number) => {
+  const seconds = Math.round(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+
+  return minutes === 0
+    ? `${seconds}s`
+    : `${minutes}m ${String(seconds % 60).padStart(2, "0")}s`;
+};
+
+// Long waits print a line now and then, so a quiet terminal is not mistaken for a hang.
+export const heartbeat = () => {
+  const start = Date.now();
+  let last = start;
+
+  return (what: string) =>
+    Effect.suspend(() => {
+      const now = Date.now();
+
+      if (now - last < HEARTBEAT_MS) {
+        return Effect.void;
+      }
+
+      last = now;
+
+      return notice(`  …still ${what} (${elapsed(now - start)} so far)`);
+    });
+};

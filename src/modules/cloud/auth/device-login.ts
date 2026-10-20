@@ -30,7 +30,13 @@ export const deviceLogin = (openInBrowser: boolean) =>
         `  ${url}`,
         `  Check that the page shows the code ${grant.userCode}.`,
         "Waiting for approval… (Ctrl+C to cancel)",
-      ].join("\n")
+      ].join("\n"),
+      {
+        event: "login",
+        expiresAt: new Date(grant.expiresAt).toISOString(),
+        userCode: grant.userCode,
+        verificationUrl: url,
+      }
     );
 
     const tokens = yield* pollForTokens(grant);

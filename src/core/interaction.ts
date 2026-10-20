@@ -3,8 +3,11 @@ import { confirm, isCancel, select, text } from "@clack/prompts";
 import { Context, Effect, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import { fail } from "./errors.ts";
+import { catalogInfo } from "./input-info.ts";
 import { rerunCommand } from "./invocation.ts";
 import { currentOutputFormat } from "./output.ts";
+
+catalogInfo.flag("no-input", { default: false, env: "SALEOR_NO_INPUT" });
 
 export const NoInputFlag = GlobalFlag.Setting("no-input")({
   flag: Flag.Boolean("no-input").pipe(
@@ -206,6 +209,6 @@ export const confirmDestructive = (
     }
 
     if (!(yield* askConfirm(action.question, false))) {
-      return yield* fail("CANCELLED", "Cancelled. Nothing was deleted.");
+      return yield* fail("CANCELLED", "Cancelled. Nothing was changed.");
     }
   });

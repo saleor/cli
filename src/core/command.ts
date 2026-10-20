@@ -17,6 +17,7 @@ import {
 // What a handler returns: the data agents get in `data`, and the text humans see.
 export interface CommandResult<A> {
   readonly data: A;
+  readonly json?: boolean;
   readonly text: string;
 }
 
@@ -40,8 +41,8 @@ export const renderFailure = (failure: CliFailure) =>
 
 // Every command handler goes through here: handlers return typed data and never print
 // their result or exit; this renders the one result document and sets the exit code.
-export const run = <A, R>(
-  handler: Effect.Effect<CommandResult<A>, CliFailure, R>
+export const run = <R>(
+  handler: Effect.Effect<CommandResult<unknown>, CliFailure, R>
 ) =>
   handler.pipe(
     Effect.matchCauseEffect({
@@ -62,7 +63,7 @@ export const run = <A, R>(
         Effect.gen(function* () {
           const format = yield* currentOutputFormat;
 
-          if (format === "json") {
+          if (format === "json" || outcome.json) {
             yield* writeJson(successEnvelope(outcome.data));
           } else {
             yield* writeText(outcome.text);
@@ -72,3 +73,9 @@ export const run = <A, R>(
         }),
     })
   );
+
+export const preview = <A>(data: A): CommandResult<A & { dryRun: true }> => ({
+  data: { ...data, dryRun: true },
+  json: true,
+  text: "",
+});

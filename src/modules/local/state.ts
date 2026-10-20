@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   writeFileSync,
@@ -52,6 +53,11 @@ const ConfigSchema = Schema.Struct({
     Schema.check(Schema.isBetween({ maximum: 65_535, minimum: 1 }))
   ),
   initialized: Schema.Boolean,
+  mailPort: Schema.optionalKey(
+    Schema.Int.pipe(
+      Schema.check(Schema.isBetween({ maximum: 65_535, minimum: 1 }))
+    )
+  ),
   name: Schema.String,
   saleorVersion: Schema.String,
   sampleData: Schema.Boolean,
@@ -115,6 +121,65 @@ const availablePort = () =>
       }),
   });
 
+// `count` distinct free ports, none of them in `avoid`.
+export const freePorts = (count: number, avoid: readonly number[] = []) =>
+  Effect.gen(function* () {
+    const ports: number[] = [];
+
+    while (ports.length < count) {
+      const port = yield* availablePort();
+
+      if (!(ports.includes(port) || avoid.includes(port))) {
+        ports.push(port);
+      }
+    }
+
+    return ports;
+  });
+
+// An instance whose first setup never finished has no data worth keeping, so it takes
+// the options of this run (a wrong --saleor-version is fixed by re-running). A set-up
+// instance keeps its version; sample data can be added to it but never removed.
+const reuseConfig = (
+  existing: LocalConfig,
+  version: string | undefined,
+  sampleData: boolean
+) =>
+  Effect.gen(function* () {
+    if (!existing.initialized) {
+      const config: LocalConfig = {
+        ...existing,
+        saleorVersion: version ?? existing.saleorVersion,
+        sampleData: sampleData || existing.sampleData,
+      };
+
+      yield* saveConfig(config);
+
+      return { changed: true, config, created: false };
+    }
+
+    if (version && version !== existing.saleorVersion) {
+      return yield* fail(
+        "NAME_CONFLICT",
+        `Local instance "${existing.name}" already exists but its Saleor version is "${existing.saleorVersion}", not "${version}".`,
+        {
+          details: { saleorVersion: existing.saleorVersion, wanted: version },
+          suggestion: `Leave out --saleor-version to use it as it is, or create another instance: saleor local up --name ${existing.name}-${version.replaceAll(".", "-")} --saleor-version ${version}`,
+        }
+      );
+    }
+
+    if (sampleData && !existing.sampleData) {
+      const config: LocalConfig = { ...existing, sampleData: true };
+
+      yield* saveConfig(config);
+
+      return { changed: true, config, created: false };
+    }
+
+    return { changed: false, config: existing, created: false };
+  });
+
 export const ensureConfig = (
   name: string,
   version: string | undefined,
@@ -133,34 +198,16 @@ export const ensureConfig = (
     const existing = yield* readConfig(name);
 
     if (existing) {
-      if (
-        (version && version !== existing.saleorVersion) ||
-        (sampleData && !existing.sampleData)
-      ) {
-        return yield* fail(
-          "USAGE_ERROR",
-          `Local instance "${name}" already exists with different setup options.`,
-          {
-            suggestion:
-              "Use another --name to create a separate instance. Existing data is kept.",
-          }
-        );
-      }
-
-      return { config: existing, created: false };
+      return yield* reuseConfig(existing, version, sampleData);
     }
 
-    const apiPort = yield* availablePort();
-    let dashboardPort = yield* availablePort();
-
-    while (dashboardPort === apiPort) {
-      dashboardPort = yield* availablePort();
-    }
+    const [apiPort = 0, dashboardPort = 0, mailPort = 0] = yield* freePorts(3);
 
     const config: LocalConfig = {
       apiPort,
       dashboardPort,
       initialized: false,
+      mailPort,
       name,
       saleorVersion: version ?? SALEOR_VERSION,
       sampleData,
@@ -168,11 +215,87 @@ export const ensureConfig = (
 
     yield* saveConfig(config);
 
-    return { config, created: true };
+    return { changed: true, config, created: true };
+  });
+
+// Instances created before the mail UI was published get a port on their next `up`.
+export const withMailPort = (config: LocalConfig) =>
+  Effect.gen(function* () {
+    if (config.mailPort !== undefined) {
+      return config;
+    }
+
+    const [mailPort] = yield* freePorts(1, [
+      config.apiPort,
+      config.dashboardPort,
+    ]);
+
+    const updated: LocalConfig = { ...config, mailPort };
+    yield* saveConfig(updated);
+
+    return updated;
+  });
+
+// Whether something else is listening on a port this instance publishes. Only
+// meaningful while the instance's own containers are stopped.
+export const portInUse = (port: number) =>
+  Effect.promise(
+    () =>
+      new Promise<boolean>((resolve) => {
+        const server = net.createServer();
+        server.once("error", () => resolve(true));
+        server.listen(port, "127.0.0.1", () => {
+          server.close(() => resolve(false));
+        });
+      })
+  );
+
+// Every local instance with saved state, by name.
+export const listInstanceNames = () =>
+  Effect.sync(() => {
+    const dir = path.join(configDir(), "local");
+
+    if (!existsSync(dir)) {
+      return [];
+    }
+
+    return readdirSync(dir, { withFileTypes: true })
+      .filter(
+        (entry) =>
+          entry.isDirectory() &&
+          NAME_PATTERN.test(entry.name) &&
+          existsSync(path.join(dir, entry.name, "instance.json"))
+      )
+      .map((entry) => entry.name)
+      .sort();
   });
 
 export const adminEmail = "admin@example.com";
 export const secretKey = (name: string) => `local:${name}`;
+
+const SecretsSchema = Schema.Struct({
+  database: Schema.String,
+  django: Schema.String,
+  password: Schema.String,
+});
+
+type LocalSecrets = typeof SecretsSchema.Type;
+
+const parseSecrets = (raw: string) =>
+  Schema.decodeUnknownEffect(Schema.fromJsonString(SecretsSchema))(raw).pipe(
+    Effect.mapError(() =>
+      fail("TASK_FAILED", "The saved local credentials are unreadable.")
+    )
+  );
+
+// The saved admin password of an instance, if it has one.
+export const savedPassword = (name: string) =>
+  Effect.gen(function* () {
+    const store = yield* SecretStore;
+    const raw = yield* store.get(secretKey(name));
+
+    return raw === undefined ? null : (yield* parseSecrets(raw)).password;
+  });
 
 export const prepareSecrets = (config: LocalConfig) =>
   Effect.gen(function* () {
@@ -180,14 +303,13 @@ export const prepareSecrets = (config: LocalConfig) =>
     const key = secretKey(config.name);
     const existing = yield* store.get(key);
 
-    const secrets: { password: string; database: string; django: string } =
-      existing
-        ? JSON.parse(existing)
-        : {
-            database: randomBytes(24).toString("hex"),
-            django: randomBytes(48).toString("hex"),
-            password: randomBytes(24).toString("hex"),
-          };
+    const secrets: LocalSecrets = existing
+      ? yield* parseSecrets(existing)
+      : {
+          database: randomBytes(24).toString("hex"),
+          django: randomBytes(48).toString("hex"),
+          password: randomBytes(24).toString("hex"),
+        };
 
     if (!existing) {
       yield* store.set(key, JSON.stringify(secrets));

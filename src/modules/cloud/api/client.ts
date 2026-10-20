@@ -12,6 +12,7 @@ import {
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { type CliFailure, fail } from "../../../core/errors.ts";
 import { Session } from "../auth/session.ts";
+import { listOrganizations } from "./generated.ts";
 
 const TRAILING_SLASHES = /\/+$/;
 
@@ -266,6 +267,8 @@ export const CloudApiLive = Layer.effect(
         const text = yield* response.text.pipe(Effect.orElseSucceed(() => ""));
         const body = text.length > 0 ? safeJson(text) : undefined;
 
+        yield* requireMembership(response.status, options.path);
+
         if (response.status < 200 || response.status >= 300) {
           return yield* new ApiStatusError({
             body,
@@ -279,23 +282,82 @@ export const CloudApiLive = Layer.effect(
         }
 
         return yield* Schema.decodeEffect(operation.response)(body).pipe(
-          Effect.mapError((issue) =>
-            fail(
-              "API_ERROR",
-              "Saleor Cloud returned a response this version of the CLI does not understand.",
-              {
-                details: { issue: String(issue), operation: operation.path },
-                suggestion:
-                  "Update the Saleor CLI. If it still happens, please report it.",
-              }
-            )
-          )
+          Effect.mapError((issue) => unreadableResponse(operation, issue))
         );
       }) as Effect.Effect<ResponseOf<O>, ApiStatusError | CliFailure>;
+
+    // Cloud answers 404 for an organization the caller does not belong to, the same
+    // as for a missing project or environment. Name the organization when it is that.
+    const requireMembership = (
+      status: number,
+      path: Record<string, string> | undefined
+    ) =>
+      Effect.gen(function* () {
+        const slug = path?.organization_slug;
+
+        if (status !== 404 || slug === undefined) {
+          return;
+        }
+
+        const organizations = yield* call(listOrganizations).pipe(
+          Effect.orElseSucceed(() => undefined)
+        );
+
+        if (
+          organizations === undefined ||
+          organizations.some((org) => org.slug === slug)
+        ) {
+          return;
+        }
+
+        const slugs = organizations.map((org) => org.slug);
+
+        return yield* fail(
+          "NOT_FOUND",
+          `Organization "${slug}" does not exist, or your account does not belong to it.`,
+          {
+            details: { organizations: slugs },
+            suggestion:
+              slugs.length > 0
+                ? `Your organizations: ${slugs.join(", ")}.`
+                : "Your account does not belong to any organization yet.",
+          }
+        );
+      });
 
     return { call };
   })
 );
+
+// A write that answered 2xx happened, even if its answer cannot be read; telling the
+// caller otherwise would make it create a second resource.
+const unreadableResponse = (
+  operation: Operation,
+  issue: Schema.SchemaError
+) => {
+  const details = { issue: String(issue), operation: operation.path };
+
+  return isIdempotent(operation.method)
+    ? fail(
+        "API_ERROR",
+        "Saleor Cloud returned a response this version of the CLI does not understand.",
+        {
+          details,
+          suggestion:
+            "Update the Saleor CLI. If it still happens, please report it.",
+        }
+      )
+    : fail(
+        "API_ERROR",
+        "Saleor Cloud accepted the request, but this version of the CLI could not read its answer.",
+        {
+          details,
+          retry: true,
+          suggestion:
+            "The change was probably made. Run the same command again to check; it reuses what already exists. If it keeps happening, please report it.",
+        }
+      );
+};
 
 const safeJson = (text: string): Schema.Json => {
   try {

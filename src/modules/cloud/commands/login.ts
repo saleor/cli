@@ -1,6 +1,7 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
+import { notice } from "../../../core/output.ts";
 import { currentUser } from "../auth/current-user.ts";
 import { DEVICE_CLIENT_ID } from "../auth/device-grant.ts";
 import { deviceLogin } from "../auth/device-login.ts";
@@ -19,6 +20,17 @@ export const login = Command.make(
       Effect.gen(function* () {
         const session = yield* Session;
         const before = yield* session.status;
+
+        if (before.source === "login") {
+          // A saved login may have expired; logging in again is how to renew it.
+          const current = yield* currentUser.pipe(Effect.option);
+
+          if (Option.isSome(current)) {
+            yield* notice(
+              `Already logged in as ${current.value.email}. Approving this login replaces it; press Ctrl+C to keep it.`
+            );
+          }
+        }
 
         if (before.source !== "env") {
           yield* deviceLogin(!flags.noBrowser);
