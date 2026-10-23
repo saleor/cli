@@ -1,91 +1,24 @@
 {
   "user": {
-    "id": 1922,
     "email": "dev@example.com",
     "first_name": "Ada",
-    "last_name": "Lovelace",
-    "phone": null,
-    "avatar": null,
-    "has_accepted_terms_of_use": true,
-    "is_onboarded": true,
-    "has_organizations": true
+    "last_name": "Lovelace"
   },
   "organization": {
-    "id": 25225,
-    "country": null,
-    "owner": {},
-    "url": "https://cloud.saleor.io/platform/api/organizations/acme/",
-    "projects": "https://cloud.saleor.io/platform/api/organizations/acme/projects/",
-    "estimated_costs": "https://cloud.saleor.io/platform/api/organizations/acme/estimated-costs/",
-    "environments": "https://cloud.saleor.io/platform/api/organizations/acme/environments/",
-    "members": "https://cloud.saleor.io/platform/api/organizations/acme/members/",
-    "payment_methods": "https://cloud.saleor.io/platform/api/organizations/acme/payment-methods/",
-    "vat_numbers": "https://cloud.saleor.io/platform/api/organizations/acme/vat-numbers/",
-    "invoices": "https://cloud.saleor.io/platform/api/organizations/acme/invoices/",
-    "backups": "https://cloud.saleor.io/platform/api/organizations/acme/backups/",
-    "billing_required": true,
-    "dev_projects": {
-      "count": 1,
-      "max": 1
-    },
-    "avatar": null,
     "name": "Acme Org",
-    "slug": "acme",
-    "created": "2025-12-02T12:43:39.197957Z",
-    "email": null,
-    "company_name": null,
-    "billing_email": null,
-    "phone": null,
-    "address_1": null,
-    "address_2": null,
-    "city": null,
-    "postal_code": null,
-    "region": null,
-    "scheduled_deletion_date": null
+    "slug": "acme"
   },
   "project": {
-    "url": "https://cloud.saleor.io/platform/api/organizations/acme/projects/shop/",
-    "created_at": "2023-06-12T06:44:51.272726Z",
-    "slug": "shop",
     "name": "shop",
-    "label_color": "#59C3B7",
     "plan": {
-      "url": "https://cloud.saleor.io/platform/api/plans/pro-trial/",
-      "slug": "pro-trial",
-      "name": "Pro (trial)",
-      "type": "pro",
-      "is_custom": true,
       "allowance": {
-        "requests": {
-          "cap": null,
-          "included": 50000000
-        },
-        "orders": {
-          "cap": null,
-          "included": 2500
-        },
-        "staff": {
-          "cap": 100000,
-          "included": 20
-        },
-        "variants": {
-          "cap": 1000000,
-          "included": 10000
-        },
-        "warehouses": {
-          "cap": 5000,
-          "included": 50
-        },
-        "channels": {
-          "cap": 1000000,
-          "included": 10
-        },
         "period": "monthly",
         "sandboxes": {
           "cap": 5,
           "included": 5
         }
       },
+      "name": "Pro (trial)",
       "pricing": {
         "flat_fee": "0.00",
         "requests": "0.000000",
@@ -95,206 +28,44 @@
         "warehouses": "0.000000",
         "channels": "0.000000",
         "sandboxes": "100.000000"
-      }
+      },
+      "slug": "pro-trial",
+      "type": "pro"
     },
     "region": "eu-west-1",
-    "billing_period": {
-      "start": "2026-10-01T00:00:00Z",
-      "end": "2026-10-31T23:59:59Z"
-    },
     "sandboxes": {
       "count": 4
     },
-    "services": "https://cloud.saleor.io/platform/api/organizations/acme/projects/shop/services/"
+    "slug": "shop"
   },
   "environment": {
-    "key": "5qvWV4ls",
+    "blocking_tasks_in_progress": false,
     "domain": "blank.eu.saleor.cloud",
+    "domain_label": "blank",
+    "key": "5qvWV4ls",
+    "maintenance_mode": false,
+    "name": "blank",
+    "project": {
+      "slug": "shop"
+    },
     "service": {
-      "url": "https://cloud.saleor.io/platform/api/regions/eu-west-1/services/saleor-v323-sandbox-eu/",
+      "maintenance_mode": false,
       "name": "saleor-v323-sandbox-eu",
-      "display_name": "Sandbox 3.23.41",
-      "version": "3.23.41",
       "region": "eu-west-1",
       "service_type": "SANDBOX",
-      "removal_date": null,
-      "maintenance_mode": false
-    },
-    "project": {
-      "url": "https://cloud.saleor.io/platform/api/organizations/acme/projects/shop/",
-      "created_at": "2023-06-12T06:44:51.272726Z",
-      "slug": "shop",
-      "name": "shop",
-      "label_color": "#59C3B7",
-      "plan": {
-        "url": "https://cloud.saleor.io/platform/api/plans/pro-trial/",
-        "slug": "pro-trial",
-        "name": "Pro (trial)",
-        "type": "pro",
-        "is_custom": true,
-        "allowance": {
-          "requests": {
-            "cap": null,
-            "included": 50000000
-          },
-          "orders": {
-            "cap": null,
-            "included": 2500
-          },
-          "staff": {
-            "cap": 100000,
-            "included": 20
-          },
-          "variants": {
-            "cap": 1000000,
-            "included": 10000
-          },
-          "warehouses": {
-            "cap": 5000,
-            "included": 50
-          },
-          "channels": {
-            "cap": 1000000,
-            "included": 10
-          },
-          "period": "monthly",
-          "sandboxes": {
-            "cap": 5,
-            "included": 5
-          }
-        },
-        "pricing": {
-          "flat_fee": "0.00",
-          "requests": "0.000000",
-          "orders": "0.000000",
-          "staff": "0.000000",
-          "variants": "0.000000",
-          "warehouses": "0.000000",
-          "channels": "0.000000",
-          "sandboxes": "100.000000"
-        }
-      },
-      "region": "eu-west-1",
-      "cost_estimation": {
-        "total": {
-          "cost": "0.00"
-        },
-        "subtotal": {
-          "cost": "0.00"
-        },
-        "collected_at": "2026-10-16T12:15:54.172170Z",
-        "usage_periods": [
-          {
-            "plan": {
-              "name": "Pro (trial)",
-              "cost": "0.00",
-              "discounted_cost": "0.00"
-            },
-            "period": {
-              "start": "2026-10-01T00:00:00Z",
-              "end": "2026-10-31T23:59:59Z"
-            },
-            "discounts": [],
-            "requests": {
-              "count": 12427,
-              "cost": "0.00"
-            },
-            "orders": {
-              "count": 0,
-              "cost": "0.00"
-            },
-            "variants": {
-              "count": 116,
-              "cost": "0.00"
-            },
-            "staff": {
-              "count": 2,
-              "cost": "0.00"
-            },
-            "warehouses": {
-              "count": 8,
-              "cost": "0.00"
-            },
-            "channels": {
-              "count": 9,
-              "cost": "0.00"
-            },
-            "sandboxes": {
-              "count": 4,
-              "cost": "0.00"
-            }
-          }
-        ]
-      },
-      "billing_period": {
-        "start": "2026-10-01T00:00:00Z",
-        "end": "2026-10-31T23:59:59Z"
-      },
-      "sandboxes": {
-        "count": 4
-      },
-      "services": "https://cloud.saleor.io/platform/api/organizations/acme/projects/shop/services/"
-    },
-    "protected": false,
-    "blocking_tasks_in_progress": false,
-    "current_usage": {
-      "orders": 0,
-      "staff": 1,
-      "variants": 26,
-      "warehouses": 0,
-      "channels": 9,
-      "collected_at": "2026-10-16T12:04:03.605871Z"
-    },
-    "url": "https://cloud.saleor.io/platform/api/organizations/acme/environments/5qvWV4ls/",
-    "tasks": "https://cloud.saleor.io/platform/api/organizations/acme/environments/5qvWV4ls/tasks/",
-    "backups": "https://cloud.saleor.io/platform/api/organizations/acme/environments/5qvWV4ls/backups/",
-    "name": "blank",
-    "created": "2026-05-06T07:15:13.016448Z",
-    "domain_label": "blank",
-    "database_population": null,
-    "allowed_client_origins": [],
-    "allowed_cors_origins": "*",
-    "disabled": false,
-    "maintenance_mode": false
+      "version": "3.23.41"
+    }
   },
   "plans": [
     {
-      "url": "https://cloud.saleor.io/platform/api/plans/dev/",
-      "slug": "dev",
-      "name": "Developer",
-      "type": "dev",
-      "is_custom": false,
       "allowance": {
-        "requests": {
-          "cap": 4000000,
-          "included": 4000000
-        },
-        "orders": {
-          "cap": 1500,
-          "included": 1500
-        },
-        "staff": {
-          "cap": null,
-          "included": null
-        },
-        "variants": {
-          "cap": null,
-          "included": null
-        },
-        "warehouses": {
-          "cap": null,
-          "included": null
-        },
-        "channels": {
-          "cap": null,
-          "included": null
-        },
         "period": "monthly",
         "sandboxes": {
           "cap": 2,
           "included": 2
         }
       },
+      "name": "Developer",
       "pricing": {
         "flat_fee": "0.00",
         "requests": "0.000000",
@@ -304,45 +75,19 @@
         "warehouses": "0.000000",
         "channels": "0.000000",
         "sandboxes": "0.000000"
-      }
+      },
+      "slug": "dev",
+      "type": "dev"
     },
     {
-      "url": "https://cloud.saleor.io/platform/api/plans/pro/",
-      "slug": "pro",
-      "name": "Pro",
-      "type": "pro",
-      "is_custom": false,
       "allowance": {
-        "requests": {
-          "cap": null,
-          "included": 50000000
-        },
-        "orders": {
-          "cap": null,
-          "included": 0
-        },
-        "staff": {
-          "cap": null,
-          "included": null
-        },
-        "variants": {
-          "cap": null,
-          "included": null
-        },
-        "warehouses": {
-          "cap": null,
-          "included": null
-        },
-        "channels": {
-          "cap": null,
-          "included": null
-        },
         "period": "monthly",
         "sandboxes": {
           "cap": 5,
           "included": 1
         }
       },
+      "name": "Pro",
       "pricing": {
         "flat_fee": "1599.00",
         "requests": "0.000070",
@@ -352,29 +97,25 @@
         "warehouses": "0.000000",
         "channels": "0.000000",
         "sandboxes": "100.000000"
-      }
+      },
+      "slug": "pro",
+      "type": "pro"
     }
   ],
   "services": [
     {
-      "url": "https://cloud.saleor.io/platform/api/regions/eu-west-1/services/saleor-v323-prod-eu/",
+      "maintenance_mode": false,
       "name": "saleor-v323-prod-eu",
-      "display_name": "Production 3.23.41",
-      "version": "3.23.41",
       "region": "eu-west-1",
       "service_type": "PRODUCTION",
-      "removal_date": null,
-      "maintenance_mode": false
+      "version": "3.23.41"
     },
     {
-      "url": "https://cloud.saleor.io/platform/api/regions/eu-west-1/services/saleor-v323-sandbox-eu/",
+      "maintenance_mode": false,
       "name": "saleor-v323-sandbox-eu",
-      "display_name": "Sandbox 3.23.41",
-      "version": "3.23.41",
       "region": "eu-west-1",
       "service_type": "SANDBOX",
-      "removal_date": null,
-      "maintenance_mode": false
+      "version": "3.23.41"
     }
   ],
   "taskList": {
@@ -383,20 +124,14 @@
     "previous": null,
     "results": [
       {
-        "job_name": "mpt-blank-75b82d6ae77b429985f38b20bc6fee21",
-        "created_at": "2026-08-24T11:04:42.403020Z",
         "status": "SUCCEEDED",
         "status_message": null,
-        "last_status_change": "2026-08-24T11:05:14.965710Z",
-        "created_by": null
+        "job_name": "mpt-blank-75b82d6ae77b429985f38b20bc6fee21"
       }
     ]
   },
   "taskStatus": {
-    "job_name": "mpt-blank-75b82d6ae77b429985f38b20bc6fee21",
-    "created_at": "2026-08-24T11:04:42.403020Z",
     "status": "SUCCEEDED",
-    "status_message": null,
-    "last_status_change": "2026-08-24T11:05:14.965710Z"
+    "status_message": null
   }
 }

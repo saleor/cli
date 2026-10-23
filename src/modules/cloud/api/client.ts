@@ -12,7 +12,7 @@ import {
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { type CliFailure, fail } from "../../../core/errors.ts";
 import { Session } from "../auth/session.ts";
-import { listOrganizations } from "./generated.ts";
+import { listOrganizations } from "./contract.ts";
 
 const TRAILING_SLASHES = /\/+$/;
 
@@ -61,8 +61,7 @@ export class ApiStatusError extends Data.TaggedError("ApiStatusError")<{
   readonly operation: string;
 }> {}
 
-// task-status is anonymous: sending the Cloud token makes it try to decode the token as
-// a JWT and fail with 401 "Error decoding signature".
+// The task-status endpoint accepts anonymous requests and rejects Cloud tokens.
 const ANONYMOUS_PATHS = new Set(["/api/service/task-status/{job_name}/"]);
 
 const isTransient = (status: number) =>
@@ -177,13 +176,64 @@ const operationPath = (
       )?.[1];
 
       if (value === undefined) {
-        return yield* Effect.die(new Error(`Missing path parameter ${name}`));
+        return yield* fail("INTERNAL_ERROR", `Missing path parameter ${name}`);
       }
 
       url = url.replace(`{${name}}`, encodeURIComponent(value));
     }
 
     return url;
+  });
+
+const validateRequest = <O extends Operation>(
+  operation: O,
+  options: CallOptions<O>
+) =>
+  Effect.gen(function* () {
+    const validate = <S extends Schema.ConstraintEncoder<unknown>>(
+      schema: S,
+      // oxlint-disable-next-line anti-slop/no-unknown-parameters -- This is the I/O boundary that validates the value against the supplied schema.
+      value: unknown
+    ) =>
+      Schema.encodeUnknownEffect(schema)(value, {
+        onExcessProperty: "error",
+      }).pipe(
+        Effect.mapError(() =>
+          fail(
+            "INTERNAL_ERROR",
+            "The CLI produced an invalid Cloud API request.",
+            {
+              details: { operation: operation.path },
+            }
+          )
+        )
+      );
+
+    yield* validate(
+      operation.pathParams.length === 0
+        ? Schema.Record(Schema.String, Schema.Never)
+        : Schema.Struct(
+            Object.fromEntries(
+              operation.pathParams.map((name) => [name, Schema.String])
+            )
+          ),
+      options.path ?? {}
+    );
+    yield* validate(
+      operation.queryParams.length === 0
+        ? Schema.Record(Schema.String, Schema.Never)
+        : Schema.Struct(
+            Object.fromEntries(
+              operation.queryParams.map((name) => [
+                name,
+                Schema.optionalKey(Schema.String),
+              ])
+            )
+          ),
+      options.query ?? {}
+    );
+
+    return yield* validate(operation.request ?? Schema.Undefined, options.body);
   });
 
 export const CloudApiLive = Layer.effect(
@@ -199,6 +249,7 @@ export const CloudApiLive = Layer.effect(
       options: CallOptions<O> = {}
     ): Effect.Effect<ResponseOf<O>, ApiStatusError | CliFailure> =>
       Effect.gen(function* () {
+        const encoded = yield* validateRequest(operation, options);
         const url = yield* operationPath(operation, options);
 
         let request = HttpClientRequest.make(operation.method)(
@@ -218,10 +269,6 @@ export const CloudApiLive = Layer.effect(
         }
 
         if (options.body !== undefined && operation.request !== undefined) {
-          const encoded = yield* Schema.encodeUnknownEffect(operation.request)(
-            options.body
-          ).pipe(Effect.orDie);
-
           request = HttpClientRequest.bodyJsonUnsafe(request, encoded);
         }
 

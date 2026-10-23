@@ -2,8 +2,8 @@ import { Effect, Option, Schema } from "effect";
 import { describe, expect, it } from "vitest";
 import { type PromptOperations, Prompts } from "../../core/interaction.ts";
 import { CloudApi, type CloudApiService } from "./api/client.ts";
+import { ListProjectResponse } from "./api/contract.ts";
 import samples from "./api/fixtures/cloud-samples.json" with { type: "json" };
-import { ListProjectResponse } from "./api/generated.ts";
 import { promptInitChoices } from "./prompt.ts";
 
 const RANDOM_NAME = /^sandbox-[0-9a-f]{6}$/;

@@ -53,7 +53,7 @@ const environment = (key = "env1", name = "dev") => ({
 
 const task = (status: string) => ({
   ...samples.taskStatus,
-  created_by: null,
+  job_name: "test-task",
   status,
 });
 

@@ -12,7 +12,7 @@ import {
 } from "../../core/interaction.ts";
 import { notice } from "../../core/output.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
-import { listRegions } from "./api/generated.ts";
+import { listRegions } from "./api/contract.ts";
 import { currentUser } from "./auth/current-user.ts";
 import { deviceLogin } from "./auth/device-login.ts";
 import { Session } from "./auth/session.ts";

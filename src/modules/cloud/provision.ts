@@ -19,7 +19,7 @@ import {
   listProjectServices,
   listRegions,
   obtainPreheatedEnvironmentObtainEnvironment,
-} from "./api/generated.ts";
+} from "./api/contract.ts";
 import {
   describeEnvironment,
   describeProject,

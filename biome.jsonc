@@ -7,10 +7,6 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "!src/modules/cloud/api/generated.ts",
-      "!schemas/cloud-api.openapi.json",
-      "!tools/oxlint/anti-slop"
-    ]
+    "includes": ["!tools/oxlint/anti-slop"]
   }
 }
