@@ -18,6 +18,13 @@ import {
 import { renderFailure } from "./command.ts";
 import { ExitCode, fail, internalFailure } from "./errors.ts";
 import { helpFormatter } from "./help.ts";
+import {
+  askSelect,
+  askText,
+  isInteractive,
+  NoInputFlag,
+  required,
+} from "./interaction.ts";
 import { Invocation } from "./invocation.ts";
 import {
   OutputFlag,
@@ -104,13 +111,17 @@ const usageFailure = (error: CliError.CliError) => {
 
 // `saleor help env create` is `saleor env create --help`; `--json` is `--output json`.
 // When the output format is given more than once, the last one wins, as with any flag.
-const normalizeArgv = (rawArgv: readonly string[]) => {
+const normalizeOptions = (rawArgv: readonly string[]) => {
   const words =
     rawArgv[0] === "help" ? [...rawArgv.slice(1), "--help"] : [...rawArgv];
 
-  const expanded = words.flatMap((arg) =>
-    arg === "--json" ? ["--output", "json"] : [arg]
-  );
+  const expanded = words.flatMap((arg) => {
+    if (arg === "--agent" || arg === "--agent=true") {
+      return ["--output", "json", "--no-input"];
+    }
+
+    return arg === "--json" ? ["--output", "json"] : [arg];
+  });
 
   let last = -1;
 
@@ -133,6 +144,24 @@ const normalizeArgv = (rawArgv: readonly string[]) => {
   });
 };
 
+const beforeSeparator = (argv: readonly string[]) => {
+  const separator = argv.indexOf("--");
+
+  return separator < 0 ? argv : argv.slice(0, separator);
+};
+
+const normalizeArgv = (argv: readonly string[]) => {
+  const options = beforeSeparator(argv);
+
+  return [...normalizeOptions(options), ...argv.slice(options.length)];
+};
+
+const appendAnswer = (argv: readonly string[], answer: string) => [
+  ...argv,
+  ...(argv.includes("--") ? [] : ["--"]),
+  answer,
+];
+
 // --wizard asks about every flag with Effect's fixed wording ("Set No browser?") and
 // --log-level has nothing to show because the CLI does not log. Commands that need
 // input prompt for it themselves.
@@ -141,6 +170,82 @@ export const builtIns = [
   GlobalFlag.Version,
   GlobalFlag.Completions,
 ] as const;
+
+const groupChildren = (root: Command.Command.Any, path: readonly string[]) => {
+  let group = root;
+
+  for (const segment of path.slice(1)) {
+    const child = group.subcommands
+      .flatMap((entry) => entry.commands)
+      .find((entry) => entry.name === segment || entry.alias === segment);
+
+    if (child === undefined) {
+      return [];
+    }
+
+    group = child;
+  }
+
+  return group.subcommands
+    .flatMap((entry) => entry.commands)
+    .filter((entry) => !entry.unlisted);
+};
+
+const EXIT = "\0exit";
+
+const pickGroupAction = (
+  children: readonly Command.Command.Any[],
+  path: readonly string[]
+) =>
+  askSelect({
+    choices: [
+      ...children.map((child) => ({
+        hint: [...path, child.name].join(" "),
+        label: child.shortDescription ?? child.description ?? child.name,
+        value: child.name,
+      })),
+      { label: "Exit", value: EXIT },
+    ],
+    message: `What would you like to do? (${path.join(" ")})`,
+  });
+
+const navigateGroup = (
+  children: readonly Command.Command.Any[],
+  path: readonly string[],
+  argv: readonly string[],
+  execute: (args: readonly string[]) => Effect.Effect<void>
+) =>
+  Effect.gen(function* () {
+    const action = yield* pickGroupAction(children, path);
+
+    if (action === EXIT) {
+      process.exitCode = ExitCode.Success;
+
+      return;
+    }
+
+    const separator = argv.indexOf("--");
+    const next = [...argv];
+    next.splice(separator < 0 ? next.length : separator, 0, action);
+    yield* execute(next);
+  });
+
+const allowsQuestions = (argv: readonly string[]) =>
+  argv.some((arg) =>
+    ["--help", "-h", "--dry-run", "--dry-run=true"].includes(arg)
+  )
+    ? Effect.succeed(false)
+    : isInteractive;
+
+const missingArgument = (reasons: readonly CliError.CliError[]) => {
+  const [missing] = reasons;
+
+  return reasons.length === 1 &&
+    missing !== undefined &&
+    Predicate.isTagged(missing, "MissingArgument")
+    ? missing.argument
+    : undefined;
+};
 
 // Owns the process-facing CLI policy: argument aliases, output routing, parser
 // failures, interruption handling and the boundary around erased command types.
@@ -151,8 +256,9 @@ export const createCliRuntime =
   ) =>
   (rawArgv: readonly string[]): Effect.Effect<void> => {
     const argv = normalizeArgv(rawArgv);
+    const optionArgv = beforeSeparator(argv);
 
-    const explicitFormat = outputFormatFromArgv(argv);
+    const explicitFormat = outputFormatFromArgv(optionArgv);
     const format = resolveOutputFormat(explicitFormat);
     setProgressFormat(format);
 
@@ -160,8 +266,8 @@ export const createCliRuntime =
     // explicit --json the plain line stays, so `$(saleor --version)` keeps working.
     if (
       Option.contains(explicitFormat, "json") &&
-      argv.some((arg) => arg === "--version" || arg === "-v") &&
-      !argv.some((arg) => arg === "--help" || arg === "-h")
+      optionArgv.some((arg) => arg === "--version" || arg === "-v") &&
+      !optionArgv.some((arg) => arg === "--help" || arg === "-h")
     ) {
       return writeJson({ data: { version: options.version }, ok: true });
     }
@@ -191,20 +297,62 @@ export const createCliRuntime =
       renderErrors: false,
       version: options.version,
     })(argv).pipe(
-      Effect.catchIf(CliError.isCliError, (error) => {
-        if (
-          Predicate.isTagged(error, "ShowHelp") &&
-          error.errors.length === 0
-        ) {
-          return Effect.void;
-        }
+      Effect.catchIf(CliError.isCliError, (error) =>
+        Effect.gen(function* () {
+          const help = Predicate.isTagged(error, "ShowHelp");
+          const reasons = help ? error.errors : [error];
 
-        showParserOutput = false;
+          const canAsk = yield* allowsQuestions(optionArgv);
 
-        return renderFailure(usageFailure(error)).pipe(
-          Effect.provideService(OutputFlag, Option.some(format))
-        );
-      }),
+          if (help && reasons.length === 0) {
+            const children = groupChildren(command, error.commandPath);
+
+            if (children.length === 0 || !canAsk) {
+              return;
+            }
+
+            showParserOutput = false;
+
+            yield* navigateGroup(
+              children,
+              error.commandPath,
+              argv,
+              createCliRuntime(command, options)
+            );
+
+            return;
+          }
+
+          showParserOutput = false;
+          const missing = missingArgument(reasons);
+
+          // Only absent positional input is completed here. Supplied invalid values
+          // and missing flags retain the parser's error, without guessing intent.
+          if (canAsk && missing !== undefined) {
+            const answer = yield* askText({
+              message: `Enter ${missing}`,
+              validate: required(missing),
+            });
+
+            // The parser validates the answer just as if it had been typed.
+            yield* createCliRuntime(
+              command,
+              options
+            )(appendAnswer(argv, answer));
+
+            return;
+          }
+
+          yield* renderFailure(usageFailure(error));
+        }).pipe(
+          Effect.provideService(OutputFlag, Option.some(format)),
+          Effect.provideService(
+            NoInputFlag,
+            optionArgv.includes("--no-input") ||
+              optionArgv.includes("--no-input=true")
+          )
+        )
+      ),
       Effect.catchCause((cause) =>
         Cause.hasInterruptsOnly(cause)
           ? Effect.sync(() => {

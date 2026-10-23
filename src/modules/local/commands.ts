@@ -3,19 +3,21 @@ import { Command, Flag } from "effect/cli";
 import { preview, result, run } from "../../core/command.ts";
 import { dryRunFlag, forceFlag, waitFlag } from "../../core/flags.ts";
 import { catalogInfo } from "../../core/input-info.ts";
+import { offerDashboard } from "../../core/interaction.ts";
 import { columns } from "../../core/output.ts";
 import type { InstanceState } from "../../core/target.ts";
 import { SALEOR_VERSION } from "./compose.ts";
+import { resolveLocalName } from "./input.ts";
 import { down, list, previewDown, status, up } from "./lifecycle.ts";
-
-catalogInfo.flag("name", { default: "default" });
 
 catalogInfo.flag("saleor-version", { default: SALEOR_VERSION });
 
 export const nameFlag = Flag.String("name").pipe(
   Flag.withMetavar("name"),
-  Flag.withDescription('Local instance name (default "default").'),
-  Flag.withDefault("default")
+  Flag.withDescription(
+    "Local instance name. Required without interactive input."
+  ),
+  Flag.optional
 );
 
 export const localSetupFlags = {
@@ -35,9 +37,7 @@ export const localSetupFlags = {
   ),
 };
 
-// `--name` is only repeated in hints when it is not the default.
-const nameArgs = (name: string) =>
-  name === "default" ? "" : ` --name ${name}`;
+const nameArgs = (name: string) => ` --name ${name}`;
 
 const connection = (data: {
   readonly graphqlUrl: string;
@@ -78,11 +78,13 @@ const localUp = Command.make(
       Effect.gen(function* () {
         const data = yield* up({
           ...flags,
+          name: yield* resolveLocalName(flags.name, "setup"),
           saleorVersion: Option.getOrUndefined(flags.saleorVersion),
         });
 
         return result(data, localUpText(data));
-      })
+      }),
+      offerDashboard
     )
 ).pipe(
   Command.withDescription(
@@ -129,7 +131,9 @@ const localList = Command.make("list", {}, () =>
 const localStatus = Command.make("status", { name: nameFlag }, (flags) =>
   run(
     Effect.gen(function* () {
-      const data = yield* status(flags.name);
+      const data = yield* status(
+        yield* resolveLocalName(flags.name, "existing")
+      );
 
       const hints: Partial<Record<InstanceState, string>> = {
         incomplete: `Its first setup did not finish. Finish it with: saleor local up${nameArgs(data.name)} (add --saleor-version <version> to change the version)`,
@@ -177,11 +181,17 @@ const localDown = Command.make(
   (flags) =>
     run(
       Effect.gen(function* () {
+        const name = yield* resolveLocalName(
+          flags.name,
+          "existing",
+          flags.dryRun
+        );
+
         if (flags.dryRun) {
-          return preview(yield* previewDown(flags.name, flags.deleteData));
+          return preview(yield* previewDown(name, flags.deleteData));
         }
 
-        const data = yield* down(flags.name, flags.deleteData, flags.force);
+        const data = yield* down(name, flags.deleteData, flags.force);
 
         let text: string;
 

@@ -1,11 +1,12 @@
 import { NodeServices } from "@effect/platform-node";
-import { Layer } from "effect";
+import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import packageJson from "../package.json" with { type: "json" };
 import { catalogCommand } from "./core/catalog.ts";
 import { NoInputFlag } from "./core/interaction.ts";
 import { collectCommands } from "./core/module.ts";
-import { OutputFlag } from "./core/output.ts";
+import { ContinueInCli, navigation } from "./core/navigation.ts";
+import { AgentFlag, OutputFlag } from "./core/output.ts";
 import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { cloudModule } from "./modules/cloud/index.ts";
 import { localModule } from "./modules/local/index.ts";
@@ -23,16 +24,19 @@ export const root = Command.make("saleor").pipe(
     ...moduleCommands,
     catalogCommand(
       () => moduleCommands,
-      [...builtIns, OutputFlag, NoInputFlag]
+      [...builtIns, OutputFlag, NoInputFlag, AgentFlag]
     ),
   ]),
-  Command.withGlobalFlags([OutputFlag, NoInputFlag])
+  Command.withGlobalFlags([OutputFlag, NoInputFlag, AgentFlag])
 );
 
-export const main = createCliRuntime(root, {
+const runCli = createCliRuntime(root, {
   services: Layer.mergeAll(
     NodeServices.layer,
     ...modules.map((module) => module.layer)
   ),
   version: packageJson.version,
 });
+
+export const main = (argv: readonly string[]): Effect.Effect<void> =>
+  runCli(argv).pipe(Effect.provideService(ContinueInCli, navigation(runCli)));

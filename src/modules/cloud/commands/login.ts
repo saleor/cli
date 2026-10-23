@@ -1,7 +1,9 @@
 import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/cli";
 import { result, run } from "../../../core/command.ts";
-import { notice } from "../../../core/output.ts";
+import { isInteractive } from "../../../core/interaction.ts";
+import { ContinueInCli } from "../../../core/navigation.ts";
+import { notice, useColors, writeText } from "../../../core/output.ts";
 import { currentUser } from "../auth/current-user.ts";
 import { DEVICE_CLIENT_ID } from "../auth/device-grant.ts";
 import { deviceLogin } from "../auth/device-login.ts";
@@ -39,6 +41,29 @@ export const login = Command.make(
         const { label: _, ...user } = yield* currentUser;
         const status = yield* session.status;
 
+        const interactive = yield* isInteractive;
+
+        if (interactive) {
+          const title = `✦  Welcome${user.name ? `, ${user.name}` : ""}!`;
+          const heading = useColors() ? `\x1b[1;35m${title}\x1b[0m` : title;
+          yield* writeText(
+            [
+              "",
+              heading,
+              "",
+              `✓  You're signed in as ${user.email}.`,
+              "   Your next store starts here.",
+              "",
+            ].join("\n")
+          );
+          yield* yield* ContinueInCli;
+        }
+
+        const successMessage =
+          status.source === "env"
+            ? `SALEOR_CLOUD_TOKEN is set, so no login is needed. Using it as ${user.email}.`
+            : `✓ Logged in as ${user.email}.`;
+
         return result(
           {
             ...user,
@@ -46,15 +71,13 @@ export const login = Command.make(
             credentialSource: status.source,
             credentialStore: status.store,
           },
-          status.source === "env"
-            ? `SALEOR_CLOUD_TOKEN is set, so no login is needed. Using it as ${user.email}.`
-            : `✓ Logged in as ${user.email}.`
+          interactive ? "" : successMessage
         );
       })
     )
 ).pipe(
   Command.withDescription(
-    "Log in to Saleor Cloud. Opens your browser to approve the login; the command finishes once you do. Not needed when SALEOR_CLOUD_TOKEN is set."
+    "Log in to Saleor Cloud. Opens your browser to approve the login; then keeps you in the CLI with a menu of next steps in an interactive terminal. Not needed when SALEOR_CLOUD_TOKEN is set."
   ),
   Command.withShortDescription("Log in to Saleor Cloud in your browser.")
 );

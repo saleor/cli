@@ -61,6 +61,7 @@ beforeEach(async () => {
   cwd = mkdtempSync(path.join(os.tmpdir(), "saleor-cli-test-"));
   credentials = {};
   credentials.SALEOR_CLOUD_TOKEN = "test.secret";
+  credentials.SALEOR_ORG = samples.organization.slug;
   requests = [];
   handler = (_method, url) => {
     if (url.pathname.endsWith("/user/")) {
@@ -300,6 +301,33 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     );
   });
 
+  it("requires an explicit local target in unattended commands", async () => {
+    const outputs = await Promise.all(
+      [
+        ["local", "down"],
+        ["local", "status"],
+        ["local", "up"],
+        ["init", "--local"],
+        ["local", "down", "--dry-run", "--force"],
+      ].map((args) => cli(args))
+    );
+
+    for (const out of outputs) {
+      expect(out.data.error.code).toBe("CONTEXT_MISSING");
+      expect(out.data.error.suggestion).toContain("--name");
+    }
+
+    expect(requests).toEqual([]);
+  });
+
+  it("does not infer even the only Cloud organization", async () => {
+    Reflect.deleteProperty(credentials, "SALEOR_ORG");
+    const out = await cli(["project", "list"]);
+    expect(out.data.error.code).toBe("CONTEXT_MISSING");
+    expect(out.data.error.suggestion).toContain("--org");
+    expect(requests.every((request) => request.method === "GET")).toBe(true);
+  });
+
   it("stops a local instance that does not exist without failing", async () => {
     const out = await cli(["local", "down", "--name", "missing"]);
     expect(out.code).toBe(0);
@@ -418,6 +446,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       "--completions",
       "--output",
       "--no-input",
+      "--agent",
     ]);
     expect(exitCodes.map((exit: any) => exit.code)).toEqual([0, 1, 2, 75, 130]);
     expect(errorCodes).toContain("NOT_READY");
@@ -456,6 +485,29 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       }
     }
   });
+  it.each([[], ["org"], ["env", "create"]])(
+    "advertises agent mode in help: %j",
+    async (...args) => {
+      const out = await cli([...args, "--help"]);
+      expect(out.code).toBe(0);
+      expect(out.stdout).toContain(
+        "use --agent (shorthand for --json --no-input)"
+      );
+      expect(out.stdout).toContain("saleor commands --agent");
+      expect(requests).toEqual([]);
+    }
+  );
+
+  it("supports explicit agent mode without agent environment detection", async () => {
+    const out = await cli(["commands", "--agent"]);
+    expect(out.code).toBe(0);
+    expect(out.data.ok).toBe(true);
+    expect(
+      out.data.data.globalFlags.some((flag: any) => flag.name === "--agent")
+    ).toBe(true);
+    expect(requests).toEqual([]);
+  });
+
   it("renders usage failures as one JSON result", async () => {
     const out = await cli(["env", "create", "--unknown"]);
     expect(out.code).toBe(2);
@@ -754,12 +806,24 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       );
     }
   });
-  it("requires --force for noninteractive deletion", async () => {
-    resourceRoutes([environment()]);
-    const out = await cli(["env", "delete", "env1", "--org", "acme"]);
-    expect(out.data.error.code).toBe("CONFIRMATION_REQUIRED");
-    expect(requests.some((req) => req.method === "DELETE")).toBe(false);
-  });
+  it.each([[], ["--agent"]])(
+    "requires --force for noninteractive deletion: %j",
+    async (...mode) => {
+      resourceRoutes([environment()]);
+
+      const out = await cli([
+        "env",
+        "delete",
+        "env1",
+        "--org",
+        "acme",
+        ...mode,
+      ]);
+
+      expect(out.data.error.code).toBe("CONFIRMATION_REQUIRED");
+      expect(requests.some((req) => req.method === "DELETE")).toBe(false);
+    }
+  );
   it("refuses production deletion even with --force", async () => {
     const env = environment();
     env.service.service_type = "PRODUCTION";

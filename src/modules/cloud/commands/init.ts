@@ -4,7 +4,11 @@ import { result } from "../../../core/command.ts";
 import { fail } from "../../../core/errors.ts";
 import { forceFlag, timeoutFlag } from "../../../core/flags.ts";
 import { isInteractive } from "../../../core/interaction.ts";
-import { Invocation, shellCommand } from "../../../core/invocation.ts";
+import {
+  appendOptions,
+  Invocation,
+  shellCommand,
+} from "../../../core/invocation.ts";
 import { detectAgent } from "../../../core/output.ts";
 import { deadlineIn } from "../../../core/readiness.ts";
 import { domainLabelDescription, regionDescription } from "../flags.ts";
@@ -76,7 +80,7 @@ const missingChoices = (
         agent === undefined
           ? "In a terminal, run saleor init without flags to be asked."
           : `Questions are off because a coding agent was detected (${agent}); pass flags instead.`,
-        "For a local store, run: saleor init --local",
+        "For a local store, run: saleor init --local --name <name>",
       ].join("\n"),
     }
   );
@@ -118,11 +122,10 @@ export const initCloud = (flags: {
 
     // Answers given at a prompt are not in the command line; a resume hint without them
     // would ask the same questions again and could pick different resources.
-    const resumeArgv = [
-      ...(yield* Invocation),
+    const resumeArgv = appendOptions(yield* Invocation, [
       ...(Option.isNone(flags.org) ? ["--org", organization] : []),
       ...choices.rerunFlags,
-    ];
+    ]);
 
     const resumeWith = Effect.provideService(Invocation, resumeArgv);
 
@@ -152,7 +155,7 @@ export const initCloud = (flags: {
     );
 
     // The same instance shape as `env create` and `init --local`, plus the project.
-    return result<unknown>(
+    return result(
       {
         ...environment,
         created: envOutcome.created,

@@ -41,8 +41,9 @@ export const renderFailure = (failure: CliFailure) =>
 
 // Every command handler goes through here: handlers return typed data and never print
 // their result or exit; this renders the one result document and sets the exit code.
-export const run = <R>(
-  handler: Effect.Effect<CommandResult<unknown>, CliFailure, R>
+export const run = <A extends CommandResult<unknown>, R, R2 = never>(
+  handler: Effect.Effect<A, CliFailure, R>,
+  afterSuccess?: (data: A["data"]) => Effect.Effect<void, never, R2>
 ) =>
   handler.pipe(
     Effect.matchCauseEffect({
@@ -70,6 +71,10 @@ export const run = <R>(
           }
 
           process.exitCode = ExitCode.Success;
+
+          if (afterSuccess) {
+            yield* afterSuccess(outcome.data);
+          }
         }),
     })
   );

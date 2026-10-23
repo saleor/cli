@@ -37,7 +37,7 @@ const dockerFailure = (
     {
       details: { args, stderr },
       suggestion:
-        "Check Docker and retry the same command. Inspect containers with: saleor local status",
+        "Check Docker and retry the same command. List instances with: saleor local list. Inspect containers with: saleor local status --name <name>",
     }
   );
 };

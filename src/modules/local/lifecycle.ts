@@ -9,7 +9,7 @@ import path from "node:path";
 import { Effect, Schema } from "effect";
 import { type CliFailure, fail } from "../../core/errors.ts";
 import { confirmDestructive } from "../../core/interaction.ts";
-import { notice } from "../../core/output.ts";
+import { notice, withProgress } from "../../core/output.ts";
 import {
   deadlineIn,
   heartbeat,
@@ -252,44 +252,56 @@ const setUp = (
 ) =>
   Effect.gen(function* () {
     if (!config.initialized) {
-      yield* notice(
-        "Downloading the local Saleor images. The first run can take several minutes…"
-      );
-      yield* compose(["pull"]).pipe(
-        Effect.catchTag("CliFailure", explainPullFailure(config))
+      yield* withProgress(
+        "Downloading Saleor images (the first run can take several minutes)…",
+        "Saleor images downloaded.",
+        compose(["pull"]).pipe(
+          Effect.catchTag("CliFailure", explainPullFailure(config))
+        )
       );
     }
 
-    yield* notice(
-      loadingSampleData
-        ? "Starting the database, preparing Saleor and loading sample data…"
-        : "Starting the database and preparing Saleor…"
+    yield* withProgress(
+      "Starting the database…",
+      "Database started.",
+      compose(["up", "-d", "--wait", "db", "cache", "mailpit"])
     );
-    yield* compose(["up", "-d", "--wait", "db", "cache", "mailpit"]);
-    yield* compose([
-      "run",
-      "--rm",
-      "-T",
-      "api",
-      "python",
-      "manage.py",
-      "migrate",
-      "--noinput",
-    ]);
-    yield* compose([
-      "run",
-      "--rm",
-      "-T",
-      "api",
-      "python",
-      "manage.py",
-      "shell",
-      "-c",
-      bootstrap(config.sampleData),
-    ]);
+    yield* withProgress(
+      "Preparing the database…",
+      "Database ready.",
+      compose([
+        "run",
+        "--rm",
+        "-T",
+        "api",
+        "python",
+        "manage.py",
+        "migrate",
+        "--noinput",
+      ])
+    );
+    yield* withProgress(
+      loadingSampleData ? "Loading sample data…" : "Preparing your store…",
+      "Store prepared.",
+      compose([
+        "run",
+        "--rm",
+        "-T",
+        "api",
+        "python",
+        "manage.py",
+        "shell",
+        "-c",
+        bootstrap(config.sampleData),
+      ])
+    );
     const ready: LocalConfig = { ...config, initialized: true };
     yield* saveConfig(ready);
-    yield* compose(["up", "-d"]);
+    yield* withProgress(
+      "Starting Saleor…",
+      "Saleor started.",
+      compose(["up", "-d"])
+    );
 
     return ready;
   });
@@ -397,7 +409,7 @@ export const requireConfig = (name: string) =>
             ...(others.length > 0
               ? [`Existing instances: ${others.join(", ")}.`]
               : []),
-            `Create it with: saleor local up${name === "default" ? "" : ` --name ${name}`}`,
+            `Create it with: saleor local up --name ${name}`,
           ].join("\n"),
         }
       );
