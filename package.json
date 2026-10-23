@@ -9,9 +9,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "check": "pnpm lint && pnpm check:generated && pnpm typecheck && pnpm test",
-    "check:generated": "node scripts/generate-cloud-api.ts --check",
-    "generate:api": "node scripts/generate-cloud-api.ts",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
     "lint": "ultracite check && pnpm lint:anti-slop && pnpm lint:effect",
     "lint:anti-slop": "oxlint -c anti-slop.config.ts --deny-warnings",
     "lint:effect": "effect-tsgo diagnostics --project tsconfig.json --strict",

@@ -10,7 +10,6 @@ export default defineConfig({
     "node_modules/**",
     "dist/**",
     "coverage/**",
-    "src/modules/cloud/api/generated.ts",
     "tools/oxlint/anti-slop/**",
   ],
   jsPlugins: [

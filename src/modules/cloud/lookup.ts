@@ -8,7 +8,7 @@ import {
   listEnvironments as listEnvironmentsOperation,
   listListProjects,
   listOrganizations as listOrganizationsOperation,
-} from "./api/generated.ts";
+} from "./api/contract.ts";
 
 export type Project = ListProjectResponse;
 

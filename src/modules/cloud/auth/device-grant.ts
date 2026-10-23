@@ -4,10 +4,7 @@ import { fail } from "../../../core/errors.ts";
 
 const TRAILING_SLASHES = /\/+$/;
 
-// TEMPORARY: the `saleor-cli` Keycloak client has the device grant disabled. Until
-// saleor-cloud-infra sets `oauth2_device_authorization_grant_enabled = true` on it
-// (modules/aws/keycloak/finish/keycloak-config.tf), log in through Jolly's public client,
-// which has it enabled and is already accepted by the Cloud API (KEYCLOAK_AUDIENCES).
+// Public OAuth client used for device authorization; deployments may override it.
 export const DEVICE_CLIENT_ID = process.env.SALEOR_AUTH_CLIENT_ID ?? "jolly";
 
 export const authRealmUrl = (env: NodeJS.ProcessEnv = process.env) =>

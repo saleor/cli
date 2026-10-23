@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { CloudApi, orDescribe } from "../api/client.ts";
-import { retrieveUserWithOnboardingInfo } from "../api/generated.ts";
+import { retrieveUserWithOnboardingInfo } from "../api/contract.ts";
 
 export const currentUser = Effect.gen(function* () {
   const api = yield* CloudApi;

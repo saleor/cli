@@ -13,7 +13,7 @@ import { CloudApi, orDescribe } from "./api/client.ts";
 import {
   listEnvironmentTaskLists,
   retrieveTaskStatus,
-} from "./api/generated.ts";
+} from "./api/contract.ts";
 import { type Environment, findEnvironment, graphqlUrlOf } from "./lookup.ts";
 
 const isFailedStatus = (status: string) =>

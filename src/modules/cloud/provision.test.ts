@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import { OutputFlag } from "../../core/output.ts";
 import { deadlineIn, probeGraphql } from "../../core/readiness.ts";
 import { CloudApi, type CloudApiService } from "./api/client.ts";
+import { ListProjectResponse } from "./api/contract.ts";
 import samples from "./api/fixtures/cloud-samples.json" with { type: "json" };
-import { ListProjectResponse } from "./api/generated.ts";
 import { ensureEnvironment } from "./provision.ts";
 
 const mockApi = (
@@ -118,8 +118,6 @@ describe("provisioning recovery", () => {
 
           return {
             ...environment,
-            project: project.url,
-            service: environment.service.url,
             task_id: "task",
             task_is_blocking: true,
           };
