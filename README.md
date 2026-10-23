@@ -57,3 +57,7 @@ Preview changes with `--dry-run` before creating or deleting resources. Deletion
 Pass `--agent` (shorthand for `--json --no-input`) on agent and script invocations for structured output without prompts; do not rely on automatic agent detection. Discover commands and their inputs with `pnpm saleor commands --agent`. Supply the resource names and options your command needs. For unattended Cloud access, set `SALEOR_CLOUD_TOKEN` to a Cloud API token.
 
 See the [CLI reference](docs/reference.md) for automation and advanced options, or [known limitations](docs/limitations.md).
+
+## Development checks
+
+Run `pnpm check` for lint, types, and tests, or `pnpm test:e2e` to test the built CLI against mock Cloud and Saleor servers. See [testing](docs/testing.md) for CI coverage and its boundaries.

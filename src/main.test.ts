@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { createServer } from "node:http";
+import { createServer as createSecureServer } from "node:https";
 import os from "node:os";
 import path from "node:path";
 import { Predicate } from "effect";
@@ -80,6 +81,14 @@ beforeEach(async () => {
   };
 
   const server = createServer(async (req, res) => {
+    // Local port-discovery tools probe new listeners; these are not API calls.
+    if (req.method === "HEAD" && req.url === "/") {
+      res.writeHead(204);
+      res.end();
+
+      return;
+    }
+
     const chunks: Buffer[] = [];
 
     for await (const chunk of req) {
@@ -159,8 +168,20 @@ const cli = (args: string[], extra: Record<string, string> = {}) =>
     child.stderr.on("data", (chunk) => {
       stderr += chunk;
     });
-    child.on("error", reject);
+
+    const timeout = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(
+        new Error(`CLI timed out: ${args.join(" ")}\n${stdout}\n${stderr}`)
+      );
+    }, 10_000);
+
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
     child.on("close", (code) => {
+      clearTimeout(timeout);
       let data: any;
 
       try {
@@ -197,7 +218,260 @@ const resourceRoutes = (envs: ReturnType<typeof environment>[] = []) => {
 };
 
 describe("real CLI process", () => {
-  it("initializes a local store without Cloud credentials or requests", async () => {
+  it("runs an agent's Cloud lifecycle against a stateful mock Saleor", async () => {
+    const cert = path.join(cwd, "cert.pem");
+    const key = path.join(cwd, "key.pem");
+    const config = path.join(cwd, "openssl.cnf");
+    writeFileSync(
+      config,
+      `[req]
+distinguished_name=dn
+x509_extensions=extensions
+prompt=no
+[dn]
+CN=CLI test server
+[extensions]
+subjectAltName=IP:127.0.0.1
+basicConstraints=critical,CA:TRUE
+`
+    );
+    // A fresh, trusted test certificate keeps production TLS verification enabled.
+    execFileSync(
+      "openssl",
+      [
+        "req",
+        "-x509",
+        "-newkey",
+        "rsa:2048",
+        "-nodes",
+        "-days",
+        "1",
+        "-config",
+        config,
+        "-keyout",
+        key,
+        "-out",
+        cert,
+      ],
+      { stdio: "ignore" }
+    );
+
+    const probes: Array<{
+      path: string | undefined;
+      auth: string | undefined;
+      body: string;
+    }> = [];
+
+    const store = createSecureServer(
+      { cert: readFileSync(cert), key: readFileSync(key) },
+      async (req, res) => {
+        const chunks: Buffer[] = [];
+
+        for await (const chunk of req) {
+          chunks.push(chunk);
+        }
+
+        probes.push({
+          auth: req.headers.authorization,
+          body: Buffer.concat(chunks).toString(),
+          path: req.url,
+        });
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ data: { shop: { name: "Mock Saleor" } } }));
+      }
+    );
+
+    await new Promise<void>((resolve) => store.listen(0, "127.0.0.1", resolve));
+
+    try {
+      const address = store.address();
+
+      if (address === null || Predicate.isString(address)) {
+        throw new Error("Expected TCP address");
+      }
+
+      const domain = `127.0.0.1:${address.port}`;
+      let projects: ReturnType<typeof project>[] = [];
+      let environments: ReturnType<typeof environment>[] = [];
+      let taskReads = 0;
+      const fallback = handler;
+      handler = (method, url, body) => {
+        const route = url.pathname;
+
+        if (route === "/api/organizations/acme/projects/") {
+          if (method === "POST") {
+            projects.push({
+              ...project(),
+              name: body.name,
+              region: body.region,
+            });
+
+            return [201, { slug: "poc" }];
+          }
+
+          return [200, projects];
+        }
+
+        if (
+          route === "/api/organizations/acme/projects/poc/" &&
+          method === "DELETE"
+        ) {
+          projects = [];
+
+          return [204, undefined];
+        }
+
+        if (route.endsWith("/services/")) {
+          return [200, samples.services];
+        }
+
+        if (route.endsWith("/regions/")) {
+          return [
+            200,
+            [
+              { name: "eu-west-1", root_domain: "example.test" },
+              { name: "us-east-1", root_domain: "example.test" },
+            ],
+          ];
+        }
+
+        if (
+          route === "/api/organizations/acme/environments/obtain/" &&
+          method === "POST"
+        ) {
+          environments.push({ ...environment(), domain, name: body.name });
+
+          return [201, { ...environments[0], task_id: "setup" }];
+        }
+
+        if (route === "/api/organizations/acme/environments/") {
+          return [200, environments];
+        }
+
+        if (
+          route === "/api/organizations/acme/environments/env1/" &&
+          method === "DELETE"
+        ) {
+          environments = [];
+
+          return [202, undefined];
+        }
+
+        if (route.endsWith("/task-status/setup/")) {
+          taskReads += 1;
+
+          return [200, task(taskReads === 1 ? "PENDING" : "SUCCEEDED")];
+        }
+
+        if (route.endsWith("/tasks/")) {
+          return [200, { count: 0, next: null, previous: null, results: [] }];
+        }
+
+        return fallback(method, url, body);
+      };
+
+      const run = async (...args: string[]) => {
+        const out = await cli([...args, "--agent"], {
+          NODE_EXTRA_CA_CERTS: cert,
+        });
+
+        expect(out.code, out.stdout + out.stderr).toBe(0);
+        expect(out.data.ok).toBe(true);
+        expect(out.stdout + out.stderr).not.toContain("test.secret");
+        expect(out.stdout + out.stderr).not.toContain("\u001b[");
+
+        return out.data.data;
+      };
+
+      await run("whoami");
+      expect(await run("org", "list")).toHaveLength(1);
+      expect(await run("project", "list")).toEqual([]);
+      expect(
+        await run(
+          "project",
+          "create",
+          "poc",
+          "--region",
+          "eu-west-1",
+          "--dry-run"
+        )
+      ).toMatchObject({ action: "create", dryRun: true });
+      expect(projects).toHaveLength(0);
+      expect(
+        await run("project", "create", "poc", "--region", "eu-west-1")
+      ).toMatchObject({ created: true });
+      expect(await run("project", "create", "poc")).toMatchObject({
+        created: false,
+      });
+      expect(await run("project", "list")).toHaveLength(1);
+      expect(
+        await run("env", "create", "dev", "--project", "poc", "--timeout", "5")
+      ).toMatchObject({ created: true, ready: true });
+      expect(taskReads).toBeGreaterThanOrEqual(2);
+      expect(
+        await run("init", "--project", "poc", "--env", "dev", "--timeout", "5")
+      ).toMatchObject({ created: false, projectCreated: false, ready: true });
+      expect(await run("env", "list", "--project", "poc")).toHaveLength(1);
+      expect(await run("env", "get", "dev", "--project", "poc")).toMatchObject({
+        graphqlUrl: `https://${domain}/graphql/`,
+        ready: true,
+      });
+
+      const blocked = await cli([
+        "project",
+        "delete",
+        "poc",
+        "--force",
+        "--agent",
+      ]);
+
+      expect(blocked.data.error.code).toBe("PROJECT_NOT_EMPTY");
+      expect(await run("env", "delete", "dev", "--dry-run")).toMatchObject({
+        action: "delete",
+        dryRun: true,
+      });
+      expect(environments).toHaveLength(1);
+      expect(await run("env", "delete", "dev", "--force")).toMatchObject({
+        deleted: true,
+      });
+      expect(await run("env", "delete", "dev", "--force")).toMatchObject({
+        deleted: false,
+      });
+      expect(await run("env", "list")).toEqual([]);
+      expect(await run("project", "delete", "poc", "--force")).toMatchObject({
+        deleted: true,
+      });
+      expect(await run("project", "list")).toEqual([]);
+      expect(
+        requests
+          .filter((req) =>
+            ["POST", "DELETE", "PATCH", "PUT"].includes(req.method)
+          )
+          .map((req) => `${req.method} ${req.path}`)
+      ).toEqual([
+        "POST /api/organizations/acme/projects/",
+        "POST /api/organizations/acme/environments/obtain/",
+        "DELETE /api/organizations/acme/environments/env1/",
+        "DELETE /api/organizations/acme/projects/poc/",
+      ]);
+      expect(probes.length).toBeGreaterThanOrEqual(3);
+
+      for (const probe of probes) {
+        expect(probe.path).toBe("/graphql/");
+        expect(probe.auth).toBeUndefined();
+        expect(JSON.parse(probe.body)).toEqual({
+          query: "query { shop { name } }",
+        });
+      }
+    } finally {
+      store.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        store.close((error) => (error ? reject(error) : resolve()))
+      );
+    }
+  }, 30_000);
+
+  it("manages a local store through every local command without Cloud credentials", async () => {
     credentials = {};
     const fakeBin = path.join(cwd, "fake-bin");
     mkdirSync(fakeBin);
@@ -205,6 +479,8 @@ describe("real CLI process", () => {
     writeFileSync(
       fakeDocker,
       `#!${process.execPath}
+const fs = require("node:fs");
+fs.appendFileSync("docker-calls.jsonl", JSON.stringify(process.argv.slice(2)) + "\\n");
 if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", State:"running"}));
 `
     );
@@ -234,6 +510,53 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(out.code).toBe(0);
     expect(out.data.data.ref).toBe("local:demo");
     expect(out.data.data.ready).toBe(true);
+
+    const local = async (...args: string[]) => {
+      const answer = await cli(["local", ...args, "--agent"], {
+        PATH: fakeBin,
+      });
+
+      expect(answer.code, answer.stdout + answer.stderr).toBe(0);
+
+      return answer.data.data;
+    };
+
+    expect(await local("list")).toHaveLength(1);
+    expect(await local("status", "--name", "demo")).toMatchObject({
+      ready: true,
+    });
+    expect(await local("up", "--name", "demo")).toMatchObject({
+      created: false,
+      ready: true,
+    });
+    expect(await local("down", "--name", "demo", "--dry-run")).toMatchObject({
+      action: "stop",
+      dryRun: true,
+    });
+    expect(await local("down", "--name", "demo")).toMatchObject({
+      deletedData: false,
+      state: "stopped",
+    });
+    expect(
+      readFileSync(path.join(instance, "instance.json"), "utf8")
+    ).toContain("demo");
+    expect(
+      await local("down", "--name", "demo", "--delete-data", "--force")
+    ).toMatchObject({ deletedData: true, state: "absent" });
+    expect(await local("list")).toEqual([]);
+
+    const dockerCalls: string[][] = readFileSync(
+      path.join(cwd, "docker-calls.jsonl"),
+      "utf8"
+    )
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+
+    const stops = dockerCalls.filter((args) => args.includes("down"));
+    expect(stops).toHaveLength(2);
+    expect(stops[0]).not.toContain("--volumes");
+    expect(stops[1]).toContain("--volumes");
     expect(
       requests.every((request) => request.path === "/graphql/" && !request.auth)
     ).toBe(true);
