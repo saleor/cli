@@ -5,7 +5,7 @@ import { Flag, GlobalFlag } from "effect/cli";
 import { fail } from "./errors.ts";
 import { catalogInfo } from "./input-info.ts";
 import { rerunCommand } from "./invocation.ts";
-import { currentOutputFormat } from "./output.ts";
+import { currentOutputFormat, detectAgent } from "./output.ts";
 
 catalogInfo.flag("no-input", { default: false, env: "SALEOR_NO_INPUT" });
 
@@ -41,6 +41,7 @@ export const isInteractive = Effect.gen(function* () {
     format === "text" &&
     !noInput &&
     !envDisablesInput() &&
+    detectAgent() === undefined &&
     process.stdin.isTTY === true &&
     process.stdout.isTTY === true &&
     !process.env.CI
@@ -113,8 +114,14 @@ export const Prompts = Context.Reference<PromptOperations>("saleor/Prompts", {
 
 // Ctrl-C at a prompt is an interruption (exit 130), not an answer.
 const answered = <A extends string | boolean>(answer: A | symbol) =>
-  // SAFETY: the cancel symbol is ruled out first, leaving the answer type.
-  isCancel(answer) ? Effect.interrupt : Effect.succeed(answer as A);
+  isCancel(answer)
+    ? Effect.interrupt
+    : Effect.sync(() => {
+        process.stdout.write("\n");
+
+        // SAFETY: the cancel symbol is ruled out first, leaving the answer type.
+        return answer as A;
+      });
 
 export const askSelect = <A extends string>(options: {
   message: string;
@@ -210,5 +217,18 @@ export const confirmDestructive = (
 
     if (!(yield* askConfirm(action.question, false))) {
       return yield* fail("CANCELLED", "Cancelled. Nothing was changed.");
+    }
+  });
+
+export const offerDashboard = (data: {
+  readonly dashboardUrl: string | null;
+}) =>
+  Effect.gen(function* () {
+    if (data.dashboardUrl === null || !(yield* isInteractive)) {
+      return;
+    }
+
+    if (yield* askConfirm("Open the dashboard?", true)) {
+      yield* openBrowser(data.dashboardUrl);
     }
   });

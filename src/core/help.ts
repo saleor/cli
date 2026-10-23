@@ -84,6 +84,11 @@ export const formatHelp = (doc: HelpDoc.HelpDoc, colors: boolean): string => {
     `  ${cyan(doc.usage.replace("<subcommand>", "<command>"))}`,
   ]);
 
+  section("AUTOMATION", [
+    "  Agents and scripts: use --agent (shorthand for --json --no-input).",
+    "  Discover commands and inputs: saleor commands --agent",
+  ]);
+
   section(
     "ARGUMENTS",
     table(
@@ -129,7 +134,7 @@ export const formatHelp = (doc: HelpDoc.HelpDoc, colors: boolean): string => {
   } else if (globals.length > 0) {
     lines.push(
       dim(
-        "Global flags (--output <text|json>, --json, --no-input, --help): see 'saleor --help'."
+        "Global flags (--agent, --output <text|json>, --json, --no-input, --help): see 'saleor --help'."
       )
     );
   }

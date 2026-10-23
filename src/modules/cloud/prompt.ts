@@ -84,10 +84,6 @@ export const pickOrganization = () =>
       );
     }
 
-    if (organizations.length === 1) {
-      return only.slug;
-    }
-
     const choices = organizations.map(({ name, slug }) => ({
       hint: slug,
       label: name,

@@ -6,10 +6,7 @@ import { isInteractive } from "../../core/interaction.ts";
 import { listOrganizations } from "./lookup.ts";
 import { ensureSignedIn, pickOrganization } from "./prompt.ts";
 
-// Scope: which organization, project and environment a command acts on. Every command
-// selects them the same way — flag → environment variable → (for the organization) the
-// only one you belong to, or a question in a terminal. Nothing is remembered between
-// runs, so a command never acts on something you did not name this time.
+// Scope is supplied by flags or environment variables, or selected interactively.
 catalogInfo.flag("org", { env: "SALEOR_ORG" });
 
 catalogInfo.flag("project", { env: "SALEOR_PROJECT" });
@@ -19,7 +16,7 @@ catalogInfo.flag("env", { env: "SALEOR_ENV" });
 export const orgFlag = Flag.String("org").pipe(
   Flag.withMetavar("slug"),
   Flag.withDescription(
-    "Organization to use. Defaults to SALEOR_ORG, then your only organization."
+    "Organization to use. Defaults to SALEOR_ORG; otherwise asks in a terminal."
   ),
   Flag.withFallbackConfig(Config.String("SALEOR_ORG")),
   Flag.optional
@@ -47,13 +44,8 @@ const chooseOrganization = (flag: Option.Option<string>, allowInput: boolean) =>
 
     const organizations = yield* listOrganizations;
     const slugs = organizations.map((org) => org.slug);
-    const [only] = slugs;
 
-    if (slugs.length === 1 && only !== undefined) {
-      return only;
-    }
-
-    if (allowInput && slugs.length > 1 && (yield* isInteractive)) {
+    if (allowInput && slugs.length > 0 && (yield* isInteractive)) {
       return yield* pickOrganization();
     }
 
@@ -68,7 +60,7 @@ const chooseOrganization = (flag: Option.Option<string>, allowInput: boolean) =>
         )
       : fail(
           "CONTEXT_MISSING",
-          `You belong to several organizations (${slugs.join(", ")}); choose one.`,
+          `No organization selected. Choose one of: ${slugs.join(", ")}.`,
           {
             details: { organizations: slugs },
             suggestion: "Pass --org <slug> or set SALEOR_ORG.",

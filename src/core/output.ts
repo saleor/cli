@@ -1,4 +1,5 @@
-import { Effect, Option } from "effect";
+import { spinner } from "@clack/prompts";
+import { Effect, Exit, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import type { CliFailure } from "./errors.ts";
 import { catalogInfo } from "./input-info.ts";
@@ -16,6 +17,16 @@ export const OutputFlag = GlobalFlag.Setting("output")({
   ),
 });
 
+// Registered for help and the command catalog; runtime expands the shorthand.
+export const AgentFlag = GlobalFlag.Setting("agent")({
+  flag: Flag.Boolean("agent").pipe(
+    Flag.withDescription(
+      "Shorthand for --json --no-input. Structured results without prompts."
+    ),
+    Flag.withDefault(false)
+  ),
+});
+
 // Environment variables that coding agents set in the shells they spawn. An agent that
 // allocates a real terminal would otherwise get human output it then has to parse.
 const AGENT_ENV_VARS = [
@@ -24,6 +35,8 @@ const AGENT_ENV_VARS = [
   "CLAUDE_CODE_ENTRYPOINT",
   "CURSOR_AGENT",
   "CODEX_SANDBOX",
+  "CODEX_THREAD_ID",
+  "CODEX_SESSION_ID",
   "GEMINI_CLI",
   "OPENCODE",
   "AMP_CURRENT_THREAD_ID",
@@ -199,3 +212,43 @@ export const notice = (
         : `${message}\n`
     )
   );
+
+export const withProgress = <A, E, R>(
+  message: string,
+  completed: string,
+  effect: Effect.Effect<A, E, R>
+) =>
+  Effect.gen(function* () {
+    if (
+      progressFormat !== "text" ||
+      !process.stderr.isTTY ||
+      process.env.CI ||
+      detectAgent() !== undefined
+    ) {
+      yield* notice(message);
+
+      return yield* effect;
+    }
+
+    return yield* Effect.acquireUseRelease(
+      Effect.sync(() => {
+        const indicator = spinner({
+          indicator: "timer",
+          output: process.stderr,
+        });
+
+        indicator.start(message);
+
+        return indicator;
+      }),
+      () => effect,
+      (indicator, exit) =>
+        Effect.sync(() => {
+          if (Exit.isSuccess(exit)) {
+            indicator.stop(completed);
+          } else {
+            indicator.clear();
+          }
+        })
+    );
+  });

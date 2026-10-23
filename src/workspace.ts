@@ -4,10 +4,15 @@ import { Effect, Option } from "effect";
 import { Command, Flag } from "effect/cli";
 import { result, run } from "./core/command.ts";
 import { fail } from "./core/errors.ts";
-import { askSelect, isInteractive } from "./core/interaction.ts";
+import {
+  askSelect,
+  isInteractive,
+  offerDashboard,
+} from "./core/interaction.ts";
 import { Invocation } from "./core/invocation.ts";
 import { cloudInitFlags, initCloud } from "./modules/cloud/commands/init.ts";
 import { localSetupFlags, localUpText } from "./modules/local/commands.ts";
+import { resolveLocalName } from "./modules/local/input.ts";
 import { up } from "./modules/local/lifecycle.ts";
 
 const CLOUD_FLAGS = ["org", "project", "env", "region", "domain-label"];
@@ -84,17 +89,18 @@ export const workspaceCommands = () => {
 
           if (local) {
             const data = yield* up({
-              name: flags.name,
+              name: yield* resolveLocalName(flags.name, "setup"),
               saleorVersion: Option.getOrUndefined(flags.saleorVersion),
               sampleData: flags.sampleData,
               timeout: flags.timeout,
             });
 
-            return result<unknown>(data, localUpText(data));
+            return result(data, localUpText(data));
           }
 
           return yield* initCloud(flags);
-        })
+        }),
+        offerDashboard
       )
   ).pipe(
     Command.withDescription(
