@@ -2,7 +2,7 @@
 
 Run `pnpm check` for lint, type checks, and the source test suite. Run `pnpm test:e2e` to build the standalone CLI and exercise it as a separate Node process against mock servers. The latter is also available as `pnpm test:build`.
 
-GitHub Actions runs checks on pull requests and pushes to `main`. The built CLI suite runs on Linux with Node 22.18 (the supported minimum) and Node 24, and on macOS with Node 24. CI uses the locked pnpm version and a frozen lockfile, needs no secrets, and has read-only repository permissions.
+GitHub Actions runs checks on pull requests and pushes to `main`. One Linux job on Node 24 runs lint, type checks, the source suite, and the built CLI end-to-end suite. CI uses the locked pnpm version and a frozen lockfile, needs no secrets, and has read-only repository permissions.
 
 ## What the end-to-end suite covers
 
