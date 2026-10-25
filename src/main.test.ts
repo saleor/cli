@@ -21,6 +21,7 @@ import samples from "./modules/cloud/api/fixtures/cloud-samples.json" with {
 const ENV_VARIABLE = /\b(SALEOR_[A-Z_]+)\b/;
 const PROMISED_DEFAULT = /\(default |Defaults to "/;
 const NOT_FROM_ENV = /never use/;
+const DRY_RUN_TEXT = /^Dry run: would (delete|create)/;
 
 // SALEOR_CLI_BIN runs the same tests against another entry, such as the build output.
 const executable = path.resolve(process.env.SALEOR_CLI_BIN ?? "bin/saleor.mjs");
@@ -291,7 +292,7 @@ basicConstraints=critical,CA:TRUE
       }
 
       const domain = `127.0.0.1:${address.port}`;
-      let projects: ReturnType<typeof project>[] = [];
+      const projects: ReturnType<typeof project>[] = [];
       let environments: ReturnType<typeof environment>[] = [];
       let taskReads = 0;
       const fallback = handler;
@@ -310,15 +311,6 @@ basicConstraints=critical,CA:TRUE
           }
 
           return [200, projects];
-        }
-
-        if (
-          route === "/api/organizations/acme/projects/poc/" &&
-          method === "DELETE"
-        ) {
-          projects = [];
-
-          return [204, undefined];
         }
 
         if (route.endsWith("/services/")) {
@@ -383,65 +375,48 @@ basicConstraints=critical,CA:TRUE
         return out.data.data;
       };
 
-      await run("whoami");
-      expect(await run("org", "list")).toHaveLength(1);
-      expect(await run("project", "list")).toEqual([]);
-      expect(
-        await run(
-          "project",
-          "create",
-          "poc",
-          "--region",
-          "eu-west-1",
-          "--dry-run"
-        )
-      ).toMatchObject({ action: "create", dryRun: true });
+      const init = (...args: string[]) =>
+        run("init", "--project", "poc", "--env", "dev", ...args);
+
+      expect(await init("--region", "eu-west-1", "--dry-run")).toMatchObject({
+        action: "create",
+        dryRun: true,
+      });
       expect(projects).toHaveLength(0);
       expect(
-        await run("project", "create", "poc", "--region", "eu-west-1")
-      ).toMatchObject({ created: true });
-      expect(await run("project", "create", "poc")).toMatchObject({
-        created: false,
-      });
-      expect(await run("project", "list")).toHaveLength(1);
-      expect(
-        await run("env", "create", "dev", "--project", "poc", "--timeout", "5")
-      ).toMatchObject({ created: true, ready: true });
+        await init("--region", "eu-west-1", "--timeout", "5")
+      ).toMatchObject({ created: true, projectCreated: true, ready: true });
+      expect(projects[0]?.region).toBe("eu-west-1");
       expect(taskReads).toBeGreaterThanOrEqual(2);
-      expect(
-        await run("init", "--project", "poc", "--env", "dev", "--timeout", "5")
-      ).toMatchObject({ created: false, projectCreated: false, ready: true });
-      expect(await run("env", "list", "--project", "poc")).toHaveLength(1);
-      expect(await run("env", "get", "dev", "--project", "poc")).toMatchObject({
-        graphqlUrl: `https://${domain}/graphql/`,
+      expect(await init("--timeout", "5")).toMatchObject({
+        created: false,
+        projectCreated: false,
         ready: true,
       });
 
-      const blocked = await cli([
-        "project",
-        "delete",
-        "poc",
-        "--force",
-        "--agent",
-      ]);
+      const [listed] = await run("env", "list", "--project", "poc");
+      expect(listed).toMatchObject({
+        dashboardUrl: `https://${domain}/dashboard/`,
+        graphqlUrl: `https://${domain}/graphql/`,
+      });
 
-      expect(blocked.data.error.code).toBe("PROJECT_NOT_EMPTY");
-      expect(await run("env", "delete", "dev", "--dry-run")).toMatchObject({
+      // Deletions never take their scope from SALEOR_ORG: it is always passed.
+      const remove = (...args: string[]) => run(...args, "--org", "acme");
+
+      expect(await remove("env", "delete", "dev", "--dry-run")).toMatchObject({
         action: "delete",
         dryRun: true,
       });
       expect(environments).toHaveLength(1);
-      expect(await run("env", "delete", "dev", "--force")).toMatchObject({
-        deleted: true,
+      expect(await remove("env", "delete", "dev", "--force")).toMatchObject({
+        action: "delete",
+        existed: true,
       });
-      expect(await run("env", "delete", "dev", "--force")).toMatchObject({
-        deleted: false,
+      expect(await remove("env", "delete", "dev", "--force")).toMatchObject({
+        action: "none",
+        existed: false,
       });
       expect(await run("env", "list")).toEqual([]);
-      expect(await run("project", "delete", "poc", "--force")).toMatchObject({
-        deleted: true,
-      });
-      expect(await run("project", "list")).toEqual([]);
       expect(
         requests
           .filter((req) =>
@@ -452,9 +427,8 @@ basicConstraints=critical,CA:TRUE
         "POST /api/organizations/acme/projects/",
         "POST /api/organizations/acme/environments/obtain/",
         "DELETE /api/organizations/acme/environments/env1/",
-        "DELETE /api/organizations/acme/projects/poc/",
       ]);
-      expect(probes.length).toBeGreaterThanOrEqual(3);
+      expect(probes.length).toBeGreaterThanOrEqual(2);
 
       for (const probe of probes) {
         expect(probe.path).toBe("/graphql/");
@@ -471,7 +445,7 @@ basicConstraints=critical,CA:TRUE
     }
   }, 30_000);
 
-  it("manages a local store through every local command without Cloud credentials", async () => {
+  it("manages a local store through init and every local command without Cloud credentials", async () => {
     credentials = {};
     const fakeBin = path.join(cwd, "fake-bin");
     mkdirSync(fakeBin);
@@ -521,28 +495,23 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       return answer.data.data;
     };
 
-    expect(await local("list")).toHaveLength(1);
-    expect(await local("status", "--name", "demo")).toMatchObject({
-      ready: true,
-    });
-    expect(await local("up", "--name", "demo")).toMatchObject({
-      created: false,
-      ready: true,
-    });
+    expect(await local("list")).toMatchObject([
+      { name: "demo", state: "ready" },
+    ]);
     expect(await local("down", "--name", "demo", "--dry-run")).toMatchObject({
       action: "stop",
       dryRun: true,
     });
     expect(await local("down", "--name", "demo")).toMatchObject({
-      deletedData: false,
-      state: "stopped",
+      action: "stop",
+      existed: true,
     });
     expect(
       readFileSync(path.join(instance, "instance.json"), "utf8")
     ).toContain("demo");
     expect(
       await local("down", "--name", "demo", "--delete-data", "--force")
-    ).toMatchObject({ deletedData: true, state: "absent" });
+    ).toMatchObject({ action: "delete", existed: true });
     expect(await local("list")).toEqual([]);
 
     const dockerCalls: string[][] = readFileSync(
@@ -576,12 +545,12 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       "USAGE_ERROR",
       "CONTEXT_MISSING",
     ]);
-    expect(outcomes.map((outcome) => outcome.code)).toEqual([2, 2, 1]);
-    expect(outcomes[2]?.data.error.message).toBe(
-      "Cloud setup needs --project <project> and --env <env>."
-    );
-
-    expect(requests).toEqual([]);
+    expect(outcomes.map((outcome) => outcome.code)).toEqual([2, 2, 2]);
+    expect(outcomes[2]?.data.error.message).toBe("No project selected.");
+    // A missing input lists what could be passed, and the other provider.
+    expect(outcomes[2]?.data.error.suggestion).toContain("--project");
+    expect(outcomes[2]?.data.error.suggestion).toContain("saleor init --local");
+    expect(requests.every((req) => req.method === "GET")).toBe(true);
   });
 
   it("follows standard help and version conventions", async () => {
@@ -599,7 +568,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     // The last output flag wins.
     const text = await cli(["commands", "--json", "--output", "text"]);
     expect(text.data).toBeUndefined();
-    expect(text.stdout).toContain("saleor env create");
+    expect(text.stdout).toContain("saleor env delete");
   });
 
   it("shows Cloud environments with the shared instance fields", async () => {
@@ -628,8 +597,6 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     const outputs = await Promise.all(
       [
         ["local", "down"],
-        ["local", "status"],
-        ["local", "up"],
         ["init", "--local"],
         ["local", "down", "--dry-run", "--force"],
       ].map((args) => cli(args))
@@ -645,7 +612,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
 
   it("does not infer even the only Cloud organization", async () => {
     Reflect.deleteProperty(credentials, "SALEOR_ORG");
-    const out = await cli(["project", "list"]);
+    const out = await cli(["env", "list"]);
     expect(out.data.error.code).toBe("CONTEXT_MISSING");
     expect(out.data.error.suggestion).toContain("--org");
     expect(requests.every((request) => request.method === "GET")).toBe(true);
@@ -654,7 +621,92 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
   it("stops a local instance that does not exist without failing", async () => {
     const out = await cli(["local", "down", "--name", "missing"]);
     expect(out.code).toBe(0);
-    expect(out.data.data).toMatchObject({ existed: false, state: "absent" });
+    expect(out.data.data).toMatchObject({ action: "none", existed: false });
+  });
+
+  it.each([true, false])(
+    "lists a stopped instance, and stopping it again does nothing (engine=%s)",
+    async (engine) => {
+      // A Docker that runs no containers, with its engine up or down.
+      const fakeBin = path.join(cwd, "fake-bin");
+      mkdirSync(fakeBin);
+      writeFileSync(
+        path.join(fakeBin, "docker"),
+        `#!${process.execPath}
+const fs = require("node:fs");
+fs.appendFileSync("docker-calls.jsonl", JSON.stringify(process.argv.slice(2)) + "\\n");
+if (${!engine} && process.argv[2] === "version") process.exit(1);
+`
+      );
+      chmodSync(path.join(fakeBin, "docker"), 0o700);
+      const instance = path.join(cwd, "config/local/demo");
+      mkdirSync(instance, { recursive: true });
+      writeFileSync(
+        path.join(instance, "instance.json"),
+        JSON.stringify({
+          apiPort: 1,
+          dashboardPort: 2,
+          initialized: true,
+          name: "demo",
+          saleorVersion: "3.23.41",
+          sampleData: false,
+        })
+      );
+
+      const listed = await cli(["local", "list"], { PATH: fakeBin });
+      expect(listed.code, listed.stderr).toBe(0);
+      expect(listed.data.data).toMatchObject([
+        { name: "demo", state: "stopped" },
+      ]);
+
+      if (!engine) {
+        expect(listed.stderr).toContain("Every instance is stopped.");
+
+        return;
+      }
+
+      const stopped = await cli(["local", "down", "--name", "demo"], {
+        PATH: fakeBin,
+      });
+
+      expect(stopped.data.data).toMatchObject({
+        action: "none",
+        existed: true,
+        target: { type: "local-instance" },
+      });
+
+      const text = await cli(
+        ["local", "down", "--name", "demo", "--output", "text"],
+        { PATH: fakeBin }
+      );
+
+      expect(text.stdout).toBe(
+        '✓ Local instance "demo" is already stopped; nothing to do.\n'
+      );
+      expect(
+        readFileSync(path.join(cwd, "docker-calls.jsonl"), "utf8")
+      ).not.toContain('"down"');
+    }
+  );
+
+  it("reuses an environment named by its key, as the picker gives it", async () => {
+    resourceRoutes([environment("env1", "dev")]);
+
+    const out = await cli([
+      "init",
+      "--org",
+      "acme",
+      "--project",
+      "poc",
+      "--env",
+      "env1",
+      "--dry-run",
+    ]);
+
+    expect(out.data.data).toMatchObject({
+      action: "reuse",
+      target: { id: "env1", name: "dev" },
+    });
   });
 
   it("reads SALEOR_PROJECT and SALEOR_ENV in init", async () => {
@@ -685,7 +737,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
   });
 
   it("names an organization the account does not belong to", async () => {
-    const out = await cli(["project", "list", "--org", "nope"]);
+    const out = await cli(["env", "list", "--org", "nope"]);
 
     expect(out.data.error.code).toBe("NOT_FOUND");
     expect(out.data.error.message).toContain('Organization "nope"');
@@ -703,13 +755,13 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         : fallback(method, url, body);
 
     const out = await cli([
-      "env",
-      "create",
-      "dev",
+      "init",
       "--org",
       "acme",
       "--project",
       "poc",
+      "--env",
+      "dev",
       "--domain-label",
       "mine",
     ]);
@@ -737,11 +789,13 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         : fallback(method, url, body);
 
     const out = await cli([
-      "project",
-      "create",
-      "shop",
+      "init",
       "--org",
       "acme",
+      "--project",
+      "shop",
+      "--env",
+      "dev",
       "--region",
       "mars-1",
     ]);
@@ -756,13 +810,26 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(out.code).toBe(0);
     expect(out.data.ok).toBe(true);
     const { commands, exitCodes, errorCodes, globalFlags } = out.data.data;
-    expect(commands.map((item: any) => item.command)).toContain(
-      "saleor env create"
+    expect(commands.map((item: any) => item.command)).toEqual([
+      "saleor init",
+      "saleor login",
+      "saleor logout",
+      "saleor env list",
+      "saleor env delete",
+      "saleor local list",
+      "saleor local down",
+    ]);
+    // Targets are optional to the parser: the action resolves them (flag, variable,
+    // question) and reports CONTEXT_MISSING itself.
+    expect(
+      commands.find((item: any) => item.command === "saleor init").flags
+    ).toContainEqual(
+      expect.objectContaining({ env: "SALEOR_PROJECT", name: "--project" })
     );
     expect(
-      commands.find((item: any) => item.command === "saleor project create")
-        .arguments[0].required
-    ).toBe(true);
+      commands.find((item: any) => item.command === "saleor env delete")
+        .arguments[0]
+    ).toMatchObject({ env: null, name: "env", required: false });
     expect(globalFlags.map((flag: any) => flag.name)).toEqual([
       "--help",
       "--version",
@@ -772,7 +839,12 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       "--agent",
     ]);
     expect(exitCodes.map((exit: any) => exit.code)).toEqual([0, 1, 2, 75, 130]);
-    expect(errorCodes).toContain("NOT_READY");
+    expect(errorCodes).toContainEqual({
+      code: "NOT_READY",
+      exitCode: 75,
+      meaning: expect.any(String),
+      retry: true,
+    });
     expect(requests).toEqual([]);
   });
 
@@ -808,7 +880,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       }
     }
   });
-  it.each([[], ["org"], ["env", "create"]])(
+  it.each([[], ["local"], ["env", "delete"]])(
     "advertises agent mode in help: %j",
     async (...args) => {
       const out = await cli([...args, "--help"]);
@@ -832,7 +904,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
   });
 
   it("renders usage failures as one JSON result", async () => {
-    const out = await cli(["env", "create", "--unknown"]);
+    const out = await cli(["init", "--env", "--unknown"]);
     expect(out.code).toBe(2);
     expect(out.data.error.code).toBe("USAGE_ERROR");
     expect(requests).toEqual([]);
@@ -862,8 +934,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
   });
   it("rejects negative timeouts before any Cloud action", async () => {
     const out = await cli([
-      "env",
-      "create",
+      "init",
+      "--env",
       "dev",
       "--org",
       "acme",
@@ -878,12 +950,12 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
   });
   it("requires auth and never prints credentials", async () => {
     credentials = {};
-    const out = await cli(["whoami"]);
+    const out = await cli(["env", "list", "--org", "acme"]);
     expect(out.data.error.code).toBe("AUTH_REQUIRED");
     expect(requests).toEqual([]);
   });
   it("uses the environment token without persisting it", async () => {
-    const out = await cli(["whoami"]);
+    const out = await cli(["login"]);
     expect(out.code).toBe(0);
     expect(out.data.data.email).toBe(samples.user.email);
     expect(out.stdout + out.stderr).not.toContain("test.secret");
@@ -897,7 +969,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
   });
   it.each([401, 403])("classifies HTTP %i", async (status) => {
     handler = () => [status, {}];
-    const out = await cli(["org", "list"]);
+    const out = await cli(["env", "list", "--org", "acme"]);
     expect(out.code).toBe(1);
     expect(out.data.error.code).toBe(
       status === 401 ? "AUTH_INVALID" : "FORBIDDEN"
@@ -907,11 +979,13 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     resourceRoutes();
 
     const out = await cli([
-      "project",
-      "create",
-      "poc",
+      "init",
       "--org",
       "acme",
+      "--project",
+      "poc",
+      "--env",
+      "dev",
       "--region",
       "different",
     ]);
@@ -919,114 +993,58 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(out.data.error.code).toBe("NAME_CONFLICT");
     expect(requests.every((req) => req.method === "GET")).toBe(true);
   });
-  it("does not create a paid project without explicit cost acceptance", async () => {
-    const fallback = handler;
-    handler = (method, url, body) =>
-      url.pathname.endsWith("/projects/")
-        ? [200, []]
-        : fallback(method, url, body);
-
-    const out = await cli([
-      "project",
-      "create",
-      "paid",
-      "--org",
-      "acme",
-      "--plan",
-      "pro",
-    ]);
-
-    expect(out.data.error.code).toBe("PAID_PLAN_NOT_CONFIRMED");
-    expect(out.data.error.details.pricing.flat_fee).toBe("1599.00");
-    expect(requests.some((req) => req.method === "POST")).toBe(false);
-  });
   it("refuses ambiguous environment names instead of selecting the first", async () => {
     resourceRoutes([environment(), environment("env2")]);
     const out = await cli(["env", "delete", "dev", "--org", "acme", "--force"]);
-    expect(out.data.error.code).toBe("NAME_CONFLICT");
+    expect(out.data.error.code).toBe("AMBIGUOUS_TARGET");
+    expect(out.code).toBe(2);
     expect(requests.some((req) => req.method === "DELETE")).toBe(false);
   });
   it.each([
     ["env", "delete", "dev", "--project", "poc"],
-    ["project", "delete", "poc"],
-    ["env", "create", "new", "--project", "poc"],
+    ["init", "--env", "new", "--project", "poc"],
   ])(
-    "previews %s %s without confirmation or writes, even with text output",
+    "previews %s %s without confirmation or writes, in either output format",
     async (...args) => {
       resourceRoutes(
         args[0] === "env" && args[1] === "delete" ? [environment()] : []
       );
 
-      const out = await cli([
-        ...args,
-        "--org",
-        "acme",
-        "--dry-run",
-        "--output",
-        "text",
-      ]);
+      const preview = [...args, "--org", "acme", "--dry-run"];
+      const out = await cli([...preview, "--json"]);
 
       expect(out.code).toBe(0);
-      expect(out.data.data).toMatchObject({
-        dryRun: true,
-        organization: "acme",
-        project: "poc",
-      });
+      expect(out.data.data).toMatchObject({ dryRun: true });
+      expect(Object.values(out.data.data.target.scope)).toContain("acme");
+      expect(JSON.stringify(out.data.data.target)).toContain("poc");
+
+      const text = await cli([...preview, "--output", "text"]);
+      expect(text.code).toBe(0);
+      expect(text.stdout).toMatch(DRY_RUN_TEXT);
       expect(requests.every((req) => req.method === "GET")).toBe(true);
     }
   );
-  it("previews a paid project without accepting its cost", async () => {
-    const fallback = handler;
-    handler = (method, url, body) =>
-      url.pathname.endsWith("/projects/")
-        ? [200, []]
-        : fallback(method, url, body);
+  it("previews a missing delete target", async () => {
+    resourceRoutes();
 
     const out = await cli([
-      "project",
-      "create",
-      "paid",
+      "env",
+      "delete",
+      "missing",
       "--org",
       "acme",
-      "--plan",
-      "pro",
       "--dry-run",
     ]);
 
     expect(out.code).toBe(0);
     expect(out.data.data).toMatchObject({
-      action: "create",
-      costsMoney: true,
+      action: "none",
       dryRun: true,
-      plan: "pro",
       state: "absent",
     });
     expect(requests.every((req) => req.method === "GET")).toBe(true);
   });
-  it.each([false, true])(
-    "previews a missing delete target (project=%s)",
-    async (isProject) => {
-      resourceRoutes();
-
-      const out = await cli([
-        isProject ? "project" : "env",
-        "delete",
-        "missing",
-        "--org",
-        "acme",
-        "--dry-run",
-      ]);
-
-      expect(out.code).toBe(0);
-      expect(out.data.data).toMatchObject({
-        action: "none",
-        dryRun: true,
-        state: "absent",
-      });
-      expect(requests.every((req) => req.method === "GET")).toBe(true);
-    }
-  );
-  it.each(["production", "nonempty", "conflict"] as const)(
+  it.each(["production", "conflict"] as const)(
     "keeps %s safety checks in dry runs",
     async (kind) => {
       const env = environment();
@@ -1040,50 +1058,64 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       const cases = {
         conflict: {
           args: [
-            "env",
-            "create",
+            "init",
+            "--env",
             "dev",
             "--project",
             "poc",
-            "--service",
+            "--domain-label",
             "different",
           ],
           code: "NAME_CONFLICT",
         },
-        nonempty: {
-          args: ["project", "delete", "poc"],
-          code: "PROJECT_NOT_EMPTY",
-        },
         production: {
-          args: ["env", "delete", "dev"],
+          args: ["env", "delete", "dev", "--force"],
           code: "PRODUCTION_DELETE_REFUSED",
         },
       };
 
       const { args, code } = cases[kind];
-      const out = await cli([...args, "--org", "acme", "--dry-run", "--force"]);
+      const out = await cli([...args, "--org", "acme", "--dry-run"]);
       expect(out.data.error.code).toBe(code);
       expect(requests.every((req) => req.method === "GET")).toBe(true);
     }
   );
-  it.each([false, true])(
-    "requires confirmation for a paid environment, including init (init=%s)",
-    async (init) => {
-      resourceRoutes();
-      const fallback = handler;
-      handler = (method, url, body) =>
-        url.pathname.endsWith("/projects/")
-          ? [200, [{ ...project(), plan: samples.plans[1] }]]
-          : fallback(method, url, body);
-      const args = init ? ["init", "--env", "new"] : ["env", "create", "new"];
-      const out = await cli([...args, "--org", "acme", "--project", "poc"]);
-      expect(out.data.error.code).toBe("CONFIRMATION_REQUIRED");
-      expect(out.data.error.message).toContain("acme / poc");
-      expect(out.data.error.suggestion).toContain("--force");
-      expect(requests.every((req) => req.method === "GET")).toBe(true);
-    }
-  );
-  it("previews paid environment creation with scope and cost", async () => {
+  it("creates in a paid project without asking, after saying it might be charged", async () => {
+    resourceRoutes();
+    const fallback = handler;
+    handler = (method, url, body) => {
+      if (url.pathname.endsWith("/projects/")) {
+        return [200, [{ ...project(), plan: samples.plans[1] }]];
+      }
+
+      if (method === "POST" && url.pathname.endsWith("/obtain/")) {
+        return [201, { ...environment("env9", "new"), task_id: "setup" }];
+      }
+
+      return url.pathname.includes("/task-status/")
+        ? [200, task("PENDING")]
+        : fallback(method, url, body);
+    };
+
+    const out = await cli([
+      "init",
+      "--env",
+      "new",
+      "--org",
+      "acme",
+      "--project",
+      "poc",
+      "--timeout",
+      "0",
+    ]);
+
+    expect(out.code, out.stdout).toBe(75);
+    expect(out.stderr).toContain(
+      "Depending on your plan (pro), you might be charged for this environment."
+    );
+    expect(requests.filter((req) => req.method === "POST")).toHaveLength(1);
+  });
+  it("previews environment creation in a paid project with scope and a notice", async () => {
     resourceRoutes();
     const fallback = handler;
     handler = (method, url, body) =>
@@ -1091,39 +1123,32 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         ? [200, [{ ...project(), plan: samples.plans[1] }]]
         : fallback(method, url, body);
 
-    const out = await cli(["env", "create", "new", "--dry-run"], {
+    const out = await cli(["init", "--env", "new", "--dry-run"], {
       SALEOR_ORG: "acme",
       SALEOR_PROJECT: "poc",
     });
 
     expect(out.code).toBe(0);
     expect(out.data.data).toMatchObject({
-      costsMoney: true,
+      details: { plan: "pro" },
       dryRun: true,
-      organization: "acme",
-      plan: "pro",
-      project: "poc",
+      notice: expect.stringContaining("you might be charged"),
+      target: { scope: { organization: "acme", project: "poc" } },
+      warning: null,
     });
+    expect(out.data.data.details).not.toHaveProperty("pricing");
     expect(requests.every((req) => req.method === "GET")).toBe(true);
   });
-  it("publishes safety metadata and preview flags for all five actions", async () => {
+  it("publishes safety metadata and preview flags for every risky action", async () => {
     const out = await cli(["commands", "--json"]);
 
-    for (const command of [
-      "env delete",
-      "project delete",
-      "local down",
-      "project create",
-      "env create",
-    ]) {
+    for (const command of ["env delete", "local down"]) {
       const entry = out.data.data.commands.find(
         (item: any) => item.command === `saleor ${command}`
       );
 
       expect(entry.warning).toBeTruthy();
-      expect(
-        entry[command.endsWith("create") ? "costsMoney" : "destructive"]
-      ).toBe(true);
+      expect(entry.destructive).toBe(true);
       expect(entry.flags.some((flag: any) => flag.name === "--dry-run")).toBe(
         true
       );
@@ -1164,36 +1189,14 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(out.data.error.code).toBe("PRODUCTION_DELETE_REFUSED");
     expect(requests.some((req) => req.method === "DELETE")).toBe(false);
   });
-  it("refuses a production service before creating an environment", async () => {
-    resourceRoutes();
-
-    const out = await cli([
-      "env",
-      "create",
-      "dev",
-      "--org",
-      "acme",
-      "--project",
-      "poc",
-      "--service",
-      samples.services[0]?.name ?? "missing",
-    ]);
-
-    expect(out.data.error.code).toBe("USAGE_ERROR");
-    expect(requests.some((req) => req.method === "POST")).toBe(false);
-  });
-  it("refuses deletion of a nonempty project", async () => {
-    resourceRoutes([environment()]);
-    expect(
-      (await cli(["project", "delete", "poc", "--org", "acme", "--force"])).data
-        .error.code
-    ).toBe("PROJECT_NOT_EMPTY");
-  });
   it("deleting an absent environment succeeds", async () => {
     resourceRoutes();
     expect(
       await cli(["env", "delete", "missing", "--org", "acme", "--force"])
-    ).toMatchObject({ code: 0, data: { data: { deleted: false } } });
+    ).toMatchObject({
+      code: 0,
+      data: { data: { action: "none", existed: false } },
+    });
   });
   it.each(["FAILED", "TIMED_OUT"])(
     "stops on a %s task (anonymous status call)",
@@ -1221,8 +1224,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       };
 
       const out = await cli([
-        "env",
-        "create",
+        "init",
+        "--env",
         "dev",
         "--org",
         "acme",
@@ -1257,8 +1260,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     };
 
     const out = await cli([
-      "env",
-      "create",
+      "init",
+      "--env",
       "dev",
       "--org",
       "acme",
@@ -1271,7 +1274,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(out.code).toBe(75);
     expect(out.data.error).toMatchObject({ code: "NOT_READY", retry: true });
     expect(out.data.error.suggestion).toContain(
-      "run the same command again: saleor env create dev --org acme --project poc"
+      "run the same command again: saleor init --env dev --org acme --project poc"
     );
     expect(out.data.error.suggestion).not.toContain("--timeout");
     expect(requests.some((req) => req.method === "POST")).toBe(false);
@@ -1285,8 +1288,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         method === "POST" ? [500, {}] : fallback(method, url, body);
 
       const args = [
-        "env",
-        "create",
+        "init",
+        "--env",
         "dev",
         "--org",
         "acme",
@@ -1328,8 +1331,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(
       (
         await cli([
-          "env",
-          "create",
+          "init",
+          "--env",
           "dev",
           "--org",
           "acme",
@@ -1371,8 +1374,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     };
 
     const args = [
-      "env",
-      "create",
+      "init",
+      "--env",
       "dev",
       "--org",
       "acme",
@@ -1449,7 +1452,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     ]);
 
     expect(out.code).toBe(0);
-    expect(out.data.data.deleted).toBe(true);
+    expect(out.data.data.action).toBe("delete");
     expect(deletes).toBe(2);
   });
   it("does not retry a delete Cloud rejects for another reason", async () => {
@@ -1501,8 +1504,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         : fallback(method, url, body);
 
     const out = await cli([
-      "env",
-      "create",
+      "init",
+      "--env",
       "dev",
       "--org",
       "acme",
@@ -1545,7 +1548,10 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       "--force",
     ]);
 
-    expect(out.data.data).toMatchObject({ deleted: true, environment: "env9" });
+    expect(out.data.data).toMatchObject({
+      action: "delete",
+      target: { id: "env9", scope: { project: "other-project" } },
+    });
   });
   it("names the account once when it has no display name", async () => {
     handler = (_method, url) => {
@@ -1558,7 +1564,9 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         : [404, {}];
     };
 
-    const out = await cli(["whoami", "--output", "text"]);
+    const out = await cli(["login", "--output", "text"], {
+      SALEOR_CLOUD_TOKEN: "test.secret",
+    });
 
     expect(out.code).toBe(0);
     expect(out.stdout.split(samples.user.email)).toHaveLength(2);
@@ -1591,7 +1599,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       return fallback(method, url, body);
     };
 
-    const out = await cli(["whoami"]);
+    resourceRoutes();
+    const out = await cli(["env", "list", "--org", "acme"]);
 
     expect(out.code).toBe(0);
     expect(requests.at(-1)?.auth).toBe("Bearer jwt.new.token");
@@ -1643,7 +1652,9 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(readFileSync(file, "utf8")).not.toContain("pending-device-grant");
     expect(login.stdout + login.stderr).not.toContain("refresh-secret");
     expect((await cli(["logout"])).data.data.removed).toBe(true);
-    expect((await cli(["whoami"])).data.error.code).toBe("AUTH_REQUIRED");
+    expect((await cli(["env", "list", "--org", "acme"])).data.error.code).toBe(
+      "AUTH_REQUIRED"
+    );
   });
   it.each(["access_denied", "expired_token"])(
     "handles device login %s",
@@ -1671,4 +1682,87 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       );
     }
   );
+  it("ignores an exported SALEOR_PROJECT when deleting, instead of reporting a false 'nothing to delete'", async () => {
+    const elsewhere = environment("env9", "preview");
+    elsewhere.project = { ...elsewhere.project, slug: "other-project" };
+    let envs = [elsewhere];
+    resourceRoutes();
+    const fallback = handler;
+    handler = (method, url, body) => {
+      if (method === "DELETE") {
+        envs = [];
+
+        return [202, { task_id: "delete" }];
+      }
+
+      return url.pathname.endsWith("/environments/")
+        ? [200, envs]
+        : fallback(method, url, body);
+    };
+
+    const out = await cli(
+      ["env", "delete", "preview", "--org", "acme", "--force"],
+      { SALEOR_ENV: "dev", SALEOR_PROJECT: "poc" }
+    );
+
+    expect(out.data.data).toMatchObject({ action: "delete", existed: true });
+    expect(requests.filter((req) => req.method === "DELETE")).toHaveLength(1);
+  });
+  it("asks nothing about money: init has no --force and no warning", async () => {
+    const { commands } = (await cli(["commands", "--json"])).data.data;
+    const init = commands.find((item: any) => item.command === "saleor init");
+
+    expect(init).toMatchObject({
+      destructive: false,
+      kind: "ensure",
+      warning: null,
+    });
+    expect(init).not.toHaveProperty("costsMoney");
+    expect(init.flags.map((flag: any) => flag.name)).not.toContain("--force");
+  });
+  it("writes suggested commands so they can be pasted as they are", async () => {
+    resourceRoutes();
+
+    const out = await cli([
+      "env",
+      "list",
+      "--org",
+      "acme",
+      "--project",
+      "My Store",
+    ]);
+
+    expect(out.data.error.code).toBe("NOT_FOUND");
+    expect(out.data.error.suggestion).toContain(
+      "saleor init --org acme --project 'My Store'"
+    );
+  });
+  it("reports a Cloud with no sandbox service as unavailable, not as a usage error", async () => {
+    resourceRoutes();
+    const fallback = handler;
+    handler = (method, url, body) =>
+      url.pathname.endsWith("/services/")
+        ? [
+            200,
+            samples.services.map((service) => ({
+              ...service,
+              maintenance_mode: true,
+            })),
+          ]
+        : fallback(method, url, body);
+
+    const out = await cli([
+      "init",
+      "--env",
+      "dev",
+      "--org",
+      "acme",
+      "--project",
+      "poc",
+    ]);
+
+    expect(out.code).toBe(1);
+    expect(out.data.error).toMatchObject({ code: "UNAVAILABLE", retry: true });
+    expect(requests.some((req) => req.method === "POST")).toBe(false);
+  });
 });

@@ -11,6 +11,7 @@ import {
 } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { type CliFailure, fail } from "../../../core/errors.ts";
+import { command } from "../../../core/invocation.ts";
 import { Session } from "../auth/session.ts";
 import { listOrganizations } from "./contract.ts";
 
@@ -36,7 +37,6 @@ interface Operation {
   readonly queryParams: readonly string[];
   readonly request: Schema.ConstraintEncoder<unknown> | undefined;
   readonly response: Schema.ConstraintDecoder<unknown> | undefined;
-  readonly successStatus: number;
 }
 
 type ResponseOf<O> = O extends { readonly response: infer S extends Schema.Top }
@@ -82,8 +82,8 @@ export const describeApiError = (error: ApiStatusError): CliFailure => {
           : "Your Saleor Cloud login is no longer valid.",
         {
           suggestion: process.env.SALEOR_CLOUD_TOKEN
-            ? "Check the token. To use your own login instead, unset SALEOR_CLOUD_TOKEN and run: saleor login"
-            : "Log in again with: saleor login",
+            ? `Check the token. To use your own login instead, unset SALEOR_CLOUD_TOKEN and run: ${command("login")}`
+            : `Log in again with: ${command("login")}`,
         }
       );
     case 403:
@@ -92,8 +92,7 @@ export const describeApiError = (error: ApiStatusError): CliFailure => {
         "Your account does not have permission to do this.",
         {
           details: error.body,
-          suggestion:
-            "Check that you belong to the organization and that your role allows this.\nSee your organizations with: saleor whoami",
+          suggestion: `Check that you belong to the organization and that your role allows this.\nTo use another account, run: ${command("login")}`,
         }
       );
     case 404:
@@ -103,7 +102,7 @@ export const describeApiError = (error: ApiStatusError): CliFailure => {
         {
           details: { body: error.body, operation: error.operation },
           suggestion:
-            "Check the organization, project and environment names.\nSee your organizations with: saleor whoami",
+            "Check the organization, project and environment names. In a terminal, leave them out to pick from the ones that exist.",
         }
       );
     default:

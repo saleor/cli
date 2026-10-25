@@ -6,7 +6,17 @@ import { deadlineIn, probeGraphql } from "../../core/readiness.ts";
 import { CloudApi, type CloudApiService } from "./api/client.ts";
 import { ListProjectResponse } from "./api/contract.ts";
 import samples from "./api/fixtures/cloud-samples.json" with { type: "json" };
-import { ensureEnvironment } from "./provision.ts";
+import {
+  applyEnvironment,
+  billingNotice,
+  type EnvironmentInput,
+  planEnvironment,
+} from "./provision.ts";
+
+const ensureEnvironment = (input: EnvironmentInput) =>
+  Effect.flatMap(planEnvironment(input), (planned) =>
+    applyEnvironment(input, planned, deadlineIn(1))
+  );
 
 const mockApi = (
   respond: (operation: { path: string; method: string }) => Schema.Json
@@ -47,6 +57,25 @@ it.each([
   ).toBe(ready);
 });
 
+// The CLI does not price anything: outside the free plan it only says that a new
+// environment might be charged, depending on the plan.
+it.each([
+  [0, undefined],
+  [
+    1,
+    "Depending on your plan (pro), you might be charged for this environment.",
+  ],
+])("tells about billing for plan %i", (plan, notice) => {
+  expect(
+    billingNotice(
+      Schema.decodeUnknownSync(ListProjectResponse)({
+        ...samples.project,
+        plan: samples.plans[plan],
+      })
+    )
+  ).toBe(notice);
+});
+
 describe("provisioning recovery", () => {
   const project = Schema.decodeUnknownSync(ListProjectResponse)({
     ...samples.project,
@@ -55,7 +84,7 @@ describe("provisioning recovery", () => {
 
   const environment = { ...samples.environment, project };
   it.each([false, true])(
-    "reuses Cloud state without another write or confirmation (paid=%s)",
+    "reuses Cloud state without another write (paid=%s)",
     async (paid) => {
       const calls: string[] = [];
 
@@ -75,7 +104,6 @@ describe("provisioning recovery", () => {
 
       const outcome = await Effect.runPromise(
         ensureEnvironment({
-          deadline: deadlineIn(1),
           domainLabel: Option.none(),
           name: environment.name,
           organization: "acme",
@@ -88,7 +116,6 @@ describe("provisioning recovery", () => {
                 }).plan,
               }
             : project,
-          service: Option.none(),
         }).pipe(
           Effect.provideService(OutputFlag, Option.some("json")),
           Effect.provideService(CloudApi, api),
@@ -105,7 +132,7 @@ describe("provisioning recovery", () => {
     }
   );
   it.each([false, true])(
-    "creates and waits for readiness, accepting paid creation with force (paid=%s)",
+    "creates and waits for readiness (paid=%s)",
     async (paid) => {
       const calls: string[] = [];
       let created = false;
@@ -144,9 +171,7 @@ describe("provisioning recovery", () => {
 
       const outcome = await Effect.runPromise(
         ensureEnvironment({
-          deadline: deadlineIn(1),
           domainLabel: Option.none(),
-          force: paid,
           name: environment.name,
           organization: "acme",
           project: paid
@@ -158,7 +183,6 @@ describe("provisioning recovery", () => {
                 }).plan,
               }
             : project,
-          service: Option.none(),
         }).pipe(
           Effect.provideService(OutputFlag, Option.some("json")),
           Effect.provideService(CloudApi, api),

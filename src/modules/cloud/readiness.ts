@@ -32,14 +32,16 @@ const taskFailed = (
     }
   );
 
+// `beat` is shared by a caller that waits for several tasks in turn, so progress keeps
+// showing, and counting, across all of them.
 export const waitForTask = (
   taskId: string,
   deadline: Deadline,
-  label: string
+  label: string,
+  beat = heartbeat()
 ) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
-    const beat = heartbeat();
 
     for (;;) {
       const task = yield* api
@@ -111,11 +113,11 @@ const progress = () => {
 export const waitUntilReady = (
   organization: string,
   envKey: string,
-  deadline: Deadline
+  deadline: Deadline,
+  beat = heartbeat()
 ) =>
   Effect.gen(function* () {
     const say = progress();
-    const beat = heartbeat();
 
     for (;;) {
       const tasks = yield* blockingTasks(organization, envKey);
@@ -129,7 +131,7 @@ export const waitUntilReady = (
         yield* say(
           "Waiting for Saleor Cloud to finish setting up the environment…"
         );
-        yield* waitForTask(task.job_name, deadline, "Environment setup");
+        yield* waitForTask(task.job_name, deadline, "Environment setup", beat);
       }
 
       const found = yield* findEnvironment(organization, envKey);

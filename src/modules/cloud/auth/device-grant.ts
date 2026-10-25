@@ -1,6 +1,7 @@
 import { Duration, Effect, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { fail } from "../../../core/errors.ts";
+import { command } from "../../../core/invocation.ts";
 
 const TRAILING_SLASHES = /\/+$/;
 
@@ -154,7 +155,7 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
           "The login link expired before the request was approved.",
           {
             retry: true,
-            suggestion: "To get a new link, run: saleor login",
+            suggestion: `To get a new link, run: ${command("login")}`,
           }
         );
       }
@@ -198,7 +199,7 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
             "AUTH_DEVICE_ACCESS_DENIED",
             "The login request was denied in the browser.",
             {
-              suggestion: "To try again, run: saleor login",
+              suggestion: `To try again, run: ${command("login")}`,
             }
           );
         case "expired_token":
@@ -207,7 +208,7 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
             "The login link expired before the request was approved.",
             {
               retry: true,
-              suggestion: "To get a new link, run: saleor login",
+              suggestion: `To get a new link, run: ${command("login")}`,
             }
           );
         default:
@@ -238,7 +239,7 @@ export const refreshTokens = (tokens: DeviceTokens) =>
         "AUTH_REQUIRED",
         "Your Saleor Cloud login has expired.",
         {
-          suggestion: "Log in again with: saleor login",
+          suggestion: `Log in again with: ${command("login")}`,
         }
       );
     }

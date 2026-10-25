@@ -4,8 +4,8 @@
 - Configurator, backups, restores, upgrades and organization creation are not supported.
 - Login uses Jolly's OAuth client (`jolly`) until device login is enabled for `saleor-cli`.
 - Browser approval and the OS keyring have not been tested end to end against production.
-- Paid projects have not been provisioned live. Before a paid project is created, only the plan's published rates are shown, not a cost estimate.
-- Creating a new environment in a paid project requires confirmation or `--force`. The published plan rates are shown, but Cloud does not provide a per-environment cost estimate.
+- New projects use the free plan; choose another plan, and delete projects, in the Saleor Cloud dashboard.
+- The CLI does not work out what an environment costs. Before it creates one in a project outside the free plan, it says that you might be charged, depending on your plan.
 - Cloud has no idempotency keys: two simultaneous creates with the same name can both succeed.
 - A create that fails ambiguously (timeout, 5xx) is not retried; re-run the command to find out whether it happened.
 - `--timeout` bounds waiting, not the whole command; API timeouts and retries can add to it.
@@ -16,7 +16,6 @@
 - Local image downloads and migrations are outside the readiness timeout. Local ports are checked before containers start; a process that claims one after that check is not detected.
 - Shell completions list a `--no-<flag>` negation for every boolean flag (including `--no-no-browser`); Effect generates them and offers no opt-out.
 - Cloud environments do not come with store API credentials; the CLI cannot yet create a staff or app token for a Cloud sandbox.
-- Plan prices are shown as Cloud returns them, without a currency.
 - Local stacks have been exercised with Docker, but the Dashboard UI and arbitrary API/Dashboard version combinations have not been reviewed in a browser.
 - All modules load at startup; there is no startup-time budget yet.
 - The production API omits `login` and `password` from environment responses, which the published schema marks required; the CLI treats them as optional.

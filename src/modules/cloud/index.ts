@@ -7,9 +7,7 @@ import { SessionLive } from "./auth/session.ts";
 import { envCommand } from "./commands/env.ts";
 import { login } from "./commands/login.ts";
 import { logout } from "./commands/logout.ts";
-import { orgCommand } from "./commands/org.ts";
-import { projectCommand } from "./commands/project.ts";
-import { whoami } from "./commands/whoami.ts";
+import { cloudSetup } from "./setup.ts";
 
 const http = FetchHttpClient.layer;
 
@@ -24,9 +22,9 @@ export const cloudLayer = CloudApiLive.pipe(
 );
 
 export const cloudModule = defineModule({
-  commands: [login, logout, whoami, orgCommand, projectCommand, envCommand],
-  description:
-    "Saleor Cloud: account, organizations, projects and environments.",
+  commands: [login, logout, envCommand],
+  description: "Saleor Cloud: login and environments.",
   layer: cloudLayer,
   name: "cloud",
+  setup: cloudSetup,
 });

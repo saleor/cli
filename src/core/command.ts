@@ -17,7 +17,6 @@ import {
 // What a handler returns: the data agents get in `data`, and the text humans see.
 export interface CommandResult<A> {
   readonly data: A;
-  readonly json?: boolean;
   readonly text: string;
 }
 
@@ -64,7 +63,7 @@ export const run = <A extends CommandResult<unknown>, R, R2 = never>(
         Effect.gen(function* () {
           const format = yield* currentOutputFormat;
 
-          if (format === "json" || outcome.json) {
+          if (format === "json") {
             yield* writeJson(successEnvelope(outcome.data));
           } else {
             yield* writeText(outcome.text);
@@ -78,9 +77,3 @@ export const run = <A extends CommandResult<unknown>, R, R2 = never>(
         }),
     })
   );
-
-export const preview = <A>(data: A): CommandResult<A & { dryRun: true }> => ({
-  data: { ...data, dryRun: true },
-  json: true,
-  text: "",
-});

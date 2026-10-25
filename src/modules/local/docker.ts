@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { Context, Effect, Layer } from "effect";
 import { type CliFailure, fail } from "../../core/errors.ts";
+import { command } from "../../core/invocation.ts";
 
 export interface DockerService {
   readonly run: (args: readonly string[]) => Effect.Effect<string, CliFailure>;
@@ -32,12 +33,11 @@ const dockerFailure = (
   const pulling = args.includes("pull");
 
   return fail(
-    pulling ? "IMAGE_PULL_FAILED" : "TASK_FAILED",
+    pulling ? "IMAGE_PULL_FAILED" : "DOCKER_FAILED",
     `Docker ${pulling ? "could not download the images" : "command failed"}: ${stderr.trim() || `exit ${code}`}`,
     {
       details: { args, stderr },
-      suggestion:
-        "Check Docker and retry the same command. List instances with: saleor local list. Inspect containers with: saleor local status --name <name>",
+      suggestion: `Check Docker and retry the same command. List instances and their state with: ${command("local", "list")}`,
     }
   );
 };
@@ -95,7 +95,7 @@ export const checkDocker = Effect.gen(function* () {
               "Docker is installed but its engine is not responding.",
               {
                 suggestion:
-                  "Start Docker Desktop or your Docker engine, then try again.",
+                  "Start your Docker engine (Docker Desktop, OrbStack, Colima…), then try again.",
               }
             )
           )

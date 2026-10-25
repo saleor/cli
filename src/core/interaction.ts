@@ -2,12 +2,8 @@ import { spawn } from "node:child_process";
 import { confirm, isCancel, select, text } from "@clack/prompts";
 import { Context, Effect, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
-import { fail } from "./errors.ts";
-import { catalogInfo } from "./input-info.ts";
-import { rerunCommand } from "./invocation.ts";
+import { ActionContext } from "./invocation.ts";
 import { currentOutputFormat, detectAgent } from "./output.ts";
-
-catalogInfo.flag("no-input", { default: false, env: "SALEOR_NO_INPUT" });
 
 export const NoInputFlag = GlobalFlag.Setting("no-input")({
   flag: Flag.Boolean("no-input").pipe(
@@ -26,10 +22,12 @@ const envDisablesInput = () => {
   );
 };
 
-// A person is at a terminal and has not opted out. JSON output, CI, pipes and
-// `--no-input` never prompt, so automation cannot hang waiting for an answer.
+// A person is at a terminal and has not opted out. JSON output, CI, pipes, dry runs
+// and `--no-input` never prompt, so automation cannot hang waiting for an answer and a
+// preview never depends on answers.
 export const isInteractive = Effect.gen(function* () {
   const format = yield* currentOutputFormat;
+  const { dryRun } = yield* ActionContext;
 
   // Optional so that commands do not depend on the global flag being provided.
   const noInput = Option.getOrElse(
@@ -39,6 +37,7 @@ export const isInteractive = Effect.gen(function* () {
 
   return (
     format === "text" &&
+    !dryRun &&
     !noInput &&
     !envDisablesInput() &&
     detectAgent() === undefined &&
@@ -115,7 +114,12 @@ export const Prompts = Context.Reference<PromptOperations>("saleor/Prompts", {
 // Ctrl-C at a prompt is an interruption (exit 130), not an answer.
 const answered = <A extends string | boolean>(answer: A | symbol) =>
   isCancel(answer)
-    ? Effect.interrupt
+    ? Effect.andThen(
+        Effect.sync(() =>
+          process.stderr.write("Cancelled. Nothing was changed.\n")
+        ),
+        Effect.interrupt
+      )
     : Effect.sync(() => {
         process.stdout.write("\n");
 
@@ -195,40 +199,5 @@ export const openBrowser = (url: string) =>
       return true;
     } catch {
       return false;
-    }
-  });
-
-// Destructive actions: `--force` is the only way to skip the question. Without a person
-// at a terminal there is nobody to ask, so the command refuses instead of guessing.
-export const confirmDestructive = (
-  action: { readonly question: string; readonly refusal: string },
-  force: boolean
-) =>
-  Effect.gen(function* () {
-    if (force) {
-      return;
-    }
-
-    if (!(yield* isInteractive)) {
-      return yield* fail("CONFIRMATION_REQUIRED", action.refusal, {
-        suggestion: `To confirm, run: ${yield* rerunCommand(["--force"])}`,
-      });
-    }
-
-    if (!(yield* askConfirm(action.question, false))) {
-      return yield* fail("CANCELLED", "Cancelled. Nothing was changed.");
-    }
-  });
-
-export const offerDashboard = (data: {
-  readonly dashboardUrl: string | null;
-}) =>
-  Effect.gen(function* () {
-    if (data.dashboardUrl === null || !(yield* isInteractive)) {
-      return;
-    }
-
-    if (yield* askConfirm("Open the dashboard?", true)) {
-      yield* openBrowser(data.dashboardUrl);
     }
   });

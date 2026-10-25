@@ -4,7 +4,7 @@ import { Argument, Command, Flag } from "effect/cli";
 import { afterEach, expect, it, vi } from "vitest";
 import { root as saleorRoot } from "../main.ts";
 import { NoInputFlag, Prompts } from "./interaction.ts";
-import { Invocation, rerunCommand } from "./invocation.ts";
+import { ContinueInCli } from "./menu.ts";
 import { OutputFlag } from "./output.ts";
 import { createCliRuntime } from "./runtime.ts";
 
@@ -136,12 +136,42 @@ it.each([
   expect(action).not.toHaveBeenCalled();
 });
 
-it("offers the root command menu when no command is supplied", async () => {
+it("offers the home menu again after each command until Exit", async () => {
   const { action, select, run } = setup();
-  select.mockResolvedValueOnce("org");
+  select
+    .mockResolvedValueOnce("org")
+    .mockResolvedValueOnce("list")
+    .mockResolvedValueOnce("org")
+    .mockResolvedValueOnce("list")
+    .mockResolvedValueOnce("\0exit");
   await run([]);
+  expect(select).toHaveBeenCalledTimes(5);
+  expect(action).toHaveBeenCalledTimes(2);
+  expect(process.exitCode).toBe(0);
+});
+
+it("lets a command hand over to the home menu, but never nests it", async () => {
+  const handedOver = vi.fn();
+
+  const { select, run } = setup(
+    Command.make("saleor").pipe(
+      Command.withSubcommands([
+        Command.make("login", {}, () =>
+          Effect.gen(function* () {
+            handedOver();
+            yield* yield* ContinueInCli;
+          })
+        ),
+      ]),
+      Command.withGlobalFlags([OutputFlag, NoInputFlag])
+    )
+  );
+
+  select.mockResolvedValueOnce("login").mockResolvedValueOnce("\0exit");
+  await run(["login"]);
+  // login → home menu → login again (no second menu) → back to the first menu → Exit
+  expect(handedOver).toHaveBeenCalledTimes(2);
   expect(select).toHaveBeenCalledTimes(2);
-  expect(action).toHaveBeenCalledOnce();
 });
 
 it("exits a group without executing a command", async () => {
@@ -169,25 +199,8 @@ it("keeps bare groups noninteractive when input is piped", async () => {
   expect(select).not.toHaveBeenCalled();
 });
 
-it("continues from group selection through missing input to the action", async () => {
-  const { action, run, select, text } = setup();
-  select.mockResolvedValueOnce("create");
-  await run(["org", "--output", "text"]);
-  expect(select).toHaveBeenCalledOnce();
-  expect(text).toHaveBeenCalledOnce();
-  expect(action).toHaveBeenCalledExactlyOnceWith("demo");
-});
-
-it("asks for missing positional input on direct commands too", async () => {
-  const { action, run, select, text } = setup();
-  await run(["org", "create"]);
-  expect(select).not.toHaveBeenCalled();
-  expect(text).toHaveBeenCalledOnce();
-  expect(action).toHaveBeenCalledExactlyOnceWith("demo");
-});
-
 it.each(["--dry-run", "--no-input", "--json", "--agent", "--agent=true"])(
-  "never asks for missing positional input with %s",
+  "reports a missing required argument as a usage error, never a question: %s",
   async (flag) => {
     const { action, run, text } = setup();
     await run(["org", "create", flag]);
@@ -225,36 +238,8 @@ it.each(
   }
 );
 
-it.each(["--help", "--json", "--agent", "--version", "--output=json"])(
-  "treats prompted %s as positional input, never as a flag",
-  async (answer) => {
-    const { action, run, text } = setup();
-    text.mockResolvedValueOnce(answer);
-    await run(["org", "create"]);
-    expect(action).toHaveBeenCalledExactlyOnceWith(answer);
-  }
-);
-
 it("preserves an explicit end-of-options marker when selecting an action", async () => {
   const { action, run } = setup();
   await run(["org", "--"]);
   expect(action).toHaveBeenCalledOnce();
-});
-
-it("cancels missing input without executing the selected action", async () => {
-  const { action, run, text } = setup();
-  text.mockImplementationOnce(async () => CANCEL_SYMBOL);
-  await run(["org", "create"]);
-  expect(action).not.toHaveBeenCalled();
-  expect(process.exitCode).toBe(130);
-});
-
-it("puts retry flags before the positional input separator", async () => {
-  const command = await Effect.runPromise(
-    rerunCommand(["--force"]).pipe(
-      Effect.provideService(Invocation, ["project", "delete", "--", "demo"])
-    )
-  );
-
-  expect(command).toBe("saleor project delete --force -- demo");
 });
