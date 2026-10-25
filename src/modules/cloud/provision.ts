@@ -1,9 +1,15 @@
 import { Effect, Option } from "effect";
 import { type CliFailure, fail } from "../../core/errors.ts";
-import { confirmDestructive } from "../../core/interaction.ts";
-import { rerunCommand } from "../../core/invocation.ts";
+import { askSelect, isInteractive } from "../../core/interaction.ts";
+import { command, recordAnswer, rerunCommand } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
-import { type Deadline, isPast, notReady, POLL } from "../../core/readiness.ts";
+import {
+  type Deadline,
+  heartbeat,
+  isPast,
+  notReady,
+  POLL,
+} from "../../core/readiness.ts";
 import {
   type ApiStatusError,
   CloudApi,
@@ -14,7 +20,6 @@ import {
   createCreateEnvironment,
   createCreateProject,
   destroyEnvironmentTask,
-  destroyProject,
   listPlans,
   listProjectServices,
   listRegions,
@@ -35,7 +40,9 @@ import {
 import { waitForTask, waitUntilGone, waitUntilReady } from "./readiness.ts";
 
 export const DEFAULT_REGION = "us-east-1";
-export const DEFAULT_PLAN = "dev";
+
+// New projects use the free plan; a paid plan is chosen in the dashboard.
+const DEFAULT_PLAN = "dev";
 
 // Server-side validation errors arrive as free text; these are the ones agents branch on.
 const LIMIT_ERROR = /reach|exceed|maximum|limit/i;
@@ -91,55 +98,69 @@ const busyRejection = (
 
 // ── Projects ─────────────────────────────────────────────────────────────
 
-export interface EnsureProjectInput {
-  readonly confirmPaidPlan: boolean;
+export interface ProjectInput {
   readonly name: string;
   readonly organization: string;
-  readonly plan: Option.Option<string>;
   readonly region: Option.Option<string>;
 }
 
-const PERIOD_UNITS = new Map([
-  ["annually", "year"],
-  ["monthly", "month"],
-  ["yearly", "year"],
-]);
+// A new environment in a project that is not on the free plan may be billed, depending
+// on the plan. Said once, right before it is created; the CLI does not work out prices.
+export const billingNotice = (project: Project) =>
+  project.plan.type === "dev"
+    ? undefined
+    : `Depending on your plan (${project.plan.slug}), you might be charged for this environment.`;
 
-// Plans are billed per period with a flat fee; usage above the allowance costs extra.
-export const priceOf = (plan: Project["plan"]) => {
-  const fee = plan.pricing?.flat_fee;
-  const unit = PERIOD_UNITS.get(plan.allowance?.period ?? "");
-
-  return fee === undefined ? "" : ` (${fee}${unit ? ` per ${unit}` : ""})`;
-};
-
-const confirmPlanCost = (plan: Project["plan"], confirmed: boolean) =>
+// A new project's region: the flag, a person's choice, or the default.
+const regionFor = (requested: Option.Option<string>) =>
   Effect.gen(function* () {
-    if (plan.type === "dev") {
-      return;
+    const api = yield* CloudApi;
+
+    // Only for a choice and a clearer error than Cloud's own; a failed lookup leaves
+    // the check to Cloud.
+    const regions = yield* api
+      .call(listRegions)
+      .pipe(Effect.orElseSucceed(() => []));
+
+    if (Option.isSome(requested)) {
+      if (
+        regions.length > 0 &&
+        !regions.some((r) => r.name === requested.value)
+      ) {
+        return yield* fail(
+          "USAGE_ERROR",
+          `There is no "${requested.value}" region. Available regions: ${regions.map((r) => r.name).join(", ")}.`,
+          { details: { regions: regions.map((r) => r.name) } }
+        );
+      }
+
+      return requested.value;
     }
 
-    if (!confirmed) {
-      return yield* fail(
-        "PAID_PLAN_NOT_CONFIRMED",
-        `The "${plan.slug}" plan is paid${priceOf(plan)}. Nothing was created.`,
-        {
-          details: {
-            plan: plan.slug,
-            pricing: plan.pricing ?? null,
-            sandboxes: plan.allowance?.sandboxes ?? null,
-          },
-          suggestion: `To accept the cost, run: ${yield* rerunCommand(["--confirm-paid-plan"])}`,
-        }
-      );
+    if (regions.length <= 1 || !(yield* isInteractive)) {
+      return DEFAULT_REGION;
     }
 
-    yield* notice(
-      `Using the paid "${plan.slug}" plan${priceOf(plan)}. Usage above the plan's allowance may be charged.`
-    );
+    const chosen = yield* askSelect({
+      choices: regions.map(({ name, root_domain }) => ({
+        hint: root_domain,
+        label: name,
+        value: name,
+      })),
+      initialValue: regions.some((r) => r.name === DEFAULT_REGION)
+        ? DEFAULT_REGION
+        : regions[0]?.name,
+      message: "Region",
+    });
+
+    yield* recordAnswer({ option: ["--region", chosen] });
+
+    return chosen;
   });
 
-export const prepareProject = (input: EnsureProjectInput) =>
+// Read-only: whether the project exists with the requested settings, or what
+// creating it would use.
+export const planProject = (input: ProjectInput) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
     const existing = yield* findProject(input.organization, input.name);
@@ -150,67 +171,54 @@ export const prepareProject = (input: EnsureProjectInput) =>
       yield* requireSameSettings(
         "Project",
         input.name,
-        [
-          ["plan", input.plan, project.plan.slug],
-          ["region", input.region, project.region],
-        ],
+        [["region", input.region, project.region]],
         { project: describeProject(input.organization, project) }
       );
 
       return { existing: project, plan: project.plan, region: project.region };
     }
 
-    const planSlug = Option.getOrElse(input.plan, () => DEFAULT_PLAN);
     const plans = yield* orDescribe(api.call(listPlans));
-    const plan = plans.find((p) => p.slug === planSlug);
+    const plan = plans.find((p) => p.slug === DEFAULT_PLAN);
 
     if (plan === undefined) {
       return yield* fail(
-        "USAGE_ERROR",
-        `There is no "${planSlug}" plan. Available plans: ${plans.map((p) => p.slug).join(", ")}.`,
+        "API_ERROR",
+        `Saleor Cloud does not offer the "${DEFAULT_PLAN}" plan for new projects. Available plans: ${plans.map((p) => p.slug).join(", ")}.`,
         { details: { plans: plans.map((p) => p.slug) } }
       );
     }
 
-    const region = Option.getOrElse(input.region, () => DEFAULT_REGION);
-
-    // Only for a clearer error than Cloud's own; a failed lookup leaves it to Cloud.
-    const regions = yield* api
-      .call(listRegions)
-      .pipe(Effect.orElseSucceed(() => []));
-
-    if (regions.length > 0 && !regions.some((r) => r.name === region)) {
-      return yield* fail(
-        "USAGE_ERROR",
-        `There is no "${region}" region. Available regions: ${regions.map((r) => r.name).join(", ")}.`,
-        { details: { regions: regions.map((r) => r.name) } }
-      );
-    }
-
-    return { existing: undefined, plan, region };
+    return {
+      existing: undefined,
+      plan,
+      region: yield* regionFor(input.region),
+    };
   });
 
-export const ensureProject = (input: EnsureProjectInput) =>
-  Effect.gen(function* () {
-    const api = yield* CloudApi;
-    const prepared = yield* prepareProject(input);
+export type ProjectPlan = Effect.Success<ReturnType<typeof planProject>>;
 
-    if (prepared.existing !== undefined) {
-      return { created: false, project: prepared.existing };
+export const applyProject = (input: ProjectInput, planned: ProjectPlan) =>
+  Effect.gen(function* () {
+    if (planned.existing !== undefined) {
+      return { created: false, project: planned.existing };
     }
 
-    const { plan, region } = prepared;
-    yield* confirmPlanCost(plan, input.confirmPaidPlan);
+    const api = yield* CloudApi;
 
     const created = yield* orDescribe(
       api.call(createCreateProject, {
         body: {
           name: input.name,
-          plan: plan.slug,
-          region,
+          plan: planned.plan.slug,
+          region: planned.region,
         },
         path: { organization_slug: input.organization },
       })
+    );
+
+    yield* notice(
+      `Created project "${input.name}" in ${planned.region} (${planned.plan.slug} plan).`
     );
 
     const again = yield* rerunCommand();
@@ -235,67 +243,13 @@ export const ensureProject = (input: EnsureProjectInput) =>
     return { created: true, project };
   });
 
-// Cloud itself would delete a project's environments with it; this CLI refuses instead,
-// so deleting a project can never take a store with it.
-export const requireEmptyProject = (organization: string, project: Project) =>
-  Effect.gen(function* () {
-    const environments = yield* listEnvironments(organization, project.slug);
-
-    if (environments.length > 0) {
-      return yield* fail(
-        "PROJECT_NOT_EMPTY",
-        `Project "${project.slug}" still has ${environments.length === 1 ? "1 environment" : `${environments.length} environments`}: ${environments.map((env) => env.name).join(", ")}.`,
-        {
-          details: {
-            environments: environments.map((env) => ({
-              key: env.key,
-              name: env.name,
-            })),
-          },
-          suggestion: `Delete them first, for example: saleor env delete ${environments[0]?.key ?? "<env>"} --org ${organization}`,
-        }
-      );
-    }
-  });
-
-export const deleteProject = (organization: string, project: Project) =>
-  Effect.gen(function* () {
-    const api = yield* CloudApi;
-
-    // Checked again right before the write, in case an environment appeared meanwhile.
-    yield* requireEmptyProject(organization, project);
-    yield* api
-      .call(destroyProject, {
-        path: { organization_slug: organization, slug: project.slug },
-      })
-      .pipe(
-        Effect.catchTag(
-          "ApiStatusError",
-          (error): Effect.Effect<void, ApiStatusError | CliFailure> =>
-            error.status === 404
-              ? Effect.void
-              : busyRejection(
-                  error,
-                  "Saleor Cloud is busy with another task in this project.",
-                  {
-                    project: project.slug,
-                  }
-                )
-        ),
-        orDescribe
-      );
-  });
-
 // ── Environments ─────────────────────────────────────────────────────────
 
-export interface EnsureEnvironmentInput {
-  readonly deadline: Deadline;
+export interface EnvironmentInput {
   readonly domainLabel: Option.Option<string>;
-  readonly force?: boolean;
   readonly name: string;
   readonly organization: string;
   readonly project: Project;
-  readonly service: Option.Option<string>;
 }
 
 const compareVersions = (a: string, b: string) => {
@@ -313,11 +267,8 @@ const compareVersions = (a: string, b: string) => {
   return 0;
 };
 
-const pickSandboxService = (
-  organization: string,
-  project: Project,
-  requested: Option.Option<string>
-) =>
+// The newest sandbox service that is not in maintenance.
+const pickSandboxService = (organization: string, project: Project) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
 
@@ -328,28 +279,20 @@ const pickSandboxService = (
     );
 
     const [chosen] = services
-      .filter(
-        (s) =>
-          s.service_type === "SANDBOX" &&
-          !s.maintenance_mode &&
-          (Option.isNone(requested) || s.name === requested.value)
-      )
+      .filter((s) => s.service_type === "SANDBOX" && !s.maintenance_mode)
       .sort((a, b) => compareVersions(b.version ?? "", a.version ?? ""));
+
+    const details = { services: services.map((s) => s.name) };
 
     if (chosen === undefined) {
       return yield* fail(
-        "USAGE_ERROR",
-        Option.isSome(requested)
-          ? `No available sandbox service is named "${requested.value}". Available: ${
-              services
-                .filter(
-                  (s) => s.service_type === "SANDBOX" && !s.maintenance_mode
-                )
-                .map((s) => s.name)
-                .join(", ") || "none"
-            }.`
-          : `No sandbox service is available for project "${project.slug}" right now.`,
-        { details: { services: services.map((s) => s.name) } }
+        "UNAVAILABLE",
+        `No sandbox service is available for project "${project.slug}" right now.`,
+        {
+          details,
+          suggestion:
+            "Saleor Cloud may be updating its services. Try again in a few minutes.",
+        }
       );
     }
 
@@ -359,6 +302,7 @@ const pickSandboxService = (
 const classifyCreateRejection = (
   error: ApiStatusError,
   domainLabel: Option.Option<string>,
+  organization: string,
   project: Project
 ): Effect.Effect<never, ApiStatusError | CliFailure> => {
   const text = error.status === 400 ? flattenMessages(error.body) : "";
@@ -401,7 +345,7 @@ const classifyCreateRejection = (
         `Project "${project.slug}" has reached the limit of ${limit === undefined ? "" : `${limit} `}sandbox environments on its "${project.plan.slug}" plan.`,
         {
           details: { body: error.body, limit: limit ?? null },
-          suggestion: `Delete one you no longer need (see them with: saleor env list --project ${project.slug}), or upgrade the plan in the Saleor Cloud dashboard.`,
+          suggestion: `Delete one you no longer need (see them with: ${command("env", "list", "--org", organization, "--project", project.slug)}), or upgrade the plan in the Saleor Cloud dashboard.`,
         }
       )
     );
@@ -412,7 +356,7 @@ const classifyCreateRejection = (
 
 // Without a requested domain label, take a pre-warmed environment from the pool (Saleor
 // Cloud picks the label); otherwise create one with the label asked for.
-const requestEnvironment = (input: EnsureEnvironmentInput, service: string) =>
+const requestEnvironment = (input: EnvironmentInput, service: string) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
     const common = { name: input.name, project: input.project.slug, service };
@@ -437,13 +381,19 @@ const requestEnvironment = (input: EnsureEnvironmentInput, service: string) =>
 
     return yield* request.pipe(
       Effect.catchTag("ApiStatusError", (error) =>
-        classifyCreateRejection(error, input.domainLabel, input.project)
+        classifyCreateRejection(
+          error,
+          input.domainLabel,
+          input.organization,
+          input.project
+        )
       ),
       orDescribe
     );
   });
 
-export const prepareEnvironment = (input: EnsureEnvironmentInput) =>
+// Read-only: the sandbox to reuse, or the service a new one would run.
+export const planEnvironment = (input: EnvironmentInput) =>
   Effect.gen(function* () {
     const envs = yield* listEnvironments(
       input.organization,
@@ -455,7 +405,7 @@ export const prepareEnvironment = (input: EnsureEnvironmentInput) =>
     if (existing !== undefined) {
       if (!isSandbox(existing)) {
         return yield* fail(
-          "USAGE_ERROR",
+          "NAME_CONFLICT",
           `Environment "${input.name}" already exists and is a ${serviceTypeLabel(existing)} environment, not a sandbox. The CLI only creates and reuses sandboxes.`,
           { suggestion: "Choose a different name." }
         );
@@ -464,10 +414,7 @@ export const prepareEnvironment = (input: EnsureEnvironmentInput) =>
       yield* requireSameSettings(
         "Environment",
         input.name,
-        [
-          ["domain label", input.domainLabel, existing.domain_label],
-          ["service", input.service, existing.service.name],
-        ],
+        [["domain label", input.domainLabel, existing.domain_label]],
         { environment: describeEnvironment(input.organization, existing) }
       );
 
@@ -476,53 +423,51 @@ export const prepareEnvironment = (input: EnsureEnvironmentInput) =>
 
     const service = yield* pickSandboxService(
       input.organization,
-      input.project,
-      input.service
+      input.project
     );
 
     return { existing: undefined, service };
   });
 
-export const ensureEnvironment = (input: EnsureEnvironmentInput) =>
-  Effect.gen(function* () {
-    const { existing, service } = yield* prepareEnvironment(input);
+export type EnvironmentPlan = Effect.Success<
+  ReturnType<typeof planEnvironment>
+>;
 
-    if (existing !== undefined) {
+// Creates the planned sandbox, if it does not exist, and waits until it answers.
+export const applyEnvironment = (
+  input: EnvironmentInput,
+  planned: EnvironmentPlan,
+  deadline: Deadline
+) =>
+  Effect.gen(function* () {
+    if (planned.existing !== undefined) {
       const ready = yield* waitUntilReady(
         input.organization,
-        existing.key,
-        input.deadline
+        planned.existing.key,
+        deadline
       );
 
       return { created: false, environment: ready };
     }
 
-    if (input.project.plan.type !== "dev") {
-      const target = `environment "${input.name}" in ${input.organization} / ${input.project.slug}`;
-      const cost = `The "${input.project.plan.slug}" plan is paid${priceOf(input.project.plan)}; usage above its allowance may be charged.`;
-      yield* confirmDestructive(
-        {
-          question: `Create ${target}? ${cost}`,
-          refusal: `Not creating ${target} without confirmation. ${cost}`,
-        },
-        input.force ?? false
-      );
-    }
-
-    const created = yield* requestEnvironment(input, service);
+    const created = yield* requestEnvironment(input, planned.service);
 
     yield* notice(
       `Created environment "${input.name}" (${created.key}). Waiting until it is ready; this usually takes a few minutes…`
     );
 
+    // One heartbeat for the whole wait, however many tasks it spans.
+    const beat = heartbeat();
+
     if (created.task_id) {
-      yield* waitForTask(created.task_id, input.deadline, "Environment setup");
+      yield* waitForTask(created.task_id, deadline, "Environment setup", beat);
     }
 
     const ready = yield* waitUntilReady(
       input.organization,
       created.key,
-      input.deadline
+      deadline,
+      beat
     );
 
     return { created: true, environment: ready };

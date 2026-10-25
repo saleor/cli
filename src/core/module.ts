@@ -1,16 +1,19 @@
 import type { Layer } from "effect";
 import type { Command, GlobalFlag } from "effect/cli";
+import type { SetupProvider } from "./setup.ts";
 
 // A module is a unit of code ownership (Cloud today; Storefront, Configurator later).
 // It owns one or more top-level command words, and the layer that builds the services
 // those commands run with. The words are what users and agents type; the module is how
-// the code is organised.
+// the code is organised. A module that can run a store also contributes a setup
+// provider to `saleor init`.
 export interface CliModule {
   readonly commands: readonly Command.Command.Any[];
   readonly description: string;
   // Erased here; `defineModule` checked it against the commands' requirements.
   readonly layer: Layer.Layer<never>;
   readonly name: string;
+  readonly setup: SetupProvider<never> | undefined;
 }
 
 // Services the root command provides to every module: its global flags.
@@ -28,7 +31,12 @@ export const defineModule = <R>(module: {
   readonly description: string;
   readonly layer: Layer.Layer<NoInfer<Exclude<R, CoreServices>>>;
   readonly name: string;
-}): CliModule => module;
+  readonly setup?: SetupProvider<R>;
+}): CliModule => ({
+  ...module,
+  // SAFETY: like the commands, the setup provider's requirements were checked against the layer above; the composition root provides every module's layer.
+  setup: module.setup as SetupProvider<never> | undefined,
+});
 
 // Commands that belong to the CLI itself rather than to any module.
 export const RESERVED_WORDS = [

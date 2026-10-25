@@ -10,7 +10,7 @@ import { fail } from "../../core/errors.ts";
 import { OutputFlag } from "../../core/output.ts";
 import { SecretStore } from "../../core/secret-store.ts";
 import { Docker } from "./docker.ts";
-import { down, list, previewDown, status, up } from "./lifecycle.ts";
+import { down, list, planDown, planUp, up } from "./lifecycle.ts";
 import { instanceDir, readConfig } from "./state.ts";
 
 let dir: string;
@@ -40,7 +40,7 @@ const services = () =>
         calls.push([...args]);
 
         if (failing && args.includes(failing)) {
-          return Effect.fail(fail("TASK_FAILED", "Injected Docker failure"));
+          return Effect.fail(fail("DOCKER_FAILED", "Injected Docker failure"));
         }
 
         return Effect.succeed(
@@ -109,7 +109,7 @@ it("reuses ports, secrets and volumes across up/down/up", async () => {
   expect(
     readFileSync(path.join(instanceDir("test"), "compose.yaml"), "utf8")
   ).not.toContain(first.admin.password);
-  await runLocal(down("test", false, false));
+  await runLocal(down("test", false));
   expect(calls.at(-1)).not.toContain("--volumes");
   const second = await runLocal(up(options));
   expect(second.created).toBe(false);
@@ -121,7 +121,7 @@ it("reuses ports, secrets and volumes across up/down/up", async () => {
 it("recovers setup after a migration failure without changing credentials", async () => {
   failing = "migrate";
   expect((await runLocal(up(options).pipe(Effect.flip))).code).toBe(
-    "TASK_FAILED"
+    "DOCKER_FAILED"
   );
   const initialSecrets = new Map(secrets);
   expect((await runLocal(readConfig("test")))?.initialized).toBe(false);
@@ -143,18 +143,14 @@ it("returns NOT_READY after launch and can be retried", async () => {
 
 it("checks API readiness separately from container state", async () => {
   await runLocal(up(options));
-  expect((await runLocal(status("test"))).state).toBe("ready");
+  expect((await runLocal(list))[0]?.state).toBe("ready");
   ready = false;
-  expect((await runLocal(status("test"))).state).toBe("starting");
+  expect((await runLocal(list))[0]?.state).toBe("starting");
 });
 
-it("requires confirmation before volume deletion, then removes credentials and state", async () => {
+it("removes volumes, credentials and state when deleting data", async () => {
   await runLocal(up(options));
-  const count = calls.length;
-  const failure = await runLocal(down("test", true, false).pipe(Effect.flip));
-  expect(failure.code).toBe("CONFIRMATION_REQUIRED");
-  expect(calls).toHaveLength(count);
-  await runLocal(down("test", true, true));
+  await runLocal(down("test", true));
   expect(calls.at(-1)).toContain("--volumes");
   expect(secrets.size).toBe(0);
   expect(existsSync(instanceDir("test"))).toBe(false);
@@ -231,10 +227,38 @@ it("names a published port that another program took", async () => {
   }
 });
 
-it("treats stopping a missing instance as done", async () => {
-  const outcome = await runLocal(down("missing", true, false));
-  expect(outcome).toMatchObject({ existed: false, state: "absent" });
+it("plans nothing for a missing instance, without Docker", async () => {
+  expect(await runLocal(planDown("missing"))).toBeUndefined();
   expect(calls).toEqual([]);
+});
+
+it("plans up: create, finish, reuse or add sample data", async () => {
+  expect(await runLocal(planUp(options))).toMatchObject({
+    action: "create",
+    state: "absent",
+  });
+  failing = "migrate";
+  await runLocal(up(options).pipe(Effect.flip));
+  failing = undefined;
+  expect(await runLocal(planUp(options))).toMatchObject({
+    action: "create",
+    state: "incomplete",
+  });
+  await runLocal(up(options));
+  expect(await runLocal(planUp(options))).toMatchObject({
+    action: "reuse",
+    state: "ready",
+  });
+  expect(
+    await runLocal(planUp({ ...options, sampleData: true }))
+  ).toMatchObject({ action: "update" });
+  expect(
+    (
+      await runLocal(
+        planUp({ ...options, saleorVersion: "3.22.0" }).pipe(Effect.flip)
+      )
+    ).code
+  ).toBe("NAME_CONFLICT");
 });
 
 it("lists instances with their state", async () => {
@@ -245,9 +269,9 @@ it("lists instances with their state", async () => {
   expect(instances[0]?.state).toBe("ready");
 });
 
-it("shows local instances with the shared instance fields", async () => {
+it("prints the shared instance fields and login again for a running instance", async () => {
   await runLocal(up(options));
-  const shown = await runLocal(status("test"));
+  const shown = await runLocal(up(options));
   expect(shown).toMatchObject({
     kind: "local",
     name: "test",
@@ -258,39 +282,25 @@ it("shows local instances with the shared instance fields", async () => {
   expect(shown.admin.password?.length).toBeGreaterThan(20);
 });
 
-it.each([false, true])(
-  "previews local down (deleteData=%s) without changing containers, files or credentials",
-  async (deleteData) => {
-    await runLocal(up(options));
+it("plans down without changing containers, files or credentials", async () => {
+  await runLocal(up(options));
 
-    const configBefore = readFileSync(
-      path.join(instanceDir("test"), "instance.json"),
-      "utf8"
-    );
+  const configBefore = readFileSync(
+    path.join(instanceDir("test"), "instance.json"),
+    "utf8"
+  );
 
-    const secretsBefore = new Map(secrets);
-    calls = [];
-    const preview = await runLocal(previewDown("test", deleteData));
-    expect(preview).toMatchObject({
-      action: deleteData ? "delete" : "stop",
-      deleteData,
-      name: "test",
-      state: "ready",
-    });
-    expect(
-      calls.every((args) => !(args.includes("down") || args.includes("up")))
-    ).toBe(true);
-    expect(
-      readFileSync(path.join(instanceDir("test"), "instance.json"), "utf8")
-    ).toBe(configBefore);
-    expect(secrets).toEqual(secretsBefore);
-  }
-);
-
-it("previews an absent local instance without Docker", async () => {
-  expect(await runLocal(previewDown("missing", true))).toMatchObject({
-    action: "none",
-    state: "absent",
+  const secretsBefore = new Map(secrets);
+  calls = [];
+  expect(await runLocal(planDown("test"))).toMatchObject({
+    name: "test",
+    state: "ready",
   });
-  expect(calls).toEqual([]);
+  expect(
+    calls.every((args) => !(args.includes("down") || args.includes("up")))
+  ).toBe(true);
+  expect(
+    readFileSync(path.join(instanceDir("test"), "instance.json"), "utf8")
+  ).toBe(configBefore);
+  expect(secrets).toEqual(secretsBefore);
 });

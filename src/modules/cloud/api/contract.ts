@@ -17,7 +17,6 @@ const UserWithOnboardingInfoResponse = Schema.Struct({
 const PlanResponse = Schema.Struct({
   allowance: Schema.optionalKey(
     Schema.Struct({
-      period: Schema.optionalKey(Schema.String),
       sandboxes: Schema.optionalKey(
         Schema.Struct({
           cap: Schema.optionalKey(Schema.NullOr(Schema.Int)),
@@ -27,7 +26,6 @@ const PlanResponse = Schema.Struct({
     })
   ),
   name: Schema.String,
-  pricing: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   slug: Schema.String,
   type: Schema.String,
 });
@@ -112,17 +110,6 @@ export const listOrganizations = {
   queryParams: [],
   request: undefined,
   response: Schema.Array(OrganizationResponse),
-  successStatus: 200,
-} as const;
-
-export const retrieveOrganization = {
-  method: "GET",
-  path: "/api/organizations/{slug}/",
-  pathParams: ["slug"],
-  queryParams: [],
-  request: undefined,
-  response: OrganizationResponse,
-  successStatus: 200,
 } as const;
 
 export const retrieveUserWithOnboardingInfo = {
@@ -132,7 +119,6 @@ export const retrieveUserWithOnboardingInfo = {
   queryParams: [],
   request: undefined,
   response: UserWithOnboardingInfoResponse,
-  successStatus: 200,
 } as const;
 
 export const listPlans = {
@@ -142,7 +128,6 @@ export const listPlans = {
   queryParams: [],
   request: undefined,
   response: Schema.Array(PlanResponse),
-  successStatus: 200,
 } as const;
 
 export const listListProjects = {
@@ -152,7 +137,6 @@ export const listListProjects = {
   queryParams: [],
   request: undefined,
   response: Schema.Array(ListProjectResponse),
-  successStatus: 200,
 } as const;
 
 export const createCreateProject = {
@@ -162,27 +146,6 @@ export const createCreateProject = {
   queryParams: [],
   request: CreateProjectInput,
   response: ProjectResponse,
-  successStatus: 201,
-} as const;
-
-export const retrieveProject = {
-  method: "GET",
-  path: "/api/organizations/{organization_slug}/projects/{slug}/",
-  pathParams: ["organization_slug", "slug"],
-  queryParams: [],
-  request: undefined,
-  response: ProjectResponse,
-  successStatus: 200,
-} as const;
-
-export const destroyProject = {
-  method: "DELETE",
-  path: "/api/organizations/{organization_slug}/projects/{slug}/",
-  pathParams: ["organization_slug", "slug"],
-  queryParams: [],
-  request: undefined,
-  response: undefined,
-  successStatus: 204,
 } as const;
 
 export const listEnvironments = {
@@ -192,7 +155,6 @@ export const listEnvironments = {
   queryParams: [],
   request: undefined,
   response: Schema.Array(EnvironmentResponse),
-  successStatus: 200,
 } as const;
 
 export const createCreateEnvironment = {
@@ -202,17 +164,6 @@ export const createCreateEnvironment = {
   queryParams: [],
   request: CreateEnvironmentInput,
   response: CreateEnvironmentResponse,
-  successStatus: 201,
-} as const;
-
-export const retrieveEnvironment = {
-  method: "GET",
-  path: "/api/organizations/{organization_slug}/environments/{id}/",
-  pathParams: ["organization_slug", "id"],
-  queryParams: [],
-  request: undefined,
-  response: EnvironmentResponse,
-  successStatus: 200,
 } as const;
 
 export const destroyEnvironmentTask = {
@@ -222,7 +173,6 @@ export const destroyEnvironmentTask = {
   queryParams: [],
   request: undefined,
   response: undefined,
-  successStatus: 202,
 } as const;
 
 export const listEnvironmentTaskLists = {
@@ -237,7 +187,6 @@ export const listEnvironmentTaskLists = {
     previous: Schema.optionalKey(Schema.NullOr(Schema.String)),
     results: Schema.Array(EnvironmentTaskListResponse),
   }),
-  successStatus: 200,
 } as const;
 
 export const listProjectServices = {
@@ -247,7 +196,6 @@ export const listProjectServices = {
   queryParams: ["compatible_with"],
   request: undefined,
   response: Schema.Array(ServiceResponse),
-  successStatus: 200,
 } as const;
 
 export const listRegions = {
@@ -257,7 +205,6 @@ export const listRegions = {
   queryParams: [],
   request: undefined,
   response: Schema.Array(RegionResponse),
-  successStatus: 200,
 } as const;
 
 export const retrieveTaskStatus = {
@@ -267,7 +214,6 @@ export const retrieveTaskStatus = {
   queryParams: [],
   request: undefined,
   response: TaskStatusResponse,
-  successStatus: 200,
 } as const;
 
 export const obtainPreheatedEnvironmentObtainEnvironment = {
@@ -277,5 +223,4 @@ export const obtainPreheatedEnvironmentObtainEnvironment = {
   queryParams: [],
   request: ObtainEnvironmentInput,
   response: ObtainEnvironmentResponse,
-  successStatus: 201,
 } as const;

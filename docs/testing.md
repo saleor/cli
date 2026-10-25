@@ -10,15 +10,15 @@ GitHub Actions runs checks on pull requests and pushes to `main`. One Linux job 
 
 - Discovery: help, version, command catalog, argument validation, and explicit `--agent` output.
 - Authentication: device grant approval/error responses, pending login recovery, token refresh, private credential persistence, logout, and missing credentials.
-- Cloud lifecycle: organization listing, project creation/listing/reuse, environment creation/listing/inspection, `init` reuse, readiness polling, previews, and deletion. A stateful mock preserves resources between CLI invocations and checks the exact write sequence, so repeated commands must reuse resources instead of creating duplicates.
+- Cloud lifecycle: `init` creating a project and sandbox and then reusing both, environment listing, readiness polling, previews, and deletion. A stateful mock preserves resources between CLI invocations and checks the exact write sequence, so repeated commands must reuse resources instead of creating duplicates.
 - Store readiness: a local HTTPS server answers the Saleor `shop` GraphQL query. The test generates a short-lived certificate with OpenSSL and trusts it through `NODE_EXTRA_CA_CERTS`; TLS verification stays enabled. It checks that Cloud tokens are not sent to the store.
-- Safety and recovery: paid-plan consent, production deletion refusal, nonempty project refusal, dry runs without writes, explicit resource selection, ambiguous writes, busy tasks, retry suggestions, and resumable timeouts.
-- Local commands: `init --local`, `local up`, `list`, `status`, and `down` run against a fake Docker executable and a mock GraphQL API. The test checks retained instance configuration after stopping and distinguishes ordinary shutdown from volume deletion.
+- Safety and recovery: the billing notice, production deletion refusal, dry runs without writes, explicit resource selection, ambiguous writes, busy tasks, retry suggestions, and resumable timeouts.
+- Local commands: `init --local`, `local list` and `local down` run against a fake Docker executable and a mock GraphQL API. The test checks retained instance configuration after stopping and distinguishes ordinary shutdown from volume deletion.
 
-The existing local lifecycle unit suite separately covers fresh initialization, migration failures, credentials, ports, locks, and recovery. Interactive picker behavior is tested in the runtime and navigation suites.
+The local lifecycle unit suite separately covers fresh initialization, migration failures, credentials, ports and recovery. Core suites cover the shared conventions: `action.test.ts` (confirmation, review after questions, dry runs, absent targets), `target.test.ts` (target resolution and prompts), `lock.test.ts`, `runtime.test.ts` (menus), and `conventions.test.ts`, which checks every registered command against the rules of its kind.
 
 ## Boundaries
 
 These tests verify the CLI's process, filesystem, and HTTP behavior against the recorded API contract. They do not start real Saleor containers, validate Docker images or database migrations, exercise browser login approval, or use the OS keyring. They also do not prove that the live Cloud API still matches the fixtures. OpenSSL must be on `PATH` when running the end-to-end suite; it is available on the CI runners.
 
-`pnpm test:live` is a separate, manually invoked smoke test against real services. It is not part of CI.
+`pnpm test:live --org <slug>` is a separate, manually invoked smoke test against real services. It is not part of CI. With `--project <slug> --allow-create-delete` it creates a sandbox in that project and deletes it.

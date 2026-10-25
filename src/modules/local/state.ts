@@ -11,6 +11,7 @@ import net from "node:net";
 import path from "node:path";
 import { Effect, Predicate, Schema } from "effect";
 import { fail } from "../../core/errors.ts";
+import { command } from "../../core/invocation.ts";
 import { configDir, SecretStore } from "../../core/secret-store.ts";
 import {
   composeTemplate,
@@ -21,18 +22,28 @@ import {
 const NAME_PATTERN = /^[a-z][a-z0-9-]{0,39}$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
-export const localName = (name: string) =>
-  NAME_PATTERN.test(name)
-    ? Effect.succeed(name)
-    : Effect.fail(
-        fail(
-          "USAGE_ERROR",
-          "Local names must start with a lowercase letter and contain only lowercase letters, digits and hyphens (up to 40 characters)."
-        )
-      );
+// Why a local instance name is not allowed, if it is not. Names become Docker project
+// names and directory names, so they are restricted before anything else runs.
+// The command that creates or starts a local instance, for hints.
+export const startCommand = (name: string, ...extra: readonly string[]) =>
+  command("init", "--local", "--name", name, ...extra);
 
-export const instanceDir = (name: string) =>
-  path.join(configDir(), "local", name);
+export const nameProblem = (name: string) =>
+  NAME_PATTERN.test(name)
+    ? undefined
+    : "Local names must start with a lowercase letter and contain only lowercase letters, digits and hyphens (up to 40 characters).";
+
+export const localName = (name: string) => {
+  const problem = nameProblem(name);
+
+  return problem === undefined
+    ? Effect.succeed(name)
+    : Effect.fail(fail("USAGE_ERROR", problem));
+};
+
+export const localsDir = () => path.join(configDir(), "local");
+
+export const instanceDir = (name: string) => path.join(localsDir(), name);
 
 export const composeArgs = (name: string, args: readonly string[]) => [
   "compose",
@@ -67,8 +78,11 @@ export const readConfig = (name: string) =>
   Effect.try({
     catch: () =>
       fail(
-        "USAGE_ERROR",
-        `Local instance "${name}" has an unreadable configuration.`
+        "LOCAL_STATE_ERROR",
+        `Local instance "${name}" has an unreadable configuration.`,
+        {
+          suggestion: `Check or remove ${path.join(instanceDir(name), "instance.json")}.`,
+        }
       ),
     try: () => {
       const file = path.join(instanceDir(name), "instance.json");
@@ -84,7 +98,10 @@ export const readConfig = (name: string) =>
 export const saveConfig = (config: LocalConfig) =>
   Effect.try({
     catch: () =>
-      fail("TASK_FAILED", "Could not save the local instance configuration."),
+      fail(
+        "LOCAL_STATE_ERROR",
+        "Could not save the local instance configuration."
+      ),
     try: () => {
       const dir = instanceDir(config.name);
       mkdirSync(dir, { mode: 0o700, recursive: true });
@@ -137,6 +154,33 @@ export const freePorts = (count: number, avoid: readonly number[] = []) =>
     return ports;
   });
 
+// A set-up instance keeps its version: asking for another one is a conflict.
+export const requireCompatible = (
+  existing: LocalConfig,
+  version: string | undefined
+) =>
+  existing.initialized &&
+  version !== undefined &&
+  version !== existing.saleorVersion
+    ? Effect.fail(
+        fail(
+          "NAME_CONFLICT",
+          `Local instance "${existing.name}" already exists but its Saleor version is "${existing.saleorVersion}", not "${version}".`,
+          {
+            details: { saleorVersion: existing.saleorVersion, wanted: version },
+            suggestion: `Leave out --saleor-version to use it as it is, or create another instance: ${startCommand(`${existing.name}-${version.replaceAll(".", "-")}`, "--saleor-version", version)}`,
+          }
+        )
+      )
+    : Effect.void;
+
+export const requireVersionFormat = (version: string | undefined) =>
+  version === undefined || VERSION_PATTERN.test(version)
+    ? Effect.void
+    : Effect.fail(
+        fail("USAGE_ERROR", "Pass a complete Saleor version, such as 3.23.41.")
+      );
+
 // An instance whose first setup never finished has no data worth keeping, so it takes
 // the options of this run (a wrong --saleor-version is fixed by re-running). A set-up
 // instance keeps its version; sample data can be added to it but never removed.
@@ -158,16 +202,7 @@ const reuseConfig = (
       return { changed: true, config, created: false };
     }
 
-    if (version && version !== existing.saleorVersion) {
-      return yield* fail(
-        "NAME_CONFLICT",
-        `Local instance "${existing.name}" already exists but its Saleor version is "${existing.saleorVersion}", not "${version}".`,
-        {
-          details: { saleorVersion: existing.saleorVersion, wanted: version },
-          suggestion: `Leave out --saleor-version to use it as it is, or create another instance: saleor local up --name ${existing.name}-${version.replaceAll(".", "-")} --saleor-version ${version}`,
-        }
-      );
-    }
+    yield* requireCompatible(existing, version);
 
     if (sampleData && !existing.sampleData) {
       const config: LocalConfig = { ...existing, sampleData: true };
@@ -188,12 +223,7 @@ export const ensureConfig = (
   Effect.gen(function* () {
     yield* localName(name);
 
-    if (version !== undefined && !VERSION_PATTERN.test(version)) {
-      return yield* fail(
-        "USAGE_ERROR",
-        "Pass a complete Saleor version, such as 3.23.41."
-      );
-    }
+    yield* requireVersionFormat(version);
 
     const existing = yield* readConfig(name);
 
@@ -253,7 +283,7 @@ export const portInUse = (port: number) =>
 // Every local instance with saved state, by name.
 export const listInstanceNames = () =>
   Effect.sync(() => {
-    const dir = path.join(configDir(), "local");
+    const dir = localsDir();
 
     if (!existsSync(dir)) {
       return [];
@@ -284,19 +314,11 @@ type LocalSecrets = typeof SecretsSchema.Type;
 const parseSecrets = (raw: string) =>
   Schema.decodeUnknownEffect(Schema.fromJsonString(SecretsSchema))(raw).pipe(
     Effect.mapError(() =>
-      fail("TASK_FAILED", "The saved local credentials are unreadable.")
+      fail("LOCAL_STATE_ERROR", "The saved local credentials are unreadable.")
     )
   );
 
 // The saved admin password of an instance, if it has one.
-export const savedPassword = (name: string) =>
-  Effect.gen(function* () {
-    const store = yield* SecretStore;
-    const raw = yield* store.get(secretKey(name));
-
-    return raw === undefined ? null : (yield* parseSecrets(raw)).password;
-  });
-
 export const prepareSecrets = (config: LocalConfig) =>
   Effect.gen(function* () {
     const store = yield* SecretStore;
@@ -318,7 +340,7 @@ export const prepareSecrets = (config: LocalConfig) =>
     yield* Effect.try({
       catch: () =>
         fail(
-          "TASK_FAILED",
+          "LOCAL_STATE_ERROR",
           "Could not write the private Docker environment files."
         ),
       try: () => {

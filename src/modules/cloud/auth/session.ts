@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Schema } from "effect";
 import type { HttpClient } from "effect/http";
 import { type CliFailure, fail } from "../../../core/errors.ts";
+import { command } from "../../../core/invocation.ts";
 import { SecretStore } from "../../../core/secret-store.ts";
 import {
   DeviceTokens,
@@ -97,8 +98,7 @@ export const SessionLive = Layer.effect(
           "AUTH_REQUIRED",
           "You are not logged in to Saleor Cloud.",
           {
-            suggestion:
-              "Log in with: saleor login\nFor CI and scripts, set SALEOR_CLOUD_TOKEN instead.",
+            suggestion: `Log in with: ${command("login")}\nFor CI and scripts, set SALEOR_CLOUD_TOKEN instead.`,
           }
         );
       }

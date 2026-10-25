@@ -2,11 +2,8 @@ import { spinner } from "@clack/prompts";
 import { Effect, Exit, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import type { CliFailure } from "./errors.ts";
-import { catalogInfo } from "./input-info.ts";
 
 export type OutputFormat = "text" | "json";
-
-catalogInfo.flag("output", { env: "SALEOR_OUTPUT" });
 
 export const OutputFlag = GlobalFlag.Setting("output")({
   flag: Flag.Literals("output", ["text", "json"]).pipe(

@@ -1,7 +1,7 @@
 import { Duration, Effect, Option, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { type CliFailure, fail } from "./errors.ts";
-import { resumeCommand } from "./invocation.ts";
+import { rerunCommand } from "./invocation.ts";
 import { notice } from "./output.ts";
 
 // A wait budget for one command run. Running out is not a failure: the command returns
@@ -22,7 +22,7 @@ export const notReady = (
   details: CliFailure["details"],
   location = "Saleor Cloud"
 ) =>
-  Effect.flatMap(resumeCommand, (command) =>
+  Effect.flatMap(rerunCommand({ resume: true }), (command) =>
     Effect.fail(
       fail("NOT_READY", `Stopped waiting: ${message}`, {
         details,

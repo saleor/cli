@@ -1,6 +1,9 @@
 import { Effect, Option } from "effect";
+import type { TargetRef } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
-import { type InstanceState, instance } from "../../core/target.ts";
+import { type InstanceState, instance } from "../../core/instance.ts";
+import type { Choice } from "../../core/interaction.ts";
+import { command } from "../../core/invocation.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
 import {
   type EnvironmentResponse,
@@ -71,24 +74,11 @@ export const describeEnvironment = (
 
 export type EnvironmentDetails = ReturnType<typeof describeEnvironment>;
 
-export const describePricing = (
-  value: Readonly<Record<string, string>> | undefined
-) =>
-  value === undefined
-    ? null
-    : Object.fromEntries(
-        Object.entries(value).map(([key, item]) => [
-          key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase()),
-          item,
-        ])
-      );
-
 export const describeProject = (organization: string, project: Project) => ({
   name: project.name,
   organization,
   plan: project.plan.slug,
   planType: project.plan.type ?? null,
-  pricing: describePricing(project.plan.pricing),
   region: project.region,
   sandboxes: project.sandboxes?.count ?? null,
   slug: project.slug,
@@ -132,7 +122,7 @@ const uniqueMatch = <A extends { readonly name: string }>(
   if (matches.length > 1) {
     return Effect.fail(
       fail(
-        "NAME_CONFLICT",
+        "AMBIGUOUS_TARGET",
         `More than one ${kind} is named "${ref}": ${matches.map(key).join(", ")}.`,
         {
           details: { matches: matches.map(key) },
@@ -150,7 +140,7 @@ export const findProject = (organization: string, ref: string) =>
     uniqueMatch(projects, ref, (p) => p.slug, "project")
   );
 
-export const requireProject = (organization: string, ref: string) =>
+const requireProject = (organization: string, ref: string) =>
   Effect.flatMap(findProject(organization, ref), (project) =>
     Option.match(project, {
       onNone: () =>
@@ -158,7 +148,7 @@ export const requireProject = (organization: string, ref: string) =>
           "NOT_FOUND",
           `Project "${ref}" does not exist in organization "${organization}".`,
           {
-            suggestion: `See existing projects with: saleor project list --org ${organization}\nOr create it with: saleor project create ${ref} --org ${organization}`,
+            suggestion: `See the environments in each project with: ${command("env", "list", "--org", organization)}\nOr create a store in it with: ${command("init", "--org", organization, "--project", ref)}`,
           }
         ),
       onSome: Effect.succeed,
@@ -204,45 +194,51 @@ export const findEnvironment = (
     uniqueMatch(envs, ref, (env) => env.key, "environment")
   );
 
-export const requireEnvironment = (
+// ── Targets ──────────────────────────────────────────────────────────────
+
+export const environmentTarget = (
   organization: string,
-  ref: string,
-  projectSlug?: string
-) =>
-  Effect.flatMap(findEnvironment(organization, ref, projectSlug), (env) =>
-    Option.match(env, {
-      onNone: () =>
-        fail(
-          "NOT_FOUND",
-          projectSlug === undefined
-            ? `Environment "${ref}" does not exist in organization "${organization}".`
-            : `Environment "${ref}" does not exist in project "${projectSlug}".`,
-          {
-            suggestion: `List environments with: saleor env list --org ${organization}${projectSlug === undefined ? "" : ` --project ${projectSlug}`}`,
-          }
-        ),
-      onSome: Effect.succeed,
-    })
+  env: Environment
+): TargetRef => ({
+  id: env.key,
+  name: env.name,
+  scope: { organization, project: env.project.slug },
+  type: "environment",
+});
+
+// What a person picks from, when a command needs a target it was not given.
+export const organizationChoices = Effect.map(listOrganizations, (orgs) =>
+  orgs.map(
+    // The slug is what to pass; shown only when the name does not already say it.
+    (org): Choice<string> =>
+      org.name === org.slug
+        ? { label: org.name, value: org.slug }
+        : { hint: org.slug, label: org.name, value: org.slug }
+  )
+);
+
+export const projectChoices = (organization: string) =>
+  Effect.map(listProjects(organization), (projects) =>
+    projects.map(
+      (project): Choice<string> => ({
+        hint: `${project.slug} · ${project.region} · ${project.plan.slug}`,
+        label: project.name,
+        value: project.slug,
+      })
+    )
   );
 
-// For commands that need a project: a missing one lists the choices, like a missing
-// organization does.
-export const requireProjectRef = (
+export const environmentChoices = (
   organization: string,
-  ref: Option.Option<string>
+  projectSlug: string | undefined,
+  only: (env: Environment) => boolean = () => true
 ) =>
-  Effect.gen(function* () {
-    if (Option.isSome(ref)) {
-      return yield* requireProject(organization, ref.value);
-    }
-
-    const slugs = (yield* listProjects(organization)).map((p) => p.slug);
-
-    return yield* fail("CONTEXT_MISSING", "No project selected.", {
-      details: { projects: slugs },
-      suggestion:
-        slugs.length > 0
-          ? `Pass --project <project> or set SALEOR_PROJECT. Projects in ${organization}: ${slugs.join(", ")}.`
-          : `Pass --project <project> or set SALEOR_PROJECT. ${organization} has no projects yet; create one with: saleor project create <name> --org ${organization}`,
-    });
-  });
+  Effect.map(listEnvironments(organization, projectSlug), (envs) =>
+    envs.filter(only).map(
+      (env): Choice<string> => ({
+        hint: `${env.key} · ${env.project.slug} · ${serviceTypeLabel(env)}`,
+        label: env.name,
+        value: env.key,
+      })
+    )
+  );

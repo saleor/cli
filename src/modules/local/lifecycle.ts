@@ -1,14 +1,9 @@
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import path from "node:path";
+import { rmSync } from "node:fs";
 import { Effect, Schema } from "effect";
+import type { TargetRef } from "../../core/action.ts";
 import { type CliFailure, fail } from "../../core/errors.ts";
-import { confirmDestructive } from "../../core/interaction.ts";
+import { type InstanceState, instance } from "../../core/instance.ts";
+import { withLock } from "../../core/lock.ts";
 import { notice, withProgress } from "../../core/output.ts";
 import {
   deadlineIn,
@@ -19,7 +14,6 @@ import {
   probeGraphql,
 } from "../../core/readiness.ts";
 import { SecretStore } from "../../core/secret-store.ts";
-import { type InstanceState, instance } from "../../core/target.ts";
 import type { LocalConfig } from "./compose.ts";
 import { checkDocker, Docker } from "./docker.ts";
 import {
@@ -30,62 +24,36 @@ import {
   instanceDir,
   listInstanceNames,
   localName,
+  localsDir,
   portInUse,
   prepareSecrets,
   readConfig,
+  requireCompatible,
+  requireVersionFormat,
   saveConfig,
-  savedPassword,
   secretKey,
+  startCommand,
   withMailPort,
 } from "./state.ts";
 
-// Serialize lifecycle writes to one instance. A crashed process leaves a PID that can
-// be reclaimed; a live CLI gets an actionable retry instead of racing migrations.
+// Serialize lifecycle writes to one instance, so two commands never race migrations.
 const withInstanceLock = <A, R>(
   name: string,
   effect: Effect.Effect<A, CliFailure, R>
 ) =>
-  Effect.acquireUseRelease(
-    Effect.try({
-      catch: () =>
-        fail(
-          "NOT_READY",
-          `Another command is updating local instance "${name}".`,
-          {
-            retry: true,
-            suggestion: "Wait for that command to finish, then try again.",
-          }
-        ),
-      try: () => {
-        const dir = instanceDir(name);
-        mkdirSync(dir, { mode: 0o700, recursive: true });
-        const lock = path.join(path.dirname(dir), `.${name}.lock`);
-
-        if (existsSync(lock)) {
-          const pid = Number(readFileSync(lock, "utf8"));
-          let active = true;
-
-          try {
-            process.kill(pid, 0);
-          } catch {
-            active = false;
-          }
-
-          if (active) {
-            throw new Error("Instance is busy");
-          }
-
-          rmSync(lock);
-        }
-
-        writeFileSync(lock, String(process.pid), { flag: "wx", mode: 0o600 });
-
-        return lock;
-      },
-    }),
-    () => effect,
-    (lock) => Effect.sync(() => rmSync(lock, { force: true }))
+  withLock(
+    localsDir(),
+    name,
+    `Another command is updating local instance "${name}".`,
+    effect
   );
+
+export const localTarget = (name: string): TargetRef => ({
+  id: null,
+  name,
+  scope: {},
+  type: "local-instance",
+});
 
 const bootstrap = (sampleData: boolean) => `
 import os
@@ -159,7 +127,10 @@ const containersOf = (name: string) =>
 
     return yield* Effect.try({
       catch: () =>
-        fail("TASK_FAILED", "Docker returned an unreadable container status."),
+        fail(
+          "DOCKER_FAILED",
+          "Docker returned an unreadable container status."
+        ),
       try: () => parseContainers(raw),
     });
   });
@@ -198,7 +169,7 @@ const requireFreePorts = (
           `Port ${port}, used by the ${label} of local instance "${config.name}", is taken by another program.`,
           {
             details: { port, service },
-            suggestion: `Stop that program (see it with: lsof -nP -iTCP:${port} -sTCP:LISTEN), or move the instance to new ports: saleor local up --name ${config.name} --new-ports`,
+            suggestion: `Stop that program (see it with: lsof -nP -iTCP:${port} -sTCP:LISTEN), or move the instance to new ports: ${startCommand(config.name, "--new-ports")}`,
           }
         );
       }
@@ -217,7 +188,7 @@ const explainPullFailure = (config: LocalConfig) => (failure: CliFailure) =>
           "USAGE_ERROR",
           `Saleor ${config.saleorVersion} is not published as a Docker image (ghcr.io/saleor/saleor:${config.saleorVersion}).`,
           {
-            suggestion: `Pick a released version from https://github.com/saleor/saleor/releases, then run: saleor local up --name ${config.name} --saleor-version <version>`,
+            suggestion: `Pick a released version from https://github.com/saleor/saleor/releases, then run: ${startCommand(config.name, "--saleor-version", "<version>")}`,
           }
         )
       )
@@ -392,32 +363,6 @@ export const up = (options: LocalUpOptions) =>
     );
   });
 
-export const requireConfig = (name: string) =>
-  Effect.gen(function* () {
-    yield* localName(name);
-    const config = yield* readConfig(name);
-
-    if (!config) {
-      const others = yield* listInstanceNames();
-
-      return yield* fail(
-        "NOT_FOUND",
-        `Local instance "${name}" does not exist.`,
-        {
-          details: { instances: others },
-          suggestion: [
-            ...(others.length > 0
-              ? [`Existing instances: ${others.join(", ")}.`]
-              : []),
-            `Create it with: saleor local up --name ${name}`,
-          ].join("\n"),
-        }
-      );
-    }
-
-    return config;
-  });
-
 const describeInstance = (config: LocalConfig) =>
   Effect.gen(function* () {
     const containers = yield* containersOf(config.name);
@@ -437,18 +382,6 @@ const describeInstance = (config: LocalConfig) =>
     return { ...localInstance(config, state), containers };
   });
 
-export const status = (name: string) =>
-  Effect.gen(function* () {
-    const config = yield* requireConfig(name);
-    yield* checkDocker;
-    const described = yield* describeInstance(config);
-
-    return {
-      ...described,
-      admin: { email: adminEmail, password: yield* savedPassword(name) },
-    };
-  });
-
 export const list = Effect.gen(function* () {
   const names = yield* listInstanceNames();
 
@@ -456,7 +389,17 @@ export const list = Effect.gen(function* () {
     return [];
   }
 
-  yield* checkDocker;
+  // Without a Docker engine nothing can be running: list every instance as stopped
+  // instead of failing, so a person can still see what they have.
+  const engine = yield* checkDocker.pipe(
+    Effect.as(true),
+    Effect.catchIf(
+      (error) =>
+        error.code === "DOCKER_NOT_RUNNING" || error.code === "DOCKER_MISSING",
+      (error) =>
+        Effect.as(notice(`${error.message} Every instance is stopped.`), false)
+    )
+  );
 
   const instances = yield* Effect.forEach(names, (name) =>
     Effect.gen(function* () {
@@ -464,6 +407,10 @@ export const list = Effect.gen(function* () {
 
       if (config === undefined) {
         return [];
+      }
+
+      if (!engine) {
+        return [localInstance(config, "stopped")];
       }
 
       const { containers: _, ...shown } = yield* describeInstance(config);
@@ -475,31 +422,56 @@ export const list = Effect.gen(function* () {
   return instances.flat();
 });
 
-export const down = (name: string, deleteData: boolean, force: boolean) =>
+// Read-only: what `up` would do with these options.
+export const planUp = (options: LocalUpOptions) =>
+  Effect.gen(function* () {
+    yield* localName(options.name);
+    yield* requireVersionFormat(options.saleorVersion);
+    const existing = yield* readConfig(options.name);
+
+    if (existing === undefined) {
+      return { action: "create" as const, state: "absent" as const };
+    }
+
+    // A first setup that never finished is finished by this run.
+    if (!existing.initialized) {
+      return { action: "create" as const, state: "incomplete" as const };
+    }
+
+    yield* requireCompatible(existing, options.saleorVersion);
+    yield* checkDocker;
+    const { state } = yield* describeInstance(existing);
+
+    return {
+      action:
+        options.sampleData && !existing.sampleData
+          ? ("update" as const)
+          : ("reuse" as const),
+      state,
+    };
+  });
+
+// Read-only: the instance `down` would stop, or nothing.
+export const planDown = (name: string) =>
   Effect.gen(function* () {
     yield* localName(name);
+    const config = yield* readConfig(name);
 
-    // Same rule as deleting a Cloud environment: nothing there is not an error.
-    if (!(yield* readConfig(name))) {
-      return {
-        deletedData: false,
-        existed: false,
-        name,
-        state: "absent",
-        wasRunning: false,
-      };
+    if (config === undefined) {
+      return;
     }
 
-    if (deleteData) {
-      yield* confirmDestructive(
-        {
-          question: `Delete local instance "${name}" and all its data?`,
-          refusal: `Not deleting local instance "${name}" without confirmation.`,
-        },
-        force
-      );
-    }
+    yield* checkDocker;
+    const { containers: _, ...details } = yield* describeInstance(config);
 
+    return details;
+  });
+
+// Stops the instance; with `deleteData`, also removes its volumes, credentials and
+// files. Confirmation is the caller's: this only acts.
+export const down = (name: string, deleteData: boolean) =>
+  Effect.gen(function* () {
+    yield* localName(name);
     yield* checkDocker;
 
     return yield* withInstanceLock(
@@ -524,34 +496,7 @@ export const down = (name: string, deleteData: boolean, force: boolean) =>
           );
         }
 
-        return {
-          deletedData: deleteData,
-          existed: true,
-          name,
-          state: deleteData ? "absent" : "stopped",
-          wasRunning,
-        };
+        return { wasRunning };
       })
     );
-  });
-
-export const previewDown = (name: string, deleteData: boolean) =>
-  Effect.gen(function* () {
-    yield* localName(name);
-    const config = yield* readConfig(name);
-
-    if (config === undefined) {
-      return {
-        action: "none",
-        deleteData,
-        kind: "local",
-        name,
-        state: "absent",
-      };
-    }
-
-    yield* checkDocker;
-    const { containers: _, ...details } = yield* describeInstance(config);
-
-    return { ...details, action: deleteData ? "delete" : "stop", deleteData };
   });
