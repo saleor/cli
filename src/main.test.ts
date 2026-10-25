@@ -689,6 +689,26 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     }
   );
 
+  it("reuses an environment named by its key, as the picker gives it", async () => {
+    resourceRoutes([environment("env1", "dev")]);
+
+    const out = await cli([
+      "init",
+      "--org",
+      "acme",
+      "--project",
+      "poc",
+      "--env",
+      "env1",
+      "--dry-run",
+    ]);
+
+    expect(out.data.data).toMatchObject({
+      action: "reuse",
+      target: { id: "env1", name: "dev" },
+    });
+  });
+
   it("reads SALEOR_PROJECT and SALEOR_ENV in init", async () => {
     resourceRoutes([environment()]);
     const fallback = handler;

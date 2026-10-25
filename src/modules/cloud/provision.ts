@@ -33,7 +33,6 @@ import {
   findEnvironment,
   findProject,
   isSandbox,
-  listEnvironments,
   type Project,
   serviceTypeLabel,
 } from "./lookup.ts";
@@ -395,12 +394,10 @@ const requestEnvironment = (input: EnvironmentInput, service: string) =>
 // Read-only: the sandbox to reuse, or the service a new one would run.
 export const planEnvironment = (input: EnvironmentInput) =>
   Effect.gen(function* () {
-    const envs = yield* listEnvironments(
-      input.organization,
-      input.project.slug
+    // `--env` and the picker give a name or a key; both find the same environment.
+    const existing = Option.getOrUndefined(
+      yield* findEnvironment(input.organization, input.name, input.project.slug)
     );
-
-    const existing = envs.find((env) => env.name === input.name);
 
     if (existing !== undefined) {
       if (!isSandbox(existing)) {
