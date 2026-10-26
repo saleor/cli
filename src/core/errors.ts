@@ -95,6 +95,10 @@ export const ERRORS = {
     "Only sandboxes can be deleted from the CLI."
   ),
   TASK_FAILED: failed("A provisioning task failed."),
+  TEMPLATE_FAILED: failed(
+    "A project template could not be downloaded or unpacked.",
+    true
+  ),
   UNAVAILABLE: failed(
     "The service cannot do this right now. Run the command again later.",
     true

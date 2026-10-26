@@ -159,3 +159,47 @@ it("treats cancellation as an interruption", async () => {
       Cause.hasInterruptsOnly(outcome.cause)
   ).toBe(true);
 });
+
+it("runs a detour row, asks again, and never lists it as a choice", async () => {
+  const answers: Answer[] = [];
+  let signedIn = false;
+  const picks = ["\0sign-in", "acme"];
+  const select = vi.fn(async () => picks.shift() ?? "");
+
+  const options = {
+    choices: Effect.sync(() =>
+      signedIn
+        ? [{ label: "acme", value: "acme" }]
+        : [{ label: "Log in", value: "\0sign-in" }]
+    ),
+    detours: {
+      "\0sign-in": Effect.sync(() => {
+        signedIn = true;
+      }),
+    },
+  };
+
+  const run = (dryRun: boolean) =>
+    org.resolve(Option.none(), options).pipe(
+      Effect.provideService(OutputFlag, Option.some("text")),
+      Effect.provideService(ActionContext, {
+        answers,
+        dryRun,
+        force: false,
+        kind: "ensure",
+      }),
+      Effect.provideService(Prompts, {
+        confirm: async () => true,
+        select,
+        text: async () => "",
+      })
+    );
+
+  signedIn = false;
+  const failure = await Effect.runPromise(Effect.flip(run(true)));
+  expect(failure.details).toMatchObject({ choices: [] });
+
+  expect(await Effect.runPromise(run(false))).toBe("acme");
+  expect(select).toHaveBeenCalledTimes(2);
+  expect(answers).toEqual([{ option: ["--org", "acme"] }]);
+});

@@ -1,11 +1,14 @@
 import { execFileSync, spawn } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { createServer } from "node:http";
@@ -13,6 +16,7 @@ import { createServer as createSecureServer } from "node:https";
 import os from "node:os";
 import path from "node:path";
 import { Predicate } from "effect";
+import { createTarGzip } from "nanotar";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import samples from "./modules/cloud/api/fixtures/cloud-samples.json" with {
   type: "json",
@@ -22,6 +26,8 @@ const ENV_VARIABLE = /\b(SALEOR_[A-Z_]+)\b/;
 const PROMISED_DEFAULT = /\(default |Defaults to "/;
 const NOT_FROM_ENV = /never use/;
 const DRY_RUN_TEXT = /^Dry run: would (delete|create)/;
+const DEMO_HEADER = /^# saleor: instance=local:demo /;
+const SALEOR_HEADER = /# saleor:/g;
 
 // SALEOR_CLI_BIN runs the same tests against another entry, such as the build output.
 const executable = path.resolve(process.env.SALEOR_CLI_BIN ?? "bin/saleor.mjs");
@@ -818,6 +824,8 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "saleor env delete",
       "saleor local list",
       "saleor local down",
+      "saleor storefront create",
+      "saleor storefront connect",
     ]);
     // Targets are optional to the parser: the action resolves them (flag, variable,
     // question) and reports CONTEXT_MISSING itself.
@@ -1764,5 +1772,256 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     expect(out.code).toBe(1);
     expect(out.data.error).toMatchObject({ code: "UNAVAILABLE", retry: true });
     expect(requests.some((req) => req.method === "POST")).toBe(false);
+  });
+
+  describe("storefronts", () => {
+    let templateUrl: string;
+    let closeTemplate: () => Promise<void>;
+    let fakeBin: string;
+
+    // A local store "demo" (and "other") whose API is the mock server, a Docker that
+    // reports it running, git, and a template server with a minimal storefront.
+    beforeEach(async () => {
+      credentials = {};
+      fakeBin = path.join(cwd, "fake-bin");
+      mkdirSync(fakeBin);
+      writeFileSync(
+        path.join(fakeBin, "docker"),
+        `#!${process.execPath}
+if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", State:"running"}));
+`
+      );
+      chmodSync(path.join(fakeBin, "docker"), 0o700);
+      symlinkSync(
+        execFileSync("which", ["git"]).toString().trim(),
+        path.join(fakeBin, "git")
+      );
+
+      for (const name of ["demo", "other"]) {
+        const dir = path.join(cwd, "config/local", name);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(
+          path.join(dir, "instance.json"),
+          JSON.stringify({
+            apiPort: Number(new URL(base).port),
+            dashboardPort: 9000,
+            initialized: true,
+            name,
+            saleorVersion: "3.23.41",
+            sampleData: false,
+          })
+        );
+      }
+
+      handler = (_method, _url, body) =>
+        Predicate.isString(body?.query) && body.query.includes("channel(")
+          ? [
+              200,
+              {
+                data: {
+                  channel:
+                    body.variables.slug === "default-channel"
+                      ? { slug: "default-channel" }
+                      : null,
+                },
+              },
+            ]
+          : [200, { data: { shop: { name: "Local" } } }];
+
+      const archive = await createTarGzip([
+        {
+          data: '{"name":"saleor-storefront"}',
+          name: "storefront-main/package.json",
+        },
+        {
+          data: "NEXT_PUBLIC_SALEOR_API_URL=https://your-instance.saleor.cloud/graphql/\nNEXT_PUBLIC_DEFAULT_CHANNEL=default-channel\nCONTENT_PROVIDER=saleor\n",
+          name: "storefront-main/.env.example",
+        },
+        { data: ".env\nnode_modules\n", name: "storefront-main/.gitignore" },
+      ]);
+
+      const server = createServer((_req, res) => {
+        res.writeHead(200);
+        res.end(Buffer.from(archive));
+      });
+
+      await new Promise<void>((resolve) =>
+        server.listen(0, "127.0.0.1", resolve)
+      );
+      const address = server.address();
+
+      if (address === null || Predicate.isString(address)) {
+        throw new Error("Expected TCP address");
+      }
+
+      templateUrl = `http://127.0.0.1:${address.port}/storefront.tar.gz`;
+      closeTemplate = () =>
+        new Promise<void>((resolve) => server.close(() => resolve()));
+    });
+
+    afterEach(async () => {
+      await closeTemplate();
+    });
+
+    const env = () => ({
+      GIT_AUTHOR_EMAIL: "test@example.com",
+      GIT_AUTHOR_NAME: "Test",
+      GIT_COMMITTER_EMAIL: "test@example.com",
+      GIT_COMMITTER_NAME: "Test",
+      PATH: fakeBin,
+      SALEOR_STOREFRONT_TEMPLATE_URL: templateUrl,
+    });
+
+    const storefront = (...args: string[]) =>
+      cli(["storefront", ...args, "--agent"], env());
+
+    it("creates a storefront connected to a store, reuses it, and reconnects it", async () => {
+      const created = await storefront("create", "--instance", "local:demo");
+      expect(created.code, created.stdout + created.stderr).toBe(0);
+      expect(created.data.data).toMatchObject({
+        channel: "default-channel",
+        created: true,
+        env: {
+          NEXT_PUBLIC_DEFAULT_CHANNEL: "default-channel",
+          NEXT_PUBLIC_SALEOR_API_URL: `${base}/graphql/`.replace(
+            "127.0.0.1",
+            "localhost"
+          ),
+        },
+        installed: false,
+        next: ["cd storefront", "pnpm install", "pnpm dev"],
+        repository: "created",
+        store: { kind: "local", ref: "local:demo", state: "ready" },
+        warnings: [],
+      });
+
+      const dir = path.join(cwd, "storefront");
+      const dotenv = readFileSync(path.join(dir, ".env"), "utf8");
+      expect(dotenv.split("\n")[0]).toMatch(DEMO_HEADER);
+      // The template's own defaults stay.
+      expect(dotenv).toContain("CONTENT_PROVIDER=saleor");
+
+      // One commit with the template, without the store's .env.
+      const committed = execFileSync("git", ["ls-files"], {
+        cwd: dir,
+      }).toString();
+
+      expect(committed.split("\n").filter(Boolean).sort()).toEqual([
+        ".env.example",
+        ".gitignore",
+        "package.json",
+      ]);
+
+      const again = await storefront("create", "--instance", "local:demo");
+      expect(again.data.data).toMatchObject({ created: false });
+
+      const elsewhere = await storefront("create", "--instance", "local:other");
+      expect(elsewhere.code).toBe(1);
+      expect(elsewhere.data.error.code).toBe("NAME_CONFLICT");
+      expect(elsewhere.data.error.suggestion).toContain(
+        "saleor storefront connect --dir storefront --instance local:other"
+      );
+
+      const moved = await storefront(
+        "connect",
+        "--instance",
+        "local:other",
+        "--channel",
+        "eu"
+      );
+
+      expect(moved.code, moved.stderr).toBe(0);
+      expect(moved.data.data).toMatchObject({
+        channel: "eu",
+        created: false,
+        store: { ref: "local:other" },
+      });
+      expect(moved.data.data.warnings).toEqual([
+        expect.stringContaining('has no channel "eu"'),
+      ]);
+      const reconnected = readFileSync(path.join(dir, ".env"), "utf8");
+      expect(reconnected).toContain("instance=local:other");
+      expect(reconnected).toContain("NEXT_PUBLIC_DEFAULT_CHANNEL=eu");
+      expect(reconnected.match(SALEOR_HEADER)).toHaveLength(1);
+    });
+
+    it("previews without writing and refuses directories that are not storefronts", async () => {
+      const preview = await storefront(
+        "create",
+        "--instance",
+        "local:demo",
+        "--dir",
+        "shop",
+        "--dry-run"
+      );
+
+      expect(preview.data.data).toMatchObject({
+        action: "create",
+        dryRun: true,
+        target: { name: "shop", type: "storefront" },
+      });
+      expect(existsSync(path.join(cwd, "shop"))).toBe(false);
+
+      mkdirSync(path.join(cwd, "notes"));
+      writeFileSync(path.join(cwd, "notes/todo.txt"), "keep");
+
+      const refused = await storefront(
+        "create",
+        "--instance",
+        "local:demo",
+        "--dir",
+        "notes"
+      );
+
+      expect(refused.data.error.code).toBe("NAME_CONFLICT");
+
+      const missing = await storefront("connect", "--instance", "local:demo");
+      expect(missing.data.error.code).toBe("NOT_FOUND");
+
+      // Without a store, the error lists the ones there are; Cloud needs a login.
+      const unnamed = await storefront("create");
+      expect(unnamed.code).toBe(2);
+      expect(unnamed.data.error).toMatchObject({
+        code: "CONTEXT_MISSING",
+        details: {
+          choices: ["local:demo", "local:other"],
+          input: "--instance <ref>",
+        },
+      });
+    });
+
+    it("sets up a project folder with the storefront through init", async () => {
+      const out = await cli(
+        ["init", "--local", "--name", "demo", "--storefront", "--agent"],
+        env()
+      );
+
+      expect(out.code, out.stdout + out.stderr).toBe(0);
+      expect(out.data.data).toMatchObject({
+        ref: "local:demo",
+        storefront: {
+          created: true,
+          path: path.join(realpathSync(cwd), "demo/storefront"),
+          repository: "created",
+          store: { ref: "local:demo" },
+        },
+      });
+      expect(existsSync(path.join(cwd, "demo/.git"))).toBe(true);
+      expect(existsSync(path.join(cwd, "demo/storefront/.git"))).toBe(false);
+
+      const again = await cli(
+        ["init", "--local", "--name", "demo", "--storefront", "--agent"],
+        env()
+      );
+
+      expect(again.data.data.storefront).toMatchObject({ created: false });
+
+      const preview = await cli(
+        ["init", "--local", "--name", "demo", "--dry-run", "--agent"],
+        env()
+      );
+
+      expect(preview.data.data.details.storefront).toBeUndefined();
+    });
   });
 });
