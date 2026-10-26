@@ -1,6 +1,6 @@
 # Command conventions
 
-The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), log in and out, see what stores exist (`env list`, `local list`) and get rid of one (`env delete`, `local down`). `init` is idempotent, so it also starts a stopped store and prints the addresses of an existing one; there is no separate "create", "start" or "show". Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
+The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), log in and out, see what stores exist (`env list`, `local list`) and get rid of one (`env delete`, `local down`), and start a storefront connected to one (`storefront create`, `storefront connect`). `init` is idempotent, so it also starts a stopped store and prints the addresses of an existing one; there is no separate "create", "start" or "show". Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
 
 Every command is an action of one **kind**. The kind is the policy: which flags exist, how targets are found, when it asks for confirmation, what `--dry-run` does, how its result is shaped and what the catalog says about its safety. A command declares its kind and supplies only what is specific to it. It does not implement any of the rules below itself.
 
@@ -11,7 +11,7 @@ The rules live in `src/core/action.ts` (kinds), `src/core/target.ts` (targets), 
 | Kind | Examples | Adds | Result `data` | Text |
 | --- | --- | --- | --- | --- |
 | `list` | `env list`, `local list` | — | array of items | table, or an empty-state line |
-| `ensure` | `init` | `--dry-run`; `--timeout` if it waits | the resource plus `created` | `✓ <target> is ready (created \| already existed).` then details |
+| `ensure` | `init`, `storefront create`, `storefront connect` | `--dry-run`; `--timeout` if it waits | the resource plus `created` | `✓ <target> is ready (created \| already existed).` then details |
 | `remove` | `env delete`, `local down` | `--dry-run`, `--force`; `--timeout` if it waits | `{ action, existed, target, … }` | `✓ Deleted <target>.`, `✓ Stopped <target>.`, or `✓ <target> does not exist; nothing to do.` |
 | `session` | `login`, `logout`, `commands` | — | about the CLI or its login | free text |
 
@@ -81,3 +81,9 @@ The provider is chosen in this order:
 4. the default.
 
 Environment variables never choose a provider. Typing flags of two providers is a `USAGE_ERROR`. Adding a provider needs no change to `init`.
+
+Modules that build on a store contribute a **setup extension** (`defineModule({ setupExtension })`) instead of a provider. Its questions come after the provider's, once everything needed for the store is known. Its plan joins the store's plan, so `--dry-run` and the review show it. Its preparation runs while the store is set up, and it finishes with whichever store the provider made. Its result sits under its name in `init`'s result (`data.storefront`).
+
+## Stores across modules
+
+A command that works with a store wherever it runs takes it as a ref with `--instance` (`SALEOR_INSTANCE`): `cloud:<org>/<env key>` or `local:<name>`. Modules that run stores contribute an **instance source** (`defineModule({ instances })`) that lists and finds their instances; `src/core/instances.ts` resolves the ref through them and builds the picker from all of them. A source that needs a login shows a "Log in to …" row in the picker instead of failing it (a **detour** in `target.ts`: a row that does something and then asks again). Modules never import each other.

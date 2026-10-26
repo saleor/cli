@@ -19,3 +19,6 @@
 - Local stacks have been exercised with Docker, but the Dashboard UI and arbitrary API/Dashboard version combinations have not been reviewed in a browser.
 - All modules load at startup; there is no startup-time budget yet.
 - The production API omits `login` and `password` from environment responses, which the published schema marks required; the CLI treats them as optional.
+- Storefronts follow the template's `main` branch, so a change upstream can change what is downloaded; the CLI warns when the template stops mentioning a key it sets. Only the GraphQL API URL and the default channel are configured: no `SALEOR_APP_TOKEN` (channel discovery, guest order lookup), because the CLI cannot create store tokens yet.
+- Whether a channel exists is checked with the public `channel` query; a store that hides it is reported as not checked.
+- The project folder `init --storefront` creates has no manifest yet: later commands find nothing in it but the storefront. There is no app template module yet.

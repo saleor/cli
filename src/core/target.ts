@@ -54,6 +54,11 @@ export interface ResolveOptions<R> {
     // The name used when the answer is left blank; without it, a name is required.
     readonly whenBlank?: () => string;
   };
+  // Rows of `choices` that do something first, such as logging in, and then ask
+  // again. Their values are never a target, so errors do not list them.
+  readonly detours?: Readonly<
+    Record<string, Effect.Effect<void, CliFailure, R>>
+  >;
   // Where to go when there is nothing to choose from.
   readonly emptyHint?: string;
   // The failure when nothing exists and nothing can be created.
@@ -154,7 +159,11 @@ export const target = (definition: TargetDefinition) => {
     const missing = <R>(options: ResolveOptions<R>, kind: ActionKind) =>
       Effect.gen(function* () {
         // Best effort: the failure is about the missing input, not about listing.
-        const listed = yield* Effect.option(options.choices);
+        const listed = Option.map(
+          yield* Effect.option(options.choices),
+          (all) => all.filter((c) => options.detours?.[c.value] === undefined)
+        );
+
         const values = Option.map(listed, (all) => all.map((c) => c.value));
 
         // What to pass, with the name a person knows it by when that differs.
@@ -220,7 +229,9 @@ export const target = (definition: TargetDefinition) => {
       );
 
     // Step 3: a person picks one of the existing ones, or names a new one.
-    const ask = <R>(options: ResolveOptions<R>) =>
+    const ask = <R>(
+      options: ResolveOptions<R>
+    ): Effect.Effect<string, CliFailure, R> =>
       Effect.gen(function* () {
         const choices = yield* options.choices;
         const { create } = options;
@@ -239,10 +250,24 @@ export const target = (definition: TargetDefinition) => {
           message: `Which ${definition.noun}?`,
         });
 
-        return selected === NEW && create !== undefined
-          ? yield* askNew(create)
-          : selected;
+        return yield* answer(options, selected);
       });
+
+    // What a picked row means: a target, a new name to ask for, or a detour.
+    const answer = <R>(
+      options: ResolveOptions<R>,
+      selected: string
+    ): Effect.Effect<string, CliFailure, R> => {
+      const detour = options.detours?.[selected];
+
+      if (detour !== undefined) {
+        return Effect.andThen(detour, ask(options));
+      }
+
+      return selected === NEW && options.create !== undefined
+        ? askNew(options.create)
+        : Effect.succeed(selected);
+    };
 
     // The target's value, resolved by the rules above.
     const resolve = <R>(

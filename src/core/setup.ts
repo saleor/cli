@@ -1,11 +1,14 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, type Schema } from "effect";
 import {
+  changes,
   defineActions,
   type Ensured,
   type KindValues,
+  type Plan,
   type Planned,
   type Values,
 } from "./action.ts";
+import { type CommandResult, result } from "./command.ts";
 import { type CliFailure, fail } from "./errors.ts";
 import {
   type Input,
@@ -13,6 +16,7 @@ import {
   type InputValues,
   option,
 } from "./inputs.ts";
+import type { Instance } from "./instance.ts";
 import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
 
@@ -23,7 +27,8 @@ import { command, recordAnswer } from "./invocation.ts";
 
 type Inputs = Readonly<Record<string, Input<InputValue>>>;
 
-export interface SetupResult {
+// Every provider sets up a store, so its result is one: an instance (see instance.ts).
+export interface SetupResult extends Instance {
   readonly created: boolean;
 }
 
@@ -70,10 +75,123 @@ export const defineSetup = <
     provider.plan(input as Values<I> & KindValues),
 });
 
+// Something more `init` sets up next to the store, such as a storefront. Its questions
+// come after the provider's, once everything needed for the store is known; it works
+// with whichever store the provider made, so it knows no provider.
+export interface SetupExtension<R> {
+  // A sentence for `init`'s description: what it adds and how to ask for it.
+  readonly description: string;
+  readonly inputs: Inputs;
+  // None when it is not wanted this time.
+  readonly plan: (
+    input: InputValues & KindValues,
+    store: Plan
+  ) => Effect.Effect<Option.Option<ExtensionPlan<R>>, CliFailure, R>;
+}
+
+export interface ExtensionPlan<R> {
+  readonly apply: (
+    store: SetupResult
+  ) => Effect.Effect<CommandResult<unknown>, CliFailure, R>;
+  // Whether applying it changes anything.
+  readonly changes: boolean;
+  readonly details: Schema.Json;
+  // Its key in the result and the plan's details: "storefront".
+  readonly name: string;
+  // Work that does not need the store, done while the store is being set up.
+  readonly prepare: Effect.Effect<void, CliFailure, R>;
+  readonly summary: ReadonlyArray<readonly [label: string, value: string]>;
+}
+
+export const defineSetupExtension = <I extends Inputs, R, RA>(extension: {
+  readonly description: string;
+  readonly inputs: I;
+  readonly plan: (
+    input: Values<I> & KindValues,
+    store: Plan
+  ) => Effect.Effect<Option.Option<ExtensionPlan<RA>>, CliFailure, R>;
+}): SetupExtension<R | RA> => ({
+  description: extension.description,
+  inputs: extension.inputs,
+  plan: (input, store) =>
+    // SAFETY: as in defineSetup, `init` declares these inputs and passes the parsed record.
+    extension.plan(input as Values<I> & KindValues, store),
+});
+
+// The store's plan with the extensions' work added: the store is set up while they
+// prepare, then each one finishes with the store, and its result sits under its name.
+const extend = <R>(
+  store: Planned<Ensured<SetupResult>, R>,
+  extensions: readonly ExtensionPlan<R>[]
+): Planned<Ensured<SetupResult>, R> => {
+  if (extensions.length === 0) {
+    return store;
+  }
+
+  const extra = extensions.some((extension) => extension.changes);
+
+  return {
+    ...store,
+    // A store that exists already is still "updated" when something is added to it.
+    action: extra && !changes(store) ? "update" : store.action,
+    apply: Effect.gen(function* () {
+      // A preparation is not interrupted when the store fails or stops waiting, so a
+      // download is never left half-written; running `init` again picks it up.
+      const [ready, ...prepared] = yield* Effect.all(
+        [
+          Effect.exit(store.apply),
+          ...extensions.map((extension) => Effect.exit(extension.prepare)),
+        ],
+        { concurrency: "unbounded" }
+      );
+
+      const ensured = yield* ready;
+
+      for (const exit of prepared) {
+        yield* exit;
+      }
+
+      const outcomes = yield* Effect.forEach(extensions, (extension) =>
+        Effect.map(extension.apply(ensured.data), (outcome) => ({
+          name: extension.name,
+          outcome,
+        }))
+      );
+
+      return {
+        ...result(
+          {
+            ...ensured.data,
+            ...Object.fromEntries(
+              outcomes.map(({ name, outcome }) => [name, outcome.data])
+            ),
+          },
+          [
+            ensured.text,
+            ...outcomes.flatMap(({ outcome }) => ["", outcome.text]),
+          ].join("\n")
+        ),
+        target: ensured.target,
+      };
+    }),
+    details: Object.fromEntries([
+      ...Object.entries(store.details),
+      ...extensions.map((extension) => [extension.name, extension.details]),
+    ]),
+    summary: [
+      ...(store.summary ?? []),
+      ...extensions.flatMap((extension) => extension.summary),
+    ],
+  };
+};
+
 const isSet = (value: InputValue | undefined) =>
   Option.isOption(value) ? Option.isSome(value) : value === true;
 
-export const setupCommand = <R>(providers: readonly SetupProvider<R>[]) => {
+export const setupCommand = <R>(
+  providers: readonly SetupProvider<R>[],
+  extensions: readonly SetupExtension<R>[] = []
+) => {
   const [fallback, ...others] = [
     ...providers.filter((p) => p.flag === undefined),
     ...providers.filter((p) => p.flag !== undefined),
@@ -95,8 +213,8 @@ export const setupCommand = <R>(providers: readonly SetupProvider<R>[]) => {
 
   const merged = new Map<string, Input<InputValue>>(Object.entries(selectors));
 
-  for (const provider of providers) {
-    for (const [key, input] of Object.entries(provider.inputs)) {
+  for (const owner of [...providers, ...extensions]) {
+    for (const [key, input] of Object.entries(owner.inputs)) {
       if (merged.has(key)) {
         throw new Error(`Setup input "${key}" is declared twice.`);
       }
@@ -203,7 +321,7 @@ export const setupCommand = <R>(providers: readonly SetupProvider<R>[]) => {
       : failure;
 
   return defineActions().ensure({
-    description: `Create or reuse a working Saleor store and print how to reach it. Uses ${fallback.label} by default${others.map((p) => `; pass --${p.flag} for ${p.label}`).join("")}. In a terminal, it asks for anything missing. Does not scaffold application code. Safe to run again after an interruption.`,
+    description: `Create or reuse a working Saleor store and print how to reach it. Uses ${fallback.label} by default${others.map((p) => `; pass --${p.flag} for ${p.label}`).join("")}. In a terminal, it asks for anything missing. ${extensions.length === 0 ? "Does not scaffold application code." : extensions.map((e) => e.description).join(" ")} Safe to run again after an interruption.`,
     examples: providers.map((p) => p.example),
     inputs,
     name: "init",
@@ -212,9 +330,15 @@ export const setupCommand = <R>(providers: readonly SetupProvider<R>[]) => {
         const { explicit, provider } = yield* choose(input);
         yield* provider.before;
 
-        return yield* provider
+        const store = yield* provider
           .plan(input)
           .pipe(Effect.mapError(explicit ? (e) => e : otherProviders));
+
+        const extra = yield* Effect.forEach(extensions, (extension) =>
+          extension.plan(input, store)
+        );
+
+        return extend(store, extra.flatMap(Option.toArray));
       }),
     summary: `Set up a Saleor store in ${[fallback, ...others].map((p) => p.label).join(" or ")}.`,
     waits: true,

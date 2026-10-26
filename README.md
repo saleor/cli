@@ -1,6 +1,6 @@
 # Saleor CLI
 
-Set up and manage Saleor stores in Saleor Cloud or locally with Docker.
+Set up and manage Saleor stores in Saleor Cloud or locally with Docker, and storefronts connected to them.
 
 ## Get started
 
@@ -34,6 +34,16 @@ pnpm saleor local down
 ```
 
 You'll be asked which instance to use. To choose it directly, add `--name my-store`. Stopping an instance keeps its data. Run `pnpm saleor init --local --name my-store` to start it again, or to print its addresses and admin login.
+
+## Create a storefront
+
+```sh
+pnpm saleor storefront create
+```
+
+Pick a store (Cloud or local) and the CLI downloads the [Saleor storefront template](https://github.com/saleor/storefront) into `./storefront`, points its `.env` at the store's API and channel, and makes it a git repository. Then `cd storefront && pnpm install && pnpm dev`. Point an existing storefront at another store with `pnpm saleor storefront connect`.
+
+`pnpm saleor init` also offers a storefront for the store it sets up (`--storefront`), in a folder for the project: `<project>/storefront`.
 
 ## Manage Cloud stores
 
