@@ -206,6 +206,7 @@ it("shows what answers will create before creating it, and records them for a re
   const { confirm } = await run(["make"], { text: "fresh" });
 
   expect(confirm).toHaveBeenCalledExactlyOnceWith({
+    back: false,
     initialValue: true,
     message: "Continue?",
   });

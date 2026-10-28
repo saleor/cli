@@ -19,6 +19,8 @@ import {
 import type { Instance } from "./instance.ts";
 import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
+import { askThen } from "./navigation.ts";
+import { notice } from "./output.ts";
 
 // `saleor init` is the one journey every provider shares: create a new store.
 // Each module that can run a store contributes a setup provider; this file composes
@@ -44,6 +46,17 @@ export interface SetupProvider<R> {
   readonly plan: (
     input: InputValues & KindValues
   ) => Effect.Effect<Planned<Ensured<SetupResult>, R>, CliFailure, R>;
+  readonly requirement: Requirement<R> | undefined;
+}
+
+// Something a provider needs before it can set up a store, such as a Cloud login.
+// While unmet, `init` still offers the provider, after the others and with this hint.
+export interface Requirement<R> {
+  readonly hint: string;
+  readonly met: Effect.Effect<boolean, never, R>;
+  // Printed before the question when there is something to say, such as the account
+  // the provider would use.
+  readonly status?: Effect.Effect<string | undefined, never, R>;
 }
 
 export const defineSetup = <
@@ -62,6 +75,7 @@ export const defineSetup = <
   readonly plan: (
     input: Values<I> & KindValues
   ) => Effect.Effect<Planned<Ensured<A>, RA>, CliFailure, R>;
+  readonly requirement?: Requirement<R>;
 }): SetupProvider<R | RA> => ({
   before: provider.before ?? Effect.void,
   example: provider.example,
@@ -73,6 +87,7 @@ export const defineSetup = <
   plan: (input) =>
     // SAFETY: `init` declares every provider's inputs on one command and passes the parsed record, so the keys of `I` hold the values its inputs parse to.
     provider.plan(input as Values<I> & KindValues),
+  requirement: provider.requirement,
 });
 
 // Something more `init` sets up next to the store, such as a storefront. Its questions
@@ -268,8 +283,8 @@ export const setupCommand = <R>(
 
   // Which provider: its own flag, else whichever provider's flags were typed, else a
   // person's choice, else the default. Environment variables never choose: an
-  // exported SALEOR_ORG is not a request for Cloud.
-  const choose = (input: InputValues) =>
+  // exported SALEOR_ORG is not a request for Cloud. None when the person is asked.
+  const decided = (input: InputValues) =>
     Effect.gen(function* () {
       const chosen = yield* requireOneProvider(
         input,
@@ -278,30 +293,57 @@ export const setupCommand = <R>(
       );
 
       if (chosen !== undefined) {
-        return { explicit: true, provider: chosen };
+        return Option.some({ explicit: true, provider: chosen });
       }
 
-      if (!(yield* isInteractive)) {
-        return { explicit: false, provider: fallback };
-      }
-
-      const name = yield* askSelect({
-        choices: providers.map((p) => ({
-          hint: p.hint,
-          label: p.label,
-          value: p.name,
-        })),
-        message: "Where should the new store run?",
-      });
-
-      const picked = providers.find((p) => p.name === name) ?? fallback;
-
-      if (picked.flag !== undefined) {
-        yield* recordAnswer({ flag: `--${picked.flag}` });
-      }
-
-      return { explicit: true, provider: picked };
+      return (yield* isInteractive)
+        ? Option.none()
+        : Option.some({ explicit: false, provider: fallback });
     });
+
+  const ask = Effect.gen(function* () {
+    // Always asked: a Cloud login does not mean every new store belongs in Cloud.
+    // Providers ready to use come first, so the likely answer is preselected.
+    const offers = yield* Effect.forEach(providers, (provider) => {
+      const { requirement } = provider;
+
+      return requirement === undefined
+        ? Effect.succeed({ hint: provider.hint, provider, ready: true })
+        : Effect.map(requirement.met, (met) => ({
+            hint: met ? provider.hint : requirement.hint,
+            provider,
+            ready: met,
+          }));
+    });
+
+    for (const provider of providers) {
+      const status = yield* provider.requirement?.status ?? Effect.void;
+
+      if (status !== undefined) {
+        yield* notice(status);
+      }
+    }
+
+    const name = yield* askSelect({
+      choices: [
+        ...offers.filter((offer) => offer.ready),
+        ...offers.filter((offer) => !offer.ready),
+      ].map(({ hint, provider }) => ({
+        hint,
+        label: provider.label,
+        value: provider.name,
+      })),
+      message: "Where should the new store run?",
+    });
+
+    const picked = providers.find((p) => p.name === name) ?? fallback;
+
+    if (picked.flag !== undefined) {
+      yield* recordAnswer({ flag: `--${picked.flag}` });
+    }
+
+    return { explicit: true, provider: picked };
+  });
 
   // A store that could not be resolved without questions might have been meant for
   // another provider: say how to ask for it.
@@ -327,18 +369,32 @@ export const setupCommand = <R>(
     name: "init",
     plan: (input) =>
       Effect.gen(function* () {
-        const { explicit, provider } = yield* choose(input);
-        yield* provider.before;
+        const planWith = ({
+          explicit,
+          provider,
+        }: {
+          readonly explicit: boolean;
+          readonly provider: (typeof providers)[number];
+        }) =>
+          Effect.gen(function* () {
+            yield* provider.before;
 
-        const store = yield* provider
-          .plan(input)
-          .pipe(Effect.mapError(explicit ? (e) => e : otherProviders));
+            const store = yield* provider
+              .plan(input)
+              .pipe(Effect.mapError(explicit ? (e) => e : otherProviders));
 
-        const extra = yield* Effect.forEach(extensions, (extension) =>
-          extension.plan(input, store)
-        );
+            const extra = yield* Effect.forEach(extensions, (extension) =>
+              extension.plan(input, store)
+            );
 
-        return extend(store, extra.flatMap(Option.toArray));
+            return extend(store, extra.flatMap(Option.toArray));
+          });
+
+        // Escape in a provider's own questions returns to where the store should run.
+        return yield* Option.match(yield* decided(input), {
+          onNone: () => askThen(ask, planWith),
+          onSome: planWith,
+        });
       }),
     summary: `Create a Saleor store in ${[fallback, ...others].map((p) => p.label).join(" or ")}.`,
     waits: true,

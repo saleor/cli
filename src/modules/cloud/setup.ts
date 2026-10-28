@@ -8,6 +8,7 @@ import type { InstanceState } from "../../core/instance.ts";
 import { deadlineIn } from "../../core/readiness.ts";
 import { defineSetup } from "../../core/setup.ts";
 import { ensureSignedIn } from "./auth/sign-in.ts";
+import { account, signedIn } from "./auth/signed-in.ts";
 import {
   describeEnvironment,
   type EnvironmentDetails,
@@ -266,4 +267,9 @@ export const cloudSetup = defineSetup({
         summary: [projectLine, ...planned.summary],
       };
     }),
+  requirement: {
+    hint: "you will log in to your Saleor Cloud account first",
+    met: signedIn,
+    status: account,
+  },
 });

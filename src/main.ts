@@ -1,20 +1,43 @@
 import { NodeServices } from "@effect/platform-node";
-import { type Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import packageJson from "../package.json" with { type: "json" };
 import { catalogCommand } from "./core/catalog.ts";
 import { GLOBAL_INPUTS } from "./core/globals.ts";
 import { InstanceSources } from "./core/instance.ts";
 import { NoInputFlag } from "./core/interaction.ts";
+import { HideFromMenu, MenuAvailable, MenuStatus } from "./core/menu.ts";
 import { collectCommands } from "./core/module.ts";
+import { onboard, onboardCommand } from "./core/onboarding.ts";
 import { AgentFlag, OutputFlag } from "./core/output.ts";
 import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { setupCommand } from "./core/setup.ts";
-import { cloudModule } from "./modules/cloud/index.ts";
-import { localModule } from "./modules/local/index.ts";
+import {
+  cloudAccount,
+  cloudModule,
+  cloudSignedIn,
+} from "./modules/cloud/index.ts";
+import { hasLocalInstances, localModule } from "./modules/local/index.ts";
 import { storefrontModule } from "./modules/storefront/index.ts";
 
-const modules = [cloudModule, localModule, storefrontModule];
+// People mostly work in Cloud or locally, not both. Once logged in to Cloud, the menu
+// leaves out local commands unless there are local instances to manage. Typed commands
+// always work.
+const offerLocal = Effect.map(
+  Effect.all([cloudSignedIn, hasLocalInstances]),
+  ([cloud, local]) => !cloud || local
+);
+
+const modules = [
+  cloudModule,
+  {
+    ...localModule,
+    commands: localModule.commands.map((command) =>
+      command.pipe(Command.annotate(MenuAvailable, offerLocal))
+    ),
+  },
+  storefrontModule,
+];
 
 // `init` comes first: getting a store is what most people come for.
 const moduleCommands = [
@@ -23,6 +46,7 @@ const moduleCommands = [
     modules.flatMap((module) => module.setupExtension ?? [])
   ),
   ...collectCommands(modules),
+  onboardCommand.pipe(Command.annotate(HideFromMenu, true)),
 ];
 
 export const root = Command.make("saleor").pipe(
@@ -36,10 +60,12 @@ export const root = Command.make("saleor").pipe(
       [...builtIns.map((global) => ({ global, info: {} })), ...GLOBAL_INPUTS]
     ),
   ]),
-  Command.withGlobalFlags([OutputFlag, NoInputFlag, AgentFlag])
+  Command.withGlobalFlags([OutputFlag, NoInputFlag, AgentFlag]),
+  Command.annotate(MenuStatus, cloudAccount)
 );
 
 const runCli = createCliRuntime(root, {
+  onboard,
   services: Layer.mergeAll(
     NodeServices.layer,
     Layer.succeed(

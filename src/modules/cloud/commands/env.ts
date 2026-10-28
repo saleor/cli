@@ -1,4 +1,5 @@
 import { Effect, Option } from "effect";
+import { Command } from "effect/cli";
 import {
   absent,
   defineGroup,
@@ -7,7 +8,9 @@ import {
 } from "../../../core/action.ts";
 import { fail } from "../../../core/errors.ts";
 import { command } from "../../../core/invocation.ts";
+import { MenuAvailable } from "../../../core/menu.ts";
 import { deadlineIn } from "../../../core/readiness.ts";
+import { signedIn } from "../auth/signed-in.ts";
 import {
   describeEnvironment,
   environmentChoices,
@@ -147,4 +150,4 @@ export const envCommand = defineGroup({
     "List and delete Saleor Cloud environments. An environment is one running Saleor instance with its own GraphQL API and dashboard; create one with saleor init.",
   name: "env",
   summary: "List and delete Cloud environments.",
-});
+}).pipe(Command.annotate(MenuAvailable, signedIn));

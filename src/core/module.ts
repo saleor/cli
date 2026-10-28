@@ -56,6 +56,7 @@ export const defineModule = <R>(module: {
 // Commands that belong to the CLI itself rather than to any module.
 export const RESERVED_WORDS = [
   "commands",
+  "onboard",
   "init",
   "help",
   "version",

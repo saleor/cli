@@ -42,6 +42,8 @@ export interface SessionService {
   readonly saveLogin: (tokens: DeviceTokens) => Effect.Effect<void>;
   readonly savePendingGrant: (grant: PendingDeviceGrant) => Effect.Effect<void>;
   readonly status: Effect.Effect<{
+    // From the saved login's token, without a request; absent for SALEOR_CLOUD_TOKEN.
+    readonly email?: string | undefined;
     readonly source: "env" | "login" | "none";
     readonly store: string;
   }>;
@@ -64,6 +66,21 @@ const decodeStored = <A, I>(
   } catch {
     // Corrupt or incompatible credentials require a new login.
   }
+};
+
+const TokenClaims = Schema.Struct({ email: Schema.optionalKey(Schema.String) });
+
+// Keycloak access tokens are JWTs carrying the account's email. Read it for display
+// only; the signature is not checked, so never trust it for anything else.
+const emailOf = (token: string) => {
+  const [, payload] = token.split(".");
+
+  return payload === undefined
+    ? undefined
+    : decodeStored(
+        TokenClaims,
+        Buffer.from(payload, "base64url").toString("utf8")
+      )?.email;
 };
 
 export const SessionLive = Layer.effect(
@@ -155,8 +172,13 @@ export const SessionLive = Layer.effect(
 
         const tokens = yield* loadTokens;
 
+        if (tokens === undefined) {
+          return { source: "none" as const, store: store.backend };
+        }
+
         return {
-          source: tokens === undefined ? ("none" as const) : ("login" as const),
+          email: emailOf(tokens.accessToken),
+          source: "login" as const,
           store: store.backend,
         };
       }),

@@ -21,6 +21,7 @@ import { helpFormatter } from "./help.ts";
 import { isInteractive, NoInputFlag } from "./interaction.ts";
 import { Invocation } from "./invocation.ts";
 import { groupMenu, homeMenu } from "./menu.ts";
+import { Onboarding } from "./onboarding.ts";
 import {
   OutputFlag,
   outputFormatFromArgv,
@@ -31,6 +32,10 @@ import {
 } from "./output.ts";
 
 interface CliRuntimeOptions<Services> {
+  readonly onboard?: (
+    execute: (argv: readonly string[]) => Effect.Effect<void>,
+    force: boolean
+  ) => Effect.Effect<boolean>;
   readonly services: Layer.Layer<Services>;
   readonly version: string;
 }
@@ -167,6 +172,31 @@ const allowsQuestions = (argv: readonly string[]) =>
     ? Effect.succeed(false)
     : isInteractive;
 
+const navigate = (
+  command: Command.Command.Any,
+  onboard: CliRuntimeOptions<never>["onboard"],
+  path: readonly string[],
+  rawArgv: readonly string[],
+  argv: readonly string[],
+  execute: (argv: readonly string[]) => Effect.Effect<void>
+) =>
+  Effect.gen(function* () {
+    const home = path.length <= 1;
+
+    if (
+      onboard !== undefined &&
+      home &&
+      rawArgv.length === 0 &&
+      !(yield* onboard(execute, false))
+    ) {
+      return;
+    }
+
+    yield* home
+      ? homeMenu(command, execute)
+      : groupMenu(command, path, argv, execute);
+  });
+
 // Owns the process-facing CLI policy: argument aliases, output routing, parser
 // failures, menus, interruption handling and the boundary around erased command types.
 // Every command line, including the ones menus run, goes through the same runtime.
@@ -232,9 +262,14 @@ const runtime = <Services>(
 
           showParserOutput = false;
 
-          yield* error.commandPath.length <= 1
-            ? homeMenu(command, nested)
-            : groupMenu(command, error.commandPath, argv, nested);
+          yield* navigate(
+            command,
+            options.onboard,
+            error.commandPath,
+            rawArgv,
+            argv,
+            nested
+          );
 
           return;
         }
@@ -264,6 +299,17 @@ const runtime = <Services>(
     Effect.provideService(
       CliOutput.Formatter,
       helpFormatter(format === "text" && useColors())
+    ),
+    Effect.provideService(
+      Onboarding,
+      Effect.gen(function* () {
+        if (
+          options.onboard !== undefined &&
+          (yield* options.onboard(nested, true))
+        ) {
+          yield* homeMenu(command, nested);
+        }
+      })
     ),
     Effect.provideService(Invocation, rawArgv),
     Effect.provideService(CliConfig.CliConfig, CliConfig.make({ builtIns })),

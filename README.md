@@ -13,7 +13,9 @@ pnpm saleor init
 
 Choose where to create your new store. Cloud setup asks you to log in when needed. In Cloud, you can use an existing project as its destination. The CLI offers to open your dashboard when your store is ready.
 
-Not sure what to run? Use `pnpm saleor` to pick a command. Press Esc in a submenu to return to the previous menu, or Ctrl+C to exit. After a command finishes, the CLI returns to your shell. Add `--help` to any command for details.
+Run `pnpm saleor` for a short first-run welcome: connect to Cloud, continue locally, or browse commands without setup. Browsing skips login and skills installation. Revisit setup with `pnpm saleor onboard`. Onboarding can install Saleor skills for Claude Code, Codex, or Cursor, either in your current project or for all your projects. The Cloud path also offers MCP installation. In this prototype, the MCP backend is mocked: the prompts show the intended setup experience, but no app is installed and no MCP configuration is written. Later runs open the command menu, which follows where you work: before you log in to Cloud it offers login and local commands; once logged in it offers Cloud environments, and local commands only if you have local instances. Every command still works when typed. `init` always asks where the new store should run. When you are logged in, it first shows which Cloud account it would use and lists Cloud first; otherwise local comes first. Press Esc at any question to go back a step: to the first onboarding question, to where `init`'s store should run, or to the menu you came from. Press Ctrl+C to exit. After a command finishes, the CLI returns to your shell. Add `--help` to any command for details.
+
+Small terminals and `NO_COLOR` use a compact welcome.
 
 ## Run locally
 

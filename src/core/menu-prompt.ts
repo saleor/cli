@@ -1,6 +1,6 @@
 import type { Readable, Writable } from "node:stream";
 import { styleText } from "node:util";
-import { isCancel, SelectPrompt } from "@clack/core";
+import { SelectPrompt } from "@clack/core";
 import {
   formatInstructionFooter,
   limitOptions,
@@ -10,9 +10,10 @@ import {
   symbol,
 } from "@clack/prompts";
 import type { Choice } from "./interaction.ts";
+import { BACK } from "./navigation.ts";
 
 interface MenuPromptOptions {
-  readonly back?: string | undefined;
+  readonly back: boolean;
   readonly choices: readonly Choice<string>[];
   readonly initialValue?: string | undefined;
   readonly input?: Readable;
@@ -32,7 +33,7 @@ export const menuPrompt = async (options: MenuPromptOptions) => {
     options: [...options.choices],
     output: options.output ?? process.stdout,
     render() {
-      const back = escaped && options.back !== undefined;
+      const back = escaped && options.back;
       const state = this.state === "cancel" && back ? "submit" : this.state;
       const header = `${styleText("gray", S_BAR)}\n${symbol(state)}  ${options.message}\n`;
 
@@ -45,7 +46,7 @@ export const menuPrompt = async (options: MenuPromptOptions) => {
       const instructions = [
         "↑/↓ to navigate",
         "Enter: confirm",
-        ...(options.back === undefined ? [] : ["Esc: back"]),
+        ...(options.back ? ["Esc: back"] : []),
         "Ctrl+C: exit",
       ];
 
@@ -72,15 +73,13 @@ export const menuPrompt = async (options: MenuPromptOptions) => {
     escaped = key.name === "escape";
   });
   prompt.on("finalize", () => {
-    // Escape at the root has no parent to navigate to, so keep the picker open.
-    if (escaped && options.back === undefined) {
+    // With no way back, Escape is not an answer, so keep the picker open.
+    if (escaped && !options.back) {
       prompt.state = "active";
     }
   });
 
   const answer = await prompt.prompt();
 
-  return isCancel(answer) && escaped && options.back !== undefined
-    ? options.back
-    : answer;
+  return escaped && options.back ? BACK : answer;
 };
