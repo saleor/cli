@@ -5,9 +5,9 @@ import { option } from "../../core/inputs.ts";
 import { defineSetup } from "../../core/setup.ts";
 import { SALEOR_VERSION } from "./compose.ts";
 import { type LocalUpOptions, localTarget, planUp, up } from "./lifecycle.ts";
-import { instance, instanceChoices } from "./targets.ts";
+import { instance } from "./targets.ts";
 
-const connection = (data: {
+export const connection = (data: {
   readonly graphqlUrl: string;
   readonly dashboardUrl: string | null;
   readonly mailUrl: string | null;
@@ -23,12 +23,11 @@ const connection = (data: {
 
 const newInstance = instance.input({ creates: true });
 
-// `saleor init --local`: create a local instance, or start an existing one, and print
-// how to reach it and log in. Running it again on a running instance only prints that.
+// Create a local store; an explicitly named instance can resume an earlier setup.
 export const localSetup = defineSetup({
   example: {
     command: "saleor init --local",
-    description: "Start a local store with Docker",
+    description: "Create a local store with Docker",
   },
   flag: "local",
   hint: "Docker on this computer, no login needed",
@@ -53,10 +52,10 @@ export const localSetup = defineSetup({
   plan: (input) =>
     Effect.gen(function* () {
       const name = yield* newInstance.resolve(input.name, {
-        choices: instanceChoices,
+        choices: Effect.succeed([]),
         create: {
           label: "Create a new instance",
-          prompt: "Local instance name",
+          prompt: "New local instance name",
         },
       });
 

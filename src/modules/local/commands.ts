@@ -5,8 +5,11 @@ import {
   listing,
   type Planned,
 } from "../../core/action.ts";
+import { result } from "../../core/command.ts";
+import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { down, list, localTarget, planDown } from "./lifecycle.ts";
+import { down, list, localTarget, planDown, planUp, up } from "./lifecycle.ts";
+import { connection } from "./setup.ts";
 import { startCommand } from "./state.ts";
 import {
   instance,
@@ -17,7 +20,7 @@ import {
 
 const localList = local.list({
   description:
-    "List local instances on this computer, whether each one is running, and their URLs. Start one with saleor init --local.",
+    "List local instances on this computer, whether each one is running, and their URLs. Start one with saleor local up.",
   inputs: {},
   name: "list",
   run: () =>
@@ -38,6 +41,58 @@ const localList = local.list({
 });
 
 const existingInstance = instance.input();
+
+const localUp = local.ensure({
+  description:
+    "Start an existing local instance and print its URLs and admin login. Create a new store with saleor init --local.",
+  inputs: {
+    name: existingInstance,
+    newPorts: option.boolean(
+      "new-ports",
+      "Move the instance to new free ports, keeping its data."
+    ),
+  },
+  name: "up",
+  plan: (input) =>
+    Effect.gen(function* () {
+      const name = yield* existingInstance.resolve(input.name, {
+        choices: instanceChoices,
+        emptyHint: noInstancesHint,
+      });
+
+      const existing = yield* planDown(name);
+
+      if (existing === undefined) {
+        return yield* fail(
+          "NOT_FOUND",
+          `There is no local instance named ${name}.`,
+          { suggestion: noInstancesHint }
+        );
+      }
+
+      const options = {
+        name,
+        newPorts: input.newPorts,
+        saleorVersion: undefined,
+        sampleData: false,
+        timeout: input.timeout,
+      };
+
+      const planned = yield* planUp(options);
+
+      return {
+        ...planned,
+        apply: Effect.map(up(options), (data) =>
+          result(data, connection(data).join("\n"))
+        ),
+        details: {},
+        risk: null,
+        target: localTarget(name),
+      };
+    }),
+  summary: "Start an existing local instance.",
+  waits: true,
+});
 
 const localDown = local.remove({
   description:
@@ -97,9 +152,9 @@ const localDown = local.remove({
 });
 
 export const localCommand = defineGroup({
-  actions: [localList, localDown],
+  actions: [localList, localUp, localDown],
   description:
-    "See and stop local Saleor instances running in Docker. Create or start one with saleor init --local.",
+    "List, start and stop local Saleor instances in Docker. Create one with saleor init --local.",
   name: "local",
-  summary: "List and stop local stores.",
+  summary: "Manage local stores.",
 });

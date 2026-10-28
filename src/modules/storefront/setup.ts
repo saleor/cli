@@ -7,7 +7,6 @@ import { recordAnswer } from "../../core/invocation.ts";
 import { directoryState, downloadTemplate } from "../../core/scaffold.ts";
 import { defineSetupExtension } from "../../core/setup.ts";
 import {
-  askInstall,
   connectedElsewhere,
   DEFAULT_CHANNEL,
   finish,
@@ -50,12 +49,8 @@ const projectFolder = (name: string) =>
 // storefront in it, connected to the store `init` made. Asked last in a terminal, once
 // everything about the store is known.
 export const storefrontSetup = defineSetupExtension({
-  description: `With --storefront (asked in a terminal), it also downloads the Saleor storefront template (${TEMPLATE.repository}) into <project>/storefront, connects it to the store and makes the folder a git repository.`,
+  description: `With --storefront (asked in a terminal), it also downloads the Saleor storefront template (${TEMPLATE.repository}) into <project>/storefront, connects it to the store, makes the folder a git repository and installs dependencies.`,
   inputs: {
-    install: option.boolean(
-      "install",
-      "With --storefront, install the storefront's dependencies with pnpm. Asked in a terminal."
-    ),
     storefront: option.boolean(
       "storefront",
       "Also create a storefront connected to the store, in a folder for the project. Asked in a terminal."
@@ -69,7 +64,7 @@ export const storefrontSetup = defineSetupExtension({
         input.storefront ||
         (asked &&
           (yield* askConfirm(
-            "Also set up a storefront for this store, in a folder for the project?",
+            "Also set up a storefront for this store?",
             true
           )));
 
@@ -92,7 +87,6 @@ export const storefrontSetup = defineSetupExtension({
         return yield* notStorefront(dir);
       }
 
-      const install = yield* askInstall(input.install);
       const downloading = found.kind === "absent";
 
       // A storefront whose setup finishes in this run counts as created, as when an
@@ -117,7 +111,7 @@ export const storefrontSetup = defineSetupExtension({
                   : DEFAULT_CHANNEL,
               created,
               dir,
-              install,
+              install: true,
               repository: created ? root : undefined,
               source: undefined,
               store: made,
@@ -131,10 +125,10 @@ export const storefrontSetup = defineSetupExtension({
               ].join("\n"),
             };
           }),
-        changes: created,
+        changes: true,
         details: {
           directory: dir,
-          install,
+          install: true,
           template: TEMPLATE.repository,
         },
         name: "storefront",

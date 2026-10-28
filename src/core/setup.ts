@@ -20,7 +20,7 @@ import type { Instance } from "./instance.ts";
 import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
 
-// `saleor init` is the one journey every provider shares: give me a working store.
+// `saleor init` is the one journey every provider shares: create a new store.
 // Each module that can run a store contributes a setup provider; this file composes
 // them without knowing any of them. One provider is the default; each other one is
 // chosen with its own flag (`--local`), with one of its own flags, or at a prompt.
@@ -291,7 +291,7 @@ export const setupCommand = <R>(
           label: p.label,
           value: p.name,
         })),
-        message: "Where should the store run?",
+        message: "Where should the new store run?",
       });
 
       const picked = providers.find((p) => p.name === name) ?? fallback;
@@ -321,7 +321,7 @@ export const setupCommand = <R>(
       : failure;
 
   return defineActions().ensure({
-    description: `Create or reuse a working Saleor store and print how to reach it. Uses ${fallback.label} by default${others.map((p) => `; pass --${p.flag} for ${p.label}`).join("")}. In a terminal, it asks for anything missing. ${extensions.length === 0 ? "Does not scaffold application code." : extensions.map((e) => e.description).join(" ")} Safe to run again after an interruption.`,
+    description: `Create a Saleor store and print how to reach it. Uses ${fallback.label} by default${others.map((p) => `; pass --${p.flag} for ${p.label}`).join("")}. In a terminal, it asks for anything missing. ${extensions.length === 0 ? "Does not scaffold application code." : extensions.map((e) => e.description).join(" ")} An explicitly named store is reused so setup can be retried after an interruption.`,
     examples: providers.map((p) => p.example),
     inputs,
     name: "init",
@@ -340,7 +340,7 @@ export const setupCommand = <R>(
 
         return extend(store, extra.flatMap(Option.toArray));
       }),
-    summary: `Set up a Saleor store in ${[fallback, ...others].map((p) => p.label).join(" or ")}.`,
+    summary: `Create a Saleor store in ${[fallback, ...others].map((p) => p.label).join(" or ")}.`,
     waits: true,
   });
 };

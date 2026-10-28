@@ -3,6 +3,7 @@ import { Effect, Schema } from "effect";
 import type { TargetRef } from "../../core/action.ts";
 import { type CliFailure, fail } from "../../core/errors.ts";
 import { type InstanceState, instance } from "../../core/instance.ts";
+import { command } from "../../core/invocation.ts";
 import { withLock } from "../../core/lock.ts";
 import { notice, withProgress } from "../../core/output.ts";
 import {
@@ -188,7 +189,7 @@ const explainPullFailure = (config: LocalConfig) => (failure: CliFailure) =>
           "USAGE_ERROR",
           `Saleor ${config.saleorVersion} is not published as a Docker image (ghcr.io/saleor/saleor:${config.saleorVersion}).`,
           {
-            suggestion: `Pick a released version from https://github.com/saleor/saleor/releases, then run: ${startCommand(config.name, "--saleor-version", "<version>")}`,
+            suggestion: `Pick a released version from https://github.com/saleor/saleor/releases, then run: ${command("init", "--local", "--name", config.name, "--saleor-version", "<version>")}`,
           }
         )
       )

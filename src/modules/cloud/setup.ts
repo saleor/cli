@@ -11,9 +11,7 @@ import { ensureSignedIn } from "./auth/sign-in.ts";
 import {
   describeEnvironment,
   type EnvironmentDetails,
-  environmentChoices,
   environmentTarget,
-  isSandbox,
   type Project,
   projectChoices,
 } from "./lookup.ts";
@@ -57,7 +55,8 @@ const environmentLines = (env: EnvironmentDetails) => [
 // suffix; the name is fixed when it is chosen, so the review and any rerun carry it.
 const sandboxName = {
   label: "Create a new sandbox environment",
-  prompt: "Environment name (leave blank for a random name)",
+  placeholder: "Leave blank for a random name",
+  prompt: "New environment name",
   whenBlank: () => `sandbox-${randomBytes(3).toString("hex")}`,
 };
 
@@ -185,10 +184,7 @@ export const cloudSetup = defineSetup({
       const parent = projectPlanned.existing;
 
       const envName = yield* envInput.resolve(input.env, {
-        choices:
-          parent === undefined
-            ? Effect.succeed([])
-            : environmentChoices(organization, parent.slug, isSandbox),
+        choices: Effect.succeed([]),
         create: sandboxName,
       });
 

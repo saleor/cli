@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
+    "@clack/core": "1.5.1",
     "@clack/prompts": "^1.8.1",
     "@effect/platform-node": "4.0.5",
     "@effect/tsgo": "0.53.2",

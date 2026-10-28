@@ -3,6 +3,7 @@ import { confirm, isCancel, select, text } from "@clack/prompts";
 import { Context, Effect, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import { ActionContext } from "./invocation.ts";
+import { menuPrompt } from "./menu-prompt.ts";
 import { currentOutputFormat, detectAgent } from "./output.ts";
 
 export const NoInputFlag = GlobalFlag.Setting("no-input")({
@@ -63,6 +64,7 @@ export interface PromptOperations {
     message: string;
     choices: readonly Choice<string>[];
     initialValue?: string | undefined;
+    navigation?: { readonly back?: string };
   }) => Promise<string | symbol>;
   readonly text: (options: {
     message: string;
@@ -75,7 +77,16 @@ export interface PromptOperations {
 export const Prompts = Context.Reference<PromptOperations>("saleor/Prompts", {
   defaultValue: () => ({
     confirm: (options) => confirm(options),
-    select: (options) => {
+    select: async (options) => {
+      if (options.navigation !== undefined) {
+        const answer = await menuPrompt({
+          ...options,
+          back: options.navigation.back,
+        });
+
+        return answer ?? "";
+      }
+
       const base = {
         message: options.message,
         options: options.choices.map(({ hint, label, value }) =>
@@ -131,6 +142,7 @@ export const askSelect = <A extends string>(options: {
   message: string;
   choices: readonly Choice<A>[];
   initialValue?: A | undefined;
+  navigation?: { readonly back?: string };
 }) =>
   Effect.gen(function* () {
     const prompts = yield* Prompts;

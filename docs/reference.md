@@ -21,15 +21,16 @@ For unattended use, set `SALEOR_CLOUD_TOKEN` to a Cloud API token from the Cloud
 
 ## Examples
 
-The CLI has nine commands:
+The CLI provides these commands:
 
 | Command | Does |
 | --- | --- |
-| `init` | Creates or reuses a store and prints how to reach it: a project and sandbox in Saleor Cloud, or with `--local` an instance in Docker. Starts a stopped local instance. |
+| `init` | Creates a store and prints how to reach it: a project and sandbox in Saleor Cloud, or with `--local` an instance in Docker. Explicit names support retries. |
 | `login`, `logout` | Saves or removes the Cloud login. |
 | `env list`, `env delete` | Lists Cloud environments with their URLs; deletes a sandbox. |
-| `local list`, `local down` | Lists local instances with their URLs; stops one, or deletes it with `--delete-data`. |
-| `storefront create`, `storefront connect` | Creates a storefront from the Saleor template connected to a store; points an existing one at another store. |
+| `local list`, `local up`, `local down` | Lists local instances with their URLs; starts or stops one, or deletes it with `--delete-data`. |
+| `storefront env` | Chooses the backend used by a local storefront, updating its API URL and channel. Separate from `env list` and `env delete`, which manage Cloud environments. |
+| `storefront create` | Creates a storefront from the Saleor template connected to a store. |
 
 `saleor commands` describes them for agents. Organizations and projects are chosen with `--org` and `--project`, or at a prompt; manage plans, production environments and empty projects in the Saleor Cloud dashboard.
 
@@ -73,16 +74,16 @@ See `pnpm saleor --help` for more commands and [known limitations](limitations.m
 
 ## Local instances
 
-`init` is a shortcut to a running store, rather than a code generator. Cloud is the default for existing scripts; `--local` selects Docker:
+`init` creates a store, with an optional storefront. Cloud is the default for existing scripts; `--local` selects Docker:
 
 ```sh
 pnpm saleor init --local --name demo --sample-data
 pnpm saleor local list
 pnpm saleor local down --name demo
-pnpm saleor init --local --name demo
+pnpm saleor local up --name demo
 ```
 
-`init --local` prints the addresses and the admin login; on a running instance it returns at once, so it is also how to see them again. `local list` shows each instance's state and URLs. Stopping preserves the database, media and login. To permanently remove them, use `local down --name demo --delete-data` and confirm (or pass `--force` for unattended use).
+`init --local` prints the addresses and the admin login. Use `local up` to start an existing instance or print its connection details again. `local list` shows each instance's state and URLs. Stopping preserves the database, media and login. To permanently remove them, use `local down --name demo --delete-data` and confirm (or pass `--force` for unattended use).
 
 The first setup downloads pinned images and migrates the database, which can take several minutes. `--timeout` limits the GraphQL readiness wait after setup; exit 75 means the containers are still starting and the same command can be retried. `local list` reports readiness without waiting. Ports are allocated automatically and published on loopback only: the API, the Dashboard and a Mailpit inbox for the store's emails. If another program takes one of them while the instance is stopped, `init --local` names the port; stop that program or add `--new-ports`. State and private Docker environment files live under `SALEOR_CONFIG_DIR` (by default `~/.config/saleor`); generated credentials use the CLI secret store, and Docker also needs private environment files to start the services. These stacks are for local development.
 
@@ -96,15 +97,16 @@ Cloud credentials authenticate with the Cloud API and cannot be used as store AP
 
 ```sh
 pnpm saleor storefront create --instance local:demo
-pnpm saleor storefront create --instance cloud:acme/env1 --dir shop --channel eu --install
-pnpm saleor storefront connect --instance cloud:acme/env2
+pnpm saleor storefront create --instance cloud:acme/env1 --dir shop --channel eu
 ```
 
 - **Stores** are given by `ref`, as `env list` and `local list` print it: `cloud:<org>/<environment key>` or `local:<name>`. In a terminal, a person picks from every Cloud environment and local instance; Cloud offers a login first when needed.
-- **`.env`.** The CLI creates `.env` from the template's `.env.example`, as the template's README says, so its documented defaults stay. It sets `NEXT_PUBLIC_SALEOR_API_URL` and `NEXT_PUBLIC_DEFAULT_CHANNEL` (default `default-channel`), and writes the store it is connected to in a header line: `# saleor: instance=<ref>`. `connect` changes only those lines and keeps everything else, also in storefronts the CLI did not create. The template's `.gitignore` keeps `.env` out of git.
+- **`.env`.** The CLI creates `.env` from the template's `.env.example`, as the template's README says, so its documented defaults stay. It sets `NEXT_PUBLIC_SALEOR_API_URL` and `NEXT_PUBLIC_DEFAULT_CHANNEL` (default `default-channel`), and writes the store it is connected to in a header line: `# saleor: instance=<ref>`. The template's `.gitignore` keeps `.env` out of git.
 - **Checks.** The channel is checked against the store when it answers. A store that is stopped, a channel that does not exist, a template that no longer mentions a key the CLI sets, a missing git or a failed install are warnings in `data.warnings`, never failures: the files are written either way.
-- **Git and packages.** A new storefront becomes a git repository with the template committed, unless it is inside one already. With `--install` (asked in a terminal), `pnpm install` runs, through Corepack if pnpm itself is missing.
-- **Running it again** on the same directory and store changes nothing. A directory with other files is refused (`NAME_CONFLICT`), and so is a storefront connected to another store: use `connect` for that.
+- **Git and packages.** A new storefront becomes a git repository with the template committed, unless it is inside one already. Dependencies are installed automatically with pnpm, through Corepack if pnpm itself is missing. Existing dependencies are kept on retries; a failed install can be retried.
+- **Running it again** on the same directory and store reuses the files and retries dependency installation. A directory with other files is refused (`NAME_CONFLICT`), and so is a storefront connected to another store; use `storefront env` to switch its backend, or choose another directory with `--dir`.
 - The result lists the next commands (`next`) and the environment variables a host needs to deploy it.
 
 `init --storefront` (asked last in a terminal) does the same for the store `init` sets up, in a folder for the project: the current directory when it is empty, else `./<project>`, with the storefront in `storefront/` and one git repository for the folder. The template downloads while the store is being set up; if `init` stops waiting for the store, running it again connects the downloaded storefront.
+
+`pnpm saleor storefront env` shows the current backend and asks which store to use. Defaults to the current storefront directory; pass `--dir` when running elsewhere. `--instance cloud:<org>/<key>` or `--instance local:<name>` selects the backend explicitly. `--channel` overrides the current channel. `--dry-run` previews the change without writing. Restart the development server afterward. This command only updates the local storefront's `.env`; it does not modify Cloud environments or hosted deployments. Exploratory navigation offers it only inside a storefront directory.
