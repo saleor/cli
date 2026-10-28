@@ -27,7 +27,6 @@ const PROMISED_DEFAULT = /\(default |Defaults to "/;
 const NOT_FROM_ENV = /never use/;
 const DRY_RUN_TEXT = /^Dry run: would (delete|create)/;
 const DEMO_HEADER = /^# saleor: instance=local:demo /;
-const SALEOR_HEADER = /# saleor:/g;
 
 // SALEOR_CLI_BIN runs the same tests against another entry, such as the build output.
 const executable = path.resolve(process.env.SALEOR_CLI_BIN ?? "bin/saleor.mjs");
@@ -501,6 +500,19 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       return answer.data.data;
     };
 
+    expect(await local("up", "--name", "demo")).toMatchObject({
+      created: false,
+      ready: true,
+      ref: "local:demo",
+    });
+
+    const missing = await cli(["local", "up", "--name", "missing", "--agent"], {
+      PATH: fakeBin,
+    });
+
+    expect(missing.data.error.code).toBe("NOT_FOUND");
+    expect(existsSync(path.join(cwd, "config/local/missing"))).toBe(false);
+
     expect(await local("list")).toMatchObject([
       { name: "demo", state: "ready" },
     ]);
@@ -823,9 +835,10 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "saleor env list",
       "saleor env delete",
       "saleor local list",
+      "saleor local up",
       "saleor local down",
       "saleor storefront create",
-      "saleor storefront connect",
+      "saleor storefront env",
     ]);
     // Targets are optional to the parser: the action resolves them (flag, variable,
     // question) and reports CONTEXT_MISSING itself.
@@ -1792,6 +1805,16 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
 `
       );
       chmodSync(path.join(fakeBin, "docker"), 0o700);
+      writeFileSync(
+        path.join(fakeBin, "pnpm"),
+        `#!${process.execPath}
+const fs = require("node:fs");
+fs.mkdirSync("node_modules", {recursive:true});
+fs.appendFileSync("node_modules/install-calls", "install\\n");
+`
+      );
+      chmodSync(path.join(fakeBin, "pnpm"), 0o700);
+
       symlinkSync(
         execFileSync("which", ["git"]).toString().trim(),
         path.join(fakeBin, "git")
@@ -1875,7 +1898,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     const storefront = (...args: string[]) =>
       cli(["storefront", ...args, "--agent"], env());
 
-    it("creates a storefront connected to a store, reuses it, and reconnects it", async () => {
+    it("creates a storefront connected to a store and safely reuses it", async () => {
       const created = await storefront("create", "--instance", "local:demo");
       expect(created.code, created.stdout + created.stderr).toBe(0);
       expect(created.data.data).toMatchObject({
@@ -1888,8 +1911,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
             "localhost"
           ),
         },
-        installed: false,
-        next: ["cd storefront", "pnpm install", "pnpm dev"],
+        installed: true,
+        next: ["cd storefront", "pnpm dev"],
         repository: "created",
         store: { kind: "local", ref: "local:demo", state: "ready" },
         warnings: [],
@@ -1914,35 +1937,75 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
 
       const again = await storefront("create", "--instance", "local:demo");
       expect(again.data.data).toMatchObject({ created: false });
+      expect(again.data.data.installed).toBe(true);
+      expect(
+        readFileSync(path.join(dir, "node_modules/install-calls"), "utf8")
+      ).toBe("install\ninstall\n");
 
       const elsewhere = await storefront("create", "--instance", "local:other");
       expect(elsewhere.code).toBe(1);
       expect(elsewhere.data.error.code).toBe("NAME_CONFLICT");
-      expect(elsewhere.data.error.suggestion).toContain(
-        "saleor storefront connect --dir storefront --instance local:other"
-      );
+      expect(elsewhere.data.error.suggestion).toContain("--dir");
+      expect(readFileSync(path.join(dir, ".env"), "utf8")).toBe(dotenv);
 
-      const moved = await storefront(
-        "connect",
+      const unavailableChannel = await storefront(
+        "create",
         "--instance",
         "local:other",
+        "--dir",
+        "other-shop",
         "--channel",
         "eu"
       );
 
-      expect(moved.code, moved.stderr).toBe(0);
-      expect(moved.data.data).toMatchObject({
-        channel: "eu",
-        created: false,
-        store: { ref: "local:other" },
-      });
-      expect(moved.data.data.warnings).toEqual([
+      expect(unavailableChannel.code).toBe(0);
+      expect(unavailableChannel.data.data.warnings).toEqual([
         expect.stringContaining('has no channel "eu"'),
       ]);
-      const reconnected = readFileSync(path.join(dir, ".env"), "utf8");
-      expect(reconnected).toContain("instance=local:other");
-      expect(reconnected).toContain("NEXT_PUBLIC_DEFAULT_CHANNEL=eu");
-      expect(reconnected.match(SALEOR_HEADER)).toHaveLength(1);
+
+      const previewSwitch = await storefront(
+        "env",
+        "--dir",
+        "storefront",
+        "--instance",
+        "local:other",
+        "--dry-run"
+      );
+
+      expect(previewSwitch.data.data).toMatchObject({
+        action: "update",
+        details: { previous: "local:demo", store: "local:other" },
+      });
+      expect(readFileSync(path.join(dir, ".env"), "utf8")).toBe(dotenv);
+
+      const switched = await storefront(
+        "env",
+        "--dir",
+        "storefront",
+        "--instance",
+        "local:other"
+      );
+
+      expect(switched.code, switched.stderr).toBe(0);
+      expect(switched.data.data).toMatchObject({
+        created: false,
+        previous: "local:demo",
+        store: { ref: "local:other" },
+      });
+      const switchedEnv = readFileSync(path.join(dir, ".env"), "utf8");
+      expect(switchedEnv).toContain("instance=local:other");
+      expect(switchedEnv).toContain("CONTENT_PROVIDER=saleor");
+
+      const same = await storefront(
+        "env",
+        "--dir",
+        "storefront",
+        "--instance",
+        "local:other"
+      );
+
+      expect(same.code).toBe(0);
+      expect(readFileSync(path.join(dir, ".env"), "utf8")).toBe(switchedEnv);
     });
 
     it("previews without writing and refuses directories that are not storefronts", async () => {
@@ -1975,8 +2038,14 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
 
       expect(refused.data.error.code).toBe("NAME_CONFLICT");
 
-      const missing = await storefront("connect", "--instance", "local:demo");
-      expect(missing.data.error.code).toBe("NOT_FOUND");
+      const removed = await storefront("connect", "--instance", "local:demo");
+      expect(removed.code).toBe(2);
+      expect(removed.data.error.code).toBe("USAGE_ERROR");
+      const missing = await storefront("env", "--instance", "local:demo");
+      expect(missing.data.error).toMatchObject({
+        code: "NOT_FOUND",
+        suggestion: expect.stringContaining("--dir"),
+      });
 
       // Without a store, the error lists the ones there are; Cloud needs a login.
       const unnamed = await storefront("create");
@@ -1988,6 +2057,26 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
           input: "--instance <ref>",
         },
       });
+    });
+
+    it("keeps the storefront and gives recovery steps when dependency installation fails", async () => {
+      writeFileSync(
+        path.join(fakeBin, "pnpm"),
+        `#!${process.execPath}
+console.error("installation failed for test");
+process.exit(1);
+`
+      );
+      const failed = await storefront("create", "--instance", "local:demo");
+      expect(failed.code).toBe(0);
+      expect(failed.data.data).toMatchObject({
+        installed: false,
+        next: ["cd storefront", "pnpm install", "pnpm dev"],
+      });
+      expect(failed.data.data.warnings).toEqual([
+        expect.stringContaining("pnpm install failed"),
+      ]);
+      expect(existsSync(path.join(cwd, "storefront/.env"))).toBe(true);
     });
 
     it("sets up a project folder with the storefront through init", async () => {

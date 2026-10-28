@@ -51,6 +51,7 @@ export interface ResolveOptions<R> {
     readonly label: string;
     readonly initialValue?: string;
     readonly prompt: string;
+    readonly placeholder?: string;
     // The name used when the answer is left blank; without it, a name is required.
     readonly whenBlank?: () => string;
   };
@@ -207,6 +208,7 @@ export const target = (definition: TargetDefinition) => {
         const name = yield* askText({
           initialValue: create.initialValue,
           message: create.prompt,
+          placeholder: create.placeholder,
           validate: (value) =>
             (create.whenBlank === undefined
               ? required(capitalize(definition.noun))(value)

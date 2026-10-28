@@ -8,13 +8,12 @@ Requires Node.js 22.18+ and pnpm. From this checkout:
 
 ```sh
 pnpm install
-pnpm saleor login
 pnpm saleor init
 ```
 
-The CLI guides you through setup and offers to open your dashboard when your store is ready.
+Choose where to create your new store. Cloud setup asks you to log in when needed. In Cloud, you can use an existing project as its destination. The CLI offers to open your dashboard when your store is ready.
 
-Not sure what to run? Use `pnpm saleor` to explore. Add `--help` to any command for details.
+Not sure what to run? Use `pnpm saleor` to pick a command. Press Esc in a submenu to return to the previous menu, or Ctrl+C to exit. After a command finishes, the CLI returns to your shell. Add `--help` to any command for details.
 
 ## Run locally
 
@@ -24,16 +23,19 @@ Install and start Docker with Compose, then run:
 pnpm saleor init --local
 ```
 
+`init` asks for a new instance name. Passing an existing name explicitly lets you retry setup safely.
+
 No Cloud account is needed. The first setup can take several minutes. When ready, the CLI shows your dashboard, API address, and admin login.
 
 Manage your local stores:
 
 ```sh
 pnpm saleor local list
+pnpm saleor local up
 pnpm saleor local down
 ```
 
-You'll be asked which instance to use. To choose it directly, add `--name my-store`. Stopping an instance keeps its data. Run `pnpm saleor init --local --name my-store` to start it again, or to print its addresses and admin login.
+You'll be asked which instance to use. To choose it directly, add `--name my-store`. Stopping an instance keeps its data. Run `pnpm saleor local up --name my-store` to start it again, or to print its addresses and admin login.
 
 ## Create a storefront
 
@@ -41,9 +43,11 @@ You'll be asked which instance to use. To choose it directly, add `--name my-sto
 pnpm saleor storefront create
 ```
 
-Pick a store (Cloud or local) and the CLI downloads the [Saleor storefront template](https://github.com/saleor/storefront) into `./storefront`, points its `.env` at the store's API and channel, and makes it a git repository. Then `cd storefront && pnpm install && pnpm dev`. Point an existing storefront at another store with `pnpm saleor storefront connect`.
+Pick a store (Cloud or local) and the CLI downloads the [Saleor storefront template](https://github.com/saleor/storefront) into `./storefront`, points its `.env` at the store's API and channel, and makes it a git repository. Dependencies are installed automatically. Then `cd storefront && pnpm dev`.
 
 `pnpm saleor init` also offers a storefront for the store it sets up (`--storefront`), in a folder for the project: `<project>/storefront`.
+
+Inside an existing storefront, run `pnpm saleor storefront env` to choose its Saleor backend. It shows the current backend before asking for another. You can target a directory explicitly with `--dir path/to/storefront`. Restart the storefront development server after switching. This updates local configuration; hosted deployments keep their own settings.
 
 ## Manage Cloud stores
 

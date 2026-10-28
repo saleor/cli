@@ -1,12 +1,15 @@
 import path from "node:path";
 import { Effect, Option } from "effect";
+import { Command } from "effect/cli";
 import { defineActions, defineGroup, type Planned } from "../../core/action.ts";
+import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
 import { instanceInput, resolveInstance } from "../../core/instances.ts";
-import { command } from "../../core/invocation.ts";
+import { isInteractive } from "../../core/interaction.ts";
+import { MenuAvailable } from "../../core/menu.ts";
+import { notice } from "../../core/output.ts";
 import {
-  askInstall,
   connectedElsewhere,
   create,
   DEFAULT_CHANNEL,
@@ -45,16 +48,15 @@ const summary = (
   ] as const;
 
 const createCommand = storefront.ensure({
-  description: `Download the Saleor storefront template (${TEMPLATE.repository}, as it is on ${TEMPLATE.ref}) into a new directory and connect it to a store: its .env gets the store's GraphQL API and channel. The directory becomes a git repository unless it is inside one. In a terminal, it asks for the store and whether to install dependencies. Running it again on the same directory and store changes nothing.`,
+  description: `Download the Saleor storefront template (${TEMPLATE.repository}, as it is on ${TEMPLATE.ref}) into a new directory and connect it to a store: its .env gets the store's GraphQL API and channel. The directory becomes a git repository unless it is inside one. In a terminal, it asks for the store. Dependencies are installed automatically. Running it again on the same directory and store reuses the files and retries dependency installation.`,
   examples: [
     {
       command: "saleor storefront create --instance local:demo",
       description: "Create ./storefront connected to a local store",
     },
     {
-      command:
-        "saleor storefront create --instance cloud:acme/env1 --dir shop --install",
-      description: "Create ./shop for a Cloud environment and install it",
+      command: "saleor storefront create --instance cloud:acme/env1 --dir shop",
+      description: "Create ./shop for a Cloud environment",
     },
   ],
   inputs: {
@@ -67,10 +69,6 @@ const createCommand = storefront.ensure({
         "Directory to create it in, relative to the current one. Must be new or empty.",
       metavar: "path",
     }),
-    install: option.boolean(
-      "install",
-      "Install its dependencies with pnpm. Asked in a terminal."
-    ),
     instance: instanceInput,
   },
   name: "create",
@@ -106,15 +104,11 @@ const createCommand = storefront.ensure({
         found.ref === store.ref &&
         found.channel === channel;
 
-      const install = connected
-        ? input.install
-        : yield* askInstall(input.install);
-
       const spec = {
         channel,
         created: unconnected,
         dir,
-        install,
+        install: true,
         repository: unconnected ? dir : undefined,
         source,
         store,
@@ -134,106 +128,146 @@ const createCommand = storefront.ensure({
         details: {
           channel,
           directory: dir,
-          install,
+          install: true,
           store: store.ref,
           template: TEMPLATE.repository,
         },
         risk: null,
         state: found.kind === "absent" ? "absent" : "exists",
-        summary: summary(dir, store.ref, channel, install),
+        summary: summary(dir, store.ref, channel, true),
         target: storefrontTarget(dir),
       } satisfies Planned<unknown, unknown>;
     }),
-  summary: "Create a storefront connected to a store.",
+  summary: "Create a new storefront from the Saleor template.",
 });
 
-const notFound = (dir: string) =>
-  fail("NOT_FOUND", `There is no Saleor storefront in ${shown(dir)}.`, {
-    suggestion: `Pass its directory with --dir, or create one with: ${command("storefront", "create")}`,
-  });
-
-const connectCommand = storefront.ensure({
-  description:
-    "Connect an existing Saleor storefront to a store: set the store's GraphQL API and channel in its .env, keeping every other line. Works on storefronts the CLI did not create. Without --dir, uses the current directory if it is a storefront, else ./storefront.",
-  examples: [
-    {
-      command: "saleor storefront connect --instance cloud:acme/env1",
-      description: "Point the storefront here at a Cloud environment",
+const environmentCommand = storefront
+  .ensure({
+    description:
+      "Choose the Saleor backend used by an existing local storefront: set the store's GraphQL API and channel in its .env, keeping every other line. Works on storefronts the CLI did not create. Defaults to the current directory. Changes local configuration only; restart the development server to use it.",
+    examples: [
+      {
+        command: "saleor storefront env --instance cloud:acme/env1",
+        description: "Point the storefront here at a Cloud environment",
+      },
+    ],
+    inputs: {
+      channel: option.string("channel", {
+        description: `Channel slug the storefront shows. Keeps the current one when left out (${DEFAULT_CHANNEL} if there is none).`,
+        metavar: "slug",
+      }),
+      dir: option.string("dir", {
+        description:
+          "The storefront's directory. Defaults to the current directory.",
+        metavar: "path",
+      }),
+      instance: instanceInput,
     },
-  ],
-  inputs: {
-    channel: option.string("channel", {
-      description: `Channel slug the storefront shows. Keeps the current one when left out (${DEFAULT_CHANNEL} if there is none).`,
-      metavar: "slug",
-    }),
-    dir: option.string("dir", {
-      description:
-        "The storefront's directory. Defaults to the current one if it is a storefront, else ./storefront.",
-      metavar: "path",
-    }),
-    instance: instanceInput,
-  },
-  name: "connect",
-  plan: (input) =>
-    Effect.gen(function* () {
-      const here = yield* inspect(process.cwd());
+    name: "env",
+    plan: (input) =>
+      Effect.gen(function* () {
+        const dir = path.resolve(Option.getOrElse(input.dir, () => "."));
 
-      const dir = path.resolve(
-        Option.getOrElse(input.dir, () =>
-          here.kind === "storefront" ? "." : "storefront"
+        const found = yield* inspect(dir);
+
+        if (found.kind !== "storefront") {
+          return yield* fail(
+            "NOT_FOUND",
+            `No Saleor storefront found at "${dir}".`,
+            {
+              suggestion:
+                "Run this inside your storefront directory, or pass its path with --dir <path>.",
+            }
+          );
+        }
+
+        const previous = found.ref ?? found.graphqlUrl ?? "not configured";
+
+        if (yield* isInteractive) {
+          yield* notice(
+            `Current Saleor environment: ${previous}\nChannel: ${found.channel ?? DEFAULT_CHANNEL}`
+          );
+        }
+
+        const { instance: store, source } = yield* resolveInstance(
+          input.instance
+        );
+
+        const channel = Option.getOrElse(
+          input.channel,
+          () => found.channel ?? DEFAULT_CHANNEL
+        );
+
+        const same =
+          found.ref === store.ref &&
+          found.graphqlUrl === store.graphqlUrl &&
+          found.channel === channel;
+
+        return {
+          action: same ? "reuse" : "update",
+          apply: Effect.map(
+            finish({
+              channel,
+              created: false,
+              dir,
+              install: false,
+              repository: undefined,
+              source,
+              store,
+            }),
+            (outcome) =>
+              result(
+                {
+                  ...outcome.data,
+                  next: [
+                    ...(shown(dir) === "." ? [] : [`cd ${shown(dir)}`]),
+                    "pnpm dev",
+                  ],
+                  previous,
+                },
+                [
+                  `Local storefront now uses ${store.ref} (${store.graphqlUrl}).`,
+                  `Channel: ${channel}`,
+                  ...outcome.data.warnings.map(
+                    (warning) => `Warning: ${warning}`
+                  ),
+                  "Restart your storefront development server to use the updated configuration.",
+                ].join("\n")
+              )
+          ),
+          details: {
+            channel,
+            directory: dir,
+            previous,
+            store: store.ref,
+          },
+          risk: null,
+          state: "exists",
+          summary: [
+            ["Directory", shown(dir)],
+            ["Store", `${previous} → ${store.ref}`],
+            ["Channel", channel],
+          ],
+          target: storefrontTarget(dir),
+        } satisfies Planned<unknown, unknown>;
+      }),
+    summary: "Switch the Saleor backend used by this storefront.",
+  })
+  .pipe(
+    Command.annotate(
+      MenuAvailable,
+      Effect.suspend(() =>
+        Effect.map(
+          inspect(process.cwd()),
+          (found) => found.kind === "storefront"
         )
-      );
-
-      const found = yield* inspect(dir);
-
-      if (found.kind !== "storefront") {
-        return yield* notFound(dir);
-      }
-
-      const { instance: store, source } = yield* resolveInstance(
-        input.instance
-      );
-
-      const channel = Option.getOrElse(
-        input.channel,
-        () => found.channel ?? DEFAULT_CHANNEL
-      );
-
-      const same = found.ref === store.ref && found.channel === channel;
-
-      return {
-        action: same ? "reuse" : "update",
-        apply: finish({
-          channel,
-          created: false,
-          dir,
-          install: false,
-          repository: undefined,
-          source,
-          store,
-        }),
-        details: {
-          channel,
-          directory: dir,
-          previous: found.ref ?? null,
-          store: store.ref,
-        },
-        risk: null,
-        state: "exists",
-        summary: [
-          ["Directory", shown(dir)],
-          ["Store", `${found.ref ?? "none"} → ${store.ref}`],
-          ["Channel", channel],
-        ],
-        target: storefrontTarget(dir),
-      } satisfies Planned<unknown, unknown>;
-    }),
-  summary: "Connect a storefront to another store.",
-});
+      )
+    )
+  );
 
 export const storefrontCommand = defineGroup({
-  actions: [createCommand, connectCommand],
-  description: `Create a storefront from the Saleor template (${TEMPLATE.repository}) connected to a store, or connect an existing one to another store. Stores are given as refs (cloud:<org>/<env key>, local:<name>), or picked in a terminal.`,
+  actions: [createCommand, environmentCommand],
+  description: `Create a storefront from the Saleor template (${TEMPLATE.repository}), or choose the backend used by an existing local storefront with env. This does not manage Cloud environments; use saleor env for that. Stores are given as refs (cloud:<org>/<env key>, local:<name>), or picked in a terminal.`,
   name: "storefront",
-  summary: "Create and connect storefronts.",
+  summary: "Create a storefront or switch its Saleor environment.",
 });

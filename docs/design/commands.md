@@ -1,6 +1,6 @@
 # Command conventions
 
-The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), log in and out, see what stores exist (`env list`, `local list`) and get rid of one (`env delete`, `local down`), and start a storefront connected to one (`storefront create`, `storefront connect`). `init` is idempotent, so it also starts a stopped store and prints the addresses of an existing one; there is no separate "create", "start" or "show". Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
+The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), log in and out, see what stores exist (`env list`, `local list`) and get rid of one (`env delete`, `local down`), and start a storefront connected to one (`storefront create`) or choose its backend (`storefront env`). `init` creates a store and supports retries by explicit name. `local up` starts an existing local store. Login is a step within Cloud actions when required; explicit login and logout commands remain available outside the exploratory menu. Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
 
 Every command is an action of one **kind**. The kind is the policy: which flags exist, how targets are found, when it asks for confirmation, what `--dry-run` does, how its result is shaped and what the catalog says about its safety. A command declares its kind and supplies only what is specific to it. It does not implement any of the rules below itself.
 
@@ -11,7 +11,7 @@ The rules live in `src/core/action.ts` (kinds), `src/core/target.ts` (targets), 
 | Kind | Examples | Adds | Result `data` | Text |
 | --- | --- | --- | --- | --- |
 | `list` | `env list`, `local list` | — | array of items | table, or an empty-state line |
-| `ensure` | `init`, `storefront create`, `storefront connect` | `--dry-run`; `--timeout` if it waits | the resource plus `created` | `✓ <target> is ready (created \| already existed).` then details |
+| `ensure` | `init`, `local up`, `storefront create`, `storefront env` | `--dry-run`; `--timeout` if it waits | the resource plus `created` | `✓ <target> is ready (created \| already existed).` then details |
 | `remove` | `env delete`, `local down` | `--dry-run`, `--force`; `--timeout` if it waits | `{ action, existed, target, … }` | `✓ Deleted <target>.`, `✓ Stopped <target>.`, or `✓ <target> does not exist; nothing to do.` |
 | `session` | `login`, `logout`, `commands` | — | about the CLI or its login | free text |
 

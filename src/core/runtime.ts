@@ -20,7 +20,7 @@ import { ExitCode, fail, internalFailure } from "./errors.ts";
 import { helpFormatter } from "./help.ts";
 import { isInteractive, NoInputFlag } from "./interaction.ts";
 import { Invocation } from "./invocation.ts";
-import { ContinueInCli, groupMenu, homeMenu } from "./menu.ts";
+import { groupMenu, homeMenu } from "./menu.ts";
 import {
   OutputFlag,
   outputFormatFromArgv,
@@ -169,16 +169,13 @@ const allowsQuestions = (argv: readonly string[]) =>
 
 // Owns the process-facing CLI policy: argument aliases, output routing, parser
 // failures, menus, interruption handling and the boundary around erased command types.
-// Every command line, including the ones menus run, goes through `runOnce`; `home`
-// says whether this run may hand over to the home menu (only the outermost one may).
+// Every command line, including the ones menus run, goes through the same runtime.
 const runtime = <Services>(
   command: Command.Command.Any,
   options: CliRuntimeOptions<Services>,
-  rawArgv: readonly string[],
-  home: boolean
+  rawArgv: readonly string[]
 ): Effect.Effect<void> => {
-  const nested = (next: readonly string[]) =>
-    runtime(command, options, next, false);
+  const nested = (next: readonly string[]) => runtime(command, options, next);
 
   const argv = normalizeArgv(rawArgv);
   const optionArgv = beforeSeparator(argv);
@@ -269,10 +266,6 @@ const runtime = <Services>(
       helpFormatter(format === "text" && useColors())
     ),
     Effect.provideService(Invocation, rawArgv),
-    Effect.provideService(
-      ContinueInCli,
-      home ? homeMenu(command, nested) : Effect.void
-    ),
     Effect.provideService(CliConfig.CliConfig, CliConfig.make({ builtIns })),
     Effect.provide(options.services)
   ) as Effect.Effect<void>;
@@ -284,4 +277,4 @@ export const createCliRuntime =
     options: CliRuntimeOptions<Services>
   ) =>
   (rawArgv: readonly string[]): Effect.Effect<void> =>
-    runtime(command, options, rawArgv, true);
+    runtime(command, options, rawArgv);

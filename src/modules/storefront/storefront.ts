@@ -12,8 +12,7 @@ import {
 } from "../../core/env-file.ts";
 import { fail } from "../../core/errors.ts";
 import type { Instance, InstanceSource } from "../../core/instance.ts";
-import { askConfirm, isInteractive } from "../../core/interaction.ts";
-import { command, recordAnswer } from "../../core/invocation.ts";
+import { command } from "../../core/invocation.ts";
 import { columns } from "../../core/output.ts";
 import {
   directoryState,
@@ -37,7 +36,7 @@ export const API_URL = "NEXT_PUBLIC_SALEOR_API_URL";
 export const CHANNEL = "NEXT_PUBLIC_DEFAULT_CHANNEL";
 export const DEFAULT_CHANNEL = "default-channel";
 
-const ENV_NOTE = `set by the Saleor CLI; change it with ${command("storefront", "connect")}`;
+const ENV_NOTE = "set by the Saleor CLI";
 
 // What a directory holds: nothing, a storefront (connected to a store or not), or
 // something else, which is never written into.
@@ -47,6 +46,7 @@ export type Found =
   | {
       readonly channel: string | undefined;
       readonly kind: "storefront";
+      readonly graphqlUrl: string | undefined;
       readonly ref: string | undefined;
     };
 
@@ -74,6 +74,7 @@ export const inspect = (dir: string) =>
 
     return {
       channel: env === undefined ? undefined : parseEnv(env).get(CHANNEL),
+      graphqlUrl: parseEnv(env ?? example ?? "").get(API_URL),
       kind: "storefront",
       ref: env === undefined ? undefined : connectedRef(env),
     };
@@ -105,29 +106,9 @@ export const connectedElsewhere = (dir: string, ref: string, wanted: string) =>
     `The storefront in ${shown(dir)} is connected to ${ref}, not ${wanted}.`,
     {
       details: { connected: ref, requested: wanted },
-      suggestion: `To connect it to ${wanted} instead, run: ${command("storefront", "connect", "--dir", shown(dir), "--instance", wanted)}`,
+      suggestion: `To switch this storefront to ${wanted}, run: ${command("storefront", "env", "--dir", shown(dir), "--instance", wanted)}`,
     }
   );
-
-// Whether to install packages: the flag, or a question at a terminal. A yes is recorded
-// so the rerun hint carries it.
-export const askInstall = (flag: boolean) =>
-  Effect.gen(function* () {
-    if (flag || !(yield* isInteractive)) {
-      return flag;
-    }
-
-    const install = yield* askConfirm(
-      "Install the storefront's dependencies with pnpm now?",
-      true
-    );
-
-    if (install) {
-      yield* recordAnswer({ flag: "--install" });
-    }
-
-    return install;
-  });
 
 // ── Applying ─────────────────────────────────────────────────────────────
 
@@ -197,7 +178,7 @@ const storeWarnings = (
         found
           ? []
           : [
-              `${store.ref} has no channel "${channel}". Find the channel slugs in its dashboard (Configuration › Channels), then run: ${command("storefront", "connect", "--channel", "<slug>")}`,
+              `${store.ref} has no channel "${channel}". Find the channel slugs in its dashboard (Configuration › Channels), then set NEXT_PUBLIC_DEFAULT_CHANNEL in the storefront's .env`,
             ],
     });
   });
@@ -275,11 +256,14 @@ export const finish = (spec: Finish) =>
       ),
     ];
 
+    const dependenciesInstalled =
+      installed?.installed ?? existsSync(path.join(spec.dir, "node_modules"));
+
     const cd = shown(spec.dir);
 
     const next = [
       ...(cd === "." ? [] : [`cd ${cd}`]),
-      ...(installed?.installed ? [] : ["pnpm install"]),
+      ...(dependenciesInstalled ? [] : ["pnpm install"]),
       "pnpm dev",
     ];
 
@@ -287,7 +271,7 @@ export const finish = (spec: Finish) =>
       channel: spec.channel,
       created: spec.created,
       env: env.values,
-      installed: installed?.installed ?? false,
+      installed: dependenciesInstalled,
       next,
       path: spec.dir,
       repository: repository?.repository ?? null,

@@ -26,7 +26,7 @@ const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 // names and directory names, so they are restricted before anything else runs.
 // The command that creates or starts a local instance, for hints.
 export const startCommand = (name: string, ...extra: readonly string[]) =>
-  command("init", "--local", "--name", name, ...extra);
+  command("local", "up", "--name", name, ...extra);
 
 export const nameProblem = (name: string) =>
   NAME_PATTERN.test(name)
@@ -168,7 +168,7 @@ export const requireCompatible = (
           `Local instance "${existing.name}" already exists but its Saleor version is "${existing.saleorVersion}", not "${version}".`,
           {
             details: { saleorVersion: existing.saleorVersion, wanted: version },
-            suggestion: `Leave out --saleor-version to use it as it is, or create another instance: ${startCommand(`${existing.name}-${version.replaceAll(".", "-")}`, "--saleor-version", version)}`,
+            suggestion: `Leave out --saleor-version to use it as it is, or create another instance: ${command("init", "--local", "--name", `${existing.name}-${version.replaceAll(".", "-")}`, "--saleor-version", version)}`,
           }
         )
       )
