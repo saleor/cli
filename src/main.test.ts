@@ -839,6 +839,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "saleor local down",
       "saleor storefront create",
       "saleor storefront env",
+      "saleor onboard",
     ]);
     // Targets are optional to the parser: the action resolves them (flag, variable,
     // question) and reports CONTEXT_MISSING itself.

@@ -3,12 +3,13 @@ import { Command } from "effect/cli";
 import { defineActions } from "../../../core/action.ts";
 import { result } from "../../../core/command.ts";
 import { option } from "../../../core/inputs.ts";
-import { HideFromMenu } from "../../../core/menu.ts";
+import { MenuAvailable } from "../../../core/menu.ts";
 import { notice } from "../../../core/output.ts";
 import { currentUser } from "../auth/current-user.ts";
 import { DEVICE_CLIENT_ID } from "../auth/device-grant.ts";
 import { deviceLogin } from "../auth/device-login.ts";
 import { Session } from "../auth/session.ts";
+import { signedIn } from "../auth/signed-in.ts";
 
 export const login = defineActions()
   .session({
@@ -61,4 +62,10 @@ export const login = defineActions()
       }),
     summary: "Log in to Saleor Cloud in your browser.",
   })
-  .pipe(Command.annotate(HideFromMenu, true));
+  // In the menu only as the way into Cloud; once logged in, Cloud commands take its place.
+  .pipe(
+    Command.annotate(
+      MenuAvailable,
+      Effect.map(signedIn, (yes) => !yes)
+    )
+  );

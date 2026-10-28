@@ -1,9 +1,11 @@
 import { spawn } from "node:child_process";
-import { confirm, isCancel, select, text } from "@clack/prompts";
+import { emitKeypressEvents } from "node:readline";
+import { confirm, isCancel, text } from "@clack/prompts";
 import { Context, Effect, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import { ActionContext } from "./invocation.ts";
 import { menuPrompt } from "./menu-prompt.ts";
+import { BACK, canGoBack, goBack } from "./navigation.ts";
 import { currentOutputFormat, detectAgent } from "./output.ts";
 
 export const NoInputFlag = GlobalFlag.Setting("no-input")({
@@ -54,19 +56,22 @@ export interface Choice<A extends string> {
   readonly value: A;
 }
 
-// Prompt operations as a service so tests can script the answers.
+// Prompt operations as a service so tests can script the answers. `back` says whether
+// Escape leads anywhere; when it does, a prompt answers BACK to it.
 export interface PromptOperations {
   readonly confirm: (options: {
+    back: boolean;
     message: string;
     initialValue?: boolean;
   }) => Promise<boolean | symbol>;
   readonly select: (options: {
+    back: boolean;
     message: string;
     choices: readonly Choice<string>[];
     initialValue?: string | undefined;
-    navigation?: { readonly back?: string };
   }) => Promise<string | symbol>;
   readonly text: (options: {
+    back: boolean;
     message: string;
     initialValue?: string | undefined;
     placeholder?: string | undefined;
@@ -74,79 +79,99 @@ export interface PromptOperations {
   }) => Promise<string | symbol>;
 }
 
+// Clack's text and confirm cancel on Escape as on Ctrl+C. Watching the keys first
+// tells the two apart, so Escape can mean BACK where there is a way back.
+const escapable = async <A>(
+  back: boolean,
+  ask: () => Promise<A | symbol>
+): Promise<A | symbol> => {
+  if (!back) {
+    return ask();
+  }
+
+  let escaped = false;
+
+  const onKey = (
+    _value: string | undefined,
+    key: { readonly name?: string } = {}
+  ) => {
+    escaped = key.name === "escape";
+  };
+
+  emitKeypressEvents(process.stdin);
+  process.stdin.on("keypress", onKey);
+
+  try {
+    const answer = await ask();
+
+    return isCancel(answer) && escaped ? BACK : answer;
+  } finally {
+    process.stdin.off("keypress", onKey);
+  }
+};
+
 export const Prompts = Context.Reference<PromptOperations>("saleor/Prompts", {
   defaultValue: () => ({
-    confirm: (options) => confirm(options),
-    select: async (options) => {
-      if (options.navigation !== undefined) {
-        const answer = await menuPrompt({
-          ...options,
-          back: options.navigation.back,
+    confirm: ({ back, ...options }) => escapable(back, () => confirm(options)),
+    select: async (options) => (await menuPrompt(options)) ?? "",
+    text: ({ back, ...options }) =>
+      escapable(back, async () => {
+        const base = {
+          message: options.message,
+          validate: (value: string | undefined) =>
+            options.validate?.(value ?? ""),
+        };
+
+        const answer = await text({
+          ...base,
+          ...(options.placeholder === undefined
+            ? undefined
+            : { placeholder: options.placeholder }),
+          ...(options.initialValue === undefined
+            ? undefined
+            : { initialValue: options.initialValue }),
         });
 
         return answer ?? "";
-      }
-
-      const base = {
-        message: options.message,
-        options: options.choices.map(({ hint, label, value }) =>
-          hint === undefined ? { label, value } : { hint, label, value }
-        ),
-      };
-
-      return select(
-        options.initialValue === undefined
-          ? base
-          : { ...base, initialValue: options.initialValue }
-      );
-    },
-    text: async (options) => {
-      const base = {
-        message: options.message,
-        validate: (value: string | undefined) =>
-          options.validate?.(value ?? ""),
-      };
-
-      const answer = await text({
-        ...base,
-        ...(options.placeholder === undefined
-          ? undefined
-          : { placeholder: options.placeholder }),
-        ...(options.initialValue === undefined
-          ? undefined
-          : { initialValue: options.initialValue }),
-      });
-
-      return answer ?? "";
-    },
+      }),
   }),
 });
 
-// Ctrl-C at a prompt is an interruption (exit 130), not an answer.
-const answered = <A extends string | boolean>(answer: A | symbol) =>
-  isCancel(answer)
-    ? Effect.andThen(
-        Effect.sync(() =>
-          process.stderr.write("Cancelled. Nothing was changed.\n")
-        ),
-        Effect.interrupt
-      )
-    : Effect.sync(() => {
-        process.stdout.write("\n");
+// Escape goes back; Ctrl-C at a prompt is an interruption (exit 130), not an answer.
+const answered = <A extends string | boolean>(answer: A | symbol) => {
+  if (answer === BACK) {
+    return goBack;
+  }
 
-        // SAFETY: the cancel symbol is ruled out first, leaving the answer type.
-        return answer as A;
-      });
+  if (isCancel(answer)) {
+    return Effect.andThen(
+      Effect.sync(() =>
+        process.stderr.write("Cancelled. Nothing was changed.\n")
+      ),
+      Effect.interrupt
+    );
+  }
+
+  return Effect.sync(() => {
+    process.stdout.write("\n");
+
+    // SAFETY: the cancel and back symbols are ruled out first, leaving the answer type.
+    return answer as A;
+  });
+};
 
 export const askSelect = <A extends string>(options: {
   message: string;
   choices: readonly Choice<A>[];
   initialValue?: A | undefined;
-  navigation?: { readonly back?: string };
 }) =>
   Effect.gen(function* () {
     const prompts = yield* Prompts;
-    const answer = yield* Effect.promise(() => prompts.select(options));
+    const back = yield* canGoBack;
+
+    const answer = yield* Effect.promise(() =>
+      prompts.select({ ...options, back })
+    );
 
     // SAFETY: the answer is one of `options.choices`, whose values are all `A`.
     return (yield* answered(answer)) as A;
@@ -160,7 +185,11 @@ export const askText = (options: {
 }) =>
   Effect.gen(function* () {
     const prompts = yield* Prompts;
-    const answer = yield* Effect.promise(() => prompts.text(options));
+    const back = yield* canGoBack;
+
+    const answer = yield* Effect.promise(() =>
+      prompts.text({ ...options, back })
+    );
 
     return (yield* answered(answer)).trim();
   });
@@ -168,9 +197,10 @@ export const askText = (options: {
 export const askConfirm = (message: string, initialValue = true) =>
   Effect.gen(function* () {
     const prompts = yield* Prompts;
+    const back = yield* canGoBack;
 
     const answer = yield* Effect.promise(() =>
-      prompts.confirm({ initialValue, message })
+      prompts.confirm({ back, initialValue, message })
     );
 
     return (yield* answered(answer)) === true;

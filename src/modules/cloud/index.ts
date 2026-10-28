@@ -1,25 +1,23 @@
 import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { defineModule } from "../../core/module.ts";
-import { SecretStoreLive } from "../../core/secret-store.ts";
 import { CloudApiLive } from "./api/client.ts";
-import { SessionLive } from "./auth/session.ts";
+import { account, sessionLayer, signedIn } from "./auth/signed-in.ts";
 import { envCommand } from "./commands/env.ts";
 import { login } from "./commands/login.ts";
 import { logout } from "./commands/logout.ts";
 import { cloudInstances } from "./instances.ts";
 import { cloudSetup } from "./setup.ts";
 
-const http = FetchHttpClient.layer;
+// Whether this person has Cloud credentials; see signed-in.ts.
+export const cloudSignedIn = signedIn;
 
-const session = SessionLive.pipe(
-  Layer.provide(SecretStoreLive),
-  Layer.provide(http)
-);
+// The Cloud account commands would act as, as a line to show; see signed-in.ts.
+export const cloudAccount = account;
 
 export const cloudLayer = CloudApiLive.pipe(
-  Layer.provideMerge(session),
-  Layer.provideMerge(http)
+  Layer.provideMerge(sessionLayer),
+  Layer.provideMerge(FetchHttpClient.layer)
 );
 
 export const cloudModule = defineModule({
