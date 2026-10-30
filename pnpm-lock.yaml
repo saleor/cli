@@ -34,8 +34,8 @@ importers:
         specifier: 1.88.0
         version: 1.88.0
       '@saleor/configurator':
-        specifier: file:vendor/saleor-configurator-c2f0ceaf21364cdfafb901cc8fbe73b2597eca03.tgz
-        version: file:vendor/saleor-configurator-c2f0ceaf21364cdfafb901cc8fbe73b2597eca03.tgz(@types/node@26.6.5)(graphql@16.14.2)(typescript@7.0.2)
+        specifier: 3.23.3
+        version: 3.23.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@7.0.2)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
@@ -963,9 +963,8 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@saleor/configurator@file:vendor/saleor-configurator-c2f0ceaf21364cdfafb901cc8fbe73b2597eca03.tgz':
-    resolution: {integrity: sha512-SuO6dzTq8f5ThhlMN4BtEofWqMTf0zqSCjD2A5rWUb2gKD4QoLi0Qh3lUNFkgJ1GKKWb/ZLD5zt1ZYUQ3uNKFQ==, tarball: file:vendor/saleor-configurator-c2f0ceaf21364cdfafb901cc8fbe73b2597eca03.tgz}
-    version: 3.23.2
+  '@saleor/configurator@3.23.3':
+    resolution: {integrity: sha512-9UYjxfOT5H5csxsAiVPMadG2IRkVg5RhDHxAfIQLNjv3Q6s5GtVfx8cAm6D8VRYzTo5037zTu2vNMqlzrujKcg==}
     engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
     hasBin: true
 
@@ -2770,7 +2769,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@saleor/configurator@file:vendor/saleor-configurator-c2f0ceaf21364cdfafb901cc8fbe73b2597eca03.tgz(@types/node@26.6.5)(graphql@16.14.2)(typescript@7.0.2)':
+  '@saleor/configurator@3.23.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@7.0.2)':
     dependencies:
       '@commander-js/extra-typings': 14.0.0(commander@14.0.3)
       '@inquirer/prompts': 7.10.1(@types/node@26.6.5)

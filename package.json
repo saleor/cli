@@ -32,7 +32,7 @@
     "@effect/tsgo": "0.53.2",
     "@effect/vitest": "4.0.5",
     "@oxlint/plugins": "1.88.0",
-    "@saleor/configurator": "file:vendor/saleor-configurator-c2f0ceaf21364cdfafb901cc8fbe73b2597eca03.tgz",
+    "@saleor/configurator": "3.23.3",
     "@types/node": "^26.6.5",
     "effect": "4.0.5",
     "nanotar": "0.3.0",

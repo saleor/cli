@@ -403,21 +403,7 @@ Drafts for a new store are merged onto what the store already has (by slug or na
 
 The copied `packages/configurator` workspace is removed. The library remains lazy-loaded and is bundled into the CLI build. The existing difference filter, capability descriptions and post-deploy comparison remain host policy until upstream exposes those guarantees. The library does not currently offer cancellation or safe concurrent deployment; the CLI does not add either guarantee.
 
-**Temporary dependency before the npm release.** `package.json` points to `vendor/saleor-configurator-c2f0ceaf21364cdfafb901cc8fbe73b2597eca03.tgz`, built from the unmodified merge commit with upstream's locked dependencies. This is a normal packaged dependency including its license and generated declarations. The CLI does not need a sibling checkout or a build of Configurator during installation. A direct Git dependency at that commit packs no `dist`: its `prepare` hook only runs Husky.
-
-To regenerate the package from upstream, run from this repository (requires Git and pnpm):
-
-```sh
-cli_root="$PWD"
-configurator_source="$(mktemp -d)"
-git -C "$configurator_source" init
-git -C "$configurator_source" fetch --depth=1 https://github.com/saleor/configurator.git c2f0ceaf21364cdfafb901cc8fbe73b2597eca03
-git -C "$configurator_source" checkout --detach FETCH_HEAD
-(cd "$configurator_source" && HUSKY=0 pnpm install --frozen-lockfile && pnpm build && HUSKY=0 pnpm pack --out "$cli_root/vendor/saleor-configurator-c2f0ceaf21364cdfafb901cc8fbe73b2597eca03.tgz")
-pnpm install
-```
-
-When the release containing this API is published, replace the file dependency with that exact npm version, regenerate `pnpm-lock.yaml`, remove the tarball, and run `pnpm check` and `pnpm test:build`. No adapter change is needed for the same API.
+**Published dependency.** The CLI pins `@saleor/configurator` to npm version `3.23.3`, which includes the public library API. The registry package supplies the library, declarations, and upstream license; no vendored archive or sibling checkout is required. `pnpm-lock.yaml` records the registry package integrity.
 
 **Verified at library integration:** clean frozen-lockfile installation and public API import; 306 source tests; 73 tests against the bundled CLI; TypeScript, CLI-scoped Biome/Oxlint and Effect diagnostics (no errors or warnings). New integration tests run the installed library against a mocked GraphQL transport for pull, diff, deploy, convergence and returned deployment failures. Process tests check both command names, offline validation, JSON output, errors and dotenv isolation. No live-store verification was repeated for this change. Generated storefront projects are not part of the CLI source or this integration.
 
