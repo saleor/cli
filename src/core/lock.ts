@@ -1,3 +1,4 @@
+import { Effect, Predicate } from "effect";
 import { randomBytes } from "node:crypto";
 import {
   linkSync,
@@ -9,7 +10,6 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { Effect, Predicate } from "effect";
 import { type CliFailure, fail } from "./errors.ts";
 
 const isAlive = (pid: number) => {
@@ -24,6 +24,16 @@ const isAlive = (pid: number) => {
   } catch {
     return false;
   }
+};
+
+const restoreLock = (stale: string, file: string) => {
+  try {
+    linkSync(stale, file);
+  } catch {
+    // A third process took the free name; the lock is held either way.
+  }
+
+  rmSync(stale, { force: true });
 };
 
 // Takes the lock file, or returns false while a live process holds it. A lock left by
@@ -45,7 +55,7 @@ const acquire = (file: string): boolean => {
     let inode: number;
 
     try {
-      holder = Number(readFileSync(file, "utf8"));
+      holder = Number(readFileSync(file, "utf-8"));
       inode = statSync(file).ino;
     } catch {
       // Released between the two calls; try again.
@@ -68,13 +78,7 @@ const acquire = (file: string): boolean => {
     // Between reading the dead holder and the rename, another process may have
     // reclaimed the lock and written its own. That one is put back, not discarded.
     if (statSync(stale).ino !== inode) {
-      try {
-        linkSync(stale, file);
-      } catch {
-        // A third process took the free name; the lock is held either way.
-      }
-
-      rmSync(stale, { force: true });
+      restoreLock(stale, file);
 
       return false;
     }
@@ -87,12 +91,17 @@ const acquire = (file: string): boolean => {
 
 // Runs `effect` while holding an exclusive per-user lock named `name` in `dir`. While
 // another live process holds it, fails with BUSY instead of waiting or racing it.
-export const withLock = <A, E, R>(
-  dir: string,
-  name: string,
-  busyMessage: string,
-  effect: Effect.Effect<A, E, R>
-): Effect.Effect<A, E | CliFailure, R> =>
+export const withLock = <A, E, R>({
+  dir,
+  name,
+  busyMessage,
+  effect,
+}: {
+  readonly dir: string;
+  readonly name: string;
+  readonly busyMessage: string;
+  readonly effect: Effect.Effect<A, E, R>;
+}): Effect.Effect<A, E | CliFailure, R> =>
   Effect.acquireUseRelease(
     Effect.try({
       catch: () =>
@@ -114,5 +123,8 @@ export const withLock = <A, E, R>(
       )
     ),
     () => effect,
-    (lock) => Effect.sync(() => rmSync(lock.file, { force: true }))
+    (lock) =>
+      Effect.sync(() => {
+        rmSync(lock.file, { force: true });
+      })
   );

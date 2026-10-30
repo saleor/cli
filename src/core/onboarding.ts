@@ -1,6 +1,6 @@
+import { Context, Effect, Schema } from "effect";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { Context, Effect } from "effect";
 import { defineActions } from "./action.ts";
 import { setupCodingAgent } from "./agent-setup.ts";
 import { result } from "./command.ts";
@@ -21,7 +21,9 @@ const completed = () => {
   try {
     return (
       existsSync(stateFile()) &&
-      JSON.parse(readFileSync(stateFile(), "utf8")).version === 1
+      Schema.decodeUnknownSync(Schema.Struct({ version: Schema.Number }))(
+        JSON.parse(readFileSync(stateFile(), "utf-8"))
+      ).version === 1
     );
   } catch {
     return false;

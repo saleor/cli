@@ -11,7 +11,13 @@ export const workspaceConfigurationLive = Layer.succeed(
       Effect.gen(function* () {
         const store = { token, url: instance.graphqlUrl };
         const plan = yield* planDeploy(store, file);
-        const deployed = yield* applyDeploy(instance, store, file, plan);
+
+        const deployed = yield* applyDeploy({
+          instance,
+          store,
+          file,
+          plan,
+        });
 
         if (deployed.missed.length > 0) {
           return yield* fail(

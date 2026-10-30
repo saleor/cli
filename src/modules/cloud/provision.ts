@@ -59,12 +59,21 @@ type ConflictDetails =
   | { readonly project: ReturnType<typeof describeProject> };
 
 // Reuse by name is only safe when every setting the caller asked for matches.
-const requireSameSettings = (
-  kind: string,
-  name: string,
-  checks: ReadonlyArray<readonly [string, Option.Option<string>, string]>,
-  details: ConflictDetails
-) => {
+const requireSameSettings = ({
+  kind,
+  name,
+  checks,
+  details,
+}: {
+  readonly kind: string;
+  readonly name: string;
+  readonly checks: readonly (readonly [
+    string,
+    Option.Option<string>,
+    string,
+  ])[];
+  readonly details: ConflictDetails;
+}) => {
   const mismatches = checks.flatMap(([label, wanted, actual]) =>
     Option.isSome(wanted) && wanted.value !== actual
       ? [`${label} is "${actual}", not "${wanted.value}"`]
@@ -167,12 +176,12 @@ export const planProject = (input: ProjectInput) =>
     if (Option.isSome(existing)) {
       const project = existing.value;
 
-      yield* requireSameSettings(
-        "Project",
-        input.name,
-        [["region", input.region, project.region]],
-        { project: describeProject(input.organization, project) }
-      );
+      yield* requireSameSettings({
+        kind: "Project",
+        name: input.name,
+        checks: [["region", input.region, project.region]],
+        details: { project: describeProject(input.organization, project) },
+      });
 
       return { existing: project, plan: project.plan, region: project.region };
     }
@@ -322,12 +331,17 @@ export const requireSandboxCapacity = (
   );
 };
 
-const classifyCreateRejection = (
-  error: ApiStatusError,
-  domainLabel: Option.Option<string>,
-  organization: string,
-  project: Project
-): Effect.Effect<never, ApiStatusError | CliFailure> => {
+const classifyCreateRejection = ({
+  error,
+  domainLabel,
+  organization,
+  project,
+}: {
+  readonly error: ApiStatusError;
+  readonly domainLabel: Option.Option<string>;
+  readonly organization: string;
+  readonly project: Project;
+}): Effect.Effect<never, ApiStatusError | CliFailure> => {
   const text = error.status === 400 ? flattenMessages(error.body) : "";
 
   if (DOMAIN_ERROR.test(text) && INVALID_ERROR.test(text)) {
@@ -404,12 +418,12 @@ const requestEnvironment = (input: EnvironmentInput, service: string) =>
 
     return yield* request.pipe(
       Effect.catchTag("ApiStatusError", (error) =>
-        classifyCreateRejection(
+        classifyCreateRejection({
           error,
-          input.domainLabel,
-          input.organization,
-          input.project
-        )
+          domainLabel: input.domainLabel,
+          organization: input.organization,
+          project: input.project,
+        })
       ),
       orDescribe
     );
@@ -432,12 +446,14 @@ export const planEnvironment = (input: EnvironmentInput) =>
         );
       }
 
-      yield* requireSameSettings(
-        "Environment",
-        input.name,
-        [["domain label", input.domainLabel, existing.domain_label]],
-        { environment: describeEnvironment(input.organization, existing) }
-      );
+      yield* requireSameSettings({
+        kind: "Environment",
+        name: input.name,
+        checks: [["domain label", input.domainLabel, existing.domain_label]],
+        details: {
+          environment: describeEnvironment(input.organization, existing),
+        },
+      });
 
       return { existing, service: existing.service.name };
     }
@@ -464,11 +480,11 @@ export const applyEnvironment = (
 ) =>
   Effect.gen(function* () {
     if (planned.existing !== undefined) {
-      const ready = yield* waitUntilReady(
-        input.organization,
-        planned.existing.key,
-        deadline
-      );
+      const ready = yield* waitUntilReady({
+        organization: input.organization,
+        envKey: planned.existing.key,
+        deadline,
+      });
 
       return { created: false, environment: ready };
     }
@@ -483,15 +499,20 @@ export const applyEnvironment = (
     const beat = heartbeat();
 
     if (created.task_id) {
-      yield* waitForTask(created.task_id, deadline, "Environment setup", beat);
+      yield* waitForTask({
+        taskId: created.task_id,
+        deadline,
+        label: "Environment setup",
+        beat,
+      });
     }
 
-    const ready = yield* waitUntilReady(
-      input.organization,
-      created.key,
+    const ready = yield* waitUntilReady({
+      organization: input.organization,
+      envKey: created.key,
       deadline,
-      beat
-    );
+      beat,
+    });
 
     return { created: true, environment: ready };
   });

@@ -3,6 +3,7 @@ import {
   documentsIn,
   identity,
   isDocument,
+  isJsonArray,
   type Json,
 } from "./document.ts";
 
@@ -34,7 +35,7 @@ const mergeList = (
 };
 
 const mergeValue = (current: Json | undefined, value: Json): Json => {
-  if (Array.isArray(value) && Array.isArray(current)) {
+  if (isJsonArray(value) && isJsonArray(current)) {
     return mergeList(documentsIn(current), documentsIn(value));
   }
 
@@ -48,10 +49,9 @@ const mergeValue = (current: Json | undefined, value: Json): Json => {
 export const mergeConfig = (base: Document, over: Document): Document =>
   Object.fromEntries([
     ...Object.entries(base).filter(([section]) => !(section in over)),
-    ...Object.entries(over).map(([section, value]) => [
-      section,
-      mergeValue(base[section], value),
-    ]),
+    ...Object.entries(over).map(
+      ([section, value]) => [section, mergeValue(base[section], value)] as const
+    ),
   ]);
 
 // Saleor's defaults on a new 3.23 store, as `config pull` writes them, for drafting
@@ -96,8 +96,8 @@ const orderList = (before: readonly Json[], next: readonly Json[]): Json[] => {
 // `next` with the key and entry order of `before` wherever they share keys and
 // entries, so an edited file's diff shows what changed, not a reshuffle.
 export const orderLike = (before: Json | undefined, next: Json): Json => {
-  if (Array.isArray(next)) {
-    return Array.isArray(before) ? orderList(before, next) : next;
+  if (isJsonArray(next)) {
+    return isJsonArray(before) ? orderList(before, next) : next;
   }
 
   if (!(isDocument(next) && isDocument(before))) {

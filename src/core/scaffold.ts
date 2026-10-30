@@ -1,3 +1,5 @@
+import { Duration, Effect, Option } from "effect";
+import { HttpClient } from "effect/http";
 import { spawn } from "node:child_process";
 import {
   existsSync,
@@ -6,8 +8,6 @@ import {
   renameSync,
   rmSync,
 } from "node:fs";
-import { Duration, Effect, Option } from "effect";
-import { HttpClient } from "effect/http";
 import { Unpack } from "tar";
 import { fail } from "./errors.ts";
 import { withProgress } from "./output.ts";
@@ -64,14 +64,15 @@ const templateFailure = (from: Template, reason: string) =>
 
 // Writes the archive's files into `dir`, dropping the top folder GitHub wraps them in.
 // `tar` refuses entries that would land outside `dir`, absolute or through a link.
-const unpack = (archive: ArrayBuffer, dir: string) =>
-  new Promise<void>((resolve, reject) => {
+const unpack = async (archive: ArrayBuffer, dir: string) => {
+  await new Promise<void>((resolve, reject) => {
     const extractor = new Unpack({ cwd: dir, strict: true, strip: 1 });
 
     extractor.on("error", reject);
     extractor.on("close", resolve);
     extractor.end(Buffer.from(archive));
   });
+};
 
 // Downloads the template into `dir`, which must not exist or be empty. The files are
 // unpacked next to it first and moved in at once, so `dir` is never half-written.
@@ -115,7 +116,9 @@ export const downloadTemplate = (from: Template, dir: string) =>
         },
       }).pipe(
         Effect.onError(() =>
-          Effect.sync(() => rmSync(staging, { force: true, recursive: true }))
+          Effect.sync(() => {
+            rmSync(staging, { force: true, recursive: true });
+          })
         )
       );
     })
@@ -144,8 +147,12 @@ const exec = (program: string, args: readonly string[], cwd: string) =>
 
     child.stdout.on("data", collect);
     child.stderr.on("data", collect);
-    child.on("error", () => resume(Effect.succeedNone));
-    child.on("close", (code) => resume(Effect.succeedSome({ code, output })));
+    child.on("error", () => {
+      resume(Effect.succeedNone);
+    });
+    child.on("close", (code) => {
+      resume(Effect.succeedSome({ code, output }));
+    });
 
     return Effect.sync(() => {
       child.kill("SIGTERM");

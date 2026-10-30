@@ -32,12 +32,17 @@ const channelInput = (description: string) =>
     metavar: "slug",
   });
 
-const summary = (
-  dir: string,
-  ref: string,
-  channel: string,
-  install: boolean | undefined
-) =>
+const summary = ({
+  dir,
+  ref,
+  channel,
+  install,
+}: {
+  readonly dir: string;
+  readonly ref: string;
+  readonly channel: string;
+  readonly install: boolean | undefined;
+}) =>
   [
     ["Template", `${TEMPLATE.repository} (${TEMPLATE.ref})`],
     ["Directory", shown(dir)],
@@ -134,7 +139,12 @@ const createCommand = storefront.ensure({
         },
         risk: null,
         state: found.kind === "absent" ? "absent" : "exists",
-        summary: summary(dir, store.ref, channel, true),
+        summary: summary({
+          dir,
+          ref: store.ref,
+          channel,
+          install: true,
+        }),
         target: storefrontTarget(dir),
       } satisfies Planned<unknown, unknown>;
     }),

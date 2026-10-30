@@ -79,7 +79,7 @@ const emailOf = (token: string) => {
     ? undefined
     : decodeStored(
         TokenClaims,
-        Buffer.from(payload, "base64url").toString("utf8")
+        Buffer.from(payload, "base64url").toString("utf-8")
       )?.email;
 };
 
@@ -87,7 +87,12 @@ export const SessionLive = Layer.effect(
   Session,
   Effect.gen(function* () {
     const store = yield* SecretStore;
-    const envToken = () => process.env.SALEOR_CLOUD_TOKEN?.trim() || undefined;
+
+    const envToken = () => {
+      const token = process.env.SALEOR_CLOUD_TOKEN?.trim();
+
+      return token === "" ? undefined : token;
+    };
 
     const loadTokens = Effect.map(store.get(CREDENTIALS_KEY), (raw) =>
       decodeStored(DeviceTokens, raw)

@@ -111,17 +111,22 @@ const browse = (
   );
 };
 
-export const groupMenu = (
-  root: Command.Command.Any,
-  path: readonly string[],
-  argv: readonly string[],
-  execute: Execute
-) =>
+export const groupMenu = ({
+  root,
+  path,
+  argv,
+  execute,
+}: {
+  readonly root: Command.Command.Any;
+  readonly path: readonly string[];
+  readonly argv: readonly string[];
+  readonly execute: Execute;
+}) =>
   Effect.gen(function* () {
     const menu = browse(root, path, (action) => {
       const separator = argv.indexOf("--");
       const next = [...argv];
-      next.splice(separator < 0 ? next.length : separator, 0, action);
+      next.splice(separator === -1 ? next.length : separator, 0, action);
 
       return execute(next);
     });

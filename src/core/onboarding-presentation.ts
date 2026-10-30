@@ -11,7 +11,7 @@ const WORDMARK = [
 ];
 
 const ink = (text: string, color: string) =>
-  useColors(process.stdout) ? `\x1b[${color}m${text}\x1b[0m` : text;
+  useColors(process.stdout) ? `\u001B[${color}m${text}\u001B[0m` : text;
 
 // The welcome belongs to the prompt, not the progress stream. Write it in one
 // pass so terminal hosts cannot display an animated stderr splash separately

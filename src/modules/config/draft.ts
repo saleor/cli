@@ -1,3 +1,5 @@
+import { GUIDE } from "./guide.ts";
+import { Effect, Option, Result, Schema } from "effect";
 import { spawn } from "node:child_process";
 import {
   existsSync,
@@ -8,7 +10,6 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Effect, Option, Result, Schema } from "effect";
 import { stringify } from "yaml";
 import { detectCodingAgents } from "../../core/agents.ts";
 import { fail } from "../../core/errors.ts";
@@ -22,11 +23,10 @@ import {
 import { notice } from "../../core/output.ts";
 import {
   type Answers,
-  fromAnswers,
-  KINDS,
   type KindKey,
-  REGIONS,
+  KINDS,
   type RegionKey,
+  REGIONS,
 } from "./blocks.ts";
 import { type Document, parseYamlDocument } from "./document.ts";
 import { validateFile } from "./engine.ts";
@@ -41,54 +41,6 @@ import { mergeConfig, orderDocumentLike } from "./merge.ts";
 type Config = Document;
 
 // ── The guide, shared by agents running the CLI and agents it runs ──────
-
-const EXAMPLE = stringify(
-  fromAnswers({ kind: "apparel", region: "us", samples: true })
-);
-
-export const GUIDE = `# Writing a Saleor configuration (config.yml)
-
-A config.yml describes a Saleor store's structure for Saleor Configurator: channels,
-warehouses, shipping, attributes, product types, categories, collections, products
-and menus. The CLI checks it with \`saleor config validate\` and applies it with
-\`saleor config deploy\`. Deploys create and update; they never delete.
-
-## Rules the checks enforce
-
-- Attributes are defined once, in \`productAttributes\`, and referenced from product
-  types as \`- attribute: <Name>\` under \`productAttributes\` or \`variantAttributes\`.
-  Never define attributes inline inside a product type.
-- Attribute \`inputType\` is one of DROPDOWN, MULTISELECT, PLAIN_TEXT, RICH_TEXT,
-  NUMERIC, BOOLEAN, DATE, SWATCH. DROPDOWN, MULTISELECT and SWATCH list \`values\`.
-- An attribute is either a product attribute or a variant attribute of a type, not
-  both. Variant attributes are what customers choose between (size, color).
-- Channels: \`name\`, \`slug\`, \`currencyCode\` (ISO 4217), \`defaultCountry\`
-  (ISO 3166 alpha-2), \`isActive\`.
-- Warehouses: \`name\`, \`slug\`, \`address\` with \`streetAddress1\`, \`city\`,
-  \`postalCode\`, \`country\`, and \`countryArea\` (state or province code) for
-  countries that need one, such as US (e.g. CO) and CA (e.g. ON); \`shippingZones\`
-  lists zone names.
-- Shipping zones: \`name\`, \`countries\`, \`warehouses\` (slugs), \`channels\`
-  (slugs), \`shippingMethods\` with \`name\`, \`type: PRICE\` and \`channelListings\`
-  of \`{ channel, price }\`.
-- Categories: \`name\`, \`slug\`, optional \`subcategories\` of the same shape.
-- Products: \`name\`, \`slug\`, \`productType\` (a type's name), \`category\` (a
-  category slug), \`attributes\` (attribute name → one of its values),
-  \`channelListings\`, and \`variants\` with a unique \`sku\`, variant
-  \`attributes\` and \`channelListings\` of \`{ channel, price }\`.
-- Collections: \`name\`, \`slug\`, \`products\` (slugs), \`channelListings\` of
-  \`{ channelSlug, isPublished }\`.
-- Menus: items are \`{ name, category: <slug> }\` or \`{ name, collection: <slug> }\`.
-- Everything referenced (slugs, names) must be defined in the file, or be a default
-  every new store has: channel \`default-channel\`, category \`default-category\`.
-- The Saleor storefront template shows the \`featured-products\` collection on its
-  home page and the \`navbar\` menu as its navigation.
-
-## Example
-
-\`\`\`yaml
-${EXAMPLE}\`\`\`
-`;
 
 // ── Coding agents on this computer ───────────────────────────────────────
 
@@ -167,7 +119,7 @@ const codexModel = () => {
   );
 
   return existsSync(file)
-    ? MODEL_LINE.exec(readFileSync(file, "utf8"))?.[1]
+    ? MODEL_LINE.exec(readFileSync(file, "utf-8"))?.[1]
     : undefined;
 };
 
@@ -190,8 +142,8 @@ const run = (binary: string, args: readonly string[], prompt: string) =>
         `The coding agent (${binary}) did not answer: ${error instanceof Error ? error.message : String(error)}`,
         { suggestion: "Try again, or describe the store differently." }
       ),
-    try: (signal) =>
-      new Promise<string>((resolve, reject) => {
+    try: async (signal) =>
+      await new Promise<string>((resolve, reject) => {
         const child = spawn(binary, args, {
           signal,
           stdio: ["pipe", "pipe", "pipe"],
@@ -208,13 +160,15 @@ const run = (binary: string, args: readonly string[], prompt: string) =>
           err += chunk.toString();
         });
         child.on("error", reject);
-        child.on("close", (code) =>
-          code === 0
-            ? resolve(out)
-            : reject(
-                new Error(err.trim().split("\n").at(-1) ?? `exit code ${code}`)
-              )
-        );
+        child.on("close", (code) => {
+          if (code === 0) {
+            resolve(out);
+          } else {
+            reject(
+              new Error(err.trim().split("\n").at(-1) ?? `exit code ${code}`)
+            );
+          }
+        });
         child.stdin.end(prompt);
       }),
   });
@@ -290,9 +244,9 @@ const RUNNERS = {
         events.find((event) => event.thread_id !== undefined)?.thread_id ??
         resume;
 
-      const text = events
-        .filter((event) => event.item?.type === "agent_message")
-        .at(-1)?.item?.text;
+      const text = events.findLast(
+        (event) => event.item?.type === "agent_message"
+      )?.item?.text;
 
       const tokens = events
         .filter((event) => event.usage !== undefined)
@@ -497,12 +451,17 @@ const failed = (problems: string, session: Session): Round => ({
 });
 
 // One round: ask (or, with a session, ask for a fix), then check the answer.
-const attemptDraft = (
-  author: Author,
-  request: DraftRequest,
-  file: string,
-  previous: Previous
-) =>
+const attemptDraft = ({
+  author,
+  request,
+  file,
+  previous,
+}: {
+  readonly author: Author;
+  readonly request: DraftRequest;
+  readonly file: string;
+  readonly previous: Previous;
+}) =>
   Effect.gen(function* () {
     // The first attempt gets the guide and the task; fixes continue that session
     // with only what the checks found.
@@ -548,7 +507,12 @@ export const draftWith = (author: Author, request: DraftRequest) =>
     yield* notice(`Drafting the configuration with ${author.label}…`);
 
     for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
-      const round = yield* attemptDraft(author, request, file, previous);
+      const round = yield* attemptDraft({
+        author,
+        request,
+        file,
+        previous,
+      });
 
       if (round.passed) {
         rmSync(dir, { force: true, recursive: true });
@@ -591,24 +555,24 @@ export const draftWith = (author: Author, request: DraftRequest) =>
 export const askAnswers = (shopName: string | undefined) =>
   Effect.gen(function* () {
     const kind = yield* askSelect<KindKey>({
-      choices: Object.entries(KINDS).map(
-        ([value, each]): Choice<KindKey> => ({
-          label: each.label,
+      choices: Object.keys(KINDS)
+        .filter((key): key is KindKey => Object.hasOwn(KINDS, key))
+        .map((value): Choice<KindKey> => ({
+          label: KINDS[value].label,
           // SAFETY: the keys of KINDS are exactly KindKey.
-          value: value as KindKey,
-        })
-      ),
+          value,
+        })),
       message: "What do you sell?",
     });
 
     const region = yield* askSelect<RegionKey>({
-      choices: Object.entries(REGIONS).map(
-        ([value, each]): Choice<RegionKey> => ({
-          label: each.label,
+      choices: Object.keys(REGIONS)
+        .filter((key): key is RegionKey => Object.hasOwn(REGIONS, key))
+        .map((value): Choice<RegionKey> => ({
+          label: REGIONS[value].label,
           // SAFETY: the keys of REGIONS are exactly RegionKey.
-          value: value as RegionKey,
-        })
-      ),
+          value,
+        })),
       message: "Where do you sell?",
     });
 
@@ -626,3 +590,5 @@ export const describeAsked = (prompting: string) =>
     placeholder:
       "e.g. Outdoor gear in the US and Canada, apparel with sizes and colors",
   });
+
+export { GUIDE } from "./guide.ts";

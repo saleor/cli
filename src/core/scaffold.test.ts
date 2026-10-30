@@ -1,3 +1,6 @@
+import { Effect, Predicate } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { createTarGzip } from "nanotar";
 import {
   existsSync,
   mkdirSync,
@@ -11,9 +14,6 @@ import {
 import { createServer, type Server } from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { Effect, Predicate } from "effect";
-import { FetchHttpClient } from "effect/http";
-import { createTarGzip } from "nanotar";
 import { create } from "tar";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { directoryState, downloadTemplate, template } from "./scaffold.ts";
@@ -30,7 +30,9 @@ beforeEach(async () => {
     res.writeHead(archive === undefined ? 404 : 200);
     res.end(archive === undefined ? undefined : Buffer.from(archive));
   });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
+  });
   const address = server.address();
 
   if (address === null || Predicate.isString(address)) {
@@ -42,7 +44,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   vi.restoreAllMocks();
-  await new Promise<void>((resolve) => server.close(() => resolve()));
+  await new Promise<void>((resolve) => {
+    server.close(() => {
+      resolve();
+    });
+  });
   rmSync(dir, { force: true, recursive: true });
 });
 
@@ -65,10 +71,10 @@ it("unpacks the template without its top folder, keeping executable files", asyn
   const into = path.join(dir, "shop");
   await Effect.runPromise(download(into));
 
-  expect(readFileSync(path.join(into, "package.json"), "utf8")).toBe("{}");
+  expect(readFileSync(path.join(into, "package.json"), "utf-8")).toBe("{}");
   expect(statSync(path.join(into, "scripts/run.sh")).mode % 0o1000).toBe(0o755);
   // Nothing is left next to it.
-  expect(readdirSync(dir)).toEqual(["shop"]);
+  expect(readdirSync(dir)).toStrictEqual(["shop"]);
 });
 
 it("keeps paths longer than a tar header's name field, as GitHub archives them", async () => {
@@ -77,6 +83,7 @@ it("keeps paths longer than a tar header's name field, as GitHub archives them",
   const deep = `storefront-main/${"nested-directory/".repeat(8)}file.md`;
   mkdirSync(path.dirname(path.join(source, deep)), { recursive: true });
   writeFileSync(path.join(source, deep), "deep");
+  // oxlint-disable-next-line unicorn/prefer-spread -- tar returns a stream whose concat method collects its bytes.
   archive = await create({ cwd: source, gzip: true, portable: true }, [
     "storefront-main",
   ]).concat();
@@ -85,7 +92,10 @@ it("keeps paths longer than a tar header's name field, as GitHub archives them",
   await Effect.runPromise(download(into));
 
   expect(
-    readFileSync(path.join(into, deep.slice("storefront-main/".length)), "utf8")
+    readFileSync(
+      path.join(into, deep.slice("storefront-main/".length)),
+      "utf-8"
+    )
   ).toBe("deep");
 });
 
@@ -100,7 +110,7 @@ it("never writes outside the template, whatever an entry's path says", async () 
   const failure = await Effect.runPromise(Effect.flip(download(into)));
 
   expect(failure.code).toBe("TEMPLATE_FAILED");
-  expect(readdirSync(dir)).toEqual([]);
+  expect(readdirSync(dir)).toStrictEqual([]);
   expect(existsSync(path.join(path.dirname(dir), "escaped"))).toBe(false);
 });
 

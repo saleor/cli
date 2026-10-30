@@ -1,6 +1,6 @@
+import { Effect, Option } from "effect";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import { Effect, Option } from "effect";
 import type { Ensured, Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { option } from "../../core/inputs.ts";
@@ -23,9 +23,9 @@ import {
   DEFAULT_REGION,
   type EnvironmentInput,
   type EnvironmentPlan,
-  type ProjectInput,
   planEnvironment,
   planProject,
+  type ProjectInput,
   requireSandboxCapacity,
 } from "./provision.ts";
 import { environment, organizationOf, orgInput, project } from "./targets.ts";
@@ -128,12 +128,17 @@ const envInput = environment.input({ creates: true });
 
 type EnsuredEnvironment = Ensured<EnvironmentDetails & { created: boolean }>;
 
-const setupLines = (
-  organization: string,
-  projectSlug: string,
-  projectCreated: boolean,
-  outcome: EnsuredEnvironment
-) => [
+const setupLines = ({
+  organization,
+  projectSlug,
+  projectCreated,
+  outcome,
+}: {
+  readonly organization: string;
+  readonly projectSlug: string;
+  readonly projectCreated: boolean;
+  readonly outcome: EnsuredEnvironment;
+}) => [
   `  Project:     ${projectSlug} (${projectCreated ? "created" : "already existed"})`,
   outcome.text,
   "",
@@ -228,9 +233,12 @@ export const cloudSetup = defineSetup({
         (outcome: EnsuredEnvironment): EnsuredEnvironment => ({
           ...result(
             { ...outcome.data, projectCreated },
-            setupLines(organization, projectSlug, projectCreated, outcome).join(
-              "\n"
-            )
+            setupLines({
+              organization,
+              projectSlug,
+              projectCreated,
+              outcome,
+            }).join("\n")
           ),
           target: outcome.target,
         });

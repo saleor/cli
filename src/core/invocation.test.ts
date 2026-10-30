@@ -8,12 +8,12 @@ import {
   rerunCommand,
 } from "./invocation.ts";
 
-const rerun = (
+const rerun = async (
   argv: readonly string[],
   answers: Answer[],
   options: Parameters<typeof rerunCommand>[0] = {}
 ) =>
-  Effect.runPromise(
+  await Effect.runPromise(
     rerunCommand(options).pipe(
       Effect.provideService(Invocation, argv),
       Effect.provideService(ActionContext, {

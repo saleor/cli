@@ -127,12 +127,14 @@ export const ERRORS = {
 export type ErrorCode = keyof typeof ERRORS;
 
 // SAFETY: the keys of a literal object are exactly the members of its key type.
-export const ERROR_CODES = Object.keys(ERRORS) as readonly ErrorCode[];
+export const ERROR_CODES = Object.keys(ERRORS).filter((key): key is ErrorCode =>
+  Object.hasOwn(ERRORS, key)
+);
 
-export const EXIT_CODE_MEANINGS: ReadonlyArray<{
+export const EXIT_CODE_MEANINGS: readonly {
   readonly code: ExitCode;
   readonly meaning: string;
-}> = [
+}[] = [
   { code: ExitCode.Success, meaning: "Success." },
   { code: ExitCode.Failure, meaning: "Failed; error.code says why." },
   {

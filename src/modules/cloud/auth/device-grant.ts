@@ -186,15 +186,19 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
         return toTokens(parsed);
       }
 
-      const error = String(body.error ?? "");
+      const error = Schema.is(Schema.String)(body.error) ? body.error : "";
 
       switch (error) {
-        case "authorization_pending":
+        case "authorization_pending": {
           continue;
-        case "slow_down":
+        }
+
+        case "slow_down": {
           interval += 5;
           continue;
-        case "access_denied":
+        }
+
+        case "access_denied": {
           return yield* fail(
             "AUTH_DEVICE_ACCESS_DENIED",
             "The login request was denied in the browser.",
@@ -202,7 +206,9 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
               suggestion: `To try again, run: ${command("login")}`,
             }
           );
-        case "expired_token":
+        }
+
+        case "expired_token": {
           return yield* fail(
             "AUTH_DEVICE_CODE_EXPIRED",
             "The login link expired before the request was approved.",
@@ -211,13 +217,16 @@ export const pollForTokens = (grant: PendingDeviceGrant) =>
               suggestion: `To get a new link, run: ${command("login")}`,
             }
           );
-        default:
+        }
+
+        default: {
           break;
+        }
       }
 
       return yield* fail(
         "API_ERROR",
-        `Login failed: ${String(body.error_description ?? "") || error || `HTTP ${status}`}.`,
+        `Login failed: ${(Schema.is(Schema.String)(body.error_description) ? body.error_description : "") || error || `HTTP ${status}`}.`,
         { details: body }
       );
     }

@@ -1,8 +1,8 @@
+import { classifyError, validate } from "@saleor/configurator";
+import { Effect, Option } from "effect";
 import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { classifyError, validate } from "@saleor/configurator";
-import { Effect, Option } from "effect";
 import { describe, expect, it } from "vitest";
 import { stringify } from "yaml";
 import {
@@ -15,8 +15,8 @@ import {
 import {
   fromAnswers,
   KINDS,
-  type KindKey,
   REGIONS,
+  type KindKey,
   type RegionKey,
 } from "./blocks.ts";
 import { applies, fileChanges, review, sentence } from "./describe.ts";
@@ -52,8 +52,8 @@ describe("building blocks", () => {
   );
 
   it("covers every kind and region", () => {
-    expect([...kinds].sort()).toEqual(Object.keys(KINDS).sort());
-    expect([...regions].sort()).toEqual(Object.keys(REGIONS).sort());
+    expect([...kinds].sort()).toStrictEqual(Object.keys(KINDS).sort());
+    expect([...regions].sort()).toStrictEqual(Object.keys(REGIONS).sort());
   });
 
   it.each(combinations)(
@@ -66,8 +66,9 @@ describe("building blocks", () => {
       );
 
       const problem = await validate(file).then(
-        () => undefined,
-        (error: Error) => classifyError(error).message
+        () => {},
+        // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Promise rejection is an I/O boundary; the callback narrows the error.
+        (error: unknown) => classifyError(error).message
       );
 
       expect(problem).toBeUndefined();
@@ -90,7 +91,7 @@ describe("merging a draft onto a store", () => {
       }
     );
 
-    expect(merged).toEqual({
+    expect(merged).toStrictEqual({
       categories: [
         { name: "Default Category", slug: "default-category" },
         { name: "Shoes", slug: "shoes" },
@@ -173,9 +174,9 @@ describe("differences", () => {
       updates: 4,
     });
 
-    expect(summary.results.map((result) => result.changes?.[0]?.field)).toEqual(
-      ["attributes.Notes"]
-    );
+    expect(
+      summary.results.map((result) => result.changes?.[0]?.field)
+    ).toStrictEqual(["attributes.Notes"]);
     expect(summary.totalChanges).toBe(1);
   });
 
@@ -215,7 +216,7 @@ describe("differences", () => {
         ...config,
         collections: [{ name: "Winter", slug: "winter" }],
       })
-    ).toEqual([
+    ).toStrictEqual([
       'Adds collection "Winter"',
       'Removes collection "Featured Products" from the file',
     ]);
@@ -228,18 +229,27 @@ describe("projects", () => {
 
     expect(
       await Effect.runPromise(
-        rememberEnvironment(root, "local", "local:a", { name: "shop" })
+        rememberEnvironment({
+          root,
+          wanted: "local",
+          ref: "local:a",
+          defaults: { name: "shop" },
+        })
       )
-    ).toEqual({ added: true, name: "local" });
+    ).toStrictEqual({ added: true, name: "local" });
     expect(
-      await Effect.runPromise(rememberEnvironment(root, "local", "local:a"))
-    ).toEqual({
+      await Effect.runPromise(
+        rememberEnvironment({ root, wanted: "local", ref: "local:a" })
+      )
+    ).toStrictEqual({
       added: false,
       name: "local",
     });
     expect(
-      await Effect.runPromise(rememberEnvironment(root, "local", "local:b"))
-    ).toEqual({
+      await Effect.runPromise(
+        rememberEnvironment({ root, wanted: "local", ref: "local:b" })
+      )
+    ).toStrictEqual({
       added: true,
       name: "local-2",
     });
@@ -255,13 +265,13 @@ describe("projects", () => {
 
     expect(
       Option.map(findProject(below), (project) => project.environments)
-    ).toEqual(
+    ).toStrictEqual(
       Option.some([
         ["local", "local:a"],
         ["local-2", "local:b"],
       ])
     );
-    expect(projectChannel(root)).toEqual(Option.some("uk"));
+    expect(projectChannel(root)).toStrictEqual(Option.some("uk"));
     const previous = process.cwd();
 
     try {

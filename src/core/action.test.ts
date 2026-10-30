@@ -59,7 +59,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  [process.stdin, process.stdout].forEach((stream, index) => {
+  for (const [index, stream] of [process.stdin, process.stdout].entries()) {
     const descriptor = tty[index];
 
     if (descriptor) {
@@ -67,7 +67,8 @@ afterEach(() => {
     } else {
       Reflect.deleteProperty(stream, "isTTY");
     }
-  });
+  }
+
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
   process.exitCode = 0;
@@ -142,7 +143,7 @@ const drop = actions.remove({
   summary: "Drop a thing.",
 });
 
-const run = (
+const run = async (
   argv: readonly string[],
   answers: { confirm?: boolean; select?: string; text?: string } = {}
 ) => {
@@ -156,7 +157,7 @@ const run = (
     { services: Layer.empty, version: "1" }
   );
 
-  return Effect.runPromise(
+  return await Effect.runPromise(
     execute(argv).pipe(
       Effect.provideService(Prompts, {
         confirm,
@@ -174,7 +175,7 @@ it("refuses a deletion without a terminal, and names the flag that confirms it",
   expect(json().error.suggestion).toContain(
     "saleor drop --name x --json --force"
   );
-  expect(applied).toEqual([]);
+  expect(applied).toStrictEqual([]);
   expect(process.exitCode).toBe(1);
 });
 
@@ -183,14 +184,14 @@ it("deletes with --force, or after a yes at a terminal", async () => {
   const { confirm } = await run(["drop", "--name", "x"]);
 
   expect(confirm).toHaveBeenCalledOnce();
-  expect(applied).toEqual(["dropped", "dropped"]);
+  expect(applied).toStrictEqual(["dropped", "dropped"]);
 });
 
 it("tells a notice once before creating, without asking", async () => {
   const { confirm } = await run(["make", "--name", "billed", "--json"]);
 
   expect(confirm).not.toHaveBeenCalled();
-  expect(applied).toEqual(["billed"]);
+  expect(applied).toStrictEqual(["billed"]);
   expect(stderr.join("")).toContain("It may be billed.");
 });
 
@@ -210,7 +211,7 @@ it("shows what answers will create before creating it, and records them for a re
     initialValue: true,
     message: "Continue?",
   });
-  expect(applied).toEqual(["fresh"]);
+  expect(applied).toStrictEqual(["fresh"]);
   expect(stdout.join("")).toContain("saleor make --name fresh");
 });
 
@@ -218,7 +219,7 @@ it("reuses without asking anything more", async () => {
   const { confirm } = await run(["make"], { select: "old" });
 
   expect(confirm).not.toHaveBeenCalled();
-  expect(applied).toEqual(["old"]);
+  expect(applied).toStrictEqual(["old"]);
 });
 
 it("previews without applying, confirming or asking", async () => {
@@ -237,12 +238,12 @@ it("previews without applying, confirming or asking", async () => {
     warning: null,
   });
   expect(confirm).not.toHaveBeenCalled();
-  expect(applied).toEqual([]);
+  expect(applied).toStrictEqual([]);
 });
 
 it("removes what exists after confirmation, and succeeds on what does not", async () => {
   await run(["drop", "--name", "x"], { confirm: false });
-  expect(applied).toEqual([]);
+  expect(applied).toStrictEqual([]);
   expect(process.exitCode).toBe(1);
 
   stdout = [];

@@ -1,3 +1,4 @@
+import { Effect, Option, Predicate, Schema } from "effect";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -8,7 +9,6 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { Effect, Option, Predicate, Schema } from "effect";
 import { parseDocument } from "yaml";
 import { fail } from "./errors.ts";
 import { configDir } from "./secret-store.ts";
@@ -38,7 +38,7 @@ export interface Project {
   readonly config: string;
   readonly definitions?: Readonly<Record<string, string | LocalDefinition>>;
   // The environments in the order they were added; the first is the default.
-  readonly environments: ReadonlyArray<readonly [name: string, ref: string]>;
+  readonly environments: readonly (readonly [name: string, ref: string])[];
   readonly name: string;
   readonly root: string;
   readonly storefront?: string | undefined;
@@ -50,7 +50,7 @@ export const slugify = (text: string) =>
   text
     .toLowerCase()
     .replace(UNSAFE, "-")
-    .replace(/^-+|-+$/g, "") || "saleor";
+    .replaceAll(/^-+|-+$/g, "") || "saleor";
 
 const ManifestSchema = Schema.Struct({
   config: Schema.optional(Schema.String),
@@ -85,7 +85,10 @@ const decodeYaml = <S extends Schema.ConstraintDecoder<unknown>>(
 
 const read = (root: string): Project => {
   const fields = Option.getOrElse(
-    decodeYaml(ManifestSchema, readFileSync(path.join(root, MANIFEST), "utf8")),
+    decodeYaml(
+      ManifestSchema,
+      readFileSync(path.join(root, MANIFEST), "utf-8")
+    ),
     () => {
       throw fail(
         "CONFIG_INVALID",
@@ -143,7 +146,7 @@ const write = (project: Project) => {
   const file = path.join(project.root, MANIFEST);
 
   const document = parseDocument(
-    existsSync(file) ? readFileSync(file, "utf8") : "{}"
+    existsSync(file) ? readFileSync(file, "utf-8") : "{}"
   );
 
   document.set("name", project.name);
@@ -166,12 +169,17 @@ const write = (project: Project) => {
 
 // Creates the manifest, or adds an environment to it. A store already listed keeps
 // its name; a taken name gets a suffix. Returns the name the store is known by.
-export const rememberEnvironment = (
-  root: string,
-  wanted: string,
-  ref: string,
-  defaults: { readonly name?: string } = {}
-) =>
+export const rememberEnvironment = ({
+  root,
+  wanted,
+  ref,
+  defaults = {},
+}: {
+  readonly root: string;
+  readonly wanted: string;
+  readonly ref: string;
+  readonly defaults?: { readonly name?: string };
+}) =>
   Effect.try({
     catch: () =>
       fail(
@@ -261,7 +269,7 @@ const readState = (): Deployments => {
   try {
     return Option.getOrElse(
       Schema.decodeUnknownOption(Schema.fromJsonString(DeploymentsSchema))(
-        readFileSync(stateFile(), "utf8")
+        readFileSync(stateFile(), "utf-8")
       ),
       () => ({})
     );
@@ -347,7 +355,7 @@ export const projectChannel = (root: string): Option.Option<string> =>
     }
 
     return Option.flatMap(
-      decodeYaml(ChannelsSchema, readFileSync(configPath(project), "utf8")),
+      decodeYaml(ChannelsSchema, readFileSync(configPath(project), "utf-8")),
       (config) => {
         const slugs = (config.channels ?? []).flatMap((channel) =>
           channel.slug === undefined ? [] : [channel.slug]
@@ -390,7 +398,7 @@ export const bindingName = (root: string, alias: string): string => {
 
   if (existsSync(file)) {
     return Schema.decodeUnknownSync(Schema.Struct({ name: Schema.String }))(
-      JSON.parse(readFileSync(file, "utf8"))
+      JSON.parse(readFileSync(file, "utf-8"))
     ).name;
   }
 
@@ -438,12 +446,12 @@ export const initializeProject = (
   }
 ) =>
   Effect.gen(function* () {
-    yield* rememberEnvironment(
+    yield* rememberEnvironment({
       root,
-      store.kind === "local" ? "local" : store.name,
-      store.ref,
-      { name }
-    );
+      wanted: store.kind === "local" ? "local" : store.name,
+      ref: store.ref,
+      defaults: { name },
+    });
     yield* Effect.try({
       catch: () =>
         fail("LOCAL_STATE_ERROR", `Could not initialize project at ${root}.`),
@@ -456,7 +464,7 @@ export const initializeProject = (
         }
 
         const file = path.join(root, MANIFEST);
-        const document = parseDocument(readFileSync(file, "utf8"));
+        const document = parseDocument(readFileSync(file, "utf-8"));
 
         if (store.kind === "local" && store.saleorVersion !== null) {
           const project = read(root);
@@ -499,7 +507,7 @@ const writeProjectGuides = (root: string) => {
   }
 
   const ignore = path.join(root, ".gitignore");
-  const current = existsSync(ignore) ? readFileSync(ignore, "utf8") : "";
+  const current = existsSync(ignore) ? readFileSync(ignore, "utf-8") : "";
 
   const missing = [".env", ".env.local", "node_modules/"].filter(
     (line) => !current.split("\n").includes(line)

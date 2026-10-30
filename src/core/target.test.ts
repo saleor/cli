@@ -41,7 +41,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  [process.stdin, process.stdout].forEach((stream, index) => {
+  for (const [index, stream] of [process.stdin, process.stdout].entries()) {
     const descriptor = tty[index];
 
     if (descriptor) {
@@ -49,7 +49,8 @@ afterEach(() => {
     } else {
       Reflect.deleteProperty(stream, "isTTY");
     }
-  });
+  }
+
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
 });
@@ -108,7 +109,7 @@ it("asks even when there is only one choice, and records the answer", async () =
 
   expect(await Effect.runPromise(effect)).toBe("acme");
   expect(select).toHaveBeenCalledOnce();
-  expect(answers).toEqual([{ option: ["--org", "acme"] }]);
+  expect(answers).toStrictEqual([{ option: ["--org", "acme"] }]);
 });
 
 it("uses the environment variable, except when removing", async () => {
@@ -201,5 +202,5 @@ it("runs a detour row, asks again, and never lists it as a choice", async () => 
 
   expect(await Effect.runPromise(run(false))).toBe("acme");
   expect(select).toHaveBeenCalledTimes(2);
-  expect(answers).toEqual([{ option: ["--org", "acme"] }]);
+  expect(answers).toStrictEqual([{ option: ["--org", "acme"] }]);
 });

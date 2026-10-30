@@ -1,7 +1,7 @@
+import { Effect, Option } from "effect";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Effect, Option } from "effect";
 import { expect, it, vi } from "vitest";
 import { InstanceSources } from "../../core/instance.ts";
 import { OutputFlag } from "../../core/output.ts";
@@ -83,7 +83,7 @@ it("skips the sample export without credentials and preserves the existing file"
     expect(outcome.lines.join("\n")).toContain(
       "saleor config pull --instance cloud:org/key"
     );
-    expect(readFileSync(file, "utf8")).toBe("shop: {name: Existing}\n");
+    expect(readFileSync(file, "utf-8")).toBe("shop: {name: Existing}\n");
   } finally {
     rmSync(directory, { force: true, recursive: true });
   }

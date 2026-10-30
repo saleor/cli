@@ -1,5 +1,5 @@
-import path from "node:path";
 import { Effect, Option } from "effect";
+import path from "node:path";
 import { fail } from "./errors.ts";
 import { askSelect, isInteractive } from "./interaction.ts";
 import { findProject, type Project } from "./project.ts";

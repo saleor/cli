@@ -1,6 +1,6 @@
+import { isCancel } from "@clack/core";
 import { PassThrough, Writable } from "node:stream";
 import { stripVTControlCharacters } from "node:util";
-import { isCancel } from "@clack/core";
 import { expect, it } from "vitest";
 import { menuPrompt } from "./menu-prompt.ts";
 import { BACK } from "./navigation.ts";
@@ -40,7 +40,7 @@ it("shows navigation in the footer and returns Back on Escape", async () => {
   expect(menu.screen()).toContain("Esc: back");
   expect(menu.screen()).toContain("Ctrl+C: exit");
   expect(menu.screen()).not.toMatch(NAVIGATION_ROW);
-  menu.key("escape", "\x1b");
+  menu.key("escape", "\u001B");
   expect(await menu.answer).toBe(BACK);
   expect(menu.input.listenerCount("keypress")).toBe(0);
 });
@@ -48,7 +48,7 @@ it("shows navigation in the footer and returns Back on Escape", async () => {
 it("ignores Escape at the root and still accepts a selection", async () => {
   const menu = start(false);
   expect(menu.screen()).not.toContain("Esc: back");
-  menu.key("escape", "\x1b");
+  menu.key("escape", "\u001B");
   menu.key("down");
   menu.key("return", "\r");
   expect(await menu.answer).toBe("second");
@@ -58,7 +58,7 @@ it.each([false, true])(
   "keeps Ctrl+C as cancellation (back=%s)",
   async (back) => {
     const menu = start(back);
-    menu.key("c", "\x03");
+    menu.key("c", "\u0003");
     expect(isCancel(await menu.answer)).toBe(true);
     expect(menu.input.listenerCount("keypress")).toBe(0);
   }

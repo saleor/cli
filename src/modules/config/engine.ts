@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
 import type {
   ConfiguratorFailure,
   DiffChange,
@@ -8,13 +6,17 @@ import type {
   SaleorConfig,
 } from "@saleor/configurator";
 import { Effect } from "effect";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
-import { isDocument, type Json } from "./document.ts";
+import { isDocument, isJsonArray, type Json } from "./document.ts";
 
 // Configurator's public library, run in-process and loaded on first use. Commands
 // that do not touch configuration pay nothing for it at startup.
-const engineModule = Effect.promise(() => import("@saleor/configurator"));
+const engineModule = Effect.promise(
+  async () => await import("@saleor/configurator")
+);
 
 export const DEFAULT_CONFIG = "config.yml";
 
@@ -27,7 +29,7 @@ const toFailure = (error: ConfiguratorFailure) => {
     error.issues.length > 0 ? { issues: error.issues } : undefined;
 
   switch (error.code) {
-    case "CONFIG_INVALID":
+    case "CONFIG_INVALID": {
       return fail(
         "CONFIG_INVALID",
         [
@@ -39,19 +41,28 @@ const toFailure = (error: ConfiguratorFailure) => {
           suggestion: `Fix the file, then check it with: ${command("config", "validate")}`,
         }
       );
-    case "STORE_AUTH_INVALID":
+    }
+
+    case "STORE_AUTH_INVALID": {
       return fail("STORE_AUTH_INVALID", error.message, {
         suggestion: "Set SALEOR_TOKEN to a token with those permissions.",
       });
-    case "NETWORK_ERROR":
+    }
+
+    case "NETWORK_ERROR": {
       return fail("NETWORK_ERROR", error.message, {
         suggestion:
           "Check that the store is running, then run the command again.",
       });
-    case "DEPLOY_PARTIAL":
+    }
+
+    case "DEPLOY_PARTIAL": {
       return fail("DEPLOY_PARTIAL", error.message, { details });
-    default:
+    }
+
+    case "ENGINE_ERROR": {
       return fail("STORE_ERROR", error.message, { details });
+    }
   }
 };
 
@@ -62,7 +73,7 @@ const attempt = <A>(
   Effect.flatMap(engineModule, (engine) =>
     Effect.tryPromise({
       catch: (error) => toFailure(engine.classifyError(error)),
-      try: () => run(engine),
+      try: async () => await run(engine),
     })
   );
 
@@ -75,7 +86,7 @@ export const existingConfig = (file: string) =>
       });
 
 export const validateFile = (file: string) =>
-  attempt((engine) => engine.validate(file));
+  attempt(async (engine) => await engine.validate(file));
 
 export const serialize = (config: SaleorConfig) =>
   Effect.map(engineModule, (engine) => engine.serialize(config));
@@ -86,7 +97,9 @@ export interface Store {
 }
 
 export const pull = (store: Store) =>
-  attempt((engine) => engine.createConfigurator(store).introspect());
+  attempt(
+    async (engine) => await engine.createConfigurator(store).introspect()
+  );
 
 // The engine's comparators report differences that are not changes: a field the file
 // leaves out (so it has no opinion on it), a value Saleor fills in itself such as
@@ -94,10 +107,10 @@ export const pull = (store: Store) =>
 // write would never converge. Only differences where the file asks for something the
 // store does not have are kept.
 const sameJson = (a: Json | undefined, b: Json | undefined): boolean => {
-  if (Array.isArray(a) || Array.isArray(b)) {
+  if (isJsonArray(a) || isJsonArray(b)) {
     return (
-      Array.isArray(a) &&
-      Array.isArray(b) &&
+      isJsonArray(a) &&
+      isJsonArray(b) &&
       a.length === b.length &&
       a.every((item, i) => sameJson(item, b[i]))
     );
@@ -152,12 +165,17 @@ export const meaningful = (summary: DiffSummary): DiffSummary => {
 
 export const diff = (store: Store, file: string) =>
   Effect.map(
-    attempt((engine) => engine.createConfigurator(store).diff(file)),
+    attempt(
+      async (engine) => await engine.createConfigurator(store).diff(file)
+    ),
     meaningful
   );
 
 export const deploy = (store: Store, file: string, summary: DiffSummary) =>
-  attempt((engine) => engine.createConfigurator(store).deploy(file, summary));
+  attempt(
+    async (engine) =>
+      await engine.createConfigurator(store).deploy(file, summary)
+  );
 
 export const supportedSaleor = Effect.map(
   engineModule,
@@ -185,6 +203,6 @@ export const sections = (config: SaleorConfig) =>
   Object.fromEntries(
     Object.entries(config).map(([section, value]) => [
       section,
-      Array.isArray(value) ? value.length : 1,
+      isJsonArray(value) ? value.length : 1,
     ])
   );

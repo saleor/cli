@@ -53,7 +53,7 @@ export const detectAgent = (
 export const resolveOutputFormat = (
   explicit: Option.Option<OutputFormat>,
   env: NodeJS.ProcessEnv = process.env,
-  stdoutIsTTY: boolean = process.stdout.isTTY === true
+  stdoutIsTTY: boolean = process.stdout.isTTY
 ): OutputFormat => {
   if (Option.isSome(explicit)) {
     return explicit.value;
@@ -142,7 +142,7 @@ export const writeText = (text: string) =>
   });
 
 export const useColors = (stream: NodeJS.WriteStream = process.stdout) =>
-  stream.isTTY === true &&
+  stream.isTTY &&
   process.env.NO_COLOR === undefined &&
   process.env.TERM !== "dumb";
 
@@ -151,7 +151,7 @@ export const useColors = (stream: NodeJS.WriteStream = process.stdout) =>
 export const writeTextFailure = (failure: CliFailure) =>
   Effect.sync(() => {
     const colors = useColors(process.stderr);
-    const mark = colors ? "\x1b[31m✗\x1b[0m " : "✗ ";
+    const mark = colors ? "\u001B[31m✗\u001B[0m " : "✗ ";
 
     const lines = [
       `${failure.code === "CANCELLED" ? "" : mark}${failure.message}`,

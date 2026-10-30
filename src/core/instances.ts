@@ -40,13 +40,11 @@ export const instanceInput = instanceTarget.input();
 const choicesOf = (source: InstanceSource<never>) =>
   source.list.pipe(
     Effect.map((instances) =>
-      instances.map(
-        (found): Choice<string> => ({
-          hint: `${found.ref} · ${found.state}`,
-          label: `${source.label} · ${found.name}`,
-          value: found.ref,
-        })
-      )
+      instances.map((found): Choice<string> => ({
+        hint: `${found.ref} · ${found.state}`,
+        label: `${source.label} · ${found.name}`,
+        value: found.ref,
+      }))
     ),
     Effect.catchTag("CliFailure", (failure: CliFailure) => {
       if (failure.code === "AUTH_REQUIRED" && source.signIn !== undefined) {

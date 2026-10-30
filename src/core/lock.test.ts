@@ -1,7 +1,7 @@
+import { Effect } from "effect";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Effect } from "effect";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { withLock } from "./lock.ts";
 
@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 const locked = <A, E>(effect: Effect.Effect<A, E>) =>
-  withLock(dir, "demo", "Busy.", effect);
+  withLock({ dir, name: "demo", busyMessage: "Busy.", effect });
 
 it("refuses while a live process holds the lock, and releases it afterwards", async () => {
   const inner = await Effect.runPromise(

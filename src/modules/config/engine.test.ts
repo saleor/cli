@@ -1,7 +1,7 @@
+import { Effect, Schema } from "effect";
 import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { instance } from "../../core/instance.ts";
 import { applyDeploy, planDeploy } from "./deploying.ts";
@@ -26,12 +26,15 @@ describe("Configurator library adapter", () => {
 
     // Exercise the installed library's real services, diff and deployment pipeline.
     // Only the Saleor transport is replaced.
-    vi.spyOn(globalThis, "fetch").mockImplementation((url, init) => {
-      expect(String(url)).toBe(store.url);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+      expect(url instanceof Request ? url.url : String(url)).toBe(store.url);
       expect(new Headers(init?.headers).get("authorization")).toBe(
         `Bearer ${store.token}`
       );
-      const body = JSON.parse(String(init?.body));
+
+      const body = JSON.parse(
+        Schema.decodeUnknownSync(Schema.String)(init?.body)
+      );
 
       const connection = {
         edges: [],
@@ -45,37 +48,33 @@ describe("Configurator library adapter", () => {
           sender = body.variables.input.defaultMailSenderName;
         }
 
-        return Promise.resolve(
-          Response.json({
-            data: {
-              shopSettingsUpdate: {
-                errors: rejectUpdate
-                  ? [
-                      {
-                        code: "INVALID",
-                        field: "defaultMailSenderName",
-                        message: "Rejected",
-                      },
-                    ]
-                  : [],
-                shop: { defaultMailSenderName: sender },
-              },
+        return Response.json({
+          data: {
+            shopSettingsUpdate: {
+              errors: rejectUpdate
+                ? [
+                    {
+                      code: "INVALID",
+                      field: "defaultMailSenderName",
+                      message: "Rejected",
+                    },
+                  ]
+                : [],
+              shop: { defaultMailSenderName: sender },
             },
-          })
-        );
+          },
+        });
       }
 
-      return Promise.resolve(
-        Response.json({
-          data: {
-            attributes: connection,
-            channels: [],
-            customerTypes: connection,
-            products: connection,
-            shop: { defaultMailSenderName: sender, schemaVersion: "3.23.41" },
-          },
-        })
-      );
+      return Response.json({
+        data: {
+          attributes: connection,
+          channels: [],
+          customerTypes: connection,
+          products: connection,
+          shop: { defaultMailSenderName: sender, schemaVersion: "3.23.41" },
+        },
+      });
     });
   });
 
@@ -88,7 +87,7 @@ describe("Configurator library adapter", () => {
     const stdout = vi.spyOn(process.stdout, "write");
     const stderr = vi.spyOn(process.stderr, "write");
     const pulled = await Effect.runPromise(pull(store));
-    expect(pulled.shop).toEqual({ defaultMailSenderName: "Old store" });
+    expect(pulled.shop).toStrictEqual({ defaultMailSenderName: "Old store" });
     expect(await Effect.runPromise(serialize(pulled))).toContain("Old store");
 
     const summary = await Effect.runPromise(diff(store, file));
@@ -101,11 +100,11 @@ describe("Configurator library adapter", () => {
     const outcome = await Effect.runPromise(deploy(store, file, summary));
     expect(outcome.exitCode).toBe(0);
     expect(outcome.result.overallStatus).toBe("success");
-    expect(mutations).toEqual([{ defaultMailSenderName: "New store" }]);
+    expect(mutations).toStrictEqual([{ defaultMailSenderName: "New store" }]);
     expect(await Effect.runPromise(diff(store, file))).toMatchObject({
       totalChanges: 0,
     });
-    expect(readdirSync(directory)).toEqual(["config.yml"]);
+    expect(readdirSync(directory)).toStrictEqual(["config.yml"]);
     expect(stdout).not.toHaveBeenCalled();
     expect(stderr).not.toHaveBeenCalled();
   });
@@ -133,7 +132,7 @@ describe("Configurator library adapter", () => {
     });
 
     const failure = await Effect.runPromise(
-      Effect.flip(applyDeploy(target, store, file, plan))
+      Effect.flip(applyDeploy({ instance: target, store, file, plan }))
     );
 
     expect(failure).toMatchObject({ code: "DEPLOY_PARTIAL", retry: false });

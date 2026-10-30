@@ -1,5 +1,5 @@
-import { spawn } from "node:child_process";
 import { Context, Effect, Layer } from "effect";
+import { spawn } from "node:child_process";
 import { type CliFailure, fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 
@@ -56,7 +56,7 @@ const run = (args: readonly string[]) =>
     child.stderr.on("data", (chunk) => {
       stderr = (stderr + chunk).slice(-12_000);
     });
-    child.on("error", (error) =>
+    child.on("error", (error) => {
       resume(
         Effect.fail(
           fail("DOCKER_MISSING", `Cannot start Docker: ${error.message}`, {
@@ -64,8 +64,8 @@ const run = (args: readonly string[]) =>
               "Install Docker with Compose, then run this command again.",
           })
         )
-      )
-    );
+      );
+    });
     child.on("close", (code) => {
       if (code === 0) {
         resume(Effect.succeed(stdout));

@@ -1,10 +1,10 @@
+import { Effect, Layer, Option } from "effect";
+import type { GlobalFlag } from "effect/cli";
+import { HttpClient, HttpClientResponse } from "effect/http";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { Effect, Layer, Option } from "effect";
-import type { GlobalFlag } from "effect/cli";
-import { HttpClient, HttpClientResponse } from "effect/http";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { fail } from "../../core/errors.ts";
 import { OutputFlag } from "../../core/output.ts";
@@ -77,7 +77,7 @@ const services = () =>
     )
   );
 
-const runLocal = <A, E>(
+const runLocal = async <A, E>(
   effect: Effect.Effect<
     A,
     E,
@@ -87,7 +87,7 @@ const runLocal = <A, E>(
     | GlobalFlag.Setting.Identifier<"output">
   >
 ) =>
-  Effect.runPromise(
+  await Effect.runPromise(
     effect.pipe(
       Effect.provideService(OutputFlag, Option.some("json")),
       Effect.provide(services())
@@ -107,14 +107,14 @@ it("reuses ports, secrets and volumes across up/down/up", async () => {
   expect(first.ready).toBe(true);
   expect(first.admin.password.length).toBeGreaterThan(20);
   expect(
-    readFileSync(path.join(instanceDir("test"), "compose.yaml"), "utf8")
+    readFileSync(path.join(instanceDir("test"), "compose.yaml"), "utf-8")
   ).not.toContain(first.admin.password);
   await runLocal(down("test", false));
   expect(calls.at(-1)).not.toContain("--volumes");
   const second = await runLocal(up(options));
   expect(second.created).toBe(false);
   expect(second.graphqlUrl).toBe(first.graphqlUrl);
-  expect(second.admin).toEqual(first.admin);
+  expect(second.admin).toStrictEqual(first.admin);
   expect(calls.filter((args) => args.includes("pull"))).toHaveLength(1);
 });
 
@@ -127,7 +127,7 @@ it("recovers setup after a migration failure without changing credentials", asyn
   expect((await runLocal(readConfig("test")))?.initialized).toBe(false);
   failing = undefined;
   expect((await runLocal(up(options))).ready).toBe(true);
-  expect(secrets).toEqual(initialSecrets);
+  expect(secrets).toStrictEqual(initialSecrets);
   expect(existsSync(path.join(dir, "local", ".test.lock"))).toBe(false);
 });
 
@@ -161,7 +161,7 @@ it("rejects unsafe names before invoking Docker", async () => {
     (await runLocal(up({ ...options, name: "../../other" }).pipe(Effect.flip)))
       .code
   ).toBe("USAGE_ERROR");
-  expect(calls).toEqual([]);
+  expect(calls).toStrictEqual([]);
 });
 
 it("does nothing when the instance is already running and ready", async () => {
@@ -208,9 +208,9 @@ it("names a published port that another program took", async () => {
   await runLocal(up(options));
   const config = await runLocal(readConfig("test"));
   const blocker = net.createServer();
-  await new Promise<void>((resolve) =>
-    blocker.listen(config?.dashboardPort, "127.0.0.1", resolve)
-  );
+  await new Promise<void>((resolve) => {
+    blocker.listen(config?.dashboardPort, "127.0.0.1", resolve);
+  });
   ready = false;
 
   try {
@@ -223,13 +223,17 @@ it("names a published port that another program took", async () => {
     const moved = await runLocal(up({ ...options, newPorts: true }));
     expect(moved.dashboardUrl).not.toContain(String(config?.dashboardPort));
   } finally {
-    await new Promise<void>((resolve) => blocker.close(() => resolve()));
+    await new Promise<void>((resolve) => {
+      blocker.close(() => {
+        resolve();
+      });
+    });
   }
 });
 
 it("plans nothing for a missing instance, without Docker", async () => {
   expect(await runLocal(planDown("missing"))).toBeUndefined();
-  expect(calls).toEqual([]);
+  expect(calls).toStrictEqual([]);
 });
 
 it("plans up: create, finish, reuse or add sample data", async () => {
@@ -265,7 +269,10 @@ it("lists instances with their state", async () => {
   await runLocal(up(options));
   await runLocal(up({ ...options, name: "other" }));
   const instances = await runLocal(list);
-  expect(instances.map((instance) => instance.name)).toEqual(["other", "test"]);
+  expect(instances.map((instance) => instance.name)).toStrictEqual([
+    "other",
+    "test",
+  ]);
   expect(instances[0]?.state).toBe("ready");
 });
 
@@ -287,7 +294,7 @@ it("plans down without changing containers, files or credentials", async () => {
 
   const configBefore = readFileSync(
     path.join(instanceDir("test"), "instance.json"),
-    "utf8"
+    "utf-8"
   );
 
   const secretsBefore = new Map(secrets);
@@ -300,7 +307,7 @@ it("plans down without changing containers, files or credentials", async () => {
     calls.every((args) => !(args.includes("down") || args.includes("up")))
   ).toBe(true);
   expect(
-    readFileSync(path.join(instanceDir("test"), "instance.json"), "utf8")
+    readFileSync(path.join(instanceDir("test"), "instance.json"), "utf-8")
   ).toBe(configBefore);
-  expect(secrets).toEqual(secretsBefore);
+  expect(secrets).toStrictEqual(secretsBefore);
 });

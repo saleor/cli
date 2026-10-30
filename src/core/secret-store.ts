@@ -1,3 +1,5 @@
+import { Entry } from "@napi-rs/keyring";
+import { Context, Effect, Layer, Schema } from "effect";
 import {
   existsSync,
   mkdirSync,
@@ -8,8 +10,6 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Entry } from "@napi-rs/keyring";
-import { Context, Effect, Layer, Schema } from "effect";
 
 // Per-user secret storage: the system keyring (macOS Keychain, Secret Service, Windows
 // Credential Manager) with a 0600 file fallback for machines without one, such as CI
@@ -42,7 +42,7 @@ const fileStore = (dir: string): SecretStoreService => {
   const read = (): Record<string, string> =>
     existsSync(file)
       ? Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.String))(
-          JSON.parse(readFileSync(file, "utf8"))
+          JSON.parse(readFileSync(file, "utf-8"))
         )
       : {};
 
@@ -50,7 +50,9 @@ const fileStore = (dir: string): SecretStoreService => {
     mkdirSync(dir, { mode: 0o700, recursive: true });
 
     if (Object.keys(data).length === 0) {
-      return rmSync(file, { force: true });
+      rmSync(file, { force: true });
+
+      return;
     }
 
     // Write a private temp file and rename it over the old one, so a crash or a
@@ -72,7 +74,10 @@ const fileStore = (dir: string): SecretStoreService => {
         const { [key]: _, ...rest } = read();
         write(rest);
       }),
-    set: (key, value) => Effect.sync(() => write({ ...read(), [key]: value })),
+    set: (key, value) =>
+      Effect.sync(() => {
+        write({ ...read(), [key]: value });
+      }),
   };
 };
 
@@ -115,7 +120,11 @@ const keyringStore = (fallback: SecretStoreService): SecretStoreService => {
       ),
     set: (key, value) =>
       Effect.flatMap(
-        Effect.sync(() => succeeded(() => entry(key).setPassword(value))),
+        Effect.sync(() =>
+          succeeded(() => {
+            entry(key).setPassword(value);
+          })
+        ),
         (stored) => (stored ? fallback.remove(key) : fallback.set(key, value))
       ),
   };

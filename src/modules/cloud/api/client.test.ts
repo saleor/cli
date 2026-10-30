@@ -104,7 +104,7 @@ describe("Cloud API wire boundary", () => {
       Schema.decodeUnknownSync(listOrganizations.response)([
         { name: "Acme", slug: "acme", unrelated: true },
       ])
-    ).toEqual([{ name: "Acme", slug: "acme" }]);
+    ).toStrictEqual([{ name: "Acme", slug: "acme" }]);
   });
 
   it("rejects malformed fields the CLI consumes", async () => {

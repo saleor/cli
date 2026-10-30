@@ -152,12 +152,17 @@ export const pulledSentence = (change: Change) => {
       : `${noun(change.entity)} "${change.name}"`;
 
   switch (change.operation) {
-    case "create":
+    case "create": {
       return `${what} is gone from the store; pulling removes it from the file`;
-    case "delete":
+    }
+
+    case "delete": {
       return `The store has ${what} that the file does not; pulling adds it`;
-    default:
+    }
+
+    case "update": {
       return `${what} changed in the store${fields(change)}`;
+    }
   }
 };
 
@@ -204,6 +209,31 @@ const SECTION_NOUN = new Map([
 const keyed = (items: readonly Document[]) =>
   new Map(items.map((item) => [identity(item), item]));
 
+const sectionChanges = (before: Document, after: Document, section: string) => {
+  const lines: string[] = [];
+  const old = keyed(entries(before, section));
+  const next = keyed(entries(after, section));
+  const what = SECTION_NOUN.get(section) ?? section;
+
+  for (const [id, item] of next) {
+    const previous = old.get(id);
+
+    if (previous === undefined) {
+      lines.push(`Adds ${what} "${nameOf(item)}"`);
+    } else if (JSON.stringify(previous) !== JSON.stringify(item)) {
+      lines.push(`Changes ${what} "${nameOf(item)}"`);
+    }
+  }
+
+  for (const [id, item] of old) {
+    if (!next.has(id)) {
+      lines.push(`Removes ${what} "${nameOf(item)}" from the file`);
+    }
+  }
+
+  return lines;
+};
+
 // What an edit changes in the file, entry by entry: "Adds product type "Jacket"".
 export const fileChanges = (before: Document, after: Document) => {
   const lines: string[] = [];
@@ -218,25 +248,7 @@ export const fileChanges = (before: Document, after: Document) => {
       continue;
     }
 
-    const old = keyed(entries(before, section));
-    const next = keyed(entries(after, section));
-    const what = SECTION_NOUN.get(section) ?? section;
-
-    for (const [id, item] of next) {
-      const previous = old.get(id);
-
-      if (previous === undefined) {
-        lines.push(`Adds ${what} "${nameOf(item)}"`);
-      } else if (JSON.stringify(previous) !== JSON.stringify(item)) {
-        lines.push(`Changes ${what} "${nameOf(item)}"`);
-      }
-    }
-
-    for (const [id, item] of old) {
-      if (!next.has(id)) {
-        lines.push(`Removes ${what} "${nameOf(item)}" from the file`);
-      }
-    }
+    lines.push(...sectionChanges(before, after, section));
   }
 
   return lines;

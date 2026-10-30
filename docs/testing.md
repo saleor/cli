@@ -4,6 +4,16 @@ Run `pnpm check` for lint, type checks, and the source test suite. Run `pnpm tes
 
 GitHub Actions runs checks on pull requests and pushes to `main`. One Linux job on Node 24 runs lint, type checks, the source suite, and the built CLI end-to-end suite. CI uses the locked pnpm version and a frozen lockfile, needs no secrets, and has read-only repository permissions.
 
+## Lint policy
+
+`pnpm lint:code` runs type-aware Oxlint with Ultracite's core and anti-slop presets plus the CLI's Effect rules. Oxfmt handles formatting; Biome is not used. `pnpm lint:fix` applies lint fixes and formatting. The commands target CLI source, scripts, entry points, and tool configs, so generated project storefronts are not scanned.
+
+The maintainability thresholds follow the [MCP lint pilot](https://github.com/saleor/monorepo/pull/189): cognitive complexity 15, cyclomatic complexity 20, nesting depth 3, and at most 3 parameters. Production files are limited to 500 lines and functions to 100, excluding blank lines and comments. At most one class is allowed per file. File/function length and nesting limits do not apply to test fixtures; complexity limits still do.
+
+Type-aware checks reject unsafe values and assertions, unnecessary generics, floating promises (including `void`), and async callbacks used by synchronous APIs. Focused/skipped tests, loose equality assertions, warnings, and unused suppressions fail lint. Test fixtures may construct invalid values; narrowly documented Effect adapter assertions preserve relationships erased by the framework's registration APIs. Compatibility and style overrides live in `oxlint.config.ts`; they do not relax the size or complexity limits.
+
+`pnpm lint:policy` checks 15 deliberately invalid examples against the effective configuration. It runs in `pnpm check`, alongside the existing module-boundary tests that keep core independent of providers and modules independent of siblings.
+
 ## What the end-to-end suite covers
 
 `src/main.test.ts` launches the actual CLI entry point with an isolated working directory, configuration directory, file credential store, and an allowlist of environment variables. Each test starts a loopback HTTP server on an ephemeral port. Real Cloud credentials and agent environment markers are not inherited. Every CLI process is killed and fails its test after ten seconds, so a stalled command cannot leave the test runner waiting indefinitely.

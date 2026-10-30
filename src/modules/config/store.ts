@@ -1,8 +1,7 @@
-import path from "node:path";
 import { Effect, Option } from "effect";
+import path from "node:path";
 import { fail } from "../../core/errors.ts";
-import type { Instance } from "../../core/instance.ts";
-import { InstanceSources } from "../../core/instance.ts";
+import { InstanceSources, type Instance } from "../../core/instance.ts";
 import { resolveInstance } from "../../core/instances.ts";
 import {
   configPath,
@@ -84,14 +83,14 @@ export const environmentName = (instance: Instance) =>
 // needs no ref. Returns a line saying so, when one was added.
 export const remember = (file: string, instance: Instance) =>
   Effect.map(
-    rememberEnvironment(
-      Option.match(findProject(path.dirname(file)), {
+    rememberEnvironment({
+      root: Option.match(findProject(path.dirname(file)), {
         onNone: () => path.dirname(file),
         onSome: (project) => project.root,
       }),
-      environmentName(instance),
-      instance.ref
-    ),
+      wanted: environmentName(instance),
+      ref: instance.ref,
+    }),
     ({ added, name }) =>
       added
         ? `Remembered ${instance.ref} as environment "${name}" in saleor.yml; next time, run: saleor config deploy ${name}`

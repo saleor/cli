@@ -18,12 +18,12 @@ const PLACEHOLDERS = new Map([["completions", "shell"]]);
 
 const styles = (colors: boolean) => {
   const wrap = (code: string) => (text: string) =>
-    colors ? `\x1b[${code}m${text}\x1b[0m` : text;
+    colors ? `\u001B[${code}m${text}\u001B[0m` : text;
 
   return { bold: wrap("1"), cyan: wrap("36"), dim: wrap("2") };
 };
 
-const table = (rows: ReadonlyArray<readonly [string, string]>) => {
+const table = (rows: readonly (readonly [string, string])[]) => {
   const width = Math.max(...rows.map(([left]) => left.length)) + 3;
 
   return rows.map(([left, right]) =>

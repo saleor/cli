@@ -1,6 +1,5 @@
 import {
   Context,
-  Data,
   Duration,
   Effect,
   Layer,
@@ -14,6 +13,8 @@ import { type CliFailure, fail } from "../../../core/errors.ts";
 import { command } from "../../../core/invocation.ts";
 import { Session } from "../auth/session.ts";
 import { listOrganizations } from "./contract.ts";
+import { ApiStatusError } from "./status-error.ts";
+import { TransientError } from "./transient-error.ts";
 
 const TRAILING_SLASHES = /\/+$/;
 
@@ -55,11 +56,6 @@ export interface CallOptions<O extends Operation> {
 
 // Raised for a non-2xx answer so callers can map server-side validation messages
 // (domain taken, environment limit) to stable codes before it becomes a CliFailure.
-export class ApiStatusError extends Data.TaggedError("ApiStatusError")<{
-  readonly status: number;
-  readonly body: Schema.Json | undefined;
-  readonly operation: string;
-}> {}
 
 // The task-status endpoint accepts anonymous requests and rejects Cloud tokens.
 const ANONYMOUS_PATHS = new Set(["/api/service/task-status/{job_name}/"]);
@@ -74,7 +70,7 @@ const retryTransient = Schedule.exponential(Duration.millis(400));
 
 export const describeApiError = (error: ApiStatusError): CliFailure => {
   switch (error.status) {
-    case 401:
+    case 401: {
       return fail(
         "AUTH_INVALID",
         process.env.SALEOR_CLOUD_TOKEN
@@ -86,7 +82,9 @@ export const describeApiError = (error: ApiStatusError): CliFailure => {
             : `Log in again with: ${command("login")}`,
         }
       );
-    case 403:
+    }
+
+    case 403: {
       return fail(
         "FORBIDDEN",
         "Your account does not have permission to do this.",
@@ -95,7 +93,9 @@ export const describeApiError = (error: ApiStatusError): CliFailure => {
           suggestion: `Check that you belong to the organization and that your role allows this.\nTo use another account, run: ${command("login")}`,
         }
       );
-    case 404:
+    }
+
+    case 404: {
       return fail(
         "NOT_FOUND",
         "Saleor Cloud could not find what this command asked for.",
@@ -105,7 +105,9 @@ export const describeApiError = (error: ApiStatusError): CliFailure => {
             "Check the organization, project and environment names. In a terminal, leave them out to pick from the ones that exist.",
         }
       );
-    default:
+    }
+
+    default: {
       if (error.status >= 400 && error.status < 500) {
         return fail(
           "API_VALIDATION_ERROR",
@@ -125,6 +127,7 @@ export const describeApiError = (error: ApiStatusError): CliFailure => {
           suggestion: "Try again in a moment.",
         }
       );
+    }
   }
 };
 
@@ -146,10 +149,6 @@ export const flattenMessages = (body: Schema.Json | undefined): string =>
     ),
     Match.orElse(String)
   );
-
-class TransientError extends Data.TaggedError("TransientError")<{
-  readonly status: number;
-}> {}
 
 export interface CloudApiService {
   readonly call: <O extends Operation>(
@@ -235,6 +234,45 @@ const validateRequest = <O extends Operation>(
     return yield* validate(operation.request ?? Schema.Undefined, options.body);
   });
 
+const executeRequest = (
+  http: HttpClient.HttpClient,
+  request: HttpClientRequest.HttpClientRequest,
+  { baseUrl, method }: { baseUrl: string; method: string }
+) =>
+  http.execute(request).pipe(
+    Effect.timeout(Duration.seconds(30)),
+    Effect.filterOrFail(
+      (res) => !isTransient(res.status),
+      (res) => new TransientError({ status: res.status })
+    ),
+    // A create that timed out or hit a 5xx may still have happened, so only 429 is
+    // retried for writes; the caller's name-based lookup recovers the rest on re-run.
+    Effect.retry({
+      schedule: retryTransient,
+      times: 4,
+      while: (error) =>
+        isIdempotent(method) ||
+        (Predicate.isTagged(error, "TransientError") && error.status === 429),
+    }),
+    Effect.mapError((error) =>
+      Predicate.isTagged(error, "TransientError")
+        ? fail(
+            "API_ERROR",
+            `Saleor Cloud is temporarily unavailable (HTTP ${error.status}).`,
+            {
+              retry: true,
+              suggestion: "Try again in a moment.",
+            }
+          )
+        : fail("NETWORK_ERROR", `Could not reach Saleor Cloud at ${baseUrl}.`, {
+            retry: true,
+            suggestion: process.env.SALEOR_CLOUD_API_URL
+              ? "Check your internet connection and the SALEOR_CLOUD_API_URL setting."
+              : "Check your internet connection.",
+          })
+    )
+  );
+
 export const CloudApiLive = Layer.effect(
   CloudApi,
   Effect.gen(function* () {
@@ -247,6 +285,7 @@ export const CloudApiLive = Layer.effect(
       operation: O,
       options: CallOptions<O> = {}
     ): Effect.Effect<ResponseOf<O>, ApiStatusError | CliFailure> =>
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The operation descriptor supplies the response decoder and constrains its return type.
       Effect.gen(function* () {
         const encoded = yield* validateRequest(operation, options);
         const url = yield* operationPath(operation, options);
@@ -271,44 +310,10 @@ export const CloudApiLive = Layer.effect(
           request = HttpClientRequest.bodyJsonUnsafe(request, encoded);
         }
 
-        const response = yield* http.execute(request).pipe(
-          Effect.timeout(Duration.seconds(30)),
-          Effect.filterOrFail(
-            (res) => !isTransient(res.status),
-            (res) => new TransientError({ status: res.status })
-          ),
-          // A create that timed out or hit a 5xx may still have happened, so only 429 is
-          // retried for writes; the caller's name-based lookup recovers the rest on re-run.
-          Effect.retry({
-            schedule: retryTransient,
-            times: 4,
-            while: (error) =>
-              isIdempotent(operation.method) ||
-              (Predicate.isTagged(error, "TransientError") &&
-                error.status === 429),
-          }),
-          Effect.mapError((error) =>
-            Predicate.isTagged(error, "TransientError")
-              ? fail(
-                  "API_ERROR",
-                  `Saleor Cloud is temporarily unavailable (HTTP ${error.status}).`,
-                  {
-                    retry: true,
-                    suggestion: "Try again in a moment.",
-                  }
-                )
-              : fail(
-                  "NETWORK_ERROR",
-                  `Could not reach Saleor Cloud at ${baseUrl}.`,
-                  {
-                    retry: true,
-                    suggestion: process.env.SALEOR_CLOUD_API_URL
-                      ? "Check your internet connection and the SALEOR_CLOUD_API_URL setting."
-                      : "Check your internet connection.",
-                  }
-                )
-          )
-        );
+        const response = yield* executeRequest(http, request, {
+          baseUrl,
+          method: operation.method,
+        });
 
         const text = yield* response.text.pipe(Effect.orElseSucceed(() => ""));
         const body = text.length > 0 ? safeJson(text) : undefined;
@@ -421,3 +426,5 @@ export const orDescribe = <A, R>(
   Effect.catchTag(effect, "ApiStatusError", (error) =>
     Effect.fail(describeApiError(error))
   );
+
+export { ApiStatusError } from "./status-error.ts";

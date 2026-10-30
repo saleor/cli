@@ -1,6 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { Effect, Option } from "effect";
-import { stringify } from "yaml";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
   defineActions,
   defineGroup,
@@ -12,21 +11,14 @@ import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { argument, option } from "../../core/inputs.ts";
 import type { Instance } from "../../core/instance.ts";
-import { instanceInput, resolveInstance } from "../../core/instances.ts";
-import {
-  askConfirm,
-  askSelect,
-  isInteractive,
-} from "../../core/interaction.ts";
+import { instanceInput } from "../../core/instances.ts";
 import { command } from "../../core/invocation.ts";
-import { notice } from "../../core/output.ts";
 import {
   ago,
   findProject,
   lastInSync,
   recordInSync,
 } from "../../core/project.ts";
-import { storeAccess } from "../../core/store-access.ts";
 import {
   applyDeploy,
   counted,
@@ -34,14 +26,9 @@ import {
   planDeploy,
   planRows,
 } from "./deploying.ts";
-import {
-  applies,
-  fileChanges,
-  pulledSentence,
-  review,
-  sentence,
-} from "./describe.ts";
-import { chooseAuthor, draftWith, GUIDE } from "./draft.ts";
+import { applies, pulledSentence, review } from "./describe.ts";
+import { GUIDE } from "./draft.ts";
+import { editCommand } from "./edit-command.ts";
 import {
   change,
   diff,
@@ -66,12 +53,6 @@ const environmentInput = argument.string(
   "environment",
   "An environment named in the project's saleor.yml (or a store ref). Defaults to the project's only environment."
 );
-
-const withInput = option.string("with", {
-  description:
-    "The coding agent that drafts it: claude or codex. Needed to draft without a terminal; in a terminal, an installed one is offered.",
-  metavar: "agent",
-});
 
 const fileTarget = (file: string): TargetRef => ({
   id: null,
@@ -142,7 +123,7 @@ const pullCommand = config.ensure({
         input.instance
       );
 
-      const existing = existsSync(file) ? readFileSync(file, "utf8") : null;
+      const existing = existsSync(file) ? readFileSync(file, "utf-8") : null;
 
       // What the store changed, seen from the file. Only when the file is valid.
       const changed =
@@ -313,7 +294,13 @@ const deployCommand = config.ensure({
       return {
         action: plan.deployable.length === 0 ? "reuse" : "update",
         apply: Effect.gen(function* () {
-          const outcome = yield* applyDeploy(instance, store, file, plan);
+          const outcome = yield* applyDeploy({
+            instance,
+            store,
+            file,
+            plan,
+          });
+
           const remembered = yield* remember(file, instance);
           const words = deployedText(instance, file, outcome);
 
@@ -348,187 +335,6 @@ const deployCommand = config.ensure({
       } satisfies Planned<unknown, unknown>;
     }),
   summary: "Make a store match a configuration file.",
-});
-
-const descriptionInput = argument.string(
-  "description",
-  'What to change, in plain words: "add a winter collection with jackets and boots".'
-);
-
-// Offers to deploy what was just written, so describe → review → deploy is one run.
-const offerDeploy = (file: string) =>
-  Effect.gen(function* () {
-    const project = findProject();
-
-    const ref = Option.flatMap(project, (found) =>
-      Option.fromUndefinedOr(found.environments[0]?.[1])
-    );
-
-    if (Option.isNone(ref) || !(yield* isInteractive)) {
-      return [`Deploy it with: ${command("config", "deploy")}`];
-    }
-
-    const resolved = yield* resolveInstance(ref);
-    const access = yield* storeAccess(resolved);
-    const store = { token: access.token, url: resolved.instance.graphqlUrl };
-    const plan = yield* planDeploy(store, file);
-
-    if (plan.deployable.length === 0) {
-      return [`${resolved.instance.ref} already has all of it.`];
-    }
-
-    yield* notice(
-      [
-        `Deploying to ${resolved.instance.ref} would:`,
-        ...plan.deployable.map((each) => `  • ${sentence(each)}`),
-      ].join("\n")
-    );
-
-    if (!(yield* askConfirm(`Deploy to ${resolved.instance.ref} now?`, true))) {
-      return [`Deploy it later with: ${command("config", "deploy")}`];
-    }
-
-    const outcome = yield* applyDeploy(resolved.instance, store, file, plan);
-    const words = deployedText(resolved.instance, file, outcome);
-
-    return [`✓ ${words.headline}`, words.text].filter(Boolean);
-  });
-
-const editCommand = config.ensure({
-  description:
-    "Change the configuration file from a description in plain words. A coding agent installed on this computer (Claude Code or Codex) drafts the change, without tools and without any token; the CLI checks it, shows what it changes, and writes it once you agree, then offers to deploy. Agents running this CLI edit config.yml themselves instead (see config guide).",
-  examples: [
-    {
-      command:
-        'saleor config edit "add a winter collection with jackets and boots"',
-      description: "Draft a change with an installed coding agent",
-    },
-  ],
-  inputs: {
-    config: configInput,
-    description: descriptionInput,
-    with: withInput,
-  },
-  name: "edit",
-  plan: (input) =>
-    Effect.gen(function* () {
-      const file = yield* existingConfig(configFile(input.config));
-      const current = yield* validateFile(file);
-      const interactive = yield* isInteractive;
-      const author = yield* chooseAuthor(input.with);
-
-      if (Option.isNone(author)) {
-        return yield* fail(
-          "CONTEXT_MISSING",
-          interactive
-            ? "No coding agent to draft with: install Claude Code or Codex, or edit the file yourself."
-            : "Drafting runs a coding agent, which needs --with <agent> when there is no terminal.",
-          {
-            suggestion: `Edit ${shown(file)} yourself (the rules: ${command("config", "guide")}), check it with ${command("config", "validate")}, then ${command("config", "deploy")}.`,
-          }
-        );
-      }
-
-      const description = Option.getOrUndefined(input.description);
-
-      if (description === undefined) {
-        return yield* fail("CONTEXT_MISSING", "Say what to change.", {
-          suggestion: `For example: ${command("config", "edit")} "add a winter collection"`,
-        });
-      }
-
-      if (input.dryRun) {
-        return {
-          action: "update",
-          apply: Effect.die("dry run"),
-          details: {
-            author: author.value.id,
-            config: shown(file),
-            description,
-          },
-          risk: null,
-          state: "exists",
-          summary: [
-            ["File", shown(file)],
-            ["Drafted by", author.value.label],
-            ["Change", description],
-          ],
-          target: fileTarget(file),
-        } satisfies Planned<never, unknown>;
-      }
-
-      const { config: next, session } = yield* draftWith(author.value, {
-        current,
-        description,
-        kind: "edit",
-      });
-
-      const lines = fileChanges(current, next);
-
-      if (interactive) {
-        yield* notice(
-          [
-            "",
-            `${author.value.label} suggests:`,
-            ...(lines.length > 0
-              ? lines.map((line) => `  • ${line}`)
-              : ["  (no changes)"]),
-            "",
-          ].join("\n")
-        );
-
-        const choice = yield* askSelect({
-          choices: [
-            { label: `Write it to ${shown(file)}`, value: "write" },
-            { label: "Discard it", value: "discard" },
-          ],
-          message: "Use this change?",
-        });
-
-        if (choice === "discard") {
-          return yield* fail("CANCELLED", "Discarded. Nothing was changed.");
-        }
-      }
-
-      return {
-        action: lines.length === 0 ? "reuse" : "update",
-        apply: Effect.gen(function* () {
-          if (lines.length > 0) {
-            writeFileSync(file, stringify(next));
-          }
-
-          const after = lines.length > 0 ? yield* offerDeploy(file) : [];
-
-          return {
-            data: {
-              changes: lines,
-              config: shown(file),
-              created: false,
-              description,
-              // Which model drafted it, and how to open the conversation.
-              session,
-            },
-            headline:
-              lines.length === 0
-                ? `${shown(file)} already has that; nothing changed.`
-                : `Updated ${shown(file)}: ${lines.length} change${lines.length > 1 ? "s" : ""}.`,
-            text: [
-              ...(interactive ? [] : lines.map((line) => `  • ${line}`)),
-              ...after,
-            ].join("\n"),
-          };
-        }),
-        details: { changes: lines, config: shown(file), description },
-        risk: null,
-        state: "exists",
-        summary: [
-          ["File", shown(file)],
-          ...lines.map((line) => ["", `• ${line}`] as const),
-        ],
-        target: fileTarget(file),
-      } satisfies Planned<unknown, unknown>;
-    }),
-  summary: "Change the configuration from a description.",
 });
 
 const statusCommand = config.list({

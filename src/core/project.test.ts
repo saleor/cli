@@ -1,3 +1,4 @@
+import { Effect, Option } from "effect";
 import {
   existsSync,
   mkdirSync,
@@ -8,7 +9,6 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Effect, Option } from "effect";
 import { afterEach, expect, it, vi } from "vitest";
 import { parse } from "yaml";
 import {
@@ -55,21 +55,25 @@ it("creates a portable definition and private binding while preserving existing 
 
   await Effect.runPromise(initializeProject(root, "shop", store));
   await Effect.runPromise(initializeProject(root, "shop", store));
-  const manifest = parse(readFileSync(path.join(root, "saleor.yml"), "utf8"));
-  expect(manifest.environments).toEqual({
+  const manifest = parse(readFileSync(path.join(root, "saleor.yml"), "utf-8"));
+  expect(manifest.environments).toStrictEqual({
     local: { configure: "on-create", kind: "local", saleor: "3.23.41" },
   });
   expect(manifest.storefront.path).toBe("packages/web");
-  expect(readFileSync(path.join(root, "AGENTS.md"), "utf8")).toBe(
+  expect(readFileSync(path.join(root, "AGENTS.md"), "utf-8")).toBe(
     "Existing guidance\n"
   );
-  expect(readFileSync(path.join(root, "config.yml"), "utf8")).toBe(
+  expect(readFileSync(path.join(root, "config.yml"), "utf-8")).toBe(
     "channels: []\n"
   );
   expect(existsSync(path.join(root, "CLAUDE.md"))).toBe(true);
   expect(bindingName(root, "local")).toBe("developer-one");
   await Effect.runPromise(
-    rememberEnvironment(root, "staging", "cloud:acme/key")
+    rememberEnvironment({
+      root,
+      wanted: "staging",
+      ref: "cloud:acme/key",
+    })
   );
   expect(Option.getOrThrow(projectAt(root)).environments).toContainEqual([
     "local",
@@ -93,7 +97,7 @@ it("isolates two checkouts of the same project", () => {
   saveBinding(first, "local", "my-instance");
   expect(bindingName(first, "local")).toBe("my-instance");
   expect(bindingName(second, "local")).not.toBe("my-instance");
-  expect(readFileSync(path.join(first, "saleor.yml"), "utf8")).toBe(manifest);
+  expect(readFileSync(path.join(first, "saleor.yml"), "utf-8")).toBe(manifest);
 });
 
 it("rejects invalid manifests rather than replacing them", async () => {
@@ -101,9 +105,11 @@ it("rejects invalid manifests rather than replacing them", async () => {
   mkdirSync(path.join(root, "nested"));
   writeFileSync(path.join(root, "saleor.yml"), "environments: [broken]\n");
   await expect(
-    Effect.runPromise(rememberEnvironment(root, "local", "local:test"))
+    Effect.runPromise(
+      rememberEnvironment({ root, wanted: "local", ref: "local:test" })
+    )
   ).rejects.toBeDefined();
-  expect(readFileSync(path.join(root, "saleor.yml"), "utf8")).toBe(
+  expect(readFileSync(path.join(root, "saleor.yml"), "utf-8")).toBe(
     "environments: [broken]\n"
   );
 });

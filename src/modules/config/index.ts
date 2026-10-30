@@ -1,6 +1,6 @@
-import { existsSync } from "node:fs";
 import { Effect, Option } from "effect";
 import { Command } from "effect/cli";
+import { existsSync } from "node:fs";
 import { MenuAvailable } from "../../core/menu.ts";
 import { defineModule } from "../../core/module.ts";
 import { findProject } from "../../core/project.ts";

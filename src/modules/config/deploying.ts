@@ -1,6 +1,6 @@
+import { Effect, Option } from "effect";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { Effect, Option } from "effect";
 import { fail } from "../../core/errors.ts";
 import type { Instance } from "../../core/instance.ts";
 import { findProject, recordInSync } from "../../core/project.ts";
@@ -10,8 +10,8 @@ import {
   change,
   deploy,
   diff,
-  type Store,
   shown,
+  type Store,
 } from "./engine.ts";
 
 // A deploy plan: the differences, split into what a deploy changes and what it
@@ -62,12 +62,17 @@ const key = (each: Change) => `${each.operation}\0${each.entity}\0${each.name}`;
 
 // Applies the plan, then compares again: the engine reports success for changes it
 // skips, so what happened is measured, not assumed.
-export const applyDeploy = (
-  instance: Instance,
-  store: Store,
-  file: string,
-  plan: DeployPlan
-) =>
+export const applyDeploy = ({
+  instance,
+  store,
+  file,
+  plan,
+}: {
+  readonly instance: Instance;
+  readonly store: Store;
+  readonly file: string;
+  readonly plan: DeployPlan;
+}) =>
   Effect.gen(function* () {
     if (plan.deployable.length === 0) {
       yield* recordInSync(file, instance.ref);

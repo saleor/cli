@@ -3,29 +3,31 @@
   "version": "2.0.0-poc.0",
   "private": true,
   "description": "Saleor CLI: agent-first command line for Saleor (proof of concept)",
-  "type": "module",
   "bin": {
     "saleor": "./bin/saleor.mjs"
   },
+  "type": "module",
   "scripts": {
     "build": "tsdown",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
-    "lint": "ultracite check && pnpm lint:anti-slop && pnpm lint:effect",
-    "lint:anti-slop": "oxlint -c anti-slop.config.ts --deny-warnings",
+    "lint": "pnpm lint:code && pnpm lint:policy && pnpm format:check && pnpm lint:effect",
     "lint:effect": "effect-tsgo diagnostics --project tsconfig.json --strict",
-    "lint:fix": "oxlint -c anti-slop.config.ts --fix && ultracite fix",
+    "lint:fix": "pnpm lint:code --fix && pnpm format",
     "saleor": "node bin/saleor.mjs",
     "test": "vitest run",
     "test:build": "tsdown && SALEOR_CLI_BIN=dist/saleor.mjs vitest run src/main.test.ts",
     "test:e2e": "pnpm test:build",
     "test:live": "node scripts/live-smoke.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint:code": "oxlint --type-aware --deny-warnings --report-unused-disable-directives-severity error src scripts bin *.config.ts",
+    "format": "oxfmt -c oxfmt.config.ts --write src scripts bin *.config.ts package.json tsconfig.json",
+    "format:check": "oxfmt -c oxfmt.config.ts --check src scripts bin *.config.ts package.json tsconfig.json",
+    "lint:policy": "node scripts/lint-policy.ts"
   },
   "dependencies": {
     "@napi-rs/keyring": "^2.1.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
     "@clack/core": "1.5.1",
     "@clack/prompts": "^1.8.1",
     "@effect/platform-node": "4.0.5",
@@ -35,8 +37,11 @@
     "@saleor/configurator": "3.23.3",
     "@types/node": "^26.6.5",
     "effect": "4.0.5",
+    "eslint-plugin-sonarjs": "^4.2.2",
     "nanotar": "0.3.0",
+    "oxfmt": "^0.75.0",
     "oxlint": "1.88.0",
+    "oxlint-tsgolint": "^7.0.2005",
     "tar": "7.5.22",
     "tsdown": "0.23.1",
     "typescript": "^7.0.2",
@@ -44,8 +49,8 @@
     "vitest": "^5.0.4",
     "yaml": "^2.9.1"
   },
-  "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": ">=22.18"
-  }
+  },
+  "packageManager": "pnpm@11.25.0"
 }

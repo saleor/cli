@@ -1,10 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
 import { Effect, Option, Predicate } from "effect";
-import { stringify } from "yaml";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { InstanceSources } from "../../core/instance.ts";
 import { resolveInstance } from "../../core/instances.ts";
 import { askSelect, isInteractive } from "../../core/interaction.ts";
 import { command, recordAnswer } from "../../core/invocation.ts";
@@ -24,16 +22,18 @@ import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { review } from "./describe.ts";
 import { type Document, parseYamlDocument } from "./document.ts";
 import {
-  type Author,
   askAnswers,
+  type Author,
   chooseAuthor,
   describeAsked,
   draftWith,
   installedAuthors,
   type Session,
 } from "./draft.ts";
-import { pull, type Store, shown } from "./engine.ts";
+import { pull, shown, type Store } from "./engine.ts";
+import { reviewText, writeConfig } from "./file-output.ts";
 import { mergeConfig, NEW_STORE } from "./merge.ts";
+import { sampleConfiguration } from "./sample.ts";
 import { connectMade, environmentName } from "./store.ts";
 
 type Config = Document;
@@ -57,9 +57,6 @@ type Source =
       readonly description: string;
       readonly who: Option.Option<Author>;
     };
-
-const reviewText = (config: Config) =>
-  review(config).map(([label, value]) => `  ${label}: ${value}`);
 
 type Drafted = Extract<Source, { readonly kind: "drafted" }>;
 
@@ -191,19 +188,26 @@ const chooseSource = (input: {
 
 const describeSource = (source: Source) => {
   switch (source.kind) {
-    case "copy":
+    case "copy": {
       return `copied from ${source.ref}`;
-    case "sample":
+    }
+
+    case "sample": {
       return "Saleor's sample data";
-    case "later":
+    }
+
+    case "later": {
       return Option.match(source.who, {
         onNone: () =>
           `“${source.description}”, written by the agent running this CLI`,
         onSome: (author) =>
           `drafted by ${author.label} from “${source.description}”`,
       });
-    default:
+    }
+
+    case "drafted": {
       return source.by;
+    }
   }
 };
 
@@ -215,21 +219,22 @@ interface Finishing {
   readonly root: string;
 }
 
-const writeConfig = (file: string, config: Document) =>
-  Effect.try({
-    catch: () => fail("LOCAL_STATE_ERROR", `Could not write ${file}.`),
-    try: () => writeFileSync(file, stringify(config)),
-  });
-
 // For an agent running the CLI: the file starts as the store's real configuration,
 // so what the agent adds is complete and every difference in it is one it means.
-const startForAgent = (
-  { file, made, root }: Finishing,
-  description: string,
-  target: Store,
-  kept: Option.Option<Document>
-) =>
+const startForAgent = ({
+  finishing,
+  description,
+  target,
+  kept,
+}: {
+  readonly finishing: Finishing;
+  readonly description: string;
+  readonly target: Store;
+  readonly kept: Option.Option<Document>;
+}) =>
   Effect.gen(function* () {
+    const { file, made, root } = finishing;
+
     if (Option.isNone(kept)) {
       yield* writeConfig(file, yield* pull(target));
       yield* recordInSync(file, made.ref);
@@ -260,13 +265,20 @@ const copied = (ref: string) =>
 
 // Writes the drafted (or copied) configuration over the store's own, deploys it,
 // and says what the store now has.
-const deployDraft = (
-  { file, made }: Finishing,
-  draft: Document,
-  target: Store,
-  kept: Option.Option<Document>
-) =>
+const deployDraft = ({
+  finishing,
+  draft,
+  target,
+  kept,
+}: {
+  readonly finishing: Finishing;
+  readonly draft: Document;
+  readonly target: Store;
+  readonly kept: Option.Option<Document>;
+}) =>
   Effect.gen(function* () {
+    const { file, made } = finishing;
+
     // Laid over what the store has (or the project's file, when `init` runs again),
     // so nothing it has is deleted.
     const config = mergeConfig(
@@ -277,7 +289,14 @@ const deployDraft = (
     yield* writeConfig(file, config);
 
     const plan = yield* planDeploy(target, file);
-    const outcome = yield* applyDeploy(made, target, file, plan);
+
+    const outcome = yield* applyDeploy({
+      instance: made,
+      store: target,
+      file,
+      plan,
+    });
+
     const words = deployedText(made, file, outcome);
 
     return {
@@ -294,57 +313,7 @@ const deployDraft = (
     };
   });
 
-export const prepareSampleData = (made: SetupResult) =>
-  Effect.gen(function* () {
-    if (!made.sampleDataReady) {
-      const source = (yield* InstanceSources).find(
-        (each) => each.kind === made.kind
-      );
-
-      if (source?.populate === undefined) {
-        return yield* fail(
-          "UNAVAILABLE",
-          `${made.ref} cannot load Saleor's sample data from the CLI.`
-        );
-      }
-
-      yield* notice("Loading Saleor's sample data…");
-      yield* source.populate(made);
-    }
-  });
-
-// Exporting sample configuration is optional; Cloud sample data needs no store token.
-export const sampleConfiguration = (
-  made: SetupResult,
-  file: string,
-  save: boolean
-) =>
-  Effect.gen(function* () {
-    yield* prepareSampleData(made);
-
-    if (!save) {
-      return {
-        config: null,
-        lines: [
-          `✓ Saleor's sample data is ready in ${made.ref}.`,
-          `Skipped saving the store configuration locally. Pull it later with: ${command("config", "pull", "--instance", made.ref)}`,
-        ],
-      };
-    }
-
-    const target = yield* connectMade(made);
-    const config = yield* pull(target);
-    yield* writeConfig(file, config);
-    yield* recordInSync(file, made.ref);
-
-    return {
-      config: file,
-      lines: [
-        `✓ Saved the sample configuration in ${shown(file)}.`,
-        ...reviewText(config),
-      ],
-    };
-  });
+export { prepareSampleData, sampleConfiguration } from "./sample.ts";
 
 const loadSample = ({ file, made }: Finishing) =>
   Effect.gen(function* () {
@@ -378,24 +347,36 @@ const contents = (
     const { chosen } = finishing;
 
     switch (chosen.kind) {
-      case "later":
-        return yield* startForAgent(
+      case "later": {
+        return yield* startForAgent({
           finishing,
-          chosen.description,
+          description: chosen.description,
           target,
-          kept
-        );
-      case "sample":
+          kept,
+        });
+      }
+
+      case "sample": {
         return yield* loadSample(finishing);
-      case "copy":
-        return yield* deployDraft(
+      }
+
+      case "copy": {
+        return yield* deployDraft({
           finishing,
-          yield* copied(chosen.ref),
+          draft: yield* copied(chosen.ref),
           target,
-          kept
-        );
-      default:
-        return yield* deployDraft(finishing, chosen.config, target, kept);
+          kept,
+        });
+      }
+
+      case "drafted": {
+        return yield* deployDraft({
+          finishing,
+          draft: chosen.config,
+          target,
+          kept,
+        });
+      }
     }
   });
 
@@ -403,12 +384,12 @@ const finish = (finishing: Finishing) =>
   Effect.gen(function* () {
     const { chosen, file, made, name, root } = finishing;
 
-    const { name: environment } = yield* rememberEnvironment(
+    const { name: environment } = yield* rememberEnvironment({
       root,
-      environmentName(made),
-      made.ref,
-      { name }
-    );
+      wanted: environmentName(made),
+      ref: made.ref,
+      defaults: { name },
+    });
 
     if (chosen.kind === "sample") {
       const { lines, ...data } = yield* loadSample(finishing);
@@ -423,7 +404,7 @@ const finish = (finishing: Finishing) =>
 
     // Running `init` again keeps the project's file: drafts are added to it.
     const kept = existsSync(file)
-      ? parseYamlDocument(readFileSync(file, "utf8"))
+      ? parseYamlDocument(readFileSync(file, "utf-8"))
       : Option.none();
 
     const outcome = yield* contents(finishing, target, kept);
@@ -473,7 +454,7 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
       return { data: {}, text: "" };
     }
 
-    if (readFileSync(file, "utf8").trim() === "{}") {
+    if (readFileSync(file, "utf-8").trim() === "{}") {
       yield* recordInSync(file, made.ref);
 
       return {
@@ -484,7 +465,13 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
 
     const target = yield* connectMade(made);
     const plan = yield* planDeploy(target, file);
-    const outcome = yield* applyDeploy(made, target, file, plan);
+
+    const outcome = yield* applyDeploy({
+      instance: made,
+      store: target,
+      file,
+      plan,
+    });
 
     if (outcome.missed.length > 0) {
       return yield* fail(

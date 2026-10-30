@@ -10,11 +10,15 @@ export type Json = Schema.Json;
 // A config.yml, or one of its entries (a channel, a product).
 export type Document = Schema.JsonObject;
 
+export const isJsonArray = (
+  value: Json | undefined
+): value is readonly Json[] => Array.isArray(value);
+
 export const isDocument = (value: Json | undefined): value is Document =>
   Predicate.isObject(value) && !Array.isArray(value);
 
 export const documentsIn = (value: Json | undefined): readonly Document[] =>
-  Array.isArray(value) ? value.filter(isDocument) : [];
+  isJsonArray(value) ? value.filter(isDocument) : [];
 
 export const textOf = (value: Json | undefined) =>
   Predicate.isString(value) ? value : undefined;

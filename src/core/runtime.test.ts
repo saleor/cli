@@ -1,9 +1,9 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { CANCEL_SYMBOL } from "@clack/prompts";
 import { Effect, Layer } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { root as saleorRoot } from "../main.ts";
 import { NoInputFlag, Prompts } from "./interaction.ts";
@@ -89,8 +89,8 @@ const setup = (commandRoot?: Command.Command.Any) => {
     version: "1",
   });
 
-  const run = (argv: readonly string[]) =>
-    Effect.runPromise(
+  const run = async (argv: readonly string[]) => {
+    await Effect.runPromise(
       execute(argv).pipe(
         Effect.provideService(Prompts, {
           confirm: async () => true,
@@ -99,6 +99,7 @@ const setup = (commandRoot?: Command.Command.Any) => {
         })
       )
     );
+  };
 
   return { action, run, select, text };
 };
@@ -232,22 +233,20 @@ it.each(
     await run([group.name]);
     expect(select).toHaveBeenCalledExactlyOnceWith({
       back: true,
-      choices: [
-        ...group.subcommands
-          .flatMap((entry) => entry.commands)
-          .filter(
-            (entry) =>
-              !(
-                entry.unlisted ||
-                (group.name === "storefront" && entry.name === "env")
-              )
-          )
-          .map((entry) => ({
-            hint: `saleor ${group.name} ${entry.name}`,
-            label: entry.shortDescription ?? entry.description ?? entry.name,
-            value: entry.name,
-          })),
-      ],
+      choices: group.subcommands
+        .flatMap((entry) => entry.commands)
+        .filter(
+          (entry) =>
+            !(
+              entry.unlisted ||
+              (group.name === "storefront" && entry.name === "env")
+            )
+        )
+        .map((entry) => ({
+          hint: `saleor ${group.name} ${entry.name}`,
+          label: entry.shortDescription ?? entry.description ?? entry.name,
+          value: entry.name,
+        })),
       message: `What would you like to do? (saleor ${group.name})`,
     });
     expect(process.exitCode).toBe(0);
@@ -584,8 +583,8 @@ it("runs onboarding only for a bare interactive root and supports revisiting it"
     version: "1",
   });
 
-  const run = (argv: readonly string[]) =>
-    Effect.runPromise(
+  const run = async (argv: readonly string[]) => {
+    await Effect.runPromise(
       execute(argv).pipe(
         Effect.provideService(Prompts, {
           confirm: async () => false,
@@ -594,6 +593,7 @@ it("runs onboarding only for a bare interactive root and supports revisiting it"
         })
       )
     );
+  };
 
   await run([]);
   expect(onboarding).toHaveBeenLastCalledWith(expect.any(Function), false);

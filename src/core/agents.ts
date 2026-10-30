@@ -1,7 +1,7 @@
+import { Context } from "effect";
 import { accessSync, constants, existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Context } from "effect";
 
 export interface CodingAgent {
   readonly detected: boolean;
@@ -37,7 +37,7 @@ export const detectCodingAgents = (
 
   const definitions = [
     {
-      active: Boolean(env.CLAUDECODE || env.CLAUDE_CODE_ENTRYPOINT),
+      active: Boolean(env.CLAUDECODE) || Boolean(env.CLAUDE_CODE_ENTRYPOINT),
       binary: "claude",
       configHome: claudeHome,
       directory: ".claude",
@@ -46,7 +46,7 @@ export const detectCodingAgents = (
       userSkills: path.join(claudeHome, "skills"),
     },
     {
-      active: Boolean(env.CODEX_THREAD_ID || env.CODEX_SESSION_ID),
+      active: Boolean(env.CODEX_THREAD_ID) || Boolean(env.CODEX_SESSION_ID),
       binary: "codex",
       configHome: codexHome,
       directory: ".agents",

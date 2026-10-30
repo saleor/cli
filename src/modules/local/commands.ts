@@ -1,6 +1,6 @@
+import { Effect, Option } from "effect";
 import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { Effect, Option } from "effect";
 import {
   absent,
   defineGroup,
@@ -53,6 +53,20 @@ const localList = local.list({
 
 const existingInstance = instance.input();
 
+const configurationToken = (data: Parameters<typeof localAccess>[0]) =>
+  Effect.flatMap(localAccess(data), (value) =>
+    Option.match(value, {
+      onNone: () =>
+        Effect.fail(
+          fail(
+            "STORE_AUTH_INVALID",
+            "No local admin credentials are available."
+          )
+        ),
+      onSome: Effect.succeed,
+    })
+  );
+
 const localUp = local.ensure({
   description:
     "Start the project local environment, creating it from saleor.yml when needed, or start an explicitly named instance. Apply project configuration on first setup when configure is on-create.",
@@ -97,8 +111,9 @@ const localUp = local.ensure({
       ) {
         return yield* fail(
           "LOCAL_STATE_ERROR",
-          "An instance already occupies this checkout's generated name. Attach it explicitly with saleor init --local --name " +
+          `An instance already occupies this checkout's generated name. Attach it explicitly with saleor init --local --name ${
             name
+          }`
         );
       }
 
@@ -140,31 +155,26 @@ const localUp = local.ensure({
           configure && planned.action === "reuse" ? "update" : planned.action,
         apply: Effect.gen(function* () {
           if (Option.isSome(context)) {
-            yield* Effect.sync(() =>
-              saveBinding(context.value.project.root, context.value.alias, name)
-            );
+            yield* Effect.sync(() => {
+              saveBinding(
+                context.value.project.root,
+                context.value.alias,
+                name
+              );
+            });
           }
 
           const data = yield* up(options);
 
           if (configure) {
-            const token = yield* Effect.flatMap(localAccess(data), (value) =>
-              Option.match(value, {
-                onNone: () =>
-                  Effect.fail(
-                    fail(
-                      "STORE_AUTH_INVALID",
-                      "No local admin credentials are available."
-                    )
-                  ),
-                onSome: Effect.succeed,
-              })
-            );
+            const token = yield* configurationToken(data);
 
             const configuration = yield* WorkspaceConfiguration;
             yield* configuration.apply(data, token, file);
 
-            yield* Effect.sync(() => writeFileSync(marker, "configured\n"));
+            yield* Effect.sync(() => {
+              writeFileSync(marker, "configured\n");
+            });
           }
 
           return result(data, connection(data).join("\n"));

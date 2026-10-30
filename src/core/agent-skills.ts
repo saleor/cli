@@ -1,3 +1,5 @@
+import { Context, Effect, Schema } from "effect";
+import { parseTarGzip } from "nanotar";
 import { createHash } from "node:crypto";
 import {
   lstatSync,
@@ -8,8 +10,6 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { Context, Effect, Schema } from "effect";
-import { parseTarGzip } from "nanotar";
 import { type CliFailure, fail } from "./errors.ts";
 
 export const SKILLS_INDEX =
@@ -131,8 +131,9 @@ export const installSkills = (directory: string, indexUrl = SKILLS_INDEX) =>
           continue;
         }
 
-        // biome-ignore lint/performance/noAwaitInLoops: Finish each skill before starting the next so retries preserve completed installations.
+        // oxlint-disable-next-line no-await-in-loop -- Finish each skill before starting the next so retries preserve completed installations.
         const archiveResponse = await download(url.href);
+        // oxlint-disable-next-line no-await-in-loop -- Each archive is checked and installed before downloading the next.
         const archive = new Uint8Array(await archiveResponse.arrayBuffer());
 
         const digest = `sha256:${createHash("sha256").update(archive).digest("hex")}`;
@@ -145,6 +146,7 @@ export const installSkills = (directory: string, indexUrl = SKILLS_INDEX) =>
         const staging = mkdtempSync(path.join(directory, ".saleor-skill-"));
 
         try {
+          // oxlint-disable-next-line no-await-in-loop -- Complete this staging directory before moving to the next skill.
           await unpackSkill(archive, staging);
           renameSync(staging, target);
           installed.push(skill.name);

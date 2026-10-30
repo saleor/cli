@@ -34,7 +34,7 @@ const find = (id: string) =>
   Effect.gen(function* () {
     const separator = id.indexOf("/");
 
-    if (separator < 0) {
+    if (separator === -1) {
       return Option.none<Instance>();
     }
 
@@ -62,11 +62,11 @@ const populate = (environment: Instance) =>
     );
 
     if (started.task_id !== null) {
-      yield* waitForTask(
-        started.task_id,
-        deadlineIn(DEFAULT_WAIT_SECONDS),
-        "Loading sample data"
-      );
+      yield* waitForTask({
+        taskId: started.task_id,
+        deadline: deadlineIn(DEFAULT_WAIT_SECONDS),
+        label: "Loading sample data",
+      });
     }
   });
 
