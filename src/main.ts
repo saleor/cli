@@ -17,6 +17,9 @@ import {
   cloudModule,
   cloudSignedIn,
 } from "./modules/cloud/index.ts";
+import { projectStatus } from "./modules/config/commands.ts";
+import { configModule } from "./modules/config/index.ts";
+import { workspaceConfigurationLive } from "./modules/config/workspace.ts";
 import { hasLocalInstances, localModule } from "./modules/local/index.ts";
 import { storefrontModule } from "./modules/storefront/index.ts";
 
@@ -29,6 +32,10 @@ const offerLocal = Effect.map(
 );
 
 const modules = [
+  // Put day-to-day configuration and storefront work before environment management.
+  // Configuration also runs before the storefront during setup, so it sets the channel.
+  configModule,
+  storefrontModule,
   cloudModule,
   {
     ...localModule,
@@ -36,7 +43,6 @@ const modules = [
       command.pipe(Command.annotate(MenuAvailable, offerLocal))
     ),
   },
-  storefrontModule,
 ];
 
 // `init` comes first: getting a store is what most people come for.
@@ -61,12 +67,20 @@ export const root = Command.make("saleor").pipe(
     ),
   ]),
   Command.withGlobalFlags([OutputFlag, NoInputFlag, AgentFlag]),
-  Command.annotate(MenuStatus, cloudAccount)
+  Command.annotate(
+    MenuStatus,
+    Effect.map(Effect.all([projectStatus, cloudAccount]), (lines) => {
+      const shown = lines.filter((line) => line !== undefined);
+
+      return shown.length > 0 ? shown.join("\n") : undefined;
+    })
+  )
 );
 
 const runCli = createCliRuntime(root, {
   onboard,
   services: Layer.mergeAll(
+    workspaceConfigurationLive,
     NodeServices.layer,
     Layer.succeed(
       InstanceSources,

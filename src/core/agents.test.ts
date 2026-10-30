@@ -21,7 +21,7 @@ it("detects config directories and binaries without executing them", () => {
     mode: 0o755,
   });
   const agents = detectCodingAgents(dir, dir, { PATH: path.join(dir, "bin") });
-  expect(agents.map(({ id, detected }) => ({ detected, id }))).toEqual([
+  expect(agents.map(({ id, detected }) => ({ detected, id }))).toStrictEqual([
     { detected: true, id: "claude" },
     { detected: true, id: "codex" },
     { detected: false, id: "cursor" },

@@ -11,17 +11,23 @@ const { commands } = buildCatalog(
 it.each(commands)(
   "$command takes targets as input, never as required words",
   (entry) => {
-    expect(entry.arguments.filter((argument) => argument.required)).toEqual([]);
+    expect(
+      entry.arguments.filter((argument) => argument.required)
+    ).toStrictEqual([]);
   }
 );
 
 it.each(commands)("$command publishes the flags its kind implies", (entry) => {
-  const flags = entry.flags.map((flag) => flag.name);
+  const flags = new Set(entry.flags.map((flag) => flag.name));
   const changes = entry.kind === "ensure" || entry.kind === "remove";
 
-  expect(flags.includes("--dry-run")).toBe(changes);
-  expect(flags.includes("--force")).toBe(entry.destructive);
-  expect(entry.destructive).toBe(entry.kind === "remove");
+  expect(flags.has("--dry-run")).toBe(changes);
+  expect(flags.has("--force")).toBe(entry.destructive);
+  // Every remove can lose data; an ensure can when it declares a risk (a deploy
+  // that deletes what the file no longer has). Nothing else changes anything.
+  expect(entry.destructive).toBe(
+    entry.kind === "remove" || (entry.kind === "ensure" && entry.destructive)
+  );
   expect(entry.warning !== null).toBe(entry.destructive);
 });
 
@@ -30,6 +36,6 @@ it.each(commands.filter((entry) => entry.kind === "remove"))(
   (entry) => {
     expect(
       [...entry.flags, ...entry.arguments].filter((input) => input.env !== null)
-    ).toEqual([]);
+    ).toStrictEqual([]);
   }
 );

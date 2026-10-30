@@ -1,9 +1,9 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { CANCEL_SYMBOL } from "@clack/prompts";
 import { Effect, Layer } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { root as saleorRoot } from "../main.ts";
 import { NoInputFlag, Prompts } from "./interaction.ts";
@@ -89,8 +89,8 @@ const setup = (commandRoot?: Command.Command.Any) => {
     version: "1",
   });
 
-  const run = (argv: readonly string[]) =>
-    Effect.runPromise(
+  const run = async (argv: readonly string[]) => {
+    await Effect.runPromise(
       execute(argv).pipe(
         Effect.provideService(Prompts, {
           confirm: async () => true,
@@ -99,6 +99,7 @@ const setup = (commandRoot?: Command.Command.Any) => {
         })
       )
     );
+  };
 
   return { action, run, select, text };
 };
@@ -232,22 +233,20 @@ it.each(
     await run([group.name]);
     expect(select).toHaveBeenCalledExactlyOnceWith({
       back: true,
-      choices: [
-        ...group.subcommands
-          .flatMap((entry) => entry.commands)
-          .filter(
-            (entry) =>
-              !(
-                entry.unlisted ||
-                (group.name === "storefront" && entry.name === "env")
-              )
-          )
-          .map((entry) => ({
-            hint: `saleor ${group.name} ${entry.name}`,
-            label: entry.shortDescription ?? entry.description ?? entry.name,
-            value: entry.name,
-          })),
-      ],
+      choices: group.subcommands
+        .flatMap((entry) => entry.commands)
+        .filter(
+          (entry) =>
+            !(
+              entry.unlisted ||
+              (group.name === "storefront" && entry.name === "env")
+            )
+        )
+        .map((entry) => ({
+          hint: `saleor ${group.name} ${entry.name}`,
+          label: entry.shortDescription ?? entry.description ?? entry.name,
+          value: entry.name,
+        })),
       message: `What would you like to do? (saleor ${group.name})`,
     });
     expect(process.exitCode).toBe(0);
@@ -263,25 +262,27 @@ it("preserves an explicit end-of-options marker when selecting an action", async
 it.each([
   {
     cloud: false,
-    expected: ["init", "login", "local", "storefront", "commands"],
+    expected: ["init", "storefront", "login", "local", "commands"],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "env", "storefront", "commands"],
+    expected: ["init", "storefront", "env", "commands"],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "env", "local", "storefront", "commands"],
+    expected: ["init", "storefront", "env", "local", "commands"],
     local: true,
   },
 ])(
   "offers the menu for where the person works (cloud=$cloud, local=$local)",
   async ({ cloud, expected, local }) => {
     const config = mkdtempSync(path.join(tmpdir(), "saleor-config-"));
+    const originalDirectory = process.cwd();
 
     try {
+      process.chdir(config);
       const { select, run } = setup(saleorRoot);
       const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
       vi.stubEnv("SALEOR_CONFIG_DIR", config);
@@ -317,6 +318,7 @@ it.each([
         })
       );
     } finally {
+      process.chdir(originalDirectory);
       rmSync(config, { force: true, recursive: true });
     }
   }
@@ -581,8 +583,8 @@ it("runs onboarding only for a bare interactive root and supports revisiting it"
     version: "1",
   });
 
-  const run = (argv: readonly string[]) =>
-    Effect.runPromise(
+  const run = async (argv: readonly string[]) => {
+    await Effect.runPromise(
       execute(argv).pipe(
         Effect.provideService(Prompts, {
           confirm: async () => false,
@@ -591,6 +593,7 @@ it("runs onboarding only for a bare interactive root and supports revisiting it"
         })
       )
     );
+  };
 
   await run([]);
   expect(onboarding).toHaveBeenLastCalledWith(expect.any(Function), false);

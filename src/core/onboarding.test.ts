@@ -1,8 +1,8 @@
+import { CANCEL_SYMBOL } from "@clack/prompts";
+import { Effect } from "effect";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { CANCEL_SYMBOL } from "@clack/prompts";
-import { Effect } from "effect";
 import { afterEach, expect, it, vi } from "vitest";
 import { SkillInstaller, type SkillsInstalled } from "./agent-skills.ts";
 import { CodingAgents } from "./agents.ts";
@@ -38,8 +38,8 @@ const setup = (answer: string | symbol) => {
       Effect.succeed({ installed: ["saleor-app"], skipped: [] })
   );
 
-  const run = (force = false) =>
-    Effect.runPromise(
+  const run = async (force = false) =>
+    await Effect.runPromise(
       onboard(execute, force).pipe(
         Effect.provideService(CodingAgents, [
           {
@@ -66,8 +66,8 @@ it("remembers local onboarding and allows explicitly revisiting it", async () =>
   expect(await run()).toBe(true);
   expect(execute).not.toHaveBeenCalled();
   expect(
-    JSON.parse(readFileSync(path.join(dir, "onboarding.json"), "utf8"))
-  ).toEqual({ version: 1 });
+    JSON.parse(readFileSync(path.join(dir, "onboarding.json"), "utf-8"))
+  ).toStrictEqual({ version: 1 });
   await run();
   expect(select).toHaveBeenCalledOnce();
   await run(true);
@@ -110,8 +110,8 @@ it("leaves failed Cloud login retryable", async () => {
 
 it("leaves cancelled onboarding retryable", async () => {
   const { run, select } = setup(CANCEL_SYMBOL);
-  await expect(run()).rejects.toThrow();
-  await expect(run()).rejects.toThrow();
+  await expect(run()).rejects.toThrow(/interrupt/i);
+  await expect(run()).rejects.toThrow(/interrupt/i);
   expect(select).toHaveBeenCalledTimes(2);
 });
 
@@ -144,10 +144,10 @@ it("offers Cloud MCP installation independently of skills with a mocked backend"
       message: "Install Saleor MCP in your coding agent?",
     })
   );
-  expect(process.stderr.write).toHaveBeenCalledWith(
+  expect(vi.mocked(process.stderr.write)).toHaveBeenCalledWith(
     expect.stringContaining("Installing Saleor MCP for Codex")
   );
-  expect(process.stderr.write).toHaveBeenCalledWith(
+  expect(vi.mocked(process.stderr.write)).toHaveBeenCalledWith(
     expect.stringContaining("Saleor MCP is configured for Codex.")
   );
 
@@ -157,9 +157,9 @@ it("offers Cloud MCP installation independently of skills with a mocked backend"
     .join("");
 
   expect(output).not.toMatch(UNRELEASED_MCP_COPY);
-  expect(readFileSync(path.join(dir, "onboarding.json"), "utf8")).not.toContain(
-    "mcp"
-  );
+  expect(
+    readFileSync(path.join(dir, "onboarding.json"), "utf-8")
+  ).not.toContain("mcp");
 });
 
 it("does not mark onboarding complete when skills installation fails", async () => {
@@ -176,7 +176,7 @@ it("does not mark onboarding complete when skills installation fails", async () 
   expect(await run()).toBe(false);
   expect(existsSync(path.join(dir, "onboarding.json"))).toBe(false);
   expect(process.exitCode).toBe(1);
-  expect(process.stderr.write).toHaveBeenCalledWith(
+  expect(vi.mocked(process.stderr.write)).toHaveBeenCalledWith(
     expect.stringContaining("Download failed")
   );
 });

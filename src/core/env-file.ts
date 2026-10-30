@@ -57,13 +57,17 @@ export const connectedRef = (text: string) =>
     .map((line) => HEADER.exec(line)?.[1])
     .find((ref) => ref !== undefined);
 
-export const setEnv = (
-  text: string,
-  values: Readonly<Record<string, string>>,
-  ref: string,
-  // Said after the ref, such as how to change it.
-  note: string
-) => {
+export const setEnv = ({
+  text,
+  values,
+  ref,
+  note,
+}: {
+  readonly text: string;
+  readonly values: Readonly<Record<string, string>>;
+  readonly ref: string;
+  readonly note: string;
+}) => {
   const lines = text.split("\n").filter((line) => !HEADER.test(line));
   const appended: string[] = [];
 
@@ -75,9 +79,9 @@ export const setEnv = (
     );
 
     const at =
-      active >= 0
-        ? active
-        : lines.findIndex((candidate) => keyLine(key, true).test(candidate));
+      active === -1
+        ? lines.findIndex((candidate) => keyLine(key, true).test(candidate))
+        : active;
 
     if (at >= 0) {
       lines[at] = line;

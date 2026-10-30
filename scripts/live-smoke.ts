@@ -1,9 +1,9 @@
 // Read-only by default: lists the environments of --org. With --project <slug> and
 // --allow-create-delete, it also creates a sandbox in that project and deletes it.
+import { Schema } from "effect";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
-import { Schema } from "effect";
 
 const exec = promisify(execFile);
 const executable = path.resolve(import.meta.dirname, "../bin/saleor.mjs");
@@ -45,7 +45,9 @@ const run = async (args: string[], allowedCodes = [0]) => {
     ({ code, stdout } = failure);
   }
 
-  const output = JSON.parse(stdout);
+  const output = Schema.decodeUnknownSync(Schema.JsonObject)(
+    JSON.parse(stdout)
+  );
 
   if (!allowedCodes.includes(code)) {
     throw new Error(`${args.slice(0, 2).join(" ")}: ${JSON.stringify(output)}`);
@@ -69,7 +71,11 @@ if (writes && project) {
 
     const again = await run(["env", "delete", name, ...context, "--force"]);
 
-    if (again.data.action !== "none" || again.data.existed !== false) {
+    const deleted = Schema.decodeUnknownSync(
+      Schema.Struct({ action: Schema.String, existed: Schema.Boolean })
+    )(again.data);
+
+    if (deleted.action !== "none" || deleted.existed) {
       throw new Error("Deleting an absent environment should be a no-op.");
     }
 
@@ -85,11 +91,24 @@ if (writes && project) {
     );
 
     console.log(
-      `PASS: initial provisioning (${initial.ok ? "ready" : initial.error.code}) for ${name}`
+      `PASS: initial provisioning (${initial.ok ? "ready" : Schema.decodeUnknownSync(Schema.Struct({ code: Schema.String }))(initial.error).code}) for ${name}`
     );
     const ready = await run(["init", ...context, "--env", name]);
 
-    if (!ready.data.ready || ready.data.projectCreated || ready.data.created) {
+    const environment = Schema.decodeUnknownSync(
+      Schema.Struct({
+        ready: Schema.Boolean,
+        projectCreated: Schema.Boolean,
+        created: Schema.Boolean,
+        key: Schema.String,
+      })
+    )(ready.data);
+
+    if (
+      !environment.ready ||
+      environment.projectCreated ||
+      environment.created
+    ) {
       throw new Error("Expected reuse of the environment on rerun.");
     }
 
@@ -100,7 +119,9 @@ if (writes && project) {
     const listed = await run(["env", "list", ...context]);
 
     if (
-      !listed.data.some((env: { key: string }) => env.key === ready.data.key)
+      !Schema.decodeUnknownSync(
+        Schema.Array(Schema.Struct({ key: Schema.String }))
+      )(listed.data).some((env) => env.key === environment.key)
     ) {
       throw new Error("The new environment is not listed.");
     }
@@ -112,11 +133,11 @@ if (writes && project) {
     await cleanup();
   } catch (error) {
     throw failure === undefined
-      ? error
+      ? new Error("Smoke test cleanup failed", { cause: error })
       : new AggregateError([failure, error], "Smoke test and cleanup failed");
   }
 
   if (failure !== undefined) {
-    throw failure;
+    throw new Error("Smoke test failed", { cause: failure });
   }
 }

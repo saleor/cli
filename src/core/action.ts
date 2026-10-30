@@ -74,7 +74,7 @@ export interface Plan {
   readonly risk: string | null;
   readonly state: ResourceState;
   // Labelled facts describing the plan to a person, shown before they confirm.
-  readonly summary?: ReadonlyArray<readonly [label: string, value: string]>;
+  readonly summary?: readonly (readonly [label: string, value: string])[];
   readonly target: TargetRef;
 }
 
@@ -135,8 +135,9 @@ const planFields = (plan: Plan) => {
 
   const width = Math.max(0, ...fields.map(([label]) => label.length)) + 1;
 
-  return fields.map(
-    ([label, value]) => `  ${`${label}:`.padEnd(width)} ${value}`
+  // A row without a label continues the list above it, such as one change of many.
+  return fields.map(([label, value]) =>
+    label === "" ? `    ${value}` : `  ${`${label}:`.padEnd(width)} ${value}`
   );
 };
 
@@ -230,10 +231,13 @@ const dryRunInput = option.boolean(
   "Show what would happen without changing anything or asking questions."
 );
 
-const forceInput = option.boolean(
-  "force",
-  "Delete without asking. Required to delete when not running in a terminal."
-);
+const forceInput = (kind: ActionKind) =>
+  option.boolean(
+    "force",
+    kind === "remove"
+      ? "Delete without asking. Required to delete when not running in a terminal."
+      : "Go ahead without asking when the plan loses data (its warning says what). Required for that when not running in a terminal."
+  );
 
 const waitInput = (kind: ActionKind) =>
   option.integer("timeout", {
@@ -270,9 +274,10 @@ interface ActionSpec<I extends Inputs> {
 
 // A list's items with how to show them: the item type comes from `items`.
 export interface Listing<Item> {
-  readonly columns: ReadonlyArray<
-    readonly [header: string, cell: (item: Item) => string | null]
-  >;
+  readonly columns: readonly (readonly [
+    header: string,
+    cell: (item: Item) => string | null,
+  ])[];
   readonly empty: string;
   readonly items: readonly Item[];
 }
@@ -306,16 +311,23 @@ interface ChangeSpec<I extends Inputs, A, R, RA> extends ActionSpec<I> {
 // What an ensure's `apply` returns: the resource and the lines describing it, after
 // the headline, and the target as it is now when creating it gave it an id.
 export interface Ensured<A> extends CommandResult<A> {
+  // Replaces "<target> is ready (created)", for targets that are changed rather than
+  // made ready, such as a store a configuration is deployed to.
+  readonly headline?: string | undefined;
   readonly target?: TargetRef | undefined;
 }
 
 // `apply` returns the resource and the lines describing it, after the headline.
-export type EnsureSpec<
+export interface EnsureSpec<
   I extends Inputs,
   A extends { readonly created: boolean },
   R,
   RA,
-> = ChangeSpec<I, Ensured<A>, R, RA>;
+> extends ChangeSpec<I, Ensured<A>, R, RA> {
+  // What a plan of this action can lose, when some can: the action then takes
+  // `--force`, and plans that lose data need it or a "yes". For `saleor commands`.
+  readonly risk?: string;
+}
 
 export interface RemoveResult {
   readonly action: PlanAction;
@@ -324,8 +336,12 @@ export interface RemoveResult {
 }
 
 // `apply` returns fields to add to the result, such as whether it was running.
-export interface RemoveSpec<I extends Inputs, X, R, RA>
-  extends ChangeSpec<I, X, R, RA> {
+export interface RemoveSpec<I extends Inputs, X, R, RA> extends ChangeSpec<
+  I,
+  X,
+  R,
+  RA
+> {
   // A line added to the result text, such as how to undo a stop.
   readonly note?: (data: RemoveResult) => string | undefined;
   // What can be lost, for `saleor commands --json`.
@@ -338,14 +354,16 @@ export interface Policy<R> {
 }
 
 // A result that is a store has a dashboard.
-const dashboardUrlOf = <D>(data: D) =>
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Result inspection is a boundary shared by commands with unrelated output types.
+const dashboardUrlOf = (data: unknown) =>
   Predicate.hasProperty(data, "dashboardUrl") &&
   Predicate.isString(data.dashboardUrl)
     ? Option.some(data.dashboardUrl)
     : Option.none();
 
 // After a store is ready, a person at a terminal is offered its dashboard.
-const offerDashboard = <D>(data: D) =>
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Results are narrowed by dashboardUrlOf before use.
+const offerDashboard = (data: unknown) =>
   Effect.gen(function* () {
     const url = dashboardUrlOf(data);
 
@@ -424,12 +442,19 @@ const build = <
   C extends CommandResult<unknown>,
   R,
   R2 = never,
->(
-  rules: KindRules,
-  spec: ActionSpec<I>,
-  body: (input: Values<I> & KindValues) => Effect.Effect<C, CliFailure, R>,
-  afterSuccess?: (data: C["data"]) => Effect.Effect<void, never, R2>
-) => {
+>({
+  rules,
+  spec,
+  body,
+  afterSuccess,
+}: {
+  readonly rules: KindRules;
+  readonly spec: ActionSpec<I>;
+  readonly body: (
+    input: Values<I> & KindValues
+  ) => Effect.Effect<C, CliFailure, R>;
+  readonly afterSuccess?: (data: C["data"]) => Effect.Effect<void, never, R2>;
+}) => {
   const inputs = new Map<string, Input<InputValue>>(
     Object.entries(spec.inputs)
   );
@@ -438,8 +463,8 @@ const build = <
     inputs.set("dryRun", dryRunInput);
   }
 
-  if (rules.kind === "remove") {
-    inputs.set("force", forceInput);
+  if (rules.destructive) {
+    inputs.set("force", forceInput(rules.kind));
   }
 
   if (rules.waits) {
@@ -467,6 +492,7 @@ const build = <
     Object.fromEntries(built.map(([key, input]) => [key, input.param])),
     (raw) => {
       // SAFETY: `raw` is parsed from exactly the params built above, keyed the same way, so each key holds its input's value type.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The parsed record has the exact input keys registered on this command.
       const values = {
         dryRun: false,
         force: false,
@@ -498,6 +524,24 @@ const QUIET: KindRules = {
   warning: null,
 };
 
+const removedResult = (
+  plan: Plan,
+  data: RemoveResult,
+  note: string | undefined
+) => {
+  const what = describeTarget(plan.target);
+
+  return result(
+    data,
+    [
+      plan.action === "none"
+        ? `✓ ${nothingToDo(plan)}`
+        : `✓ ${capitalize(VERBS[plan.action][1])} ${what}.`,
+      ...(note === undefined ? [] : [note]),
+    ].join("\n")
+  );
+};
+
 // The definers for one module. A module passes its policy once (Cloud offers a login
 // before every Cloud action) instead of repeating it in each command.
 export const defineActions = <RP = never>(policy: Policy<RP> = {}) => {
@@ -507,15 +551,15 @@ export const defineActions = <RP = never>(policy: Policy<RP> = {}) => {
     ensure: <I extends Inputs, A extends { readonly created: boolean }, R, RA>(
       spec: EnsureSpec<I, A, R, RA>
     ) =>
-      build(
-        {
-          destructive: false,
+      build({
+        rules: {
+          destructive: spec.risk !== undefined,
           kind: "ensure",
           waits: spec.waits === true,
-          warning: null,
+          warning: spec.risk ?? null,
         },
         spec,
-        (input) =>
+        body: (input) =>
           Effect.gen(function* () {
             yield* before;
             const plan = yield* spec.plan(input);
@@ -526,51 +570,54 @@ export const defineActions = <RP = never>(policy: Policy<RP> = {}) => {
             }
 
             yield* confirm(plan);
-            const { data, target, text } = yield* plan.apply;
+            const { data, headline, target, text } = yield* plan.apply;
             const what = capitalize(describeTarget(target ?? plan.target));
 
             return result(
               data,
               [
-                `✓ ${what} is ready (${data.created ? "created" : "already existed"}).`,
+                `✓ ${headline ?? `${what} is ready (${data.created ? "created" : "already existed"}).`}`,
                 ...(text === "" ? [] : [text]),
                 ...(yield* rerunHint),
               ].join("\n")
             );
           }),
-        offerDashboard
-      ),
+        afterSuccess: offerDashboard,
+      }),
 
     list: <I extends Inputs, Item, R>(spec: ListSpec<I, Item, R>) =>
-      build({ ...QUIET, kind: "list" }, spec, (input) =>
-        Effect.gen(function* () {
-          yield* before;
-          const { columns: cells, empty, items } = yield* spec.run(input);
+      build({
+        rules: { ...QUIET, kind: "list" },
+        spec,
+        body: (input) =>
+          Effect.gen(function* () {
+            yield* before;
+            const { columns: cells, empty, items } = yield* spec.run(input);
 
-          return result(
-            items,
-            items.length === 0
-              ? empty
-              : columns([
-                  cells.map(([header]) => header),
-                  ...items.map((item) => cells.map(([, cell]) => cell(item))),
-                ])
-          );
-        })
-      ),
+            return result(
+              items,
+              items.length === 0
+                ? empty
+                : columns([
+                    cells.map(([header]) => header),
+                    ...items.map((item) => cells.map(([, cell]) => cell(item))),
+                  ])
+            );
+          }),
+      }),
 
     remove: <I extends Inputs, X extends object, R, RA>(
       spec: RemoveSpec<I, X, R, RA>
     ) =>
-      build(
-        {
+      build({
+        rules: {
           destructive: true,
           kind: "remove",
           waits: spec.waits === true,
           warning: spec.risk,
         },
         spec,
-        (input) =>
+        body: (input) =>
           Effect.gen(function* () {
             yield* before;
             const plan = yield* spec.plan(input);
@@ -591,37 +638,17 @@ export const defineActions = <RP = never>(policy: Policy<RP> = {}) => {
               target: plan.target,
             };
 
-            const what = describeTarget(plan.target);
-            const note = spec.note?.(data);
-
-            return result(
-              data,
-              [
-                plan.action === "none"
-                  ? `✓ ${nothingToDo(plan)}`
-                  : `✓ ${capitalize(VERBS[plan.action][1])} ${what}.`,
-                ...(note === undefined ? [] : [note]),
-              ].join("\n")
-            );
-          })
-      ),
+            return removedResult(plan, data, spec.note?.(data));
+          }),
+      }),
 
     session: <I extends Inputs, A, R>(spec: SessionSpec<I, A, R>) =>
-      build(QUIET, spec, (input) => Effect.andThen(before, spec.run(input))),
+      build({
+        rules: QUIET,
+        spec,
+        body: (input) => Effect.andThen(before, spec.run(input)),
+      }),
   };
 };
 
-// Command groups: a word with actions under it and no behavior of its own.
-export const defineGroup = <
-  const Children extends readonly Command.Command.Any[],
->(spec: {
-  readonly description: string;
-  readonly name: string;
-  readonly summary: string;
-  readonly actions: Children;
-}) =>
-  Command.make(spec.name).pipe(
-    Command.withDescription(spec.description),
-    Command.withShortDescription(spec.summary),
-    Command.withSubcommands(spec.actions)
-  );
+export { defineGroup } from "./action-group.ts";

@@ -34,12 +34,17 @@ const taskFailed = (
 
 // `beat` is shared by a caller that waits for several tasks in turn, so progress keeps
 // showing, and counting, across all of them.
-export const waitForTask = (
-  taskId: string,
-  deadline: Deadline,
-  label: string,
-  beat = heartbeat()
-) =>
+export const waitForTask = ({
+  taskId,
+  deadline,
+  label,
+  beat = heartbeat(),
+}: {
+  readonly taskId: string;
+  readonly deadline: Deadline;
+  readonly label: string;
+  readonly beat?: (what: string) => Effect.Effect<void>;
+}) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
 
@@ -110,12 +115,17 @@ const progress = () => {
         );
 };
 
-export const waitUntilReady = (
-  organization: string,
-  envKey: string,
-  deadline: Deadline,
-  beat = heartbeat()
-) =>
+export const waitUntilReady = ({
+  organization,
+  envKey,
+  deadline,
+  beat = heartbeat(),
+}: {
+  readonly organization: string;
+  readonly envKey: string;
+  readonly deadline: Deadline;
+  readonly beat?: (what: string) => Effect.Effect<void>;
+}) =>
   Effect.gen(function* () {
     const say = progress();
 
@@ -131,7 +141,12 @@ export const waitUntilReady = (
         yield* say(
           "Waiting for Saleor Cloud to finish setting up the environment…"
         );
-        yield* waitForTask(task.job_name, deadline, "Environment setup", beat);
+        yield* waitForTask({
+          taskId: task.job_name,
+          deadline,
+          label: "Environment setup",
+          beat,
+        });
       }
 
       const found = yield* findEnvironment(organization, envKey);

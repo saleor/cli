@@ -1,8 +1,8 @@
+import { confirm, isCancel, password, text } from "@clack/prompts";
+import { Context, Effect, Option, Predicate } from "effect";
+import { Flag, GlobalFlag } from "effect/cli";
 import { spawn } from "node:child_process";
 import { emitKeypressEvents } from "node:readline";
-import { confirm, isCancel, text } from "@clack/prompts";
-import { Context, Effect, Option } from "effect";
-import { Flag, GlobalFlag } from "effect/cli";
 import { ActionContext } from "./invocation.ts";
 import { menuPrompt } from "./menu-prompt.ts";
 import { BACK, canGoBack, goBack } from "./navigation.ts";
@@ -44,8 +44,8 @@ export const isInteractive = Effect.gen(function* () {
     !noInput &&
     !envDisablesInput() &&
     detectAgent() === undefined &&
-    process.stdin.isTTY === true &&
-    process.stdout.isTTY === true &&
+    process.stdin.isTTY &&
+    process.stdout.isTTY &&
     !process.env.CI
   );
 });
@@ -75,6 +75,8 @@ export interface PromptOperations {
     message: string;
     initialValue?: string | undefined;
     placeholder?: string | undefined;
+    // Masks what is typed, for tokens.
+    secret?: boolean | undefined;
     validate?: (value: string) => string | undefined;
   }) => Promise<string | symbol>;
 }
@@ -86,7 +88,7 @@ const escapable = async <A>(
   ask: () => Promise<A | symbol>
 ): Promise<A | symbol> => {
   if (!back) {
-    return ask();
+    return await ask();
   }
 
   let escaped = false;
@@ -112,15 +114,20 @@ const escapable = async <A>(
 
 export const Prompts = Context.Reference<PromptOperations>("saleor/Prompts", {
   defaultValue: () => ({
-    confirm: ({ back, ...options }) => escapable(back, () => confirm(options)),
+    confirm: async ({ back, ...options }) =>
+      await escapable(back, async () => await confirm(options)),
     select: async (options) => (await menuPrompt(options)) ?? "",
-    text: ({ back, ...options }) =>
-      escapable(back, async () => {
+    text: async ({ back, ...options }) =>
+      await escapable(back, async () => {
         const base = {
           message: options.message,
           validate: (value: string | undefined) =>
             options.validate?.(value ?? ""),
         };
+
+        if (options.secret === true) {
+          return (await password({ ...base, mask: "•" })) ?? "";
+        }
 
         const answer = await text({
           ...base,
@@ -143,7 +150,7 @@ const answered = <A extends string | boolean>(answer: A | symbol) => {
     return goBack;
   }
 
-  if (isCancel(answer)) {
+  if (isCancel(answer) || Predicate.isSymbol(answer)) {
     return Effect.andThen(
       Effect.sync(() =>
         process.stderr.write("Cancelled. Nothing was changed.\n")
@@ -156,7 +163,7 @@ const answered = <A extends string | boolean>(answer: A | symbol) => {
     process.stdout.write("\n");
 
     // SAFETY: the cancel and back symbols are ruled out first, leaving the answer type.
-    return answer as A;
+    return answer;
   });
 };
 
@@ -169,11 +176,12 @@ export const askSelect = <A extends string>(options: {
     const prompts = yield* Prompts;
     const back = yield* canGoBack;
 
-    const answer = yield* Effect.promise(() =>
-      prompts.select({ ...options, back })
+    const answer = yield* Effect.promise(
+      async () => await prompts.select({ ...options, back })
     );
 
-    // SAFETY: the answer is one of `options.choices`, whose values are all `A`.
+    // SAFETY: the prompt adapter preserves the values supplied in choices; back and cancellation symbols were handled by answered.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The shared prompt service erases the literal choice union at its adapter boundary.
     return (yield* answered(answer)) as A;
   });
 
@@ -181,14 +189,15 @@ export const askText = (options: {
   message: string;
   initialValue?: string | undefined;
   placeholder?: string | undefined;
+  secret?: boolean | undefined;
   validate?: (value: string) => string | undefined;
 }) =>
   Effect.gen(function* () {
     const prompts = yield* Prompts;
     const back = yield* canGoBack;
 
-    const answer = yield* Effect.promise(() =>
-      prompts.text({ ...options, back })
+    const answer = yield* Effect.promise(
+      async () => await prompts.text({ ...options, back })
     );
 
     return (yield* answered(answer)).trim();
@@ -199,11 +208,11 @@ export const askConfirm = (message: string, initialValue = true) =>
     const prompts = yield* Prompts;
     const back = yield* canGoBack;
 
-    const answer = yield* Effect.promise(() =>
-      prompts.confirm({ back, initialValue, message })
+    const answer = yield* Effect.promise(
+      async () => await prompts.confirm({ back, initialValue, message })
     );
 
-    return (yield* answered(answer)) === true;
+    return yield* answered(answer);
   });
 
 export const required = (what: string) => (value: string) =>

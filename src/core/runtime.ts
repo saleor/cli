@@ -1,4 +1,3 @@
-import { formatWithOptions } from "node:util";
 import {
   Cause,
   Console,
@@ -15,6 +14,7 @@ import {
   Command,
   GlobalFlag,
 } from "effect/cli";
+import { formatWithOptions } from "node:util";
 import { renderFailure } from "./command.ts";
 import { ExitCode, fail, internalFailure } from "./errors.ts";
 import { helpFormatter } from "./help.ts";
@@ -147,7 +147,7 @@ const normalizeOptions = (rawArgv: readonly string[]) => {
 const beforeSeparator = (argv: readonly string[]) => {
   const separator = argv.indexOf("--");
 
-  return separator < 0 ? argv : argv.slice(0, separator);
+  return separator === -1 ? argv : argv.slice(0, separator);
 };
 
 const normalizeArgv = (argv: readonly string[]) => {
@@ -172,14 +172,21 @@ const allowsQuestions = (argv: readonly string[]) =>
     ? Effect.succeed(false)
     : isInteractive;
 
-const navigate = (
-  command: Command.Command.Any,
-  onboard: CliRuntimeOptions<never>["onboard"],
-  path: readonly string[],
-  rawArgv: readonly string[],
-  argv: readonly string[],
-  execute: (argv: readonly string[]) => Effect.Effect<void>
-) =>
+const navigate = ({
+  command,
+  onboard,
+  path,
+  rawArgv,
+  argv,
+  execute,
+}: {
+  readonly command: Command.Command.Any;
+  readonly onboard: CliRuntimeOptions<never>["onboard"];
+  readonly path: readonly string[];
+  readonly rawArgv: readonly string[];
+  readonly argv: readonly string[];
+  readonly execute: (argv: readonly string[]) => Effect.Effect<void>;
+}) =>
   Effect.gen(function* () {
     const home = path.length <= 1;
 
@@ -194,7 +201,7 @@ const navigate = (
 
     yield* home
       ? homeMenu(command, execute)
-      : groupMenu(command, path, argv, execute);
+      : groupMenu({ root: command, path, argv, execute });
   });
 
 // Owns the process-facing CLI policy: argument aliases, output routing, parser
@@ -245,6 +252,7 @@ const runtime = <Services>(
   });
 
   // SAFETY: Command.Any erases module requirements. defineModule checks at compile time that each module's layer builds what its commands need, and the composition root merges those layers into `services`.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- defineModule checks requirements before registration erases them; services supplies every module layer.
   return Command.runWith(command, {
     renderErrors: false,
     version: options.version,
@@ -262,14 +270,14 @@ const runtime = <Services>(
 
           showParserOutput = false;
 
-          yield* navigate(
+          yield* navigate({
             command,
-            options.onboard,
-            error.commandPath,
+            onboard: options.onboard,
+            path: error.commandPath,
             rawArgv,
             argv,
-            nested
-          );
+            execute: nested,
+          });
 
           return;
         }

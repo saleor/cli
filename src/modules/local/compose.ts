@@ -52,7 +52,7 @@ export const composeTemplate = (config: LocalConfig) => {
         db: {
           environment: {
             POSTGRES_DB: "saleor",
-            // biome-ignore lint/suspicious/noTemplateCurlyInString: Docker Compose expands this from the private .env file.
+            // oxlint-disable-next-line no-template-curly-in-string -- Docker Compose expands this from the private .env file.
             POSTGRES_PASSWORD: "${DATABASE_PASSWORD}",
             POSTGRES_USER: "saleor",
           },

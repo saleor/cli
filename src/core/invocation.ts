@@ -64,7 +64,7 @@ export const command = (...words: readonly string[]) =>
 
 const splitAtSeparator = (argv: readonly string[]) => {
   const separator = argv.indexOf("--");
-  const boundary = separator < 0 ? argv.length : separator;
+  const boundary = separator === -1 ? argv.length : separator;
 
   return {
     options: argv.slice(0, boundary),

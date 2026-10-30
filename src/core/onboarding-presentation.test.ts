@@ -1,5 +1,5 @@
-import { stripVTControlCharacters } from "node:util";
 import { Effect } from "effect";
+import { stripVTControlCharacters } from "node:util";
 import { afterEach, expect, it, vi } from "vitest";
 import { welcome } from "./onboarding-presentation.ts";
 
@@ -44,8 +44,8 @@ it("writes the complete welcome once on the prompt stream without clearing or mo
   expect(stripVTControlCharacters(frame)).toContain("╚══════╝");
   expect(frame).toContain("Welcome to Saleor");
   // Only color/style escapes are allowed: no cursor movement or erase sequences.
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: Inspect actual ANSI terminal output.
-  expect(frame.replace(/\x1b\[[\d;]*m/g, "")).not.toContain("\x1b");
+  // oxlint-disable-next-line no-control-regex -- Inspect actual ANSI terminal output.
+  expect(frame.replaceAll(/\u001B\[[\d;]*m/g, "")).not.toContain("\u001B");
 });
 
 it.each([

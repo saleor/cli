@@ -27,10 +27,10 @@ export interface CatalogEntry {
   readonly command: string;
   readonly description: string | null;
   readonly destructive: boolean;
-  readonly examples: ReadonlyArray<{
+  readonly examples: readonly {
     command: string;
     description: string | null;
-  }>;
+  }[];
   readonly flags: readonly CatalogInput[];
   readonly kind: ActionKind;
   // One line, for listings; `description` has the full text.
@@ -40,12 +40,12 @@ export interface CatalogEntry {
 
 export interface Catalog {
   readonly commands: readonly CatalogEntry[];
-  readonly errorCodes: ReadonlyArray<{
+  readonly errorCodes: readonly {
     readonly code: string;
     readonly exitCode: number;
     readonly meaning: string;
     readonly retry: boolean;
-  }>;
+  }[];
   readonly exitCodes: typeof EXIT_CODE_MEANINGS;
   readonly globalFlags: readonly CatalogInput[];
   readonly instanceStates: readonly string[];
@@ -71,6 +71,7 @@ const helpDocOf = (
   }
 
   // SAFETY: pinned Effect CLI commands expose this internal function; the catalogue integration test verifies its return contract.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Effect exposes this internal method; catalogue contract tests verify its return shape.
   const internal = command as AnyCommand & {
     buildHelpDoc: (path: readonly string[]) => HelpDoc.HelpDoc;
   };

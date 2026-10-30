@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
 import { Duration, Effect, Option, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import type { TargetRef } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import {
@@ -51,7 +51,7 @@ export type Found =
     };
 
 const read = (file: string) =>
-  existsSync(file) ? readFileSync(file, "utf8") : undefined;
+  existsSync(file) ? readFileSync(file, "utf-8") : undefined;
 
 export const inspect = (dir: string) =>
   Effect.sync((): Found => {
@@ -206,7 +206,12 @@ const writeEnv = (dir: string, store: Instance, channel: string) =>
 
       writeFileSync(
         file,
-        setEnv(current ?? example ?? "", values, store.ref, ENV_NOTE)
+        setEnv({
+          text: current ?? example ?? "",
+          values,
+          ref: store.ref,
+          note: ENV_NOTE,
+        })
       );
 
       return {

@@ -105,12 +105,17 @@ export const listProjects = (organization: string) =>
 
 // A ref is a slug or key first; a name only when no slug/key matches and the name is
 // unambiguous.
-const uniqueMatch = <A extends { readonly name: string }>(
-  items: readonly A[],
-  ref: string,
-  key: (item: A) => string,
-  kind: string
-) => {
+const uniqueMatch = <A extends { readonly name: string }>({
+  items,
+  ref,
+  key,
+  kind,
+}: {
+  readonly items: readonly A[];
+  readonly ref: string;
+  readonly key: (item: A) => string;
+  readonly kind: string;
+}) => {
   const exact = items.find((item) => key(item) === ref);
 
   if (exact) {
@@ -137,7 +142,12 @@ const uniqueMatch = <A extends { readonly name: string }>(
 
 export const findProject = (organization: string, ref: string) =>
   Effect.flatMap(listProjects(organization), (projects) =>
-    uniqueMatch(projects, ref, (p) => p.slug, "project")
+    uniqueMatch({
+      items: projects,
+      ref,
+      key: (p) => p.slug,
+      kind: "project",
+    })
   );
 
 const requireProject = (organization: string, ref: string) =>
@@ -191,7 +201,12 @@ export const findEnvironment = (
   projectSlug?: string
 ) =>
   Effect.flatMap(listEnvironments(organization, projectSlug), (envs) =>
-    uniqueMatch(envs, ref, (env) => env.key, "environment")
+    uniqueMatch({
+      items: envs,
+      ref,
+      key: (env) => env.key,
+      kind: "environment",
+    })
   );
 
 // ── Targets ──────────────────────────────────────────────────────────────
@@ -219,13 +234,11 @@ export const organizationChoices = Effect.map(listOrganizations, (orgs) =>
 
 export const projectChoices = (organization: string) =>
   Effect.map(listProjects(organization), (projects) =>
-    projects.map(
-      (project): Choice<string> => ({
-        hint: `${project.slug} · ${project.region} · ${project.plan.slug}`,
-        label: project.name,
-        value: project.slug,
-      })
-    )
+    projects.map((project): Choice<string> => ({
+      hint: `${project.slug} · ${project.region} · ${project.plan.slug}`,
+      label: project.name,
+      value: project.slug,
+    }))
   );
 
 export const environmentChoices = (
@@ -234,11 +247,9 @@ export const environmentChoices = (
   only: (env: Environment) => boolean = () => true
 ) =>
   Effect.map(listEnvironments(organization, projectSlug), (envs) =>
-    envs.filter(only).map(
-      (env): Choice<string> => ({
-        hint: `${env.key} · ${env.project.slug} · ${serviceTypeLabel(env)}`,
-        label: env.name,
-        value: env.key,
-      })
-    )
+    envs.filter(only).map((env): Choice<string> => ({
+      hint: `${env.key} · ${env.project.slug} · ${serviceTypeLabel(env)}`,
+      label: env.name,
+      value: env.key,
+    }))
   );

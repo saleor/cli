@@ -1,5 +1,3 @@
-import type { Readable, Writable } from "node:stream";
-import { styleText } from "node:util";
 import { SelectPrompt } from "@clack/core";
 import {
   formatInstructionFooter,
@@ -9,6 +7,8 @@ import {
   S_RADIO_INACTIVE,
   symbol,
 } from "@clack/prompts";
+import type { Readable, Writable } from "node:stream";
+import { styleText } from "node:util";
 import type { Choice } from "./interaction.ts";
 import { BACK } from "./navigation.ts";
 

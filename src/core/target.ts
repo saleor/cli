@@ -108,6 +108,131 @@ const fromEnvironment = (definition: TargetDefinition, kind: ActionKind) => {
   return value ? Option.some(value) : Option.none<string>();
 };
 
+const missingTarget = (
+  definition: TargetDefinition,
+  usage: TargetUsage,
+  spelled: string
+) => {
+  const missing = <R>(options: ResolveOptions<R>, kind: ActionKind) =>
+    Effect.gen(function* () {
+      // Best effort: the failure is about the missing input, not about listing.
+      const listed = Option.map(yield* Effect.option(options.choices), (all) =>
+        all.filter((c) => options.detours?.[c.value] === undefined)
+      );
+
+      const values = Option.map(listed, (all) => all.map((c) => c.value));
+
+      // What to pass, with the name a person knows it by when that differs.
+      const shown = Option.map(listed, (all) =>
+        all.map((c) =>
+          c.label === c.value ? c.value : `${c.value} (${c.label})`
+        )
+      );
+
+      const agent = detectAgent();
+
+      return yield* fail("CONTEXT_MISSING", `No ${definition.noun} selected.`, {
+        details: {
+          choices: Option.getOrNull(values),
+          input: spelled,
+        },
+        suggestion: [
+          `Pass ${spelled}${envAllowed(definition, kind) ? ` or set ${definition.env}` : ""}${usage.creates ? "; a new name creates one" : ""}.`,
+          Option.match(shown, {
+            onNone: () => "",
+            onSome: (all) =>
+              all.length > 0
+                ? `Choose one of: ${all.join(", ")}.`
+                : (options.emptyHint ?? ""),
+          }),
+          agent === undefined
+            ? ""
+            : `Questions are off because a coding agent was detected (${agent}).`,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      });
+    });
+
+  return missing;
+};
+
+const targetPrompts = (
+  definition: TargetDefinition,
+  usage: TargetUsage,
+  spelled: string
+) => {
+  const missing = missingTarget(definition, usage, spelled);
+
+  const askNew = <R>(create: NonNullable<ResolveOptions<R>["create"]>) =>
+    Effect.gen(function* () {
+      const name = yield* askText({
+        initialValue: create.initialValue,
+        message: create.prompt,
+        placeholder: create.placeholder,
+        validate: (value) =>
+          (create.whenBlank === undefined
+            ? required(capitalize(definition.noun))(value)
+            : undefined) ??
+          (value.trim() === "" ? undefined : definition.check?.(value.trim())),
+      });
+
+      return name === "" && create.whenBlank ? create.whenBlank() : name;
+    });
+
+  // Nothing exists and nothing can be created here.
+  const nothingToChoose = <R>(options: ResolveOptions<R>) =>
+    options.whenEmpty?.() ??
+    fail(
+      "NOT_FOUND",
+      `There is no ${definition.noun} to choose from.`,
+      options.emptyHint === undefined ? {} : { suggestion: options.emptyHint }
+    );
+
+  // Step 3: a person picks one of the existing ones, or names a new one.
+  const ask = <R>(
+    options: ResolveOptions<R>
+  ): Effect.Effect<string, CliFailure, R> =>
+    Effect.gen(function* () {
+      const choices = yield* options.choices;
+      const { create } = options;
+
+      if (choices.length === 0) {
+        return create === undefined
+          ? yield* nothingToChoose(options)
+          : yield* askNew(create);
+      }
+
+      const extra =
+        create === undefined ? [] : [{ label: create.label, value: NEW }];
+
+      const selected = yield* askSelect({
+        choices: [...choices, ...extra],
+        message: `Which ${definition.noun}?`,
+      });
+
+      return yield* answer(options, selected);
+    });
+
+  // What a picked row means: a target, a new name to ask for, or a detour.
+  const answer = <R>(
+    options: ResolveOptions<R>,
+    selected: string
+  ): Effect.Effect<string, CliFailure, R> => {
+    const detour = options.detours?.[selected];
+
+    if (detour !== undefined) {
+      return Effect.andThen(detour, ask(options));
+    }
+
+    return selected === NEW && options.create !== undefined
+      ? askNew(options.create)
+      : Effect.succeed(selected);
+  };
+
+  return { missing, ask };
+};
+
 export const target = (definition: TargetDefinition) => {
   const validate = (value: string) => {
     const problem = definition.check?.(value);
@@ -157,119 +282,7 @@ export const target = (definition: TargetDefinition) => {
         value
       );
 
-    const missing = <R>(options: ResolveOptions<R>, kind: ActionKind) =>
-      Effect.gen(function* () {
-        // Best effort: the failure is about the missing input, not about listing.
-        const listed = Option.map(
-          yield* Effect.option(options.choices),
-          (all) => all.filter((c) => options.detours?.[c.value] === undefined)
-        );
-
-        const values = Option.map(listed, (all) => all.map((c) => c.value));
-
-        // What to pass, with the name a person knows it by when that differs.
-        const shown = Option.map(listed, (all) =>
-          all.map((c) =>
-            c.label === c.value ? c.value : `${c.value} (${c.label})`
-          )
-        );
-
-        const agent = detectAgent();
-
-        return yield* fail(
-          "CONTEXT_MISSING",
-          `No ${definition.noun} selected.`,
-          {
-            details: {
-              choices: Option.getOrNull(values),
-              input: spelled,
-            },
-            suggestion: [
-              `Pass ${spelled}${envAllowed(definition, kind) ? ` or set ${definition.env}` : ""}${usage.creates ? "; a new name creates one" : ""}.`,
-              Option.match(shown, {
-                onNone: () => "",
-                onSome: (all) =>
-                  all.length > 0
-                    ? `Choose one of: ${all.join(", ")}.`
-                    : (options.emptyHint ?? ""),
-              }),
-              agent === undefined
-                ? ""
-                : `Questions are off because a coding agent was detected (${agent}).`,
-            ]
-              .filter(Boolean)
-              .join("\n"),
-          }
-        );
-      });
-
-    const askNew = <R>(create: NonNullable<ResolveOptions<R>["create"]>) =>
-      Effect.gen(function* () {
-        const name = yield* askText({
-          initialValue: create.initialValue,
-          message: create.prompt,
-          placeholder: create.placeholder,
-          validate: (value) =>
-            (create.whenBlank === undefined
-              ? required(capitalize(definition.noun))(value)
-              : undefined) ??
-            (value.trim() === ""
-              ? undefined
-              : definition.check?.(value.trim())),
-        });
-
-        return name === "" && create.whenBlank ? create.whenBlank() : name;
-      });
-
-    // Nothing exists and nothing can be created here.
-    const nothingToChoose = <R>(options: ResolveOptions<R>) =>
-      options.whenEmpty?.() ??
-      fail(
-        "NOT_FOUND",
-        `There is no ${definition.noun} to choose from.`,
-        options.emptyHint === undefined ? {} : { suggestion: options.emptyHint }
-      );
-
-    // Step 3: a person picks one of the existing ones, or names a new one.
-    const ask = <R>(
-      options: ResolveOptions<R>
-    ): Effect.Effect<string, CliFailure, R> =>
-      Effect.gen(function* () {
-        const choices = yield* options.choices;
-        const { create } = options;
-
-        if (choices.length === 0) {
-          return create === undefined
-            ? yield* nothingToChoose(options)
-            : yield* askNew(create);
-        }
-
-        const extra =
-          create === undefined ? [] : [{ label: create.label, value: NEW }];
-
-        const selected = yield* askSelect({
-          choices: [...choices, ...extra],
-          message: `Which ${definition.noun}?`,
-        });
-
-        return yield* answer(options, selected);
-      });
-
-    // What a picked row means: a target, a new name to ask for, or a detour.
-    const answer = <R>(
-      options: ResolveOptions<R>,
-      selected: string
-    ): Effect.Effect<string, CliFailure, R> => {
-      const detour = options.detours?.[selected];
-
-      if (detour !== undefined) {
-        return Effect.andThen(detour, ask(options));
-      }
-
-      return selected === NEW && options.create !== undefined
-        ? askNew(options.create)
-        : Effect.succeed(selected);
-    };
+    const { missing, ask } = targetPrompts(definition, usage, spelled);
 
     // The target's value, resolved by the rules above.
     const resolve = <R>(

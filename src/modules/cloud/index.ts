@@ -2,7 +2,7 @@ import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { defineModule } from "../../core/module.ts";
 import { CloudApiLive } from "./api/client.ts";
-import { account, sessionLayer, signedIn } from "./auth/signed-in.ts";
+import { sessionLayer } from "./auth/signed-in.ts";
 import { envCommand } from "./commands/env.ts";
 import { login } from "./commands/login.ts";
 import { logout } from "./commands/logout.ts";
@@ -10,10 +10,10 @@ import { cloudInstances } from "./instances.ts";
 import { cloudSetup } from "./setup.ts";
 
 // Whether this person has Cloud credentials; see signed-in.ts.
-export const cloudSignedIn = signedIn;
+export { signedIn as cloudSignedIn } from "./auth/signed-in.ts";
 
 // The Cloud account commands would act as, as a line to show; see signed-in.ts.
-export const cloudAccount = account;
+export { account as cloudAccount } from "./auth/signed-in.ts";
 
 export const cloudLayer = CloudApiLive.pipe(
   Layer.provideMerge(sessionLayer),

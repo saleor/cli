@@ -1,3 +1,5 @@
+import { Effect } from "effect";
+import { createTarGzip } from "nanotar";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -10,8 +12,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { Effect } from "effect";
-import { createTarGzip } from "nanotar";
 import { afterEach, expect, it, vi } from "vitest";
 import { installSkills } from "./agent-skills.ts";
 
@@ -54,8 +54,8 @@ const setup = async (
   return {
     directory,
     fetcher,
-    run: () =>
-      Effect.runPromise(
+    run: async () =>
+      await Effect.runPromise(
         installSkills(directory, "https://example.com/index.json")
       ),
   };
@@ -63,12 +63,12 @@ const setup = async (
 
 it("installs a verified published archive and preserves existing skills on rerun", async () => {
   const { directory, run } = await setup();
-  expect(await run()).toEqual({ installed: ["saleor-app"], skipped: [] });
+  expect(await run()).toStrictEqual({ installed: ["saleor-app"], skipped: [] });
   const skill = path.join(directory, "saleor-app", "SKILL.md");
-  expect(readFileSync(skill, "utf8")).toBe("# Published skill");
+  expect(readFileSync(skill, "utf-8")).toBe("# Published skill");
   writeFileSync(skill, "my edits");
-  expect(await run()).toEqual({ installed: [], skipped: ["saleor-app"] });
-  expect(readFileSync(skill, "utf8")).toBe("my edits");
+  expect(await run()).toStrictEqual({ installed: [], skipped: ["saleor-app"] });
+  expect(readFileSync(skill, "utf-8")).toBe("my edits");
 });
 
 it("rejects a checksum mismatch before writing any skill", async () => {
@@ -83,7 +83,7 @@ it("contains archive paths within the installed skill", async () => {
     { data: "skill", name: "SKILL.md" },
   ]);
 
-  expect(await run()).toEqual({ installed: ["saleor-app"], skipped: [] });
+  expect(await run()).toStrictEqual({ installed: ["saleor-app"], skipped: [] });
   expect(existsSync(path.join(directory, "escaped"))).toBe(false);
 });
 
@@ -94,6 +94,6 @@ it("preserves existing skill symlinks, including broken ones", async () => {
     path.join(directory, "missing"),
     path.join(directory, "saleor-app")
   );
-  expect(await run()).toEqual({ installed: [], skipped: ["saleor-app"] });
+  expect(await run()).toStrictEqual({ installed: [], skipped: ["saleor-app"] });
   expect(fetcher).toHaveBeenCalledOnce();
 });

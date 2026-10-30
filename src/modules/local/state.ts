@@ -1,3 +1,4 @@
+import { Effect, Option, Predicate, Schema } from "effect";
 import { randomBytes } from "node:crypto";
 import {
   existsSync,
@@ -9,7 +10,6 @@ import {
 } from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { Effect, Predicate, Schema } from "effect";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 import { configDir, SecretStore } from "../../core/secret-store.ts";
@@ -89,7 +89,7 @@ export const readConfig = (name: string) =>
 
       return existsSync(file)
         ? Schema.decodeUnknownSync(ConfigSchema)(
-            JSON.parse(readFileSync(file, "utf8"))
+            JSON.parse(readFileSync(file, "utf-8"))
           )
         : undefined;
     },
@@ -117,8 +117,8 @@ export const saveConfig = (config: LocalConfig) =>
 const availablePort = () =>
   Effect.tryPromise({
     catch: () => fail("PORT_IN_USE", "Could not allocate a local port."),
-    try: () =>
-      new Promise<number>((resolve, reject) => {
+    try: async () =>
+      await new Promise<number>((resolve, reject) => {
         const server = net.createServer();
         server.on("error", reject);
         server.listen(0, "127.0.0.1", () => {
@@ -131,9 +131,13 @@ const availablePort = () =>
             return;
           }
 
-          server.close((error) =>
-            error ? reject(error) : resolve(address.port)
-          );
+          server.close((error) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(address.port);
+            }
+          });
         });
       }),
   });
@@ -270,12 +274,16 @@ export const withMailPort = (config: LocalConfig) =>
 // meaningful while the instance's own containers are stopped.
 export const portInUse = (port: number) =>
   Effect.promise(
-    () =>
-      new Promise<boolean>((resolve) => {
+    async () =>
+      await new Promise<boolean>((resolve) => {
         const server = net.createServer();
-        server.once("error", () => resolve(true));
+        server.once("error", () => {
+          resolve(true);
+        });
         server.listen(port, "127.0.0.1", () => {
-          server.close(() => resolve(false));
+          server.close(() => {
+            resolve(false);
+          });
         });
       })
   );
@@ -317,6 +325,16 @@ const parseSecrets = (raw: string) =>
       fail("LOCAL_STATE_ERROR", "The saved local credentials are unreadable.")
     )
   );
+
+// The admin password the CLI saved for an instance, if it has one.
+export const savedAdminPassword = (name: string) =>
+  Effect.gen(function* () {
+    const raw = yield* (yield* SecretStore).get(secretKey(name));
+
+    return raw === undefined
+      ? Option.none<string>()
+      : Option.some((yield* parseSecrets(raw)).password);
+  });
 
 // The saved admin password of an instance, if it has one.
 export const prepareSecrets = (config: LocalConfig) =>

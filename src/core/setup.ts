@@ -21,6 +21,7 @@ import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
 import { askThen } from "./navigation.ts";
 import { notice } from "./output.ts";
+import { initializeProject, projectFolder } from "./project.ts";
 
 // `saleor init` is the one journey every provider shares: create a new store.
 // Each module that can run a store contributes a setup provider; this file composes
@@ -32,6 +33,7 @@ type Inputs = Readonly<Record<string, Input<InputValue>>>;
 // Every provider sets up a store, so its result is one: an instance (see instance.ts).
 export interface SetupResult extends Instance {
   readonly created: boolean;
+  readonly sampleDataReady?: boolean | undefined;
 }
 
 export interface SetupProvider<R> {
@@ -86,6 +88,7 @@ export const defineSetup = <
   name: provider.name,
   plan: (input) =>
     // SAFETY: `init` declares every provider's inputs on one command and passes the parsed record, so the keys of `I` hold the values its inputs parse to.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The combined command parses these exact provider inputs before invoking this adapter.
     provider.plan(input as Values<I> & KindValues),
   requirement: provider.requirement,
 });
@@ -115,7 +118,7 @@ export interface ExtensionPlan<R> {
   readonly name: string;
   // Work that does not need the store, done while the store is being set up.
   readonly prepare: Effect.Effect<void, CliFailure, R>;
-  readonly summary: ReadonlyArray<readonly [label: string, value: string]>;
+  readonly summary: readonly (readonly [label: string, value: string])[];
 }
 
 export const defineSetupExtension = <I extends Inputs, R, RA>(extension: {
@@ -130,6 +133,7 @@ export const defineSetupExtension = <I extends Inputs, R, RA>(extension: {
   inputs: extension.inputs,
   plan: (input, store) =>
     // SAFETY: as in defineSetup, `init` declares these inputs and passes the parsed record.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The combined command parses these exact extension inputs before invoking this adapter.
     extension.plan(input as Values<I> & KindValues, store),
 });
 
@@ -139,9 +143,12 @@ const extend = <R>(
   store: Planned<Ensured<SetupResult>, R>,
   extensions: readonly ExtensionPlan<R>[]
 ): Planned<Ensured<SetupResult>, R> => {
-  if (extensions.length === 0) {
-    return store;
-  }
+  const projectName = Option.getOrElse(
+    Option.fromUndefinedOr(store.target.scope.project),
+    () => store.target.name
+  );
+
+  const root = projectFolder(projectName);
 
   const extra = extensions.some((extension) => extension.changes);
 
@@ -161,6 +168,7 @@ const extend = <R>(
       );
 
       const ensured = yield* ready;
+      yield* initializeProject(root, projectName, ensured.data);
 
       for (const exit of prepared) {
         yield* exit;
@@ -191,7 +199,9 @@ const extend = <R>(
     }),
     details: Object.fromEntries([
       ...Object.entries(store.details),
-      ...extensions.map((extension) => [extension.name, extension.details]),
+      ...extensions.map(
+        (extension) => [extension.name, extension.details] as const
+      ),
     ]),
     summary: [
       ...(store.summary ?? []),
@@ -203,43 +213,11 @@ const extend = <R>(
 const isSet = (value: InputValue | undefined) =>
   Option.isOption(value) ? Option.isSome(value) : value === true;
 
-export const setupCommand = <R>(
+const providerSelection = <R>(
   providers: readonly SetupProvider<R>[],
-  extensions: readonly SetupExtension<R>[] = []
+  fallback: SetupProvider<R>,
+  others: readonly SetupProvider<R>[]
 ) => {
-  const [fallback, ...others] = [
-    ...providers.filter((p) => p.flag === undefined),
-    ...providers.filter((p) => p.flag !== undefined),
-  ];
-
-  if (fallback === undefined || fallback.flag !== undefined) {
-    throw new Error("Exactly one setup provider must be the default.");
-  }
-
-  const selectors: Record<string, Input<boolean>> = Object.fromEntries(
-    others.map((p) => [
-      p.flag ?? p.name,
-      option.boolean(
-        p.flag ?? p.name,
-        `Set up with ${p.label} (${p.hint}) instead of ${fallback.label}.`
-      ),
-    ])
-  );
-
-  const merged = new Map<string, Input<InputValue>>(Object.entries(selectors));
-
-  for (const owner of [...providers, ...extensions]) {
-    for (const [key, input] of Object.entries(owner.inputs)) {
-      if (merged.has(key)) {
-        throw new Error(`Setup input "${key}" is declared twice.`);
-      }
-
-      merged.set(key, input);
-    }
-  }
-
-  const inputs = Object.fromEntries(merged);
-
   const typedBy = (provider: SetupProvider<R>, input: InputValues) =>
     Object.entries(provider.inputs)
       .filter(([key]) => isSet(input[key]))
@@ -344,6 +322,48 @@ export const setupCommand = <R>(
 
     return { explicit: true, provider: picked };
   });
+
+  return { decided, ask };
+};
+
+export const setupCommand = <R>(
+  providers: readonly SetupProvider<R>[],
+  extensions: readonly SetupExtension<R>[] = []
+) => {
+  const [fallback, ...others] = [
+    ...providers.filter((p) => p.flag === undefined),
+    ...providers.filter((p) => p.flag !== undefined),
+  ];
+
+  if (fallback === undefined || fallback.flag !== undefined) {
+    throw new Error("Exactly one setup provider must be the default.");
+  }
+
+  const selectors: Record<string, Input<boolean>> = Object.fromEntries(
+    others.map((p) => [
+      p.flag ?? p.name,
+      option.boolean(
+        p.flag ?? p.name,
+        `Set up with ${p.label} (${p.hint}) instead of ${fallback.label}.`
+      ),
+    ])
+  );
+
+  const merged = new Map<string, Input<InputValue>>(Object.entries(selectors));
+
+  for (const owner of [...providers, ...extensions]) {
+    for (const [key, input] of Object.entries(owner.inputs)) {
+      if (merged.has(key)) {
+        throw new Error(`Setup input "${key}" is declared twice.`);
+      }
+
+      merged.set(key, input);
+    }
+  }
+
+  const inputs = Object.fromEntries(merged);
+
+  const { decided, ask } = providerSelection(providers, fallback, others);
 
   // A store that could not be resolved without questions might have been meant for
   // another provider: say how to ask for it.

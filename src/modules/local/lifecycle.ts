@@ -1,5 +1,5 @@
-import { rmSync } from "node:fs";
 import { Effect, Schema } from "effect";
+import { rmSync } from "node:fs";
 import type { TargetRef } from "../../core/action.ts";
 import { type CliFailure, fail } from "../../core/errors.ts";
 import { type InstanceState, instance } from "../../core/instance.ts";
@@ -42,12 +42,12 @@ const withInstanceLock = <A, R>(
   name: string,
   effect: Effect.Effect<A, CliFailure, R>
 ) =>
-  withLock(
-    localsDir(),
+  withLock({
+    dir: localsDir(),
     name,
-    `Another command is updating local instance "${name}".`,
-    effect
-  );
+    busyMessage: `Another command is updating local instance "${name}".`,
+    effect,
+  });
 
 export const localTarget = (name: string): TargetRef => ({
   id: null,
@@ -137,7 +137,7 @@ const containersOf = (name: string) =>
   });
 
 const isRunning = (
-  containers: ReadonlyArray<{ Service: string; State: string }>,
+  containers: readonly { Service: string; State: string }[],
   service: string
 ) =>
   containers.some(
@@ -150,7 +150,7 @@ const isRunning = (
 // surfacing as a readiness timeout that no retry can fix.
 const requireFreePorts = (
   config: LocalConfig,
-  containers: ReadonlyArray<{ Service: string; State: string }>
+  containers: readonly { Service: string; State: string }[]
 ) =>
   Effect.gen(function* () {
     const published = [
@@ -492,9 +492,9 @@ export const down = (name: string, deleteData: boolean) =>
         if (deleteData) {
           const store = yield* SecretStore;
           yield* store.remove(secretKey(name));
-          yield* Effect.sync(() =>
-            rmSync(instanceDir(name), { force: true, recursive: true })
-          );
+          yield* Effect.sync(() => {
+            rmSync(instanceDir(name), { force: true, recursive: true });
+          });
         }
 
         return { wasRunning };

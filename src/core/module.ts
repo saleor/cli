@@ -2,6 +2,7 @@ import type { Layer } from "effect";
 import type { Command, GlobalFlag } from "effect/cli";
 import type { InstanceSource, InstanceSources } from "./instance.ts";
 import type { SetupExtension, SetupProvider } from "./setup.ts";
+import type { WorkspaceConfiguration } from "./workspace-configuration.ts";
 
 // A module is a unit of code ownership (Cloud, local, storefront; Configurator later).
 // It owns one or more top-level command words, and the layer that builds the services
@@ -24,10 +25,11 @@ export interface CliModule {
 // instances every module contributes.
 export type CoreServices =
   | GlobalFlag.Setting.Identifier<"output">
-  | InstanceSources;
+  | InstanceSources
+  | WorkspaceConfiguration;
 
 // Any command, keeping only what it requires to run.
-// biome-ignore lint/suspicious/noExplicitAny: Command names are invariant; a module holds commands of any name.
+// oxlint-disable-next-line typescript/no-explicit-any -- Command names are invariant; a module holds commands of any name.
 type ModuleCommand<R> = Command.Command<any, never, unknown, unknown, R>;
 
 // Ties a module's commands to its layer at compile time: if a command needs a service
@@ -46,10 +48,13 @@ export const defineModule = <R>(module: {
   // Like the commands, these contributions' requirements were checked against the
   // layer above, and the composition root provides every module's layer.
   // SAFETY: requirements checked against the module's layer, as described above.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- defineModule checks requirements against its layer before erasing them for registration.
   instances: module.instances as InstanceSource<never> | undefined,
   // SAFETY: requirements checked against the module's layer, as described above.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- defineModule checks requirements against its layer before erasing them for registration.
   setup: module.setup as SetupProvider<never> | undefined,
   // SAFETY: requirements checked against the module's layer, as described above.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- defineModule checks requirements against its layer before erasing them for registration.
   setupExtension: module.setupExtension as SetupExtension<never> | undefined,
 });
 
@@ -68,25 +73,23 @@ export const collectCommands = (modules: readonly CliModule[]) => {
     RESERVED_WORDS.map((word) => [word, "core"])
   );
 
-  const commands: CliModule["commands"][number][] = [];
+  const commands = modules.flatMap((module) => module.commands);
 
   for (const module of modules) {
-    for (const command of module.commands) {
-      for (const word of [command.name, command.alias].filter(
-        (w): w is string => w !== undefined
-      )) {
-        const owner = owners.get(word);
+    const words = module.commands
+      .flatMap((command) => [command.name, command.alias])
+      .filter((word): word is string => word !== undefined);
 
-        if (owner !== undefined) {
-          throw new Error(
-            `Top-level command "${word}" is claimed by both "${owner}" and "${module.name}"`
-          );
-        }
+    for (const word of words) {
+      const owner = owners.get(word);
 
-        owners.set(word, module.name);
+      if (owner !== undefined) {
+        throw new Error(
+          `Top-level command "${word}" is claimed by both "${owner}" and "${module.name}"`
+        );
       }
 
-      commands.push(command);
+      owners.set(word, module.name);
     }
   }
 

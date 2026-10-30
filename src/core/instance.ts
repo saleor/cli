@@ -48,6 +48,11 @@ export const instance = (fields: Omit<Instance, "ready">): Instance => ({
 // so a command that works with any store (a storefront connecting to it) can list and
 // find them without knowing which modules exist. See core/instances.ts.
 export interface InstanceSource<R> {
+  // A token for the store's own API, when the source can get one without asking (a
+  // local instance signs in with the admin the CLI created). None when it cannot.
+  readonly access?: (
+    instance: Instance
+  ) => Effect.Effect<Option.Option<string>, CliFailure, R>;
   // The instance with this id (the part of its ref after `<kind>:`), if it exists.
   readonly find: (
     id: string
@@ -58,6 +63,11 @@ export interface InstanceSource<R> {
   readonly list: Effect.Effect<readonly Instance[], CliFailure, R>;
   // The command that lists them, for hints.
   readonly listCommand: string;
+  // Loads Saleor's sample data (products, orders, customers) into the store, when the
+  // source can. It replaces what the store holds, so only new stores are offered it.
+  readonly populate?: (
+    instance: Instance
+  ) => Effect.Effect<void, CliFailure, R>;
   // Offered instead of the list when listing needs a login (AUTH_REQUIRED).
   readonly signIn?: Effect.Effect<void, CliFailure, R>;
   // The command that starts a stopped one, if the CLI can.

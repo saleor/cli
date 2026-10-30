@@ -11,17 +11,17 @@ const EXAMPLE = [
 ].join("\n");
 
 it("sets owned keys in place, uncommenting them, and keeps every other line", () => {
-  const written = setEnv(
-    EXAMPLE,
-    {
+  const written = setEnv({
+    text: EXAMPLE,
+    values: {
       NEXT_PUBLIC_DEFAULT_CHANNEL: "eu",
       NEXT_PUBLIC_SALEOR_API_URL: "http://localhost:8000/graphql/",
     },
-    "local:demo",
-    "set by a test"
-  );
+    ref: "local:demo",
+    note: "set by a test",
+  });
 
-  expect(written.split("\n")).toEqual([
+  expect(written.split("\n")).toStrictEqual([
     "# saleor: instance=local:demo (set by a test)",
     "# Your store's API",
     "NEXT_PUBLIC_SALEOR_API_URL=http://localhost:8000/graphql/",
@@ -35,8 +35,19 @@ it("sets owned keys in place, uncommenting them, and keeps every other line", ()
 });
 
 it("replaces its own header and appends keys the file does not mention", () => {
-  const first = setEnv("A=1\n", { B: "two words" }, "local:a", "note");
-  const second = setEnv(first, { B: "2" }, "cloud:acme/env1", "note");
+  const first = setEnv({
+    text: "A=1\n",
+    values: { B: "two words" },
+    ref: "local:a",
+    note: "note",
+  });
+
+  const second = setEnv({
+    text: first,
+    values: { B: "2" },
+    ref: "cloud:acme/env1",
+    note: "note",
+  });
 
   expect(second).toBe("# saleor: instance=cloud:acme/env1 (note)\nA=1\nB=2\n");
   expect(parseEnv(first).get("B")).toBe("two words");

@@ -20,7 +20,7 @@ it("keeps core independent of providers and modules independent of siblings", ()
   ].filter((entry) => entry.endsWith(".ts"))) {
     const owner = path.relative(root, file).split(path.sep);
 
-    for (const match of readFileSync(file, "utf8").matchAll(IMPORT)) {
+    for (const match of readFileSync(file, "utf-8").matchAll(IMPORT)) {
       const [, specifier] = match;
 
       if (!specifier?.startsWith(".")) {

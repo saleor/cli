@@ -1,3 +1,5 @@
+import { Predicate } from "effect";
+import { createTarGzip } from "nanotar";
 import { execFileSync, spawn } from "node:child_process";
 import {
   chmodSync,
@@ -11,16 +13,25 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { createServer } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { createServer as createSecureServer } from "node:https";
 import os from "node:os";
 import path from "node:path";
-import { Predicate } from "effect";
-import { createTarGzip } from "nanotar";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import samples from "./modules/cloud/api/fixtures/cloud-samples.json" with {
-  type: "json",
-};
+import samples from "./modules/cloud/api/fixtures/cloud-samples.json" with { type: "json" };
+
+const asyncHandler =
+  (handle: (req: IncomingMessage, res: ServerResponse) => Promise<void>) =>
+  (req: IncomingMessage, res: ServerResponse) => {
+    // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Promise rejection is an I/O boundary; the callback narrows the error.
+    handle(req, res).catch((error: unknown) => {
+      res.destroy(error instanceof Error ? error : new Error(String(error)));
+    });
+  };
 
 const ENV_VARIABLE = /\b(SALEOR_[A-Z_]+)\b/;
 const PROMISED_DEFAULT = /\(default |Defaults to "/;
@@ -33,12 +44,12 @@ const executable = path.resolve(process.env.SALEOR_CLI_BIN ?? "bin/saleor.mjs");
 let cwd: string;
 let base: string;
 
-let requests: Array<{
+let requests: {
   method: string;
   path: string;
   auth: string | undefined;
   body: any;
-}>;
+}[];
 
 let handler: (method: string, url: URL, body: any) => [number, unknown];
 let close: () => Promise<void>;
@@ -48,6 +59,7 @@ const project = () => ({
   ...structuredClone(samples.project),
   name: "poc",
   plan: samples.plans[0],
+  sandboxes: { count: 0 },
   slug: "poc",
 });
 
@@ -86,43 +98,47 @@ beforeEach(async () => {
     return [404, { detail: "Not found" }];
   };
 
-  const server = createServer(async (req, res) => {
-    // Local port-discovery tools probe new listeners; these are not API calls.
-    if (req.method === "HEAD" && req.url === "/") {
-      res.writeHead(204);
-      res.end();
+  const server = createServer(
+    asyncHandler(async (req, res) => {
+      // Local port-discovery tools probe new listeners; these are not API calls.
+      if (req.method === "HEAD" && req.url === "/") {
+        res.writeHead(204);
+        res.end();
 
-      return;
-    }
+        return;
+      }
 
-    const chunks: Buffer[] = [];
+      const chunks: Buffer[] = [];
 
-    for await (const chunk of req) {
-      chunks.push(chunk);
-    }
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
 
-    const raw = Buffer.concat(chunks).toString();
-    let body: any;
+      const raw = Buffer.concat(chunks).toString();
+      let body: any;
 
-    if (raw) {
-      body = req.headers["content-type"]?.includes("json")
-        ? JSON.parse(raw)
-        : Object.fromEntries(new URLSearchParams(raw));
-    }
+      if (raw) {
+        body = req.headers["content-type"]?.includes("json")
+          ? JSON.parse(raw)
+          : Object.fromEntries(new URLSearchParams(raw));
+      }
 
-    const url = new URL(req.url ?? "/", base);
-    requests.push({
-      auth: req.headers.authorization,
-      body,
-      method: req.method ?? "GET",
-      path: req.url ?? "/",
-    });
-    const [status, value] = handler(req.method ?? "GET", url, body);
-    res.writeHead(status, { "content-type": "application/json" });
-    res.end(value === undefined ? undefined : JSON.stringify(value));
+      const url = new URL(req.url ?? "/", base);
+      requests.push({
+        auth: req.headers.authorization,
+        body,
+        method: req.method ?? "GET",
+        path: req.url ?? "/",
+      });
+      const [status, value] = handler(req.method ?? "GET", url, body);
+      res.writeHead(status, { "content-type": "application/json" });
+      res.end(value === undefined ? undefined : JSON.stringify(value));
+    })
+  );
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
   });
-
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
 
   if (address === null || Predicate.isString(address)) {
@@ -130,10 +146,17 @@ beforeEach(async () => {
   }
 
   base = `http://127.0.0.1:${address.port}`;
-  close = () =>
-    new Promise<void>((resolve, reject) =>
-      server.close((err) => (err ? reject(err) : resolve()))
-    );
+  close = async () => {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    });
+  };
 });
 
 afterEach(async () => {
@@ -141,8 +164,8 @@ afterEach(async () => {
   rmSync(cwd, { force: true, recursive: true });
 });
 
-const cli = (args: string[], extra: Record<string, string> = {}) =>
-  new Promise<{
+const cli = async (args: string[], extra: Record<string, string> = {}) =>
+  await new Promise<{
     code: number | null;
     data: any;
     stdout: string;
@@ -165,8 +188,8 @@ const cli = (args: string[], extra: Record<string, string> = {}) =>
       stdio: ["ignore", "pipe", "pipe"],
     });
 
-    let stdout = "",
-      stderr = "";
+    let stderr = "";
+    let stdout = "";
 
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
@@ -224,6 +247,40 @@ const resourceRoutes = (envs: ReturnType<typeof environment>[] = []) => {
 };
 
 describe("real CLI process", () => {
+  it.each(["config", "configurator"])(
+    "%s validates offline through the library with only the CLI JSON envelope",
+    async (group) => {
+      credentials = {};
+      writeFileSync(
+        path.join(cwd, "config.yml"),
+        "shop:\n  defaultMailSenderName: Library store\n"
+      );
+      writeFileSync(path.join(cwd, ".env.local"), "SALEOR_CONFIG=wrong.yml\n");
+
+      const out = await cli([group, "validate", "--agent"]);
+      expect(out.code, out.stdout + out.stderr).toBe(0);
+      expect(out.data).toStrictEqual({
+        data: { config: "config.yml", sections: { shop: 1 }, valid: true },
+        ok: true,
+      });
+      expect(out.stderr).toBe("");
+      expect(requests).toStrictEqual([]);
+      expect(existsSync(path.join(cwd, ".configurator"))).toBe(false);
+    }
+  );
+
+  it("reports invalid library configuration with the CLI error and exit code", async () => {
+    writeFileSync(path.join(cwd, "config.yml"), "channels: invalid\n");
+    const out = await cli(["config", "validate", "--agent"]);
+    expect(out.code, out.stdout + out.stderr).toBe(1);
+    expect(out.data).toMatchObject({
+      error: { code: "CONFIG_INVALID", retry: false },
+      ok: false,
+    });
+    expect(out.stderr).toBe("");
+    expect(requests).toStrictEqual([]);
+  });
+
   it("runs an agent's Cloud lifecycle against a stateful mock Saleor", async () => {
     const cert = path.join(cwd, "cert.pem");
     const key = path.join(cwd, "key.pem");
@@ -262,15 +319,15 @@ basicConstraints=critical,CA:TRUE
       { stdio: "ignore" }
     );
 
-    const probes: Array<{
+    const probes: {
       path: string | undefined;
       auth: string | undefined;
       body: string;
-    }> = [];
+    }[] = [];
 
     const store = createSecureServer(
       { cert: readFileSync(cert), key: readFileSync(key) },
-      async (req, res) => {
+      asyncHandler(async (req, res) => {
         const chunks: Buffer[] = [];
 
         for await (const chunk of req) {
@@ -284,10 +341,12 @@ basicConstraints=critical,CA:TRUE
         });
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify({ data: { shop: { name: "Mock Saleor" } } }));
-      }
+      })
     );
 
-    await new Promise<void>((resolve) => store.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) => {
+      store.listen(0, "127.0.0.1", resolve);
+    });
 
     try {
       const address = store.address();
@@ -375,13 +434,13 @@ basicConstraints=critical,CA:TRUE
         expect(out.code, out.stdout + out.stderr).toBe(0);
         expect(out.data.ok).toBe(true);
         expect(out.stdout + out.stderr).not.toContain("test.secret");
-        expect(out.stdout + out.stderr).not.toContain("\u001b[");
+        expect(out.stdout + out.stderr).not.toContain("\u001B[");
 
         return out.data.data;
       };
 
-      const init = (...args: string[]) =>
-        run("init", "--project", "poc", "--env", "dev", ...args);
+      const init = async (...args: string[]) =>
+        await run("init", "--project", "poc", "--env", "dev", ...args);
 
       expect(await init("--region", "eu-west-1", "--dry-run")).toMatchObject({
         action: "create",
@@ -406,7 +465,8 @@ basicConstraints=critical,CA:TRUE
       });
 
       // Deletions never take their scope from SALEOR_ORG: it is always passed.
-      const remove = (...args: string[]) => run(...args, "--org", "acme");
+      const remove = async (...args: string[]) =>
+        await run(...args, "--org", "acme");
 
       expect(await remove("env", "delete", "dev", "--dry-run")).toMatchObject({
         action: "delete",
@@ -421,14 +481,14 @@ basicConstraints=critical,CA:TRUE
         action: "none",
         existed: false,
       });
-      expect(await run("env", "list")).toEqual([]);
+      expect(await run("env", "list")).toStrictEqual([]);
       expect(
         requests
           .filter((req) =>
             ["POST", "DELETE", "PATCH", "PUT"].includes(req.method)
           )
           .map((req) => `${req.method} ${req.path}`)
-      ).toEqual([
+      ).toStrictEqual([
         "POST /api/organizations/acme/projects/",
         "POST /api/organizations/acme/environments/obtain/",
         "DELETE /api/organizations/acme/environments/env1/",
@@ -438,116 +498,216 @@ basicConstraints=critical,CA:TRUE
       for (const probe of probes) {
         expect(probe.path).toBe("/graphql/");
         expect(probe.auth).toBeUndefined();
-        expect(JSON.parse(probe.body)).toEqual({
+        expect(JSON.parse(probe.body)).toStrictEqual({
           query: "query { shop { name } }",
         });
       }
     } finally {
       store.closeAllConnections();
-      await new Promise<void>((resolve, reject) =>
-        store.close((error) => (error ? reject(error) : resolve()))
-      );
+      await new Promise<void>((resolve, reject) => {
+        store.close((error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
+      });
     }
   }, 30_000);
 
-  it("manages a local store through init and every local command without Cloud credentials", async () => {
-    credentials = {};
-    const fakeBin = path.join(cwd, "fake-bin");
-    mkdirSync(fakeBin);
-    const fakeDocker = path.join(fakeBin, "docker");
+  it("plans project local provisioning without creating state and validates bootstrap configuration", async () => {
     writeFileSync(
-      fakeDocker,
-      `#!${process.execPath}
+      path.join(cwd, "saleor.yml"),
+      "name: shared\nenvironments:\n  local:\n    kind: local\n    saleor: 3.23.41\n    configure: on-create\n"
+    );
+    writeFileSync(path.join(cwd, "config.yml"), "invalid: [");
+    const invalid = await cli(["local", "up", "--dry-run", "--agent"]);
+    expect(invalid.code).not.toBe(0);
+    writeFileSync(path.join(cwd, "config.yml"), "{}\n");
+    const first = await cli(["local", "up", "--dry-run", "--agent"]);
+    const second = await cli(["local", "up", "--dry-run", "--agent"]);
+    expect(first.code, first.stdout + first.stderr).toBe(0);
+    expect(first.data.data.action).toBe("create");
+    expect(first.data.data.details).toMatchObject({
+      configure: true,
+      saleorVersion: "3.23.41",
+    });
+    expect(second.data.data.target).toStrictEqual(first.data.data.target);
+    expect(
+      existsSync(path.join(cwd, "config/local", first.data.data.target.name))
+    ).toBe(false);
+    expect(existsSync(path.join(cwd, "config/workspaces"))).toBe(false);
+  });
+
+  it.each([
+    { deleteArgs: ["delete"] },
+    { deleteArgs: ["down", "--delete-data"] },
+  ])(
+    "manages a local store without Cloud credentials ($deleteArgs)",
+    async ({ deleteArgs }) => {
+      credentials = {};
+      const fakeBin = path.join(cwd, "fake-bin");
+      mkdirSync(fakeBin);
+      const fakeDocker = path.join(fakeBin, "docker");
+      writeFileSync(
+        fakeDocker,
+        `#!${process.execPath}
 const fs = require("node:fs");
 fs.appendFileSync("docker-calls.jsonl", JSON.stringify(process.argv.slice(2)) + "\\n");
 if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", State:"running"}));
 `
-    );
-    chmodSync(fakeDocker, 0o700);
-    const instance = path.join(cwd, "config/local/demo");
-    mkdirSync(instance, { recursive: true });
-    writeFileSync(
-      path.join(instance, "instance.json"),
-      JSON.stringify({
-        apiPort: Number(new URL(base).port),
-        dashboardPort: 9000,
-        initialized: true,
-        name: "demo",
-        saleorVersion: "3.23.41",
-        sampleData: false,
-      })
-    );
-    handler = () => [200, { data: { shop: { name: "Local" } } }];
+      );
+      chmodSync(fakeDocker, 0o700);
+      const instance = path.join(cwd, "config/local/demo");
+      mkdirSync(instance, { recursive: true });
+      writeFileSync(
+        path.join(instance, "instance.json"),
+        JSON.stringify({
+          apiPort: Number(new URL(base).port),
+          dashboardPort: 9000,
+          initialized: true,
+          name: "demo",
+          saleorVersion: "3.23.41",
+          sampleData: false,
+        })
+      );
+      handler = () => [200, { data: { shop: { name: "Local" } } }];
 
-    // An exported SALEOR_ORG is not a Cloud flag and must not block a local setup.
-    const out = await cli(["init", "--local", "--name", "demo"], {
-      PATH: fakeBin,
-      SALEOR_ORG: "acme",
-      SALEOR_PROJECT: "poc",
-    });
+      writeFileSync(path.join(cwd, "saleor.yml"), "name: shared-project\n");
 
-    expect(out.code).toBe(0);
-    expect(out.data.data.ref).toBe("local:demo");
-    expect(out.data.data.ready).toBe(true);
+      // An exported SALEOR_ORG is not a Cloud flag and must not block a local setup.
+      const out = await cli(["init", "--local", "--name", "demo"], {
+        PATH: fakeBin,
+        SALEOR_ORG: "acme",
+        SALEOR_PROJECT: "poc",
+      });
 
-    const local = async (...args: string[]) => {
-      const answer = await cli(["local", ...args, "--agent"], {
+      expect(out.code).toBe(0);
+      expect(out.data.data.ref).toBe("local:demo");
+      expect(out.data.data.ready).toBe(true);
+      const manifestFile = path.join(cwd, "saleor.yml");
+      const manifest = readFileSync(manifestFile, "utf-8");
+      expect(manifest).toContain("kind: local");
+      expect(manifest).not.toContain("local:demo");
+      expect(existsSync(path.join(cwd, "AGENTS.md"))).toBe(true);
+      expect(existsSync(path.join(cwd, "CLAUDE.md"))).toBe(true);
+
+      const inferred = await cli(["local", "up", "--dry-run", "--agent"], {
         PATH: fakeBin,
       });
 
-      expect(answer.code, answer.stdout + answer.stderr).toBe(0);
+      expect(inferred.code, inferred.stdout + inferred.stderr).toBe(0);
+      expect(inferred.data.data.target.name).toBe("demo");
+      expect(inferred.data.data.details.configure).toBe(false);
 
-      return answer.data.data;
-    };
+      const removal = await cli(["local", "delete", "--dry-run", "--agent"], {
+        PATH: fakeBin,
+      });
 
-    expect(await local("up", "--name", "demo")).toMatchObject({
-      created: false,
-      ready: true,
-      ref: "local:demo",
-    });
+      expect(removal.data.data.target.name).toBe("demo");
+      expect(existsSync(instance)).toBe(true);
+      writeFileSync(manifestFile, manifest.replace("3.23.41", "3.23.42"));
 
-    const missing = await cli(["local", "up", "--name", "missing", "--agent"], {
-      PATH: fakeBin,
-    });
+      const mismatch = await cli(["local", "up", "--dry-run", "--agent"], {
+        PATH: fakeBin,
+      });
 
-    expect(missing.data.error.code).toBe("NOT_FOUND");
-    expect(existsSync(path.join(cwd, "config/local/missing"))).toBe(false);
+      expect(mismatch.code).not.toBe(0);
+      expect(mismatch.stdout).toContain("3.23.42");
+      writeFileSync(manifestFile, manifest);
 
-    expect(await local("list")).toMatchObject([
-      { name: "demo", state: "ready" },
-    ]);
-    expect(await local("down", "--name", "demo", "--dry-run")).toMatchObject({
-      action: "stop",
-      dryRun: true,
-    });
-    expect(await local("down", "--name", "demo")).toMatchObject({
-      action: "stop",
-      existed: true,
-    });
-    expect(
-      readFileSync(path.join(instance, "instance.json"), "utf8")
-    ).toContain("demo");
-    expect(
-      await local("down", "--name", "demo", "--delete-data", "--force")
-    ).toMatchObject({ action: "delete", existed: true });
-    expect(await local("list")).toEqual([]);
+      const local = async (...args: string[]) => {
+        const answer = await cli(["local", ...args, "--agent"], {
+          PATH: fakeBin,
+        });
 
-    const dockerCalls: string[][] = readFileSync(
-      path.join(cwd, "docker-calls.jsonl"),
-      "utf8"
-    )
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
+        expect(answer.code, answer.stdout + answer.stderr).toBe(0);
 
-    const stops = dockerCalls.filter((args) => args.includes("down"));
-    expect(stops).toHaveLength(2);
-    expect(stops[0]).not.toContain("--volumes");
-    expect(stops[1]).toContain("--volumes");
-    expect(
-      requests.every((request) => request.path === "/graphql/" && !request.auth)
-    ).toBe(true);
-  });
+        return answer.data.data;
+      };
+
+      expect(await local("up", "--name", "demo")).toMatchObject({
+        created: false,
+        ready: true,
+        ref: "local:demo",
+      });
+
+      const missing = await cli(
+        ["local", "up", "--name", "missing", "--agent"],
+        {
+          PATH: fakeBin,
+        }
+      );
+
+      expect(missing.data.error.code).toBe("NOT_FOUND");
+      expect(existsSync(path.join(cwd, "config/local/missing"))).toBe(false);
+
+      expect(await local("list")).toMatchObject([
+        { name: "demo", state: "ready" },
+      ]);
+      expect(await local("down", "--name", "demo", "--dry-run")).toMatchObject({
+        action: "stop",
+        dryRun: true,
+      });
+      expect(await local("down", "--name", "demo")).toMatchObject({
+        action: "stop",
+        existed: true,
+      });
+      expect(
+        readFileSync(path.join(instance, "instance.json"), "utf-8")
+      ).toContain("demo");
+      expect(
+        await local(...deleteArgs, "--name", "demo", "--dry-run")
+      ).toMatchObject({
+        action: "delete",
+        destructive: true,
+        dryRun: true,
+      });
+      expect(existsSync(instance)).toBe(true);
+
+      const unconfirmed = await cli(
+        ["local", ...deleteArgs, "--name", "demo", "--agent"],
+        {
+          PATH: fakeBin,
+        }
+      );
+
+      expect(unconfirmed.code).toBe(1);
+      expect(unconfirmed.data.error.code).toBe("CONFIRMATION_REQUIRED");
+      expect(existsSync(instance)).toBe(true);
+      expect(
+        await local(...deleteArgs, "--name", "demo", "--force")
+      ).toMatchObject({
+        action: "delete",
+        existed: true,
+      });
+      expect(existsSync(instance)).toBe(false);
+      expect(await local(...deleteArgs, "--name", "demo")).toMatchObject({
+        action: "none",
+        existed: false,
+      });
+      expect(await local("list")).toStrictEqual([]);
+
+      const dockerCalls: string[][] = readFileSync(
+        path.join(cwd, "docker-calls.jsonl"),
+        "utf-8"
+      )
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+
+      const stops = dockerCalls.filter((args) => args.includes("down"));
+      expect(stops).toHaveLength(2);
+      expect(stops[0]).not.toContain("--volumes");
+      expect(stops[1]).toContain("--volumes");
+      expect(
+        requests.every(
+          (request) => request.path === "/graphql/" && !request.auth
+        )
+      ).toBe(true);
+    }
+  );
 
   it("rejects provider-specific init flags before provisioning", async () => {
     const outcomes = await Promise.all(
@@ -555,15 +715,15 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         ["init", "--local", "--project", "shop"],
         ["init", "--sample-data", "--project", "shop", "--env", "dev"],
         ["init"],
-      ].map((args) => cli(args))
+      ].map(async (args) => await cli(args))
     );
 
-    expect(outcomes.map((outcome) => outcome.data.error.code)).toEqual([
+    expect(outcomes.map((outcome) => outcome.data.error.code)).toStrictEqual([
       "USAGE_ERROR",
       "USAGE_ERROR",
       "CONTEXT_MISSING",
     ]);
-    expect(outcomes.map((outcome) => outcome.code)).toEqual([2, 2, 2]);
+    expect(outcomes.map((outcome) => outcome.code)).toStrictEqual([2, 2, 2]);
     expect(outcomes[2]?.data.error.message).toBe("No project selected.");
     // A missing input lists what could be passed, and the other provider.
     expect(outcomes[2]?.data.error.suggestion).toContain("--project");
@@ -578,7 +738,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(help.stdout).not.toContain("GLOBAL FLAGS");
 
     const version = await cli(["--version", "--json"]);
-    expect(version.data).toEqual({
+    expect(version.data).toStrictEqual({
       data: { version: expect.any(String) },
       ok: true,
     });
@@ -600,7 +760,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       ref: "cloud:acme/env1",
       state: "running",
     });
-    expect(Object.keys(listed)).toEqual(
+    expect(Object.keys(listed)).toStrictEqual(
       expect.arrayContaining([
         "dashboardUrl",
         "graphqlUrl",
@@ -617,7 +777,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         ["local", "down"],
         ["init", "--local"],
         ["local", "down", "--dry-run", "--force"],
-      ].map((args) => cli(args))
+      ].map(async (args) => await cli(args))
     );
 
     for (const out of outputs) {
@@ -625,7 +785,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       expect(out.data.error.suggestion).toContain("--name");
     }
 
-    expect(requests).toEqual([]);
+    expect(requests).toStrictEqual([]);
   });
 
   it("does not infer even the only Cloud organization", async () => {
@@ -702,7 +862,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         '✓ Local instance "demo" is already stopped; nothing to do.\n'
       );
       expect(
-        readFileSync(path.join(cwd, "docker-calls.jsonl"), "utf8")
+        readFileSync(path.join(cwd, "docker-calls.jsonl"), "utf-8")
       ).not.toContain('"down"');
     }
   );
@@ -722,7 +882,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     ]);
 
     expect(out.data.data).toMatchObject({
-      action: "reuse",
+      action: "update",
       target: { id: "env1", name: "dev" },
     });
   });
@@ -759,7 +919,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
 
     expect(out.data.error.code).toBe("NOT_FOUND");
     expect(out.data.error.message).toContain('Organization "nope"');
-    expect(out.data.error.details.organizations).toEqual([
+    expect(out.data.error.details.organizations).toStrictEqual([
       samples.organization.slug,
     ]);
   });
@@ -828,8 +988,17 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     expect(out.code).toBe(0);
     expect(out.data.ok).toBe(true);
     const { commands, exitCodes, errorCodes, globalFlags } = out.data.data;
-    expect(commands.map((item: any) => item.command)).toEqual([
+    expect(commands.map((item: any) => item.command)).toStrictEqual([
       "saleor init",
+      "saleor config status",
+      "saleor config diff",
+      "saleor config deploy",
+      "saleor config edit",
+      "saleor config pull",
+      "saleor config validate",
+      "saleor config guide",
+      "saleor storefront create",
+      "saleor storefront env",
       "saleor login",
       "saleor logout",
       "saleor env list",
@@ -837,8 +1006,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "saleor local list",
       "saleor local up",
       "saleor local down",
-      "saleor storefront create",
-      "saleor storefront env",
+      "saleor local delete",
       "saleor onboard",
     ]);
     // Targets are optional to the parser: the action resolves them (flag, variable,
@@ -852,7 +1020,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       commands.find((item: any) => item.command === "saleor env delete")
         .arguments[0]
     ).toMatchObject({ env: null, name: "env", required: false });
-    expect(globalFlags.map((flag: any) => flag.name)).toEqual([
+    expect(globalFlags.map((flag: any) => flag.name)).toStrictEqual([
       "--help",
       "--version",
       "--completions",
@@ -860,14 +1028,16 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "--no-input",
       "--agent",
     ]);
-    expect(exitCodes.map((exit: any) => exit.code)).toEqual([0, 1, 2, 75, 130]);
+    expect(exitCodes.map((exit: any) => exit.code)).toStrictEqual([
+      0, 1, 2, 75, 130,
+    ]);
     expect(errorCodes).toContainEqual({
       code: "NOT_READY",
       exitCode: 75,
       meaning: expect.any(String),
       retry: true,
     });
-    expect(requests).toEqual([]);
+    expect(requests).toStrictEqual([]);
   });
 
   // Defaults and environment variables are recorded by hand next to each flag, so
@@ -911,7 +1081,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         "use --agent (shorthand for --json --no-input)"
       );
       expect(out.stdout).toContain("saleor commands --agent");
-      expect(requests).toEqual([]);
+      expect(requests).toStrictEqual([]);
     }
   );
 
@@ -922,14 +1092,14 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     expect(
       out.data.data.globalFlags.some((flag: any) => flag.name === "--agent")
     ).toBe(true);
-    expect(requests).toEqual([]);
+    expect(requests).toStrictEqual([]);
   });
 
   it("renders usage failures as one JSON result", async () => {
     const out = await cli(["init", "--env", "--unknown"]);
     expect(out.code).toBe(2);
     expect(out.data.error.code).toBe("USAGE_ERROR");
-    expect(requests).toEqual([]);
+    expect(requests).toStrictEqual([]);
   });
   it("renders a text usage error as one message, without the help page", async () => {
     const out = await cli(["env", "lst", "--output", "text"]);
@@ -968,13 +1138,13 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
 
     expect(out.code).toBe(2);
     expect(out.data.error.code).toBe("USAGE_ERROR");
-    expect(requests).toEqual([]);
+    expect(requests).toStrictEqual([]);
   });
   it("requires auth and never prints credentials", async () => {
     credentials = {};
     const out = await cli(["env", "list", "--org", "acme"]);
     expect(out.data.error.code).toBe("AUTH_REQUIRED");
-    expect(requests).toEqual([]);
+    expect(requests).toStrictEqual([]);
   });
   it("uses the environment token without persisting it", async () => {
     const out = await cli(["login"]);
@@ -1102,6 +1272,173 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       expect(requests.every((req) => req.method === "GET")).toBe(true);
     }
   );
+  it.each([undefined, "new"])(
+    "rejects a full project before setup work (environment=%s)",
+    async (envName) => {
+      resourceRoutes();
+      const fallback = handler;
+      handler = (method, url, body) =>
+        url.pathname.endsWith("/projects/")
+          ? [
+              200,
+              [
+                {
+                  ...project(),
+                  plan: {
+                    ...samples.plans[1],
+                    allowance: { sandboxes: { cap: 5, included: 5 } },
+                  },
+                  sandboxes: { count: 5 },
+                },
+              ],
+            ]
+          : fallback(method, url, body);
+
+      const out = await cli([
+        "init",
+        "--org",
+        "acme",
+        "--project",
+        "poc",
+        "--describe",
+        "Merch store",
+        "--storefront",
+        "--agent",
+        ...(envName === undefined ? [] : ["--env", envName]),
+      ]);
+
+      expect(out.data.error.code).toBe("ENVIRONMENT_LIMIT_REACHED");
+      expect(out.data.error.message).toContain("5 of 5");
+      expect(out.data.error.suggestion).toContain("saleor env list");
+      expect(requests.some((request) => request.method === "POST")).toBe(false);
+      expect(existsSync(path.join(cwd, "storefront"))).toBe(false);
+      expect(existsSync(path.join(cwd, "saleor.yml"))).toBe(false);
+    }
+  );
+
+  it.each([
+    { cap: 5, count: 4 },
+    { cap: null, count: 5 },
+    { cap: undefined, count: 5 },
+    { cap: 5, count: undefined },
+  ])(
+    "does not infer a sandbox limit without a known exhausted cap (%j)",
+    async ({ cap, count }) => {
+      resourceRoutes();
+      const fallback = handler;
+      handler = (method, url, body) =>
+        url.pathname.endsWith("/projects/")
+          ? [
+              200,
+              [
+                {
+                  ...project(),
+                  plan: {
+                    ...samples.plans[1],
+                    allowance: { sandboxes: { cap, included: 5 } },
+                  },
+                  sandboxes: { count },
+                },
+              ],
+            ]
+          : fallback(method, url, body);
+
+      const out = await cli([
+        "init",
+        "--org",
+        "acme",
+        "--project",
+        "poc",
+        "--env",
+        "new",
+        "--dry-run",
+        "--agent",
+      ]);
+
+      expect(out.code, out.stdout + out.stderr).toBe(0);
+      expect(requests.some((request) => request.method === "POST")).toBe(false);
+    }
+  );
+
+  it("allows reusing an existing sandbox in a full project", async () => {
+    resourceRoutes([environment()]);
+    const fallback = handler;
+    handler = (method, url, body) =>
+      url.pathname.endsWith("/projects/")
+        ? [
+            200,
+            [
+              {
+                ...project(),
+                plan: {
+                  ...samples.plans[1],
+                  allowance: { sandboxes: { cap: 5 } },
+                },
+                sandboxes: { count: 5 },
+              },
+            ],
+          ]
+        : fallback(method, url, body);
+
+    const out = await cli([
+      "init",
+      "--org",
+      "acme",
+      "--project",
+      "poc",
+      "--env",
+      "env1",
+      "--dry-run",
+      "--agent",
+    ]);
+
+    expect(out.code, out.stdout + out.stderr).toBe(0);
+    expect(requests.some((request) => request.method === "POST")).toBe(false);
+  });
+
+  it.each([
+    { message: "Setting up environment", taskId: "atp-store-warm" },
+    {
+      message: "Setting up environment",
+      taskId: "crt-store-cold",
+    },
+  ])(
+    "shows environment setup progress ($taskId)",
+    async ({ taskId, message }) => {
+      resourceRoutes();
+      const fallback = handler;
+      handler = (method, url, body) => {
+        if (method === "POST" && url.pathname.endsWith("/obtain/")) {
+          return [201, { ...environment("env9", "new"), task_id: taskId }];
+        }
+
+        if (url.pathname.includes("/task-status/")) {
+          return [200, task("PENDING")];
+        }
+
+        return fallback(method, url, body);
+      };
+
+      const out = await cli([
+        "init",
+        "--org",
+        "acme",
+        "--project",
+        "poc",
+        "--env",
+        "new",
+        "--timeout",
+        "0",
+      ]);
+
+      expect(out.code).toBe(75);
+      expect(out.stderr).toContain(message);
+      expect(
+        requests.filter((request) => request.method === "POST")
+      ).toHaveLength(1);
+    }
+  );
+
   it("creates in a paid project without asking, after saying it might be charged", async () => {
     resourceRoutes();
     const fallback = handler;
@@ -1164,7 +1501,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
   it("publishes safety metadata and preview flags for every risky action", async () => {
     const out = await cli(["commands", "--json"]);
 
-    for (const command of ["env delete", "local down"]) {
+    for (const command of ["env delete", "local down", "local delete"]) {
       const entry = out.data.data.commands.find(
         (item: any) => item.command === `saleor ${command}`
       );
@@ -1664,14 +2001,14 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       requests
         .filter((req) => req.path.endsWith("/token"))
         .map((req) => req.body.grant_type)
-    ).toEqual([
+    ).toStrictEqual([
       "urn:ietf:params:oauth:grant-type:device_code",
       "refresh_token",
     ]);
     const file = path.join(cwd, "config/credentials.json");
-    // biome-ignore lint/suspicious/noBitwiseOperators: Inspect POSIX permission bits.
+    // oxlint-disable-next-line no-bitwise -- Inspect POSIX permission bits.
     expect(statSync(file).mode & 0o777).toBe(0o600);
-    expect(readFileSync(file, "utf8")).not.toContain("pending-device-grant");
+    expect(readFileSync(file, "utf-8")).not.toContain("pending-device-grant");
     expect(login.stdout + login.stderr).not.toContain("refresh-secret");
     expect((await cli(["logout"])).data.data.removed).toBe(true);
     expect((await cli(["env", "list", "--org", "acme"])).data.error.code).toBe(
@@ -1869,9 +2206,9 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
         res.end(Buffer.from(archive));
       });
 
-      await new Promise<void>((resolve) =>
-        server.listen(0, "127.0.0.1", resolve)
-      );
+      await new Promise<void>((resolve) => {
+        server.listen(0, "127.0.0.1", resolve);
+      });
       const address = server.address();
 
       if (address === null || Predicate.isString(address)) {
@@ -1879,8 +2216,13 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       }
 
       templateUrl = `http://127.0.0.1:${address.port}/storefront.tar.gz`;
-      closeTemplate = () =>
-        new Promise<void>((resolve) => server.close(() => resolve()));
+      closeTemplate = async () => {
+        await new Promise<void>((resolve) => {
+          server.close(() => {
+            resolve();
+          });
+        });
+      };
     });
 
     afterEach(async () => {
@@ -1896,8 +2238,8 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       SALEOR_STOREFRONT_TEMPLATE_URL: templateUrl,
     });
 
-    const storefront = (...args: string[]) =>
-      cli(["storefront", ...args, "--agent"], env());
+    const storefront = async (...args: string[]) =>
+      await cli(["storefront", ...args, "--agent"], env());
 
     it("creates a storefront connected to a store and safely reuses it", async () => {
       const created = await storefront("create", "--instance", "local:demo");
@@ -1920,7 +2262,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       });
 
       const dir = path.join(cwd, "storefront");
-      const dotenv = readFileSync(path.join(dir, ".env"), "utf8");
+      const dotenv = readFileSync(path.join(dir, ".env"), "utf-8");
       expect(dotenv.split("\n")[0]).toMatch(DEMO_HEADER);
       // The template's own defaults stay.
       expect(dotenv).toContain("CONTENT_PROVIDER=saleor");
@@ -1930,7 +2272,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
         cwd: dir,
       }).toString();
 
-      expect(committed.split("\n").filter(Boolean).sort()).toEqual([
+      expect(committed.split("\n").filter(Boolean).sort()).toStrictEqual([
         ".env.example",
         ".gitignore",
         "package.json",
@@ -1940,14 +2282,14 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       expect(again.data.data).toMatchObject({ created: false });
       expect(again.data.data.installed).toBe(true);
       expect(
-        readFileSync(path.join(dir, "node_modules/install-calls"), "utf8")
+        readFileSync(path.join(dir, "node_modules/install-calls"), "utf-8")
       ).toBe("install\ninstall\n");
 
       const elsewhere = await storefront("create", "--instance", "local:other");
       expect(elsewhere.code).toBe(1);
       expect(elsewhere.data.error.code).toBe("NAME_CONFLICT");
       expect(elsewhere.data.error.suggestion).toContain("--dir");
-      expect(readFileSync(path.join(dir, ".env"), "utf8")).toBe(dotenv);
+      expect(readFileSync(path.join(dir, ".env"), "utf-8")).toBe(dotenv);
 
       const unavailableChannel = await storefront(
         "create",
@@ -1960,7 +2302,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       );
 
       expect(unavailableChannel.code).toBe(0);
-      expect(unavailableChannel.data.data.warnings).toEqual([
+      expect(unavailableChannel.data.data.warnings).toStrictEqual([
         expect.stringContaining('has no channel "eu"'),
       ]);
 
@@ -1977,7 +2319,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
         action: "update",
         details: { previous: "local:demo", store: "local:other" },
       });
-      expect(readFileSync(path.join(dir, ".env"), "utf8")).toBe(dotenv);
+      expect(readFileSync(path.join(dir, ".env"), "utf-8")).toBe(dotenv);
 
       const switched = await storefront(
         "env",
@@ -1993,7 +2335,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
         previous: "local:demo",
         store: { ref: "local:other" },
       });
-      const switchedEnv = readFileSync(path.join(dir, ".env"), "utf8");
+      const switchedEnv = readFileSync(path.join(dir, ".env"), "utf-8");
       expect(switchedEnv).toContain("instance=local:other");
       expect(switchedEnv).toContain("CONTENT_PROVIDER=saleor");
 
@@ -2006,7 +2348,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       );
 
       expect(same.code).toBe(0);
-      expect(readFileSync(path.join(dir, ".env"), "utf8")).toBe(switchedEnv);
+      expect(readFileSync(path.join(dir, ".env"), "utf-8")).toBe(switchedEnv);
     });
 
     it("previews without writing and refuses directories that are not storefronts", async () => {
@@ -2074,7 +2416,7 @@ process.exit(1);
         installed: false,
         next: ["cd storefront", "pnpm install", "pnpm dev"],
       });
-      expect(failed.data.data.warnings).toEqual([
+      expect(failed.data.data.warnings).toStrictEqual([
         expect.stringContaining("pnpm install failed"),
       ]);
       expect(existsSync(path.join(cwd, "storefront/.env"))).toBe(true);
