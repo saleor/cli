@@ -1,6 +1,4 @@
 import { Effect, Option } from "effect";
-import { writeFileSync } from "node:fs";
-import { stringify } from "yaml";
 import {
   defineActions,
   type Planned,
@@ -8,7 +6,6 @@ import {
 } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
 import { argument, option } from "../../core/inputs.ts";
-import { resolveInstance } from "../../core/instances.ts";
 import {
   askConfirm,
   askSelect,
@@ -17,12 +14,12 @@ import {
 import { command } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
 import { findProject } from "../../core/project.ts";
-import { storeAccess } from "../../core/store-access.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { fileChanges, sentence } from "./describe.ts";
 import { chooseAuthor, draftWith } from "./draft.ts";
 import { existingConfig, shown, validateFile } from "./engine.ts";
-import { configFile } from "./store.ts";
+import { writeConfig } from "./file-output.ts";
+import { configFile, connect } from "./store.ts";
 
 const config = defineActions();
 
@@ -53,44 +50,37 @@ const descriptionInput = argument.string(
 // Offers to deploy what was just written, so describe → review → deploy is one run.
 const offerDeploy = (file: string) =>
   Effect.gen(function* () {
-    const project = findProject();
+    const environments = Option.match(findProject(), {
+      onNone: () => 0,
+      onSome: (found) => found.environments.length,
+    });
 
-    const ref = Option.flatMap(project, (found) =>
-      Option.fromUndefinedOr(found.environments[0]?.[1])
-    );
-
-    if (Option.isNone(ref) || !(yield* isInteractive)) {
+    if (environments === 0 || !(yield* isInteractive)) {
       return [`Deploy it with: ${command("config", "deploy")}`];
     }
 
-    const resolved = yield* resolveInstance(ref);
-    const access = yield* storeAccess(resolved);
-    const store = { token: access.token, url: resolved.instance.graphqlUrl };
+    // The same store `config deploy` would pick: the only environment, or a choice
+    // among several, with the same version check.
+    const { instance, store } = yield* connect(Option.none(), Option.none());
     const plan = yield* planDeploy(store, file);
 
     if (plan.deployable.length === 0) {
-      return [`${resolved.instance.ref} already has all of it.`];
+      return [`${instance.ref} already has all of it.`];
     }
 
     yield* notice(
       [
-        `Deploying to ${resolved.instance.ref} would:`,
+        `Deploying to ${instance.ref} would:`,
         ...plan.deployable.map((each) => `  • ${sentence(each)}`),
       ].join("\n")
     );
 
-    if (!(yield* askConfirm(`Deploy to ${resolved.instance.ref} now?`, true))) {
+    if (!(yield* askConfirm(`Deploy to ${instance.ref} now?`, true))) {
       return [`Deploy it later with: ${command("config", "deploy")}`];
     }
 
-    const outcome = yield* applyDeploy({
-      instance: resolved.instance,
-      store,
-      file,
-      plan,
-    });
-
-    const words = deployedText(resolved.instance, file, outcome);
+    const outcome = yield* applyDeploy({ instance, store, file, plan });
+    const words = deployedText(instance, file, outcome);
 
     return [`✓ ${words.headline}`, words.text].filter(Boolean);
   });
@@ -200,7 +190,7 @@ export const editCommand = config.ensure({
         action: lines.length === 0 ? "reuse" : "update",
         apply: Effect.gen(function* () {
           if (lines.length > 0) {
-            writeFileSync(file, stringify(next));
+            yield* writeConfig(file, next);
           }
 
           const after = lines.length > 0 ? yield* offerDeploy(file) : [];

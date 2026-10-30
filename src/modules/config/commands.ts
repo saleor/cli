@@ -125,14 +125,17 @@ const pullCommand = config.ensure({
 
       const existing = existsSync(file) ? readFileSync(file, "utf-8") : null;
 
-      // What the store changed, seen from the file. Only when the file is valid.
-      const changed =
+      // What the store changed, seen from the file. None when the file cannot be
+      // compared (it is invalid, maybe mid-edit): what it would lose is unknown.
+      const compared =
         existing === null
-          ? []
+          ? Option.some([])
           : yield* diff(store, file).pipe(
-              Effect.map((summary) => summary.results.map(change)),
-              Effect.orElseSucceed(() => [])
+              Effect.map((summary) => Option.some(summary.results.map(change))),
+              Effect.orElseSucceed(() => Option.none())
             );
+
+      const changed = Option.getOrElse(compared, () => []);
 
       const pulled = yield* pull(store);
       const yaml = yield* serialize(pulled);
@@ -179,7 +182,9 @@ const pullCommand = config.ensure({
         // A file whose content the store already matches loses nothing: only its
         // formatting changes to the store's.
         risk:
-          existing !== null && !same && changed.length > 0
+          existing !== null &&
+          !same &&
+          (Option.isNone(compared) || changed.length > 0)
             ? `Replaces the content of ${shown(file)}; edits not deployed to a store are lost.`
             : null,
         state: existing === null ? "absent" : "exists",
@@ -189,7 +194,10 @@ const pullCommand = config.ensure({
           ...changed
             .slice(0, 12)
             .map((each) => ["", `• ${pulledSentence(each)}`] as const),
-          ...(existing !== null && !same && changed.length === 0
+          ...(existing !== null &&
+          !same &&
+          Option.isSome(compared) &&
+          changed.length === 0
             ? [
                 [
                   "Note",

@@ -150,11 +150,13 @@ export const deployedText = (
   file: string,
   outcome: Deployed
 ) => {
-  const storefront = Option.match(findProject(path.dirname(file)), {
-    onNone: () => false,
-    onSome: (project) =>
-      existsSync(path.join(project.root, "storefront", ".env")),
-  });
+  // The project's storefront, wherever saleor.yml puts it, when it is connected.
+  const storefront = Option.filter(
+    Option.map(findProject(path.dirname(file)), (project) =>
+      path.resolve(project.root, project.storefront ?? "storefront")
+    ),
+    (dir) => existsSync(path.join(dir, ".env"))
+  );
 
   const channels = outcome.applied.filter(
     (each) => each.entity === "Channels" && each.operation === "create"
@@ -178,9 +180,9 @@ export const deployedText = (
             `Left as is: ${outcome.skipped.length} (${outcome.skipped.map((each) => `${sentence(each)}: ${why(each)}`).join("; ")})`,
           ]
         : []),
-      ...(storefront && channels.length > 0
+      ...(Option.isSome(storefront) && channels.length > 0
         ? [
-            `New channel${channels.length > 1 ? "s" : ""}: ${channels.map((each) => each.name).join(", ")}. To show it in the storefront: saleor storefront env --dir storefront --channel ${channels[0]?.name ?? ""}`,
+            `New channel${channels.length > 1 ? "s" : ""}: ${channels.map((each) => each.name).join(", ")}. To show it in the storefront: saleor storefront env --dir ${path.relative(process.cwd(), storefront.value) || "."} --channel ${channels[0]?.name ?? ""}`,
           ]
         : []),
     ].join("\n"),

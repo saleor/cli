@@ -1,7 +1,6 @@
 import { Effect, Option, Predicate } from "effect";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
 import { resolveInstance } from "../../core/instances.ts";
 import { askSelect, isInteractive } from "../../core/interaction.ts";
@@ -17,6 +16,7 @@ import {
 } from "../../core/project.ts";
 import { defineSetupExtension, type SetupResult } from "../../core/setup.ts";
 import { storeAccess } from "../../core/store-access.ts";
+import { WorkspaceConfiguration } from "../../core/workspace-configuration.ts";
 import { fromAnswers } from "./blocks.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { review } from "./describe.ts";
@@ -172,7 +172,10 @@ const chooseSource = (input: {
     }
 
     if (choice === "copy") {
-      const { instance } = yield* resolveInstance(Option.none());
+      // Any store, not the project's own environment, which is what is being set up.
+      const { instance } = yield* resolveInstance(Option.none(), {
+        anyStore: true,
+      });
 
       yield* recordAnswer({ option: ["--copy-from", instance.ref] });
 
@@ -338,14 +341,18 @@ const loadSample = ({ file, made }: Finishing) =>
     return yield* sampleConfiguration(made, file, save === "save");
   });
 
-const contents = (
-  finishing: Finishing,
-  target: Store,
-  kept: Option.Option<Document>
-) =>
+const contents = ({
+  finishing,
+  chosen,
+  target,
+  kept,
+}: {
+  readonly finishing: Finishing;
+  readonly chosen: Exclude<Source, { readonly kind: "sample" }>;
+  readonly target: Store;
+  readonly kept: Option.Option<Document>;
+}) =>
   Effect.gen(function* () {
-    const { chosen } = finishing;
-
     switch (chosen.kind) {
       case "later": {
         return yield* startForAgent({
@@ -354,10 +361,6 @@ const contents = (
           target,
           kept,
         });
-      }
-
-      case "sample": {
-        return yield* loadSample(finishing);
       }
 
       case "copy": {
@@ -402,12 +405,17 @@ const finish = (finishing: Finishing) =>
 
     const target = yield* connectMade(made);
 
-    // Running `init` again keeps the project's file: drafts are added to it.
+    // Running `init` again keeps the project's file: drafts are added to it. The
+    // empty file `init` itself starts the project with is not worth keeping: the
+    // store's own configuration is pulled instead.
     const kept = existsSync(file)
-      ? parseYamlDocument(readFileSync(file, "utf-8"))
+      ? Option.filter(
+          parseYamlDocument(readFileSync(file, "utf-8")),
+          (document) => Object.keys(document).length > 0
+        )
       : Option.none();
 
-    const outcome = yield* contents(finishing, target, kept);
+    const outcome = yield* contents({ finishing, chosen, target, kept });
     const { lines, ...data } = outcome;
 
     // Which model drafted it, and how to open the conversation, when an agent did.
@@ -464,21 +472,7 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
     }
 
     const target = yield* connectMade(made);
-    const plan = yield* planDeploy(target, file);
-
-    const outcome = yield* applyDeploy({
-      instance: made,
-      store: target,
-      file,
-      plan,
-    });
-
-    if (outcome.missed.length > 0) {
-      return yield* fail(
-        "DEPLOY_PARTIAL",
-        "Project configuration is incomplete. Run saleor local up to retry."
-      );
-    }
+    yield* (yield* WorkspaceConfiguration).apply(made, target.token, file);
 
     return { data: { file }, text: "Project configuration applied." };
   });

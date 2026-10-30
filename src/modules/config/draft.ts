@@ -164,9 +164,13 @@ const run = (binary: string, args: readonly string[], prompt: string) =>
           if (code === 0) {
             resolve(out);
           } else {
-            reject(
-              new Error(err.trim().split("\n").at(-1) ?? `exit code ${code}`)
-            );
+            // The last line of its errors; a timeout or a silent exit says so.
+            const said = err.trim().split("\n").at(-1) ?? "";
+
+            const stopped =
+              code === null ? "it was stopped" : `exit code ${code}`;
+
+            reject(new Error(said === "" ? stopped : said));
           }
         });
         child.stdin.end(prompt);
@@ -498,10 +502,8 @@ const attemptDraft = ({
 
 // Asks the agent, checks the answer with the engine, and sends the problems back
 // until it passes or the attempts run out.
-export const draftWith = (author: Author, request: DraftRequest) =>
+const draftIn = (author: Author, request: DraftRequest, file: string) =>
   Effect.gen(function* () {
-    const dir = mkdtempSync(path.join(os.tmpdir(), "saleor-draft-"));
-    const file = path.join(dir, "config.yml");
     let previous: Previous = {};
 
     yield* notice(`Drafting the configuration with ${author.label}…`);
@@ -515,8 +517,6 @@ export const draftWith = (author: Author, request: DraftRequest) =>
       });
 
       if (round.passed) {
-        rmSync(dir, { force: true, recursive: true });
-
         if (round.session.open !== undefined) {
           yield* notice(`  The conversation: ${round.session.open}`);
         }
@@ -533,8 +533,6 @@ export const draftWith = (author: Author, request: DraftRequest) =>
       }
     }
 
-    rmSync(dir, { force: true, recursive: true });
-
     const { problems, session } = previous;
 
     return yield* fail(
@@ -549,6 +547,18 @@ export const draftWith = (author: Author, request: DraftRequest) =>
       }
     );
   });
+
+// The drafts are checked in a scratch folder, removed however drafting ends (an
+// agent that fails or is interrupted included), since it holds the store's file.
+export const draftWith = (author: Author, request: DraftRequest) =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => mkdtempSync(path.join(os.tmpdir(), "saleor-draft-"))),
+    (dir) => draftIn(author, request, path.join(dir, "config.yml")),
+    (dir) =>
+      Effect.sync(() => {
+        rmSync(dir, { force: true, recursive: true });
+      })
+  );
 
 // ── Without an agent: a few questions ────────────────────────────────────
 

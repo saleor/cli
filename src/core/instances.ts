@@ -70,11 +70,19 @@ export interface ResolvedInstance {
 }
 
 // The store a command was given, or picked at a prompt, with the source it came from.
-export const resolveInstance = (supplied: Option.Option<string>) =>
+// Inside a project, an environment name resolves to its ref and, with nothing given,
+// the project's environment is the default. `anyStore` skips that default, for
+// questions about some other store (which one to copy from), so every store is offered.
+export const resolveInstance = (
+  supplied: Option.Option<string>,
+  { anyStore = false }: { readonly anyStore?: boolean } = {}
+) =>
   Effect.gen(function* () {
     const sources = yield* InstanceSources;
 
-    const contextual = yield* resolveRef(Option.none(), supplied);
+    const contextual = anyStore
+      ? supplied
+      : yield* resolveRef(Option.none(), supplied);
 
     const ref = yield* instanceInput.resolve(contextual, {
       // Stores first; logins after them, so the first row is something to pick.
