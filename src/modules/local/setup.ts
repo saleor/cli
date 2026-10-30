@@ -1,10 +1,13 @@
 import { Effect, Option } from "effect";
 import type { Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
+import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
+import { hasBinding, projectLocal } from "../../core/project.ts";
 import { defineSetup } from "../../core/setup.ts";
 import { SALEOR_VERSION } from "./compose.ts";
 import { type LocalUpOptions, localTarget, planUp, up } from "./lifecycle.ts";
+import { readConfig } from "./state.ts";
 import { instance } from "./targets.ts";
 
 export const connection = (data: {
@@ -38,7 +41,6 @@ export const localSetup = defineSetup({
       "Move a local instance to new free ports, for when another program took one. Its URLs change; data is kept."
     ),
     saleorVersion: option.string("saleor-version", {
-      default: SALEOR_VERSION,
       description: "Saleor API version for a new local instance.",
       metavar: "version",
     }),
@@ -51,18 +53,42 @@ export const localSetup = defineSetup({
   name: "local",
   plan: (input) =>
     Effect.gen(function* () {
-      const name = yield* newInstance.resolve(input.name, {
-        choices: Effect.succeed([]),
-        create: {
-          label: "Create a new instance",
-          prompt: "New local instance name",
-        },
-      });
+      const context = Option.isNone(input.name)
+        ? projectLocal()
+        : Option.none();
+
+      const name = yield* newInstance.resolve(
+        Option.orElse(input.name, () =>
+          Option.map(context, (value) => value.name)
+        ),
+        {
+          choices: Effect.succeed([]),
+          create: {
+            label: "Create a new instance",
+            prompt: "New local instance name",
+          },
+        }
+      );
+
+      if (
+        Option.isSome(context) &&
+        !hasBinding(context.value.project.root, context.value.alias) &&
+        (yield* readConfig(name)) !== undefined
+      ) {
+        return yield* fail(
+          "LOCAL_STATE_ERROR",
+          `An instance already occupies this checkout's generated name. Attach it explicitly with saleor init --local --name ${name}`
+        );
+      }
 
       const options: LocalUpOptions = {
         name,
         newPorts: input.newPorts,
-        saleorVersion: Option.getOrUndefined(input.saleorVersion),
+        saleorVersion: Option.getOrElse(input.saleorVersion, () =>
+          Option.isSome(context)
+            ? context.value.definition.saleor
+            : SALEOR_VERSION
+        ),
         sampleData: input.sampleData,
         timeout: input.timeout,
       };

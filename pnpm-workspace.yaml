@@ -7,3 +7,7 @@ minimumReleaseAgeExclude:
   - '@effect/tsgo-win32-arm64@0.53.2'
   - '@effect/tsgo-win32-x64@0.53.2'
   - '@effect/tsgo@0.53.2'
+
+allowBuilds:
+  esbuild: true
+  msw: false

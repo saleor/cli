@@ -263,25 +263,27 @@ it("preserves an explicit end-of-options marker when selecting an action", async
 it.each([
   {
     cloud: false,
-    expected: ["init", "login", "local", "storefront", "commands"],
+    expected: ["init", "storefront", "login", "local", "commands"],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "env", "storefront", "commands"],
+    expected: ["init", "storefront", "env", "commands"],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "env", "local", "storefront", "commands"],
+    expected: ["init", "storefront", "env", "local", "commands"],
     local: true,
   },
 ])(
   "offers the menu for where the person works (cloud=$cloud, local=$local)",
   async ({ cloud, expected, local }) => {
     const config = mkdtempSync(path.join(tmpdir(), "saleor-config-"));
+    const originalDirectory = process.cwd();
 
     try {
+      process.chdir(config);
       const { select, run } = setup(saleorRoot);
       const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
       vi.stubEnv("SALEOR_CONFIG_DIR", config);
@@ -317,6 +319,7 @@ it.each([
         })
       );
     } finally {
+      process.chdir(originalDirectory);
       rmSync(config, { force: true, recursive: true });
     }
   }

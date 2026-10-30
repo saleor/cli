@@ -21,7 +21,11 @@ it.each(commands)("$command publishes the flags its kind implies", (entry) => {
 
   expect(flags.includes("--dry-run")).toBe(changes);
   expect(flags.includes("--force")).toBe(entry.destructive);
-  expect(entry.destructive).toBe(entry.kind === "remove");
+  // Every remove can lose data; an ensure can when it declares a risk (a deploy
+  // that deletes what the file no longer has). Nothing else changes anything.
+  expect(entry.destructive).toBe(
+    entry.kind === "remove" || (entry.kind === "ensure" && entry.destructive)
+  );
   expect(entry.warning !== null).toBe(entry.destructive);
 });
 

@@ -1,6 +1,7 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { defineModule } from "../../core/module.ts";
+import { projectLocal } from "../../core/project.ts";
 import { SecretStoreLive } from "../../core/secret-store.ts";
 import { localCommand } from "./commands.ts";
 import { DockerLive } from "./docker.ts";
@@ -11,7 +12,7 @@ import { listInstanceNames } from "./state.ts";
 // Whether this computer has any local instance to manage.
 export const hasLocalInstances = Effect.map(
   listInstanceNames(),
-  (names) => names.length > 0
+  (names) => names.length > 0 || Option.isSome(projectLocal())
 );
 
 export const localLayer = Layer.mergeAll(

@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { Effect, Predicate, Schema } from "effect";
+import { Effect, Option, Predicate, Schema } from "effect";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 import { configDir, SecretStore } from "../../core/secret-store.ts";
@@ -317,6 +317,16 @@ const parseSecrets = (raw: string) =>
       fail("LOCAL_STATE_ERROR", "The saved local credentials are unreadable.")
     )
   );
+
+// The admin password the CLI saved for an instance, if it has one.
+export const savedAdminPassword = (name: string) =>
+  Effect.gen(function* () {
+    const raw = yield* (yield* SecretStore).get(secretKey(name));
+
+    return raw === undefined
+      ? Option.none<string>()
+      : Option.some((yield* parseSecrets(raw)).password);
+  });
 
 // The saved admin password of an instance, if it has one.
 export const prepareSecrets = (config: LocalConfig) =>

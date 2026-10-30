@@ -1,14 +1,15 @@
-import path from "node:path";
 import { Effect, Option } from "effect";
 import { Command } from "effect/cli";
 import { defineActions, defineGroup, type Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
-import { option } from "../../core/inputs.ts";
+import { argument, option } from "../../core/inputs.ts";
 import { instanceInput, resolveInstance } from "../../core/instances.ts";
 import { isInteractive } from "../../core/interaction.ts";
 import { MenuAvailable } from "../../core/menu.ts";
 import { notice } from "../../core/output.ts";
+import { storefrontFolder } from "../../core/project.ts";
+import { resolveRef } from "../../core/workspace.ts";
 import {
   connectedElsewhere,
   create,
@@ -64,7 +65,6 @@ const createCommand = storefront.ensure({
       "Channel slug the storefront shows. Checked against the store when it answers."
     ),
     dir: option.string("dir", {
-      default: "storefront",
       description:
         "Directory to create it in, relative to the current one. Must be new or empty.",
       metavar: "path",
@@ -74,7 +74,7 @@ const createCommand = storefront.ensure({
   name: "create",
   plan: (input) =>
     Effect.gen(function* () {
-      const dir = path.resolve(Option.getOrElse(input.dir, () => "storefront"));
+      const dir = storefrontFolder(input.dir, "storefront");
       const found = yield* inspect(dir);
 
       if (found.kind === "other") {
@@ -158,15 +158,19 @@ const environmentCommand = storefront
       }),
       dir: option.string("dir", {
         description:
-          "The storefront's directory. Defaults to the current directory.",
+          "The storefront's directory. Defaults to the project storefront, or the current directory outside a project.",
         metavar: "path",
       }),
+      environment: argument.string(
+        "environment",
+        "An environment named in saleor.yml, or an instance ref."
+      ),
       instance: instanceInput,
     },
     name: "env",
     plan: (input) =>
       Effect.gen(function* () {
-        const dir = path.resolve(Option.getOrElse(input.dir, () => "."));
+        const dir = storefrontFolder(input.dir, ".");
 
         const found = yield* inspect(dir);
 
@@ -190,7 +194,7 @@ const environmentCommand = storefront
         }
 
         const { instance: store, source } = yield* resolveInstance(
-          input.instance
+          yield* resolveRef(input.environment, input.instance)
         );
 
         const channel = Option.getOrElse(

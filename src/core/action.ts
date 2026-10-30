@@ -135,8 +135,9 @@ const planFields = (plan: Plan) => {
 
   const width = Math.max(0, ...fields.map(([label]) => label.length)) + 1;
 
-  return fields.map(
-    ([label, value]) => `  ${`${label}:`.padEnd(width)} ${value}`
+  // A row without a label continues the list above it, such as one change of many.
+  return fields.map(([label, value]) =>
+    label === "" ? `    ${value}` : `  ${`${label}:`.padEnd(width)} ${value}`
   );
 };
 
@@ -230,10 +231,13 @@ const dryRunInput = option.boolean(
   "Show what would happen without changing anything or asking questions."
 );
 
-const forceInput = option.boolean(
-  "force",
-  "Delete without asking. Required to delete when not running in a terminal."
-);
+const forceInput = (kind: ActionKind) =>
+  option.boolean(
+    "force",
+    kind === "remove"
+      ? "Delete without asking. Required to delete when not running in a terminal."
+      : "Go ahead without asking when the plan loses data (its warning says what). Required for that when not running in a terminal."
+  );
 
 const waitInput = (kind: ActionKind) =>
   option.integer("timeout", {
@@ -306,16 +310,23 @@ interface ChangeSpec<I extends Inputs, A, R, RA> extends ActionSpec<I> {
 // What an ensure's `apply` returns: the resource and the lines describing it, after
 // the headline, and the target as it is now when creating it gave it an id.
 export interface Ensured<A> extends CommandResult<A> {
+  // Replaces "<target> is ready (created)", for targets that are changed rather than
+  // made ready, such as a store a configuration is deployed to.
+  readonly headline?: string | undefined;
   readonly target?: TargetRef | undefined;
 }
 
 // `apply` returns the resource and the lines describing it, after the headline.
-export type EnsureSpec<
+export interface EnsureSpec<
   I extends Inputs,
   A extends { readonly created: boolean },
   R,
   RA,
-> = ChangeSpec<I, Ensured<A>, R, RA>;
+> extends ChangeSpec<I, Ensured<A>, R, RA> {
+  // What a plan of this action can lose, when some can: the action then takes
+  // `--force`, and plans that lose data need it or a "yes". For `saleor commands`.
+  readonly risk?: string;
+}
 
 export interface RemoveResult {
   readonly action: PlanAction;
@@ -438,8 +449,8 @@ const build = <
     inputs.set("dryRun", dryRunInput);
   }
 
-  if (rules.kind === "remove") {
-    inputs.set("force", forceInput);
+  if (rules.destructive) {
+    inputs.set("force", forceInput(rules.kind));
   }
 
   if (rules.waits) {
@@ -509,10 +520,10 @@ export const defineActions = <RP = never>(policy: Policy<RP> = {}) => {
     ) =>
       build(
         {
-          destructive: false,
+          destructive: spec.risk !== undefined,
           kind: "ensure",
           waits: spec.waits === true,
-          warning: null,
+          warning: spec.risk ?? null,
         },
         spec,
         (input) =>
@@ -526,13 +537,13 @@ export const defineActions = <RP = never>(policy: Policy<RP> = {}) => {
             }
 
             yield* confirm(plan);
-            const { data, target, text } = yield* plan.apply;
+            const { data, headline, target, text } = yield* plan.apply;
             const what = capitalize(describeTarget(target ?? plan.target));
 
             return result(
               data,
               [
-                `✓ ${what} is ready (${data.created ? "created" : "already existed"}).`,
+                `✓ ${headline ?? `${what} is ready (${data.created ? "created" : "already existed"}).`}`,
                 ...(text === "" ? [] : [text]),
                 ...(yield* rerunHint),
               ].join("\n")

@@ -224,3 +224,12 @@ export const obtainPreheatedEnvironmentObtainEnvironment = {
   request: ObtainEnvironmentInput,
   response: ObtainEnvironmentResponse,
 } as const;
+
+export const populateEnvironmentDatabase = {
+  method: "GET",
+  path: "/api/organizations/{organization_slug}/environments/{id}/populate-database/",
+  pathParams: ["organization_slug", "id"],
+  queryParams: [],
+  request: undefined,
+  response: Schema.Struct({ task_id: Schema.NullOr(Schema.String) }),
+} as const;

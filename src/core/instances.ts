@@ -8,7 +8,9 @@ import {
 import type { Choice } from "./interaction.ts";
 import { command } from "./invocation.ts";
 import { notice } from "./output.ts";
+import { findProject } from "./project.ts";
 import { target } from "./target.ts";
+import { resolveRef } from "./workspace.ts";
 
 // Commands that work with a store wherever it runs (a storefront connecting to one)
 // take it as a ref, `cloud:<org>/<env key>` or `local:<name>`: the same `ref` every
@@ -20,7 +22,10 @@ const SIGN_IN = "\0sign-in:";
 
 export const instanceTarget = target({
   check: (value) =>
-    REF.test(value)
+    REF.test(value) ||
+    Option.exists(findProject(), (project) =>
+      project.environments.some(([name]) => name === value)
+    )
       ? undefined
       : `"${value}" is not a store ref. Refs look like cloud:<org>/<env key> or local:<name>, as printed in the ref column of env list and local list.`,
   env: "SALEOR_INSTANCE",
@@ -71,7 +76,9 @@ export const resolveInstance = (supplied: Option.Option<string>) =>
   Effect.gen(function* () {
     const sources = yield* InstanceSources;
 
-    const ref = yield* instanceInput.resolve(supplied, {
+    const contextual = yield* resolveRef(Option.none(), supplied);
+
+    const ref = yield* instanceInput.resolve(contextual, {
       // Stores first; logins after them, so the first row is something to pick.
       choices: Effect.map(Effect.forEach(sources, choicesOf), (lists) => {
         const rows = lists.flat();

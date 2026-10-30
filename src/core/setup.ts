@@ -21,6 +21,7 @@ import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
 import { askThen } from "./navigation.ts";
 import { notice } from "./output.ts";
+import { initializeProject, projectFolder } from "./project.ts";
 
 // `saleor init` is the one journey every provider shares: create a new store.
 // Each module that can run a store contributes a setup provider; this file composes
@@ -32,6 +33,7 @@ type Inputs = Readonly<Record<string, Input<InputValue>>>;
 // Every provider sets up a store, so its result is one: an instance (see instance.ts).
 export interface SetupResult extends Instance {
   readonly created: boolean;
+  readonly sampleDataReady?: boolean | undefined;
 }
 
 export interface SetupProvider<R> {
@@ -139,9 +141,12 @@ const extend = <R>(
   store: Planned<Ensured<SetupResult>, R>,
   extensions: readonly ExtensionPlan<R>[]
 ): Planned<Ensured<SetupResult>, R> => {
-  if (extensions.length === 0) {
-    return store;
-  }
+  const projectName = Option.getOrElse(
+    Option.fromUndefinedOr(store.target.scope.project),
+    () => store.target.name
+  );
+
+  const root = projectFolder(projectName);
 
   const extra = extensions.some((extension) => extension.changes);
 
@@ -161,6 +166,7 @@ const extend = <R>(
       );
 
       const ensured = yield* ready;
+      yield* initializeProject(root, projectName, ensured.data);
 
       for (const exit of prepared) {
         yield* exit;

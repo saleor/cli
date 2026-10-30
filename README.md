@@ -35,9 +35,10 @@ Manage your local stores:
 pnpm saleor local list
 pnpm saleor local up
 pnpm saleor local down
+pnpm saleor local delete
 ```
 
-You'll be asked which instance to use. To choose it directly, add `--name my-store`. Stopping an instance keeps its data. Run `pnpm saleor local up --name my-store` to start it again, or to print its addresses and admin login.
+Inside a project, these commands use its local environment. `local up` creates it from `saleor.yml` when needed and applies `config.yml` when configured with `configure: on-create`. Outside a project, you'll be asked which instance to use. To choose it directly, add `--name my-store`. Stopping an instance keeps its data. Run `pnpm saleor local up --name my-store` to start it again, or to print its addresses and admin login. Deleting an instance permanently removes its database, media and saved credentials after confirmation.
 
 ## Create a storefront
 
@@ -49,7 +50,7 @@ Pick a store (Cloud or local) and the CLI downloads the [Saleor storefront templ
 
 `pnpm saleor init` also offers a storefront for the store it sets up (`--storefront`), in a folder for the project: `<project>/storefront`.
 
-Inside an existing storefront, run `pnpm saleor storefront env` to choose its Saleor backend. It shows the current backend before asking for another. You can target a directory explicitly with `--dir path/to/storefront`. Restart the storefront development server after switching. This updates local configuration; hosted deployments keep their own settings.
+Inside a project, run `pnpm saleor storefront env staging` to connect its storefront to a named environment. Run `pnpm saleor storefront env` to choose its Saleor backend interactively. It shows the current backend before asking for another. You can target a directory explicitly with `--dir path/to/storefront`. Restart the storefront development server after switching. This updates local configuration; hosted deployments keep their own settings.
 
 ## Manage Cloud stores
 

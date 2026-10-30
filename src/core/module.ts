@@ -2,6 +2,7 @@ import type { Layer } from "effect";
 import type { Command, GlobalFlag } from "effect/cli";
 import type { InstanceSource, InstanceSources } from "./instance.ts";
 import type { SetupExtension, SetupProvider } from "./setup.ts";
+import type { WorkspaceConfiguration } from "./workspace-configuration.ts";
 
 // A module is a unit of code ownership (Cloud, local, storefront; Configurator later).
 // It owns one or more top-level command words, and the layer that builds the services
@@ -24,7 +25,8 @@ export interface CliModule {
 // instances every module contributes.
 export type CoreServices =
   | GlobalFlag.Setting.Identifier<"output">
-  | InstanceSources;
+  | InstanceSources
+  | WorkspaceConfiguration;
 
 // Any command, keeping only what it requires to run.
 // biome-ignore lint/suspicious/noExplicitAny: Command names are invariant; a module holds commands of any name.

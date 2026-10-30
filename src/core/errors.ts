@@ -57,11 +57,17 @@ export const ERRORS = {
     true
   ),
   CANCELLED: failed("The confirmation was declined. Nothing was changed."),
+  CONFIG_INVALID: failed(
+    "The configuration file is missing, unreadable or does not match the schema."
+  ),
   CONFIRMATION_REQUIRED: failed(
     "The action deletes data and was not confirmed. Re-run with --force to confirm."
   ),
   CONTEXT_MISSING: input(
     "A required target or value was not given and could not be asked for. Pass it explicitly."
+  ),
+  DEPLOY_PARTIAL: failed(
+    "Some changes were applied and others failed. Run the same command again to retry what is left."
   ),
   DOCKER_FAILED: failed("A Docker command failed."),
   DOCKER_MISSING: failed("Docker is not installed."),
@@ -94,6 +100,13 @@ export const ERRORS = {
   PRODUCTION_DELETE_REFUSED: failed(
     "Only sandboxes can be deleted from the CLI."
   ),
+  STORE_AUTH_INVALID: failed(
+    "The store rejected the token, or it lacks a permission the command needs."
+  ),
+  STORE_AUTH_REQUIRED: failed(
+    "No token for the store. Set SALEOR_TOKEN, or run in a terminal to enter one."
+  ),
+  STORE_ERROR: failed("The store returned an error."),
   TASK_FAILED: failed("A provisioning task failed."),
   TEMPLATE_FAILED: failed(
     "A project template could not be downloaded or unpacked.",
@@ -102,6 +115,9 @@ export const ERRORS = {
   UNAVAILABLE: failed(
     "The service cannot do this right now. Run the command again later.",
     true
+  ),
+  UNSUPPORTED_SALEOR_VERSION: failed(
+    "The store runs a Saleor version this CLI's configuration support does not cover."
   ),
   USAGE_ERROR: input(
     "The command line or one of its values is invalid. Change it and run again."

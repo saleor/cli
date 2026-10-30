@@ -1,5 +1,5 @@
 import { type Option, Schema } from "effect";
-import { type Argument, Flag } from "effect/cli";
+import { Argument, Flag } from "effect/cli";
 import type { ActionKind } from "./invocation.ts";
 
 // Every flag and argument of a command is declared through these builders. An input
@@ -104,4 +104,23 @@ export const option = {
         Flag.optional
       )
     ),
+};
+
+// An optional word after the command, for a value people type often and in full: an
+// environment's name, or a description in plain words.
+export const argument = {
+  string: (
+    name: string,
+    description: string
+  ): Input<Option.Option<string>> => ({
+    build: () => ({
+      info: {},
+      name,
+      param: Argument.String(name).pipe(
+        Argument.withDescription(description),
+        Argument.optional
+      ),
+      positional: true,
+    }),
+  }),
 };

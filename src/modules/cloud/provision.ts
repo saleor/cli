@@ -298,6 +298,30 @@ const pickSandboxService = (organization: string, project: Project) =>
     return chosen.name;
   });
 
+// Only an explicit cap is a hard limit; included allowance may allow paid overage.
+export const requireSandboxCapacity = (
+  organization: string,
+  project: Project
+) => {
+  const cap = project.plan.allowance?.sandboxes?.cap;
+  const { count } = project.sandboxes;
+
+  if (cap === undefined || cap === null || count === undefined || count < cap) {
+    return Effect.void;
+  }
+
+  return Effect.fail(
+    fail(
+      "ENVIRONMENT_LIMIT_REACHED",
+      `Project "${project.slug}" already has ${count} of ${cap} sandbox environments allowed on its "${project.plan.slug}" plan. Delete a sandbox before creating another.`,
+      {
+        details: { count, limit: cap },
+        suggestion: `See existing sandboxes with: ${command("env", "list", "--org", organization, "--project", project.slug)}. Delete one with: ${command("env", "delete", "<name-or-key>", "--org", organization, "--project", project.slug)} (asks for confirmation).`,
+      }
+    )
+  );
+};
+
 const classifyCreateRejection = (
   error: ApiStatusError,
   domainLabel: Option.Option<string>,
@@ -344,7 +368,7 @@ const classifyCreateRejection = (
         `Project "${project.slug}" has reached the limit of ${limit === undefined ? "" : `${limit} `}sandbox environments on its "${project.plan.slug}" plan.`,
         {
           details: { body: error.body, limit: limit ?? null },
-          suggestion: `Delete one you no longer need (see them with: ${command("env", "list", "--org", organization, "--project", project.slug)}), or upgrade the plan in the Saleor Cloud dashboard.`,
+          suggestion: `List sandboxes with: ${command("env", "list", "--org", organization, "--project", project.slug)}. Delete one with: ${command("env", "delete", "<name-or-key>", "--org", organization, "--project", project.slug)} (asks for confirmation).`,
         }
       )
     );
@@ -418,6 +442,8 @@ export const planEnvironment = (input: EnvironmentInput) =>
       return { existing, service: existing.service.name };
     }
 
+    yield* requireSandboxCapacity(input.organization, input.project);
+
     const service = yield* pickSandboxService(
       input.organization,
       input.project
@@ -450,7 +476,7 @@ export const applyEnvironment = (
     const created = yield* requestEnvironment(input, planned.service);
 
     yield* notice(
-      `Created environment "${input.name}" (${created.key}). Waiting until it is ready; this usually takes a few minutes…`
+      `Setting up environment "${input.name}" (${created.key}). This may take a few minutes…`
     );
 
     // One heartbeat for the whole wait, however many tasks it spans.

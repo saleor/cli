@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { emitKeypressEvents } from "node:readline";
-import { confirm, isCancel, text } from "@clack/prompts";
+import { confirm, isCancel, password, text } from "@clack/prompts";
 import { Context, Effect, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import { ActionContext } from "./invocation.ts";
@@ -75,6 +75,8 @@ export interface PromptOperations {
     message: string;
     initialValue?: string | undefined;
     placeholder?: string | undefined;
+    // Masks what is typed, for tokens.
+    secret?: boolean | undefined;
     validate?: (value: string) => string | undefined;
   }) => Promise<string | symbol>;
 }
@@ -121,6 +123,10 @@ export const Prompts = Context.Reference<PromptOperations>("saleor/Prompts", {
           validate: (value: string | undefined) =>
             options.validate?.(value ?? ""),
         };
+
+        if (options.secret === true) {
+          return (await password({ ...base, mask: "•" })) ?? "";
+        }
 
         const answer = await text({
           ...base,
@@ -181,6 +187,7 @@ export const askText = (options: {
   message: string;
   initialValue?: string | undefined;
   placeholder?: string | undefined;
+  secret?: boolean | undefined;
   validate?: (value: string) => string | undefined;
 }) =>
   Effect.gen(function* () {

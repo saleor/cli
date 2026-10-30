@@ -26,6 +26,7 @@ import {
   type ProjectInput,
   planEnvironment,
   planProject,
+  requireSandboxCapacity,
 } from "./provision.ts";
 import { environment, organizationOf, orgInput, project } from "./targets.ts";
 
@@ -79,7 +80,11 @@ const environmentPlan = (
 
         return {
           ...result(
-            { ...details, created },
+            {
+              ...details,
+              created,
+              sampleDataReady: created && Option.isNone(input.domainLabel),
+            },
             environmentLines(details).join("\n")
           ),
           target: environmentTarget(input.organization, ready),
@@ -183,6 +188,16 @@ export const cloudSetup = defineSetup({
 
       const projectPlanned = yield* planProject(projectRequest);
       const parent = projectPlanned.existing;
+
+      // Without a requested environment this journey creates a new sandbox.
+      // Check before asking its name or running any configuration extensions.
+      if (
+        parent !== undefined &&
+        Option.isNone(input.env) &&
+        !process.env.SALEOR_ENV
+      ) {
+        yield* requireSandboxCapacity(organization, parent);
+      }
 
       const envName = yield* envInput.resolve(input.env, {
         choices: Effect.succeed([]),

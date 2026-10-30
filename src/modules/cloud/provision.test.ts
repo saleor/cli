@@ -80,6 +80,7 @@ describe("provisioning recovery", () => {
   const project = Schema.decodeUnknownSync(ListProjectResponse)({
     ...samples.project,
     plan: samples.plans[0],
+    sandboxes: { count: 0 },
   });
 
   const environment = { ...samples.environment, project };
