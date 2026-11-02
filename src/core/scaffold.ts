@@ -8,7 +8,7 @@ import {
   renameSync,
   rmSync,
 } from "node:fs";
-import { Unpack } from "tar";
+import { type ReadEntry, Unpack } from "tar";
 import { fail } from "./errors.ts";
 import { withProgress } from "./output.ts";
 
@@ -62,17 +62,40 @@ const templateFailure = (from: Template, reason: string) =>
     }
   );
 
+// GitHub archives say which commit they are in a global header ("comment=<sha>").
+const COMMIT = /^[0-9a-f]{40}$/;
+
 // Writes the archive's files into `dir`, dropping the top folder GitHub wraps them in.
 // `tar` refuses entries that would land outside `dir`, absolute or through a link.
-const unpack = async (archive: ArrayBuffer, dir: string) => {
-  await new Promise<void>((resolve, reject) => {
+// Returns the commit the archive was made from, when it says.
+const unpack = async (archive: ArrayBuffer, dir: string) =>
+  await new Promise<string | undefined>((resolve, reject) => {
     const extractor = new Unpack({ cwd: dir, strict: true, strip: 1 });
+    let commit: string | undefined;
 
+    extractor.on("entry", (entry: ReadEntry) => {
+      const comment = entry.globalExtended?.comment;
+      commit ??=
+        comment !== undefined && COMMIT.test(comment) ? comment : undefined;
+    });
     extractor.on("error", reject);
-    extractor.on("close", resolve);
+    extractor.on("close", () => {
+      resolve(commit);
+    });
     extractor.end(Buffer.from(archive));
   });
-};
+
+export interface Downloaded {
+  // The commit downloaded; none when the archive does not say.
+  readonly commit: string | undefined;
+}
+
+// Where a download came from, in words: <owner>/<repo>@<commit>, or the branch when
+// the archive does not say which commit it is.
+export const templateSource = (from: Template, downloaded: Downloaded) =>
+  downloaded.commit === undefined
+    ? `${from.repository} (${from.ref})`
+    : `${from.repository}@${downloaded.commit}`;
 
 // Downloads the template into `dir`, which must not exist or be empty. The files are
 // unpacked next to it first and moved in at once, so `dir` is never half-written.
@@ -101,18 +124,20 @@ export const downloadTemplate = (from: Template, dir: string) =>
 
       const staging = `${dir}.download-${process.pid}`;
 
-      yield* Effect.tryPromise({
+      return yield* Effect.tryPromise({
         catch: (error) =>
           templateFailure(
             from,
             error instanceof Error ? error.message : String(error)
           ),
-        try: async () => {
+        try: async (): Promise<Downloaded> => {
           rmSync(staging, { force: true, recursive: true });
           mkdirSync(staging, { recursive: true });
-          await unpack(body, staging);
+          const commit = await unpack(body, staging);
           rmSync(dir, { force: true, recursive: true });
           renameSync(staging, dir);
+
+          return { commit };
         },
       }).pipe(
         Effect.onError(() =>

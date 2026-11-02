@@ -6,12 +6,12 @@ import { resolveInstance } from "../../core/instances.ts";
 import { askSelect, isInteractive } from "../../core/interaction.ts";
 import { command, recordAnswer } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
+import { lastInSync, recordInSync } from "../../core/deployments.ts";
+import { configuresOnCreate } from "../../core/manifest.ts";
 import {
   configPath,
-  lastInSync,
   projectAt,
   projectFolder,
-  recordInSync,
   rememberEnvironment,
 } from "../../core/project.ts";
 import { defineSetupExtension, type SetupResult } from "../../core/setup.ts";
@@ -450,8 +450,9 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
       alias === undefined ? undefined : project.value.definitions?.[alias];
 
     if (
+      definition === undefined ||
       Predicate.isString(definition) ||
-      definition?.configure !== "on-create"
+      !configuresOnCreate(definition)
     ) {
       return { data: {}, text: "" };
     }

@@ -8,7 +8,7 @@ import { envInput, resolveInstance } from "../../core/instances.ts";
 import { isInteractive } from "../../core/interaction.ts";
 import { MenuAvailable } from "../../core/menu.ts";
 import { notice } from "../../core/output.ts";
-import { storefrontFolder } from "../../core/project.ts";
+import { storefrontFolder } from "../../core/components.ts";
 import {
   connectedElsewhere,
   create,
@@ -53,7 +53,7 @@ const summary = ({
   ] as const;
 
 const createCommand = storefront.ensure({
-  description: `Download the Saleor storefront template (${TEMPLATE.repository}, as it is on ${TEMPLATE.ref}) into a new directory and connect it to a store: its .env gets the store's GraphQL API and channel. Inside a project, it goes in the project's storefront folder. The directory becomes a git repository unless it is inside one. In a terminal, it asks for the store. Dependencies are installed automatically. Running it again on the same directory and store reuses the files and retries dependency installation.`,
+  description: `Download the Saleor storefront template (${TEMPLATE.repository}, as it is on ${TEMPLATE.ref}) into a new directory and connect it to a store: its .env gets the store's GraphQL API and channel. Inside a project, it goes in the project's storefront folder and is listed in saleor.yml as a component. The directory becomes a git repository unless it is inside one. In a terminal, it asks for the store. Dependencies are installed automatically. Running it again on the same directory and store reuses the files and retries dependency installation.`,
   examples: [
     {
       command: "saleor storefront create local",
@@ -111,6 +111,7 @@ const createCommand = storefront.ensure({
         created: unconnected,
         dir,
         install: true,
+        record: true,
         repository: unconnected ? dir : undefined,
         source,
         store,
@@ -220,6 +221,7 @@ const useCommand = storefront
               created: false,
               dir,
               install: false,
+              record: false,
               repository: undefined,
               source,
               store,

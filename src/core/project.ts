@@ -11,37 +11,34 @@ import {
 import path from "node:path";
 import { parseDocument } from "yaml";
 import { fail } from "./errors.ts";
+import {
+  type Component,
+  componentsOf,
+  decodeManifest,
+  type LocalDefinition,
+  MANIFEST,
+  warnOnce,
+} from "./manifest.ts";
 import { configDir } from "./secret-store.ts";
 
-// A project is a folder holding what a store is made of: `saleor.yml` names the stores
-// it works with ("environments"), next to `config.yml` and maybe a storefront. Commands
-// run anywhere inside it find it by walking up, like git does.
-//
-//   # saleor.yml
-//   name: outdoor-shop
-//   config: config.yml
-//   environments:
-//     local: local:outdoor-shop
-//     staging: cloud:acme/abc123
-//
-// It holds names and refs only, never credentials, so it is committed.
+// A project is a folder holding what a store is made of: `saleor.yml` (see
+// manifest.ts) names the stores it works with ("environments"), the store's
+// configuration, and the components that connect to those stores, such as a
+// storefront. Commands run anywhere inside it find it by walking up, like git does.
 
-export const MANIFEST = "saleor.yml";
+export { MANIFEST } from "./manifest.ts";
 
-export interface LocalDefinition {
-  readonly configure?: "on-create" | "never" | undefined;
-  readonly kind: "local";
-  readonly saleor: string;
-}
+export type { Component, LocalDefinition } from "./manifest.ts";
 
 export interface Project {
+  readonly components: readonly Component[];
   readonly config: string;
   readonly definitions?: Readonly<Record<string, string | LocalDefinition>>;
-  // The environments in the order they were added; the first is the default.
+  // The environments in the order they were added. None is a default: a command
+  // takes the only one without asking, and otherwise asks or needs one named.
   readonly environments: readonly (readonly [name: string, ref: string])[];
   readonly name: string;
   readonly root: string;
-  readonly storefront?: string | undefined;
 }
 
 const UNSAFE = /[^a-z0-9-]+/g;
@@ -52,52 +49,12 @@ export const slugify = (text: string) =>
     .replace(UNSAFE, "-")
     .replaceAll(/^-+|-+$/g, "") || "saleor";
 
-const ManifestSchema = Schema.Struct({
-  config: Schema.optional(Schema.String),
-  environments: Schema.optional(
-    Schema.Record(
-      Schema.String,
-      Schema.Union([
-        Schema.String,
-        Schema.Struct({
-          configure: Schema.optional(Schema.Literals(["on-create", "never"])),
-          kind: Schema.Literal("local"),
-          saleor: Schema.String,
-        }),
-      ])
-    )
-  ),
-  name: Schema.optional(Schema.String),
-  storefront: Schema.optional(Schema.Struct({ path: Schema.String })),
-});
-
-// YAML text through a schema; none when either rejects it.
-const decodeYaml = <S extends Schema.ConstraintDecoder<unknown>>(
-  schema: S,
-  text: string
-): Option.Option<S["Type"]> => {
-  try {
-    return Schema.decodeUnknownOption(schema)(parseDocument(text).toJS());
-  } catch {
-    return Option.none();
-  }
-};
-
 const read = (root: string): Project => {
-  const fields = Option.getOrElse(
-    decodeYaml(
-      ManifestSchema,
-      readFileSync(path.join(root, MANIFEST), "utf-8")
-    ),
-    () => {
-      throw fail(
-        "CONFIG_INVALID",
-        `Invalid project manifest at ${path.join(root, MANIFEST)}.`
-      );
-    }
-  );
+  const file = path.join(root, MANIFEST);
+  const fields = decodeManifest(file, readFileSync(file, "utf-8"));
 
   return {
+    components: componentsOf(fields),
     config: fields.config ?? "config.yml",
     definitions: fields.environments ?? {},
     environments: Object.entries(fields.environments ?? {}).map(
@@ -111,7 +68,6 @@ const read = (root: string): Project => {
     ),
     name: fields.name ?? path.basename(root),
     root,
-    storefront: fields.storefront?.path,
   };
 };
 
@@ -146,7 +102,7 @@ const write = (project: Project) => {
   const file = path.join(project.root, MANIFEST);
 
   const document = parseDocument(
-    existsSync(file) ? readFileSync(file, "utf-8") : "{}"
+    existsSync(file) ? readFileSync(file, "utf-8") : ""
   );
 
   document.set("name", project.name);
@@ -190,6 +146,7 @@ export const rememberEnvironment = ({
       mkdirSync(root, { recursive: true });
 
       const fresh: Project = {
+        components: [],
         config: "config.yml",
         environments: [],
         name: defaults.name ?? path.basename(root),
@@ -250,140 +207,6 @@ export const projectFolder = (name: string) => {
   return used ? named : here;
 };
 
-// ── What was last deployed ───────────────────────────────────────────────
-// Kept per user, not in the project: it describes this computer's last runs.
-
-const stateFile = () => path.join(configDir(), "projects.json");
-
-const DeploymentsSchema = Schema.Record(
-  Schema.String,
-  Schema.Record(
-    Schema.String,
-    Schema.Struct({ at: Schema.String, hash: Schema.String })
-  )
-);
-
-type Deployments = typeof DeploymentsSchema.Type;
-
-const readState = (): Deployments => {
-  try {
-    return Option.getOrElse(
-      Schema.decodeUnknownOption(Schema.fromJsonString(DeploymentsSchema))(
-        readFileSync(stateFile(), "utf-8")
-      ),
-      () => ({})
-    );
-  } catch {
-    return {};
-  }
-};
-
-export const fileHash = (file: string) =>
-  existsSync(file)
-    ? createHash("sha256").update(readFileSync(file)).digest("hex")
-    : null;
-
-// Records that the store `ref` matched `file` as it is now.
-export const recordInSync = (file: string, ref: string) =>
-  Effect.sync(() => {
-    const hash = fileHash(file);
-
-    if (hash === null) {
-      return;
-    }
-
-    const state = readState();
-    const key = path.resolve(file);
-
-    const next: Deployments = {
-      ...state,
-      [key]: { ...state[key], [ref]: { at: new Date().toISOString(), hash } },
-    };
-
-    mkdirSync(path.dirname(stateFile()), { recursive: true });
-    writeFileSync(stateFile(), `${JSON.stringify(next, null, 2)}\n`);
-  });
-
-export interface SyncNote {
-  readonly at: Date;
-  readonly edited: boolean;
-}
-
-// Whether `file` changed since `ref` last matched it, by this computer's records.
-export const lastInSync = (
-  file: string,
-  ref: string
-): Option.Option<SyncNote> => {
-  const entry = readState()[path.resolve(file)]?.[ref];
-
-  return entry === undefined
-    ? Option.none()
-    : Option.some({
-        at: new Date(entry.at),
-        edited: fileHash(file) !== entry.hash,
-      });
-};
-
-export const ago = (date: Date, now = Date.now()) => {
-  const minutes = Math.round((now - date.getTime()) / 60_000);
-
-  if (minutes < 1) {
-    return "just now";
-  }
-
-  if (minutes < 60) {
-    return `${minutes} min ago`;
-  }
-
-  const hours = Math.round(minutes / 60);
-
-  return hours < 48 ? `${hours} h ago` : `${Math.round(hours / 24)} days ago`;
-};
-
-// The channel a storefront in this project should show: the configuration's first
-// channel other than Saleor's default, when there is a configuration.
-const ChannelsSchema = Schema.Struct({
-  channels: Schema.optional(
-    Schema.Array(Schema.Struct({ slug: Schema.optional(Schema.String) }))
-  ),
-});
-
-export const projectChannel = (root: string): Option.Option<string> =>
-  Option.flatMap(projectAt(root), (project) => {
-    if (!existsSync(configPath(project))) {
-      return Option.none();
-    }
-
-    return Option.flatMap(
-      decodeYaml(ChannelsSchema, readFileSync(configPath(project), "utf-8")),
-      (config) => {
-        const slugs = (config.channels ?? []).flatMap((channel) =>
-          channel.slug === undefined ? [] : [channel.slug]
-        );
-
-        return Option.fromUndefinedOr(
-          slugs.find((slug) => slug !== "default-channel") ?? slugs[0]
-        );
-      }
-    );
-  });
-
-// Conventional component paths are relative to the project, even from a nested cwd.
-// Explicit paths remain relative to the caller.
-export const storefrontFolder = (
-  explicit: Option.Option<string>,
-  standalone: string
-): string =>
-  Option.match(explicit, {
-    onNone: () =>
-      Option.match(findProject(), {
-        onNone: () => path.resolve(standalone),
-        onSome: (project) =>
-          path.resolve(project.root, project.storefront ?? "storefront"),
-      }),
-    onSome: (dir) => path.resolve(dir),
-  });
-
 // Bindings live under the user's CLI state, keyed by the canonical checkout path.
 const bindingFile = (root: string, alias: string) =>
   path.join(
@@ -397,9 +220,6 @@ const decodeBinding = Schema.decodeUnknownOption(
   Schema.fromJsonString(Schema.Struct({ name: Schema.String }))
 );
 
-// Files already warned about, so a command that reads the project twice warns once.
-const unreadable = new Set<string>();
-
 export const bindingName = (root: string, alias: string): string => {
   const file = bindingFile(root, alias);
 
@@ -412,12 +232,10 @@ export const bindingName = (root: string, alias: string): string => {
 
     // A damaged binding must not break every command in the project: fall back to
     // the default name and say so, since it may point at a different local store.
-    if (!unreadable.has(file)) {
-      unreadable.add(file);
-      process.stderr.write(
-        `Ignoring unreadable file ${file}; the "${alias}" environment uses the default local store name. Delete the file to stop this warning.\n`
-      );
-    }
+    warnOnce(
+      file,
+      `Ignoring unreadable file ${file}; the "${alias}" environment uses the default local store name. Delete the file to stop this warning.`
+    );
   }
 
   return `project-${createHash("sha256")
@@ -475,7 +293,7 @@ export const projectLocalOf = (name: string) =>
       : Option.some(localContext(project, entry));
   });
 
-const editManifest = (
+export const editManifest = (
   root: string,
   edit: (document: ReturnType<typeof parseDocument>) => void
 ) =>
@@ -510,7 +328,6 @@ export const addEnvironment = (
     if (store.kind === "local" && store.saleorVersion !== null) {
       saveBinding(root, alias, store.name);
       document.setIn(["environments", alias], {
-        configure: "on-create",
         kind: "local",
         saleor: store.saleorVersion,
       });
@@ -584,7 +401,6 @@ export const initializeProject = (
 
           if (!Predicate.isObject(project.definitions?.[alias])) {
             document.setIn(["environments", alias], {
-              configure: "on-create",
               kind: "local",
               saleor: store.saleorVersion,
             });
@@ -601,7 +417,7 @@ export const initializeProject = (
 const writeProjectGuides = (root: string) => {
   const guides = {
     "AGENTS.md":
-      "# Saleor project\n\nsaleor.yml defines environments; config.yml describes store configuration.\nThe optional storefront/ and apps/* directories contain services connected to those environments.\nCommands name an environment as the word after the command: saleor env start local, saleor config deploy staging.\nRun saleor env list to see every environment and its state.\nBefore changing a store, inspect saleor config diff <env>.\nKeep credentials in the CLI secret store or ignored environment files.\nUse saleor --help for workflows and follow component-specific instructions when editing a component.\n",
+      "# Saleor project\n\nsaleor.yml defines environments and lists the project's components (a storefront, apps) with their paths; config.yml describes store configuration.\nEach component keeps its own packages, scripts and lockfile.\nCommands name an environment as the word after the command: saleor env start local, saleor config deploy staging.\nRun saleor env list to see every environment and its state.\nBefore changing a store, inspect saleor config diff <env>.\nKeep credentials in the CLI secret store or ignored environment files.\nUse saleor --help for workflows and follow component-specific instructions when editing a component.\n",
     "CLAUDE.md": "@AGENTS.md\n",
   };
 

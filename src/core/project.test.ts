@@ -58,7 +58,7 @@ it("creates a portable definition and private binding while preserving existing 
   await Effect.runPromise(initializeProject(root, "shop", store));
   const manifest = parse(readFileSync(path.join(root, "saleor.yml"), "utf-8"));
   expect(manifest.environments).toStrictEqual({
-    local: { configure: "on-create", kind: "local", saleor: "3.23.41" },
+    local: { kind: "local", saleor: "3.23.41" },
   });
   expect(manifest.storefront.path).toBe("packages/web");
   expect(readFileSync(path.join(root, "AGENTS.md"), "utf-8")).toBe(

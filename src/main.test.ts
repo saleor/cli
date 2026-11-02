@@ -22,6 +22,7 @@ import { createServer as createSecureServer } from "node:https";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import samples from "./modules/cloud/api/fixtures/cloud-samples.json" with { type: "json" };
 
 const asyncHandler =
@@ -264,7 +265,14 @@ describe("real CLI process", () => {
       const out = await cli([group, "validate", "--agent"]);
       expect(out.code, out.stdout + out.stderr).toBe(0);
       expect(out.data).toStrictEqual({
-        data: { config: "config.yml", sections: { shop: 1 }, valid: true },
+        data: {
+          config: "config.yml",
+          configs: [
+            { component: null, config: "config.yml", sections: { shop: 1 } },
+          ],
+          sections: { shop: 1 },
+          valid: true,
+        },
         ok: true,
       });
       expect(out.stderr).toBe("");
@@ -560,7 +568,7 @@ basicConstraints=critical,CA:TRUE
   it("plans project local provisioning without creating state and validates bootstrap configuration", async () => {
     writeFileSync(
       path.join(cwd, "saleor.yml"),
-      "name: shared\nenvironments:\n  local:\n    kind: local\n    saleor: 3.23.41\n    configure: on-create\n"
+      "name: shared\nenvironments:\n  local:\n    kind: local\n    saleor: 3.23.41\n"
     );
     writeFileSync(path.join(cwd, "config.yml"), "invalid: [");
     const invalid = await cli(["env", "start", "--dry-run", "--agent"]);
@@ -576,6 +584,14 @@ basicConstraints=critical,CA:TRUE
       saleorVersion: "3.23.41",
     });
     expect(second.data.data.target).toStrictEqual(first.data.data.target);
+
+    // Configured on create unless the definition opts out.
+    writeFileSync(
+      path.join(cwd, "saleor.yml"),
+      "name: shared\nenvironments:\n  local:\n    kind: local\n    saleor: 3.23.41\n    configure: never\n"
+    );
+    const optedOut = await cli(["env", "start", "--dry-run", "--agent"]);
+    expect(optedOut.data.data.details.configure).toBe(false);
     expect(
       existsSync(path.join(cwd, "config/local", first.data.data.target.name))
     ).toBe(false);
@@ -2261,6 +2277,10 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
           name: "storefront-main/.env.example",
         },
         { data: ".env\nnode_modules\n", name: "storefront-main/.gitignore" },
+        {
+          data: "contentAttributes:\n  - name: Returns window days\n    inputType: NUMERIC\n",
+          name: "storefront-main/config/saleor/storefront-content.config.yml",
+        },
       ]);
 
       const server = createServer((_req, res) => {
@@ -2337,6 +2357,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       expect(committed.split("\n").filter(Boolean).sort()).toStrictEqual([
         ".env.example",
         ".gitignore",
+        "config/saleor/storefront-content.config.yml",
         "package.json",
       ]);
 
@@ -2496,6 +2517,51 @@ process.exit(1);
       });
       expect(existsSync(path.join(cwd, "demo/.git"))).toBe(true);
       expect(existsSync(path.join(cwd, "demo/storefront/.git"))).toBe(false);
+      expect(out.data.data.storefront.component).toBe("storefront");
+      expect(out.data.data.storefront.template).toStrictEqual({
+        commit: null,
+        ref: "main",
+        repository: "saleor/storefront",
+      });
+
+      // saleor.yml lists the storefront with its template and content configuration,
+      // and the first commit has it so.
+      const manifest = readFileSync(path.join(cwd, "demo/saleor.yml"), "utf-8");
+
+      // Only what commands read: no version, no path that is the component's name,
+      // no `configure` that is the default.
+      expect(parse(manifest)).toStrictEqual({
+        components: {
+          storefront: {
+            config: "config/saleor/storefront-content.config.yml",
+            kind: "storefront",
+          },
+        },
+        environments: { local: { kind: "local", saleor: expect.any(String) } },
+        name: "demo",
+      });
+      expect(
+        execFileSync("git", ["show", "HEAD:saleor.yml"], {
+          cwd: path.join(cwd, "demo"),
+        }).toString()
+      ).toBe(manifest);
+
+      // Validating the project covers its own configuration and the storefront's.
+      const validated = await cli(
+        ["config", "validate", "--agent"],
+        env(),
+        path.join(cwd, "demo/storefront")
+      );
+
+      expect(validated.code, validated.stdout + validated.stderr).toBe(0);
+      expect(validated.data.data.configs).toStrictEqual([
+        { component: null, config: "../config.yml", sections: {} },
+        {
+          component: "storefront",
+          config: "config/saleor/storefront-content.config.yml",
+          sections: { contentAttributes: 1 },
+        },
+      ]);
 
       const again = await cli(
         ["init", "--local", "--name", "demo", "--storefront", "--agent"],

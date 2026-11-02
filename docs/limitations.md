@@ -21,9 +21,12 @@
 - The production API omits `login` and `password` from environment responses, which the published schema marks required; the CLI treats them as optional.
 - Storefronts follow the template's `main` branch, so a change upstream can change what is downloaded; the CLI warns when the template stops mentioning a key it sets. Only the GraphQL API URL and the default channel are configured: no `SALEOR_APP_TOKEN` (channel discovery, guest order lookup), because the CLI cannot create store tokens yet.
 - Whether a channel exists is checked with the public `channel` query; a store that hides it is reported as not checked.
-- The project folder `init --storefront` creates has no manifest yet: later commands find nothing in it but the storefront. There is no app template module yet.
 - Store tokens are supplied by hand for Cloud stores (`SALEOR_TOKEN`, or a saved one); the CLI cannot provision them through the Cloud login yet. That will plug in as the Cloud source's `access`, behind the same lookup.
 - `webhook listen` creates its app with every permission the token's owner may grant, not only what the events need. If the process is killed (`SIGKILL`) or the machine stops, the app stays on the store: delete apps named `Saleor CLI listener …` in the Dashboard. Only asynchronous events are supported; synchronous webhooks (payments, shipping, taxes) need an app that answers them.
 - `webhook listen` has been exercised against a real local store with Docker Desktop on macOS; Linux reaches the listener through `host-gateway`, which is covered only by the compose file. Cloud stores need a tunnel the person runs.
 - Local instances made before `webhook listen` refuse to deliver webhooks to this computer (Saleor's private-address filter): the setting is applied when its containers start, so run `env stop` and `env start` on it once.
 - `api call` has no pagination helper; page with `--variables` and `pageInfo` yourself.
+- There is no app template module yet, so `components` in `saleor.yml` only ever lists storefronts.
+- The storefront template's content configuration is found at a fixed path (`config/saleor/storefront-content.config.yml`); the template does not declare it. Its translations script (`configurator:storefront-content:translations`) is not run by `config deploy`.
+- Covering several files has been tested end to end through `config validate` only; `config diff`, `deploy` and `status` share its file list but have not run against a store with more than one file. A partial deploy failure stops before the next file.
+- A new store gets the project's `config.yml` only, not component content; deploy that with `config deploy <env>`.

@@ -14,18 +14,22 @@ import { fail } from "../../core/errors.ts";
 import type { Instance, InstanceSource } from "../../core/instance.ts";
 import { command } from "../../core/invocation.ts";
 import { columns } from "../../core/output.ts";
+import { recordComponent } from "../../core/components.ts";
 import {
+  type Downloaded,
   directoryState,
   downloadTemplate,
   initRepository,
   installDependencies,
   template,
+  templateSource,
 } from "../../core/scaffold.ts";
 import { envWord } from "../../core/workspace.ts";
 
 // A storefront is the saleor/storefront template, downloaded as it is on `main`, with
-// its `.env` pointing at one store: the store's GraphQL API and a channel. Nothing else
-// about it is recorded: the `.env` header says which store it is connected to.
+// its `.env` pointing at one store: the store's GraphQL API and a channel. The `.env`
+// header says which store it is connected to. Inside a project, saleor.yml lists it as
+// a component: where it is, the template commit, and its content configuration.
 
 export const TEMPLATE = template(
   "saleor/storefront",
@@ -36,6 +40,10 @@ export const TEMPLATE = template(
 export const API_URL = "NEXT_PUBLIC_SALEOR_API_URL";
 export const CHANNEL = "NEXT_PUBLIC_DEFAULT_CHANNEL";
 export const DEFAULT_CHANNEL = "default-channel";
+
+// The template's own Configurator file (content models the storefront reads), relative
+// to the storefront. Deployed with the project's configuration when it is there.
+export const CONTENT_CONFIG = "config/saleor/storefront-content.config.yml";
 
 const ENV_NOTE = "set by the Saleor CLI";
 
@@ -231,12 +239,28 @@ export interface Finish {
   readonly channel: string;
   readonly created: boolean;
   readonly dir: string;
+  // The template just downloaded into `dir`, if it was.
+  readonly downloaded?: Downloaded | undefined;
   readonly install: boolean;
+  // Whether to list it in the project's saleor.yml (create and init do; use does not,
+  // since it changes local files only).
+  readonly record: boolean;
   // Where to make a repository, if the storefront was just downloaded.
   readonly repository: string | undefined;
   readonly source: InstanceSource<never> | undefined;
   readonly store: Instance;
 }
+
+// Lists the storefront in the project it sits in. None outside a project.
+const record = (spec: Finish) =>
+  spec.record
+    ? recordComponent(spec.dir, {
+        config: existsSync(path.join(spec.dir, CONTENT_CONFIG))
+          ? CONTENT_CONFIG
+          : undefined,
+        kind: "storefront",
+      })
+    : Effect.succeed(Option.none<string>());
 
 // Connects a downloaded storefront to its store, then makes it a repository and
 // installs its packages when asked. Everything after the `.env` only warns.
@@ -244,13 +268,20 @@ export const finish = (spec: Finish) =>
   Effect.gen(function* () {
     const env = yield* writeEnv(spec.dir, spec.store, spec.channel);
 
+    // Before the repository is made, so its first commit has saleor.yml as it ends up.
+    const component = yield* record(spec);
+
+    // Where the files came from: the commit when the download said, else the branch.
+    // Kept in the first commit's message and the result, not in saleor.yml.
+    const source = templateSource(
+      TEMPLATE,
+      spec.downloaded ?? { commit: undefined }
+    );
+
     const repository =
       spec.repository === undefined
         ? undefined
-        : yield* initRepository(
-            spec.repository,
-            `Start from ${TEMPLATE.repository} (${TEMPLATE.ref})`
-          );
+        : yield* initRepository(spec.repository, `Start from ${source}`);
 
     const installed = spec.install
       ? yield* installDependencies(spec.dir)
@@ -275,8 +306,13 @@ export const finish = (spec: Finish) =>
       "pnpm dev",
     ];
 
+    const content = Option.isSome(component)
+      ? existsSync(path.join(spec.dir, CONTENT_CONFIG))
+      : false;
+
     const data = {
       channel: spec.channel,
+      component: Option.getOrNull(component),
       created: spec.created,
       env: env.values,
       installed: dependenciesInstalled,
@@ -290,7 +326,11 @@ export const finish = (spec: Finish) =>
         ref: spec.store.ref,
         state: spec.store.state,
       },
-      template: { ref: TEMPLATE.ref, repository: TEMPLATE.repository },
+      template: {
+        commit: spec.downloaded?.commit ?? null,
+        ref: TEMPLATE.ref,
+        repository: TEMPLATE.repository,
+      },
       warnings,
     };
 
@@ -301,6 +341,12 @@ export const finish = (spec: Finish) =>
         ["  Channel:", spec.channel],
       ]),
       ...warnings.map((warning) => `  Warning: ${warning}`),
+      ...Option.match(component, {
+        onNone: () => [],
+        onSome: (name) => [
+          `  Listed in saleor.yml as component "${name}".${content ? ` Its content configuration (${CONTENT_CONFIG}) is deployed with the project's: ${command("config", "deploy", envWord(spec.store.ref))}` : ""}`,
+        ],
+      }),
       "",
       "Run it:",
       ...next.map((line) => `  ${line}`),
@@ -314,4 +360,6 @@ export const finish = (spec: Finish) =>
 
 // Downloads the template into `dir`, then finishes it.
 export const create = (spec: Finish) =>
-  Effect.andThen(downloadTemplate(TEMPLATE, spec.dir), finish(spec));
+  Effect.flatMap(downloadTemplate(TEMPLATE, spec.dir), (downloaded) =>
+    finish({ ...spec, downloaded })
+  );

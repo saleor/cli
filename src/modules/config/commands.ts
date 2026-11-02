@@ -10,37 +10,25 @@ import {
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import type { Instance } from "../../core/instance.ts";
 import { envInput } from "../../core/instances.ts";
 import { command } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
-import {
-  ago,
-  findProject,
-  lastInSync,
-  recordInSync,
-} from "../../core/project.ts";
-import {
-  applyDeploy,
-  counted,
-  deployedText,
-  planDeploy,
-  planRows,
-} from "./deploying.ts";
+import { ago, lastInSync, recordInSync } from "../../core/deployments.ts";
+import { findProject } from "../../core/project.ts";
+import { planDeploy } from "./deploying.ts";
 import { applies, pulledSentence, review } from "./describe.ts";
 import { GUIDE } from "./draft.ts";
 import { editCommand } from "./edit-command.ts";
+import { change, diff, pull, sections, serialize, shown } from "./engine.ts";
+import { deployCommand } from "./deploy-command.ts";
 import {
-  change,
-  diff,
-  existingConfig,
-  pull,
-  sections,
-  serialize,
-  shown,
-  validateFile,
-} from "./engine.ts";
-import { configFile, connect, remember } from "./store.ts";
+  checkedFiles,
+  configFile,
+  connect,
+  deployedInput,
+  filesShown,
+  remember,
+} from "./store.ts";
 
 const config = defineActions();
 
@@ -57,35 +45,45 @@ const fileTarget = (file: string): TargetRef => ({
   type: "configuration-file",
 });
 
-const storeTarget = (store: Instance): TargetRef => ({
-  id: store.ref,
-  name: store.name,
-  scope: {},
-  type: "store",
-});
-
 const validateCommand = config.session({
   description:
-    "Check a configuration file against Configurator's schema and its rules (attribute references, duplicate names), without contacting any store. Stricter than the standalone tool's validate, which checks the schema only.",
+    "Check configuration files against Configurator's schema and its rules (attribute references, duplicate names), without contacting any store: the project's own and each component's, or the --config file. Stricter than the standalone tool's validate, which checks the schema only.",
   examples: [
     {
       command: "saleor config validate",
       description: "Check the project's file",
     },
   ],
-  inputs: { config: configInput },
+  inputs: { config: deployedInput },
   name: "validate",
   run: (input) =>
     Effect.gen(function* () {
-      const file = yield* existingConfig(configFile(input.config));
-      const parsed = yield* validateFile(file);
+      const [first, ...rest] = yield* checkedFiles(input.config);
 
+      if (first === undefined) {
+        return yield* fail("NOT_FOUND", "No configuration file to check.");
+      }
+
+      const checked = [first, ...rest];
+
+      // `config` and `sections` describe the project's own file, as before components.
       return result(
-        { config: shown(file), sections: sections(parsed), valid: true },
-        [
-          `✓ ${shown(file)} is valid. It describes:`,
-          ...review(parsed).map(([label, value]) => `  ${label}: ${value}`),
-        ].join("\n")
+        {
+          config: shown(first.file),
+          configs: checked.map(({ component, file, parsed }) => ({
+            component: component ?? null,
+            config: shown(file),
+            sections: sections(parsed),
+          })),
+          sections: sections(first.parsed),
+          valid: true,
+        },
+        checked
+          .flatMap(({ component, file, parsed }) => [
+            `✓ ${shown(file)}${component === undefined ? "" : ` (component ${component})`} is valid. It describes:`,
+            ...review(parsed).map(([label, value]) => `  ${label}: ${value}`),
+          ])
+          .join("\n")
       );
     }),
   summary: "Check a configuration file offline.",
@@ -207,7 +205,7 @@ const pullCommand = config.ensure({
 
 const diffCommand = config.list({
   description:
-    "Show how a store differs from the configuration file: one row per entity, and whether a deploy changes it. Deploys create and update; they never delete, and never update categories. Changes nothing. Exits 0 either way.",
+    "Show how a store differs from the configuration: one row per entity, and whether a deploy changes it. Compares every file the project deploys (its own, then each component's), or the --config file. Deploys create and update; they never delete, and never update categories. Changes nothing. Exits 0 either way.",
   examples: [
     {
       command: "saleor config diff",
@@ -219,24 +217,37 @@ const diffCommand = config.list({
     },
   ],
   inputs: {
-    config: configInput,
+    config: deployedInput,
     env: envInput,
   },
   name: "diff",
   run: (input) =>
     Effect.gen(function* () {
-      const file = yield* existingConfig(configFile(input.config));
-      yield* validateFile(file);
+      const files = yield* checkedFiles(input.config);
 
       const { instance, store } = yield* connect(input.env);
 
-      const summary = yield* diff(store, file);
+      const rows = yield* Effect.forEach(files, ({ file }) =>
+        Effect.map(diff(store, file), (summary) =>
+          summary.results.map(change).map((each) => ({
+            ...each,
+            config: shown(file),
+            deploy: applies(each),
+          }))
+        )
+      );
 
       return listing(
-        summary.results
-          .map(change)
-          .map((each) => ({ ...each, deploy: applies(each) })),
+        rows.flat(),
         [
+          ...(files.length > 1
+            ? [
+                [
+                  "FILE",
+                  (each: { readonly config: string }) => each.config,
+                ] as const,
+              ]
+            : []),
           ["CHANGE", (each) => each.operation],
           ["ENTITY", (each) => each.entity],
           ["NAME", (each) => each.name],
@@ -246,96 +257,19 @@ const diffCommand = config.list({
             (each) => (each.fields.length > 0 ? each.fields.join(", ") : null),
           ],
         ],
-        `No differences: ${instance.ref} matches ${shown(file)}.`
+        `No differences: ${instance.ref} matches ${filesShown(files)}.`
       );
     }),
   summary: "Show what a deploy would change.",
 });
 
-const deployCommand = config.ensure({
-  description:
-    "Make a store match the configuration file: create and update entities until it has what the file says. The plan lists each change as a sentence, and what a deploy leaves as it is (it never deletes). After applying, it compares again and reports what actually changed. A partial failure exits with DEPLOY_PARTIAL; running it again retries what is left.",
-  examples: [
-    {
-      command: "saleor config deploy",
-      description: "Deploy to the project's environment",
-    },
-    {
-      command: "saleor config deploy staging --dry-run",
-      description: "Show the plan for staging",
-    },
-    {
-      command: "SALEOR_TOKEN=… saleor config deploy cloud:acme/env1",
-      description: "Deploy from CI with a store token",
-    },
-  ],
-  inputs: {
-    config: configInput,
-    env: envInput,
-  },
-  name: "deploy",
-  plan: (input) =>
-    Effect.gen(function* () {
-      const file = yield* existingConfig(configFile(input.config));
-      yield* validateFile(file);
-
-      const { instance, store } = yield* connect(input.env);
-
-      const plan = yield* planDeploy(store, file);
-
-      return {
-        action: plan.deployable.length === 0 ? "reuse" : "update",
-        apply: Effect.gen(function* () {
-          const outcome = yield* applyDeploy({
-            instance,
-            store,
-            file,
-            plan,
-          });
-
-          const remembered = yield* remember(file, instance);
-          const words = deployedText(instance, file, outcome);
-
-          return {
-            data: {
-              applied: outcome.applied,
-              created: false,
-              durationMs: outcome.durationMs,
-              missed: outcome.missed,
-              skipped: outcome.skipped,
-              store: instance.ref,
-            },
-            headline: words.headline,
-            text: [words.text, remembered ?? ""].filter(Boolean).join("\n"),
-          };
-        }),
-        details: {
-          config: shown(file),
-          deployable: plan.deployable,
-          skipped: plan.skipped,
-          store: instance.ref,
-        },
-        risk: null,
-        state: instance.state,
-        summary: [
-          ["Store", instance.ref],
-          ["File", shown(file)],
-          ["Changes", counted(plan.deployable)],
-          ...planRows(plan),
-        ],
-        target: storeTarget(instance),
-      } satisfies Planned<unknown, unknown>;
-    }),
-  summary: "Make a store match a configuration file.",
-});
-
 const statusCommand = config.list({
   description:
-    "For each environment in the project's saleor.yml: whether its store matches the configuration file, and how many changes a deploy would make. Contacts every store. With several environments, SALEOR_TOKEN is not used: each store needs its own saved token.",
+    "For each environment in the project's saleor.yml: whether its store matches the configuration (every file the project deploys, or the --config file), and how many changes a deploy would make. Contacts every store. With several environments, SALEOR_TOKEN is not used: each store needs its own saved token.",
   examples: [
     { command: "saleor config status", description: "Check every environment" },
   ],
-  inputs: { config: configInput },
+  inputs: { config: deployedInput },
   name: "status",
   run: (input) =>
     Effect.gen(function* () {
@@ -351,8 +285,7 @@ const statusCommand = config.list({
         onSome: Effect.succeed,
       });
 
-      const file = yield* existingConfig(configFile(input.config));
-      yield* validateFile(file);
+      const files = yield* checkedFiles(input.config);
 
       // SALEOR_TOKEN belongs to one store; with several, each uses its own token.
       const envToken = project.environments.length === 1;
@@ -375,21 +308,37 @@ const statusCommand = config.list({
               connect(Option.some(ref), { envToken })
             );
 
-            const plan = yield* planDeploy(store, file);
-            const synced = lastInSync(file, ref);
+            const plans = yield* Effect.forEach(files, ({ file }) =>
+              planDeploy(store, file)
+            );
+
+            const deployable = plans.reduce(
+              (total, plan) => total + plan.deployable.length,
+              0
+            );
+
+            // Deployed from here when every file was; as of the oldest of them.
+            const synced = Option.all(
+              files.map(({ file }) => lastInSync(file, ref))
+            );
 
             return {
-              deployable: plan.deployable.length,
+              deployable,
               environment: name,
               lastDeployed: Option.match(synced, {
                 onNone: () => null,
-                onSome: (note) => note.at.toISOString(),
+                onSome: (notes) =>
+                  new Date(
+                    Math.min(...notes.map((note) => note.at.getTime()))
+                  ).toISOString(),
               }),
               ref,
               saleorVersion: instance.saleorVersion,
-              skipped: plan.skipped.length,
-              state:
-                plan.deployable.length === 0 ? "in sync" : "changes to deploy",
+              skipped: plans.reduce(
+                (total, plan) => total + plan.skipped.length,
+                0
+              ),
+              state: deployable === 0 ? "in sync" : "changes to deploy",
             };
           }).pipe(
             Effect.catchTag("CliFailure", (failure) =>
