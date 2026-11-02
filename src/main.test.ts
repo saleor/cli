@@ -1137,6 +1137,214 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     }
   );
 
+  it("installs Saleor App Store apps on a Cloud store, once", async () => {
+    const { cert, key } = testCertificate();
+    const calls: { auth: string | undefined; body: any }[] = [];
+    const apps: { id: string; manifestUrl: string; name: string }[] = [];
+
+    const store = createSecureServer(
+      { cert: readFileSync(cert), key: readFileSync(key) },
+      asyncHandler(async (req, res) => {
+        const chunks: Buffer[] = [];
+
+        for await (const chunk of req) {
+          chunks.push(chunk);
+        }
+
+        const body = JSON.parse(Buffer.concat(chunks).toString());
+        calls.push({ auth: req.headers.authorization, body });
+
+        const answerTo = (query: string) => {
+          if (query.includes("appsInstallations")) {
+            return {
+              apps: {
+                edges: apps.map((node) => ({
+                  node: {
+                    ...node,
+                    identifier: null,
+                    isActive: true,
+                    type: "THIRDPARTY",
+                  },
+                })),
+              },
+              appsInstallations: [],
+            };
+          }
+
+          if (query.includes("appFetchManifest")) {
+            return {
+              appFetchManifest: {
+                errors: [],
+                manifest: {
+                  identifier: null,
+                  name: "From manifest",
+                  permissions: [{ code: "HANDLE_TAXES" }],
+                },
+              },
+            };
+          }
+
+          if (query.includes("appInstall")) {
+            apps.push({
+              id: `app-${apps.length + 1}`,
+              manifestUrl: body.variables.input.manifestUrl,
+              name: body.variables.input.appName,
+            });
+
+            return {
+              started: { appInstallation: { id: "inst" }, errors: [] },
+            };
+          }
+
+          return { shop: { name: "Mock Saleor" } };
+        };
+
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ data: answerTo(body.query) }));
+      })
+    );
+
+    await new Promise<void>((resolve) => {
+      store.listen(0, "127.0.0.1", resolve);
+    });
+
+    try {
+      const address = store.address();
+
+      if (address === null || Predicate.isString(address)) {
+        throw new Error("Expected TCP address");
+      }
+
+      resourceRoutes([
+        { ...environment(), domain: `127.0.0.1:${address.port}` },
+      ]);
+
+      const catalog = {
+        extensionCategories: [
+          {
+            extensions: [
+              {
+                id: "saleor.app.avatax",
+                manifestUrl: "https://avatax.example.test/api/manifest",
+                name: { en: "AvaTax" },
+                type: "APP",
+              },
+              {
+                id: "saleor.app.taxjar",
+                manifestUrl: null,
+                name: { en: "TaxJar" },
+                type: "APP",
+              },
+            ],
+            id: "taxes",
+            name: { en: "Taxes" },
+          },
+          {
+            extensions: ["Strapi", "Contentful"].map((name) => ({
+              id: "saleor.app.cms2",
+              manifestUrl: "https://cms.example.test/api/manifest",
+              name: { en: name },
+              type: "APP",
+            })),
+            id: "cms",
+            name: { en: "CMS" },
+          },
+          {
+            extensions: [
+              { id: "mirumee.oidc", name: { en: "OIDC" }, type: "PLUGIN" },
+            ],
+            id: "other",
+            name: { en: "Other" },
+          },
+        ],
+      };
+
+      const fallback = handler;
+      handler = (method, url, body) =>
+        url.pathname === "/extensions"
+          ? [200, catalog]
+          : fallback(method, url, body);
+
+      const run = async (...args: string[]) =>
+        await cli([...args, "--agent"], {
+          NODE_EXTRA_CA_CERTS: cert,
+          SALEOR_EXTENSIONS_URL: `${base}/extensions`,
+          SALEOR_POLL_INTERVAL_SECONDS: "0.001",
+          SALEOR_TOKEN: "store.secret",
+        });
+
+      // Plugins and apps without a manifest are not offered; one app, one entry.
+      const listed = await run("app", "list", "--store-apps");
+      expect(listed.code, listed.stdout + listed.stderr).toBe(0);
+      expect(
+        listed.data.data.map((each: any) => [each.id, each.name])
+      ).toStrictEqual([
+        ["saleor.app.avatax", "AvaTax"],
+        ["saleor.app.cms2", "CMS (Strapi, Contentful)"],
+      ]);
+
+      const add = ["app", "add", "cloud:acme/env1", "--store-app"];
+
+      const first = await run(...add, "avatax,contentful");
+      expect(first.code, first.stdout + first.stderr).toBe(0);
+      expect(first.data.data).toMatchObject({
+        created: true,
+        installed: ["AvaTax", "CMS (Strapi, Contentful)"],
+        removed: [],
+      });
+      expect(
+        calls
+          .filter((each) => each.body.query.includes("appInstall"))
+          .map((each) => each.body.variables.input)
+      ).toStrictEqual([
+        {
+          activateAfterInstallation: true,
+          appName: "From manifest",
+          manifestUrl: "https://avatax.example.test/api/manifest",
+          permissions: ["HANDLE_TAXES"],
+        },
+        {
+          activateAfterInstallation: true,
+          appName: "From manifest",
+          manifestUrl: "https://cms.example.test/api/manifest",
+          permissions: ["HANDLE_TAXES"],
+        },
+      ]);
+      expect(
+        calls
+          .filter((each) => each.body.query !== "query { shop { name } }")
+          .every((each) => each.auth === "Bearer store.secret")
+      ).toBe(true);
+
+      // Installed apps are reused, and named as coming from the App Store.
+      calls.splice(0);
+      const again = await run(...add, "saleor.app.avatax");
+      expect(again.data.data).toMatchObject({ created: false, installed: [] });
+      expect(calls.some((each) => each.body.query.includes("mutation"))).toBe(
+        false
+      );
+
+      const onStore = await run("app", "list", "cloud:acme/env1");
+      expect(
+        onStore.data.data.map((each: any) => [each.manifestUrl, each.source])
+      ).toStrictEqual([
+        ["https://avatax.example.test/api/manifest", "app-store"],
+        ["https://cms.example.test/api/manifest", "app-store"],
+      ]);
+
+      const unknown = await run(...add, "taxjar");
+      expect(unknown.data.error).toMatchObject({ code: "USAGE_ERROR" });
+      expect(apps).toHaveLength(2);
+    } finally {
+      store.closeAllConnections();
+      await new Promise<void>((resolve) => {
+        store.close(() => {
+          resolve();
+        });
+      });
+    }
+  }, 30_000);
+
   it("reuses an environment named by its key, as the picker gives it", async () => {
     resourceRoutes([environment("env1", "dev")]);
 

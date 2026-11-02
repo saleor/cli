@@ -93,6 +93,7 @@ const setup = (commandRoot?: Command.Command.Any) => {
     await Effect.runPromise(
       execute(argv).pipe(
         Effect.provideService(Prompts, {
+          multiselect: async () => [],
           confirm: async () => true,
           select,
           text,
@@ -614,6 +615,7 @@ it("runs onboarding only for a bare interactive root and supports revisiting it"
     await Effect.runPromise(
       execute(argv).pipe(
         Effect.provideService(Prompts, {
+          multiselect: async () => [],
           confirm: async () => false,
           select,
           text: async () => "",

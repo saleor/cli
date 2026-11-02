@@ -1,4 +1,10 @@
-import { confirm, isCancel, password, text } from "@clack/prompts";
+import {
+  confirm,
+  groupMultiselect,
+  isCancel,
+  password,
+  text,
+} from "@clack/prompts";
 import { Context, Effect, Option, Predicate } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import { spawn } from "node:child_process";
@@ -64,6 +70,13 @@ export interface PromptOperations {
     message: string;
     initialValue?: boolean;
   }) => Promise<boolean | symbol>;
+  // Choices grouped under headings; answers the values ticked, maybe none.
+  readonly multiselect: (options: {
+    back: boolean;
+    message: string;
+    groups: Readonly<Record<string, readonly Choice<string>[]>>;
+    initialValues: readonly string[];
+  }) => Promise<readonly string[] | symbol>;
   readonly select: (options: {
     back: boolean;
     message: string;
@@ -116,6 +129,27 @@ export const Prompts = Context.Reference<PromptOperations>("saleor/Prompts", {
   defaultValue: () => ({
     confirm: async ({ back, ...options }) =>
       await escapable(back, async () => await confirm(options)),
+    multiselect: async ({ back, groups, initialValues, message }) =>
+      await escapable(
+        back,
+        async () =>
+          await groupMultiselect({
+            initialValues: [...initialValues],
+            message,
+            options: Object.fromEntries(
+              Object.entries(groups).map(([heading, choices]) => [
+                heading,
+                choices.map((choice) => ({
+                  ...(choice.hint === undefined ? {} : { hint: choice.hint }),
+                  label: choice.label,
+                  value: choice.value,
+                })),
+              ])
+            ),
+            required: false,
+            selectableGroups: false,
+          })
+      ),
     select: async (options) => (await menuPrompt(options)) ?? "",
     text: async ({ back, ...options }) =>
       await escapable(back, async () => {
@@ -183,6 +217,29 @@ export const askSelect = <A extends string>(options: {
     // SAFETY: the prompt adapter preserves the values supplied in choices; back and cancellation symbols were handled by answered.
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The shared prompt service erases the literal choice union at its adapter boundary.
     return (yield* answered(answer)) as A;
+  });
+
+export const askMultiSelect = <A extends string>(options: {
+  message: string;
+  groups: Readonly<Record<string, readonly Choice<A>[]>>;
+  initialValues: readonly A[];
+}) =>
+  Effect.gen(function* () {
+    const prompts = yield* Prompts;
+    const back = yield* canGoBack;
+
+    const answer = yield* Effect.promise(
+      async () => await prompts.multiselect({ ...options, back })
+    );
+
+    if (Predicate.isSymbol(answer)) {
+      // Escape or Ctrl+C: neither answers with values.
+      return yield* answered<never>(answer);
+    }
+
+    // SAFETY: the prompt adapter answers only values from the choices it was given.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The shared prompt service erases the literal choice union at its adapter boundary.
+    return answer as readonly A[];
   });
 
 export const askText = (options: {

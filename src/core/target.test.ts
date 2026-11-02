@@ -95,6 +95,7 @@ const resolve = (
         kind: options.kind ?? "list",
       }),
       Effect.provideService(Prompts, {
+        multiselect: async () => [],
         confirm: async () => true,
         select,
         text: async () => "",
@@ -190,6 +191,7 @@ it("runs a detour row, asks again, and never lists it as a choice", async () => 
         kind: "ensure",
       }),
       Effect.provideService(Prompts, {
+        multiselect: async () => [],
         confirm: async () => true,
         select,
         text: async () => "",

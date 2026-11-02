@@ -253,3 +253,32 @@ export const uninstall = (store: Store, id: string) =>
       return yield* rejected(store, "delete the app", appDelete.errors);
     }
   });
+
+export type Manifest = Effect.Success<ReturnType<typeof fetchManifest>>;
+
+// Installs from a manifest the store has read, or retries an installation that
+// failed, then waits for the app.
+export const installFrom = (
+  store: Store,
+  app: {
+    readonly failed: Installation | undefined;
+    readonly manifest: Manifest;
+    readonly manifestUrl: string;
+  },
+  deadline: Deadline
+) =>
+  Effect.gen(function* () {
+    const installationId =
+      app.failed === undefined
+        ? yield* install(store, {
+            ...app.manifest,
+            manifestUrl: app.manifestUrl,
+          })
+        : yield* retryInstall(store, app.failed.id);
+
+    return yield* installed(
+      store,
+      { installationId, manifestUrl: app.manifestUrl },
+      deadline
+    );
+  });

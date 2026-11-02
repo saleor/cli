@@ -62,6 +62,7 @@ const setup = (answer: string | symbol) => {
         ]),
         Effect.provideService(SkillInstaller, { install }),
         Effect.provideService(Prompts, {
+          multiselect: async () => [],
           confirm,
           select,
           text: async () => "",
