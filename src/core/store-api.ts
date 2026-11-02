@@ -20,6 +20,8 @@ export interface StoreAnswer {
 }
 
 export interface StoreRequest {
+  // Extra headers, such as a Cloud login sent as `Authorization-Bearer`.
+  readonly headers?: Readonly<Record<string, string>> | undefined;
   readonly query: string;
   // Absent: sent without a token, as anyone may for public data.
   readonly token?: string | undefined;
@@ -49,12 +51,19 @@ const unreachable = (url: string) =>
 // One request. GraphQL errors are part of the answer, not a failure: callers decide
 // whether partial data is useful. Only a store that cannot be reached, or that answers
 // with something other than GraphQL, fails here.
-export const storeRequest = ({ query, token, url, variables }: StoreRequest) =>
+export const storeRequest = ({
+  headers = {},
+  query,
+  token,
+  url,
+  variables,
+}: StoreRequest) =>
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient;
 
     let request = HttpClientRequest.post(url).pipe(
       HttpClientRequest.acceptJson,
+      HttpClientRequest.setHeaders(headers),
       HttpClientRequest.bodyJsonUnsafe(
         variables === undefined ? { query } : { query, variables }
       )

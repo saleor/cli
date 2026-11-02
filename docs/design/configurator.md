@@ -74,16 +74,18 @@ Already have a store? `saleor config pull cloud:acme/abc123` writes its `config.
 
 Decided on 2026-10-28: the config module uses the store token people already supply to Configurator, usually an app token created in the Dashboard. The CLI does not get store access from the Cloud login. That keeps the Cloud team out of the critical path, and every existing Configurator user can switch without new setup.
 
+Amended on 2026-11-02: Cloud stores now also get a token from the Cloud login, the way the previous Saleor CLI did. The login is sent in the store's `Authorization-Bearer` header to create (or reuse) an app named `Saleor CLI`, and that app's token is saved under the ref. It runs as step 3, so `SALEOR_TOKEN` and saved tokens still win, and a store that refuses the login falls through to the prompt.
+
 There are two APIs with different credentials:
 
-- **The Cloud API** (`cloud.saleor.io`) creates and lists environments. `saleor login` gets its token. That token does not work against a store, and is never sent to one.
+- **The Cloud API** (`cloud.saleor.io`) creates and lists environments. `saleor login` gets its token. It is never sent as a store's `Authorization`; only step 3 sends it, as `Authorization-Bearer`, to make an app token.
 - **A store's API** (each environment's `…/graphql/`) is what Configurator reads and writes. It needs a store token.
 
 Credentials are resolved like targets:
 
 1. `SALEOR_TOKEN`, if set. This is how CI keeps working: the same secret it holds today, under the name the CLI uses.
 2. The token saved for this ref in the secret store.
-3. For local instances, the admin login the CLI generated: `tokenCreate`, silently, because the CLI made that store. This works through an optional `access(id)` capability in core, so the config module does not import the local module.
+3. For local instances, the admin login the CLI generated: `tokenCreate`, silently, because the CLI made that store. For Cloud stores, an app token made with the Cloud login, as described above. This works through an optional `access(id)` capability in core, so the config module does not import the local module.
 4. Interactively, a hidden prompt for the token, which says where to create one in the Dashboard (**Apps → Create app**, with the permissions the configuration needs). The CLI offers to save it under the ref.
 5. Otherwise `STORE_AUTH_REQUIRED`, whose suggestion names `SALEOR_TOKEN` and the prompt.
 

@@ -251,6 +251,49 @@ const resourceRoutes = (envs: ReturnType<typeof environment>[] = []) => {
   };
 };
 
+// A fresh, trusted certificate for 127.0.0.1, for mock stores served over HTTPS as
+// Cloud stores are; pass `cert` as NODE_EXTRA_CA_CERTS.
+const testCertificate = () => {
+  const cert = path.join(cwd, "cert.pem");
+  const key = path.join(cwd, "key.pem");
+  const config = path.join(cwd, "openssl.cnf");
+  writeFileSync(
+    config,
+    `[req]
+distinguished_name=dn
+x509_extensions=extensions
+prompt=no
+[dn]
+CN=CLI test server
+[extensions]
+subjectAltName=IP:127.0.0.1
+basicConstraints=critical,CA:TRUE
+`
+  );
+  // A fresh, trusted test certificate keeps production TLS verification enabled.
+  execFileSync(
+    "openssl",
+    [
+      "req",
+      "-x509",
+      "-newkey",
+      "rsa:2048",
+      "-nodes",
+      "-days",
+      "1",
+      "-config",
+      config,
+      "-keyout",
+      key,
+      "-out",
+      cert,
+    ],
+    { stdio: "ignore" }
+  );
+
+  return { cert, key };
+};
+
 describe("real CLI process", () => {
   it.each(["config", "configurator"])(
     "%s validates offline through the library with only the CLI JSON envelope",
@@ -294,42 +337,7 @@ describe("real CLI process", () => {
   });
 
   it("runs an agent's Cloud lifecycle against a stateful mock Saleor", async () => {
-    const cert = path.join(cwd, "cert.pem");
-    const key = path.join(cwd, "key.pem");
-    const config = path.join(cwd, "openssl.cnf");
-    writeFileSync(
-      config,
-      `[req]
-distinguished_name=dn
-x509_extensions=extensions
-prompt=no
-[dn]
-CN=CLI test server
-[extensions]
-subjectAltName=IP:127.0.0.1
-basicConstraints=critical,CA:TRUE
-`
-    );
-    // A fresh, trusted test certificate keeps production TLS verification enabled.
-    execFileSync(
-      "openssl",
-      [
-        "req",
-        "-x509",
-        "-newkey",
-        "rsa:2048",
-        "-nodes",
-        "-days",
-        "1",
-        "-config",
-        config,
-        "-keyout",
-        key,
-        "-out",
-        cert,
-      ],
-      { stdio: "ignore" }
-    );
+    const { cert, key } = testCertificate();
 
     const probes: {
       path: string | undefined;
@@ -871,6 +879,140 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       ])
     );
   });
+
+  it("makes a Cloud store's token with the Cloud login, then reuses it", async () => {
+    const { cert, key } = testCertificate();
+    const received: {
+      auth: string | undefined;
+      bearer: string | undefined;
+      body: any;
+    }[] = [];
+    const apps: { id: string; name: string }[] = [];
+
+    const store = createSecureServer(
+      { cert: readFileSync(cert), key: readFileSync(key) },
+      asyncHandler(async (req, res) => {
+        const chunks: Buffer[] = [];
+
+        for await (const chunk of req) {
+          chunks.push(chunk);
+        }
+
+        const body = JSON.parse(Buffer.concat(chunks).toString());
+        const bearer = req.headers["authorization-bearer"];
+        received.push({
+          auth: req.headers.authorization,
+          bearer: Array.isArray(bearer) ? bearer.join() : bearer,
+          body,
+        });
+
+        let data: object = { shop: { name: "Mock Saleor" } };
+
+        if (body.query.includes("userPermissions")) {
+          data = {
+            apps: { edges: apps.map((node) => ({ node })) },
+            me: {
+              userPermissions: [
+                { code: "MANAGE_APPS" },
+                { code: "MANAGE_PRODUCTS" },
+              ],
+            },
+          };
+        } else if (body.query.includes("appCreate")) {
+          apps.push({ id: "QXBwOjE=", name: body.variables.name });
+          data = { issued: { authToken: "app.token.1", errors: [] } };
+        } else if (body.query.includes("appTokenCreate")) {
+          data = { issued: { authToken: "app.token.2", errors: [] } };
+        }
+
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ data }));
+      })
+    );
+
+    await new Promise<void>((resolve) => {
+      store.listen(0, "127.0.0.1", resolve);
+    });
+
+    try {
+      const address = store.address();
+
+      if (address === null || Predicate.isString(address)) {
+        throw new Error("Expected TCP address");
+      }
+
+      resourceRoutes([
+        { ...environment(), domain: `127.0.0.1:${address.port}` },
+      ]);
+
+      const call = async () => {
+        const out = await cli(
+          [
+            "api",
+            "call",
+            "cloud:acme/env1",
+            "--query",
+            "{ shop { name } }",
+            "--agent",
+          ],
+          { NODE_EXTRA_CA_CERTS: cert }
+        );
+        expect(out.code, out.stdout + out.stderr).toBe(0);
+        expect(out.data.data).toStrictEqual({ shop: { name: "Mock Saleor" } });
+
+        return received
+          .splice(0)
+          .filter((each) => each.body.query !== "query { shop { name } }");
+      };
+      const credentialsFile = path.join(cwd, "config/credentials.json");
+      const saved = () =>
+        JSON.parse(readFileSync(credentialsFile, "utf-8"))[
+          "store:cloud:acme/env1"
+        ];
+
+      // First run: the login creates the app, with what its owner may grant.
+      const first = await call();
+      expect(first.map((each) => each.bearer)).toStrictEqual([
+        "test.secret",
+        "test.secret",
+        undefined,
+      ]);
+      expect(first[1]?.body.variables).toStrictEqual({
+        name: "Saleor CLI",
+        permissions: ["MANAGE_APPS", "MANAGE_PRODUCTS"],
+      });
+      // The login never goes in Authorization; the store request uses the app token.
+      expect(first.map((each) => each.auth)).toStrictEqual([
+        undefined,
+        undefined,
+        "Bearer app.token.1",
+      ]);
+      expect(saved()).toBe("app.token.1");
+
+      // Second run: the saved token, without asking the store for another.
+      const second = await call();
+      expect(second.map((each) => each.auth)).toStrictEqual([
+        "Bearer app.token.1",
+      ]);
+      expect(second.every((each) => each.bearer === undefined)).toBe(true);
+
+      // Without a saved token, the app the CLI made gets a new token.
+      writeFileSync(credentialsFile, "{}\n");
+      const third = await call();
+      expect(third[1]?.body.query).toContain("appTokenCreate");
+      expect(third[1]?.body.variables.app).toBe("QXBwOjE=");
+      expect(third.at(-1)?.auth).toBe("Bearer app.token.2");
+      expect(apps).toHaveLength(1);
+      expect(saved()).toBe("app.token.2");
+    } finally {
+      store.closeAllConnections();
+      await new Promise<void>((resolve) => {
+        store.close(() => {
+          resolve();
+        });
+      });
+    }
+  }, 30_000);
 
   it("requires an explicit target in unattended commands", async () => {
     const outputs = await Promise.all(

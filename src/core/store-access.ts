@@ -4,14 +4,14 @@ import type { ResolvedInstance } from "./instances.ts";
 import { askConfirm, askText, isInteractive, required } from "./interaction.ts";
 import { SecretStore } from "./secret-store.ts";
 
-// Credentials for a store's own GraphQL API, which are not the Cloud login: that one
-// is for the Cloud API and never sent to a store. People supply a store token as they
-// do for Configurator today, usually an app token made in the store's Dashboard.
+// Credentials for a store's own GraphQL API, which are not the Cloud login. People
+// supply a store token as they do for Configurator today, usually an app token made in
+// the store's Dashboard.
 //
 // This is the one place commands get a store token. A source that can get one by
 // itself plugs in through `InstanceSource.access`: local instances sign in as the
-// admin the CLI created. Saleor Cloud will provision one through the Cloud login the
-// same way; until then, its stores fall through to a token people supply.
+// admin the CLI created, and Cloud stores get an app token made with the Cloud login
+// (modules/cloud/store-access.ts). When a source cannot, people supply one.
 
 export const storeTokenKey = (ref: string) => `store:${ref}`;
 

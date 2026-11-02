@@ -77,7 +77,7 @@ pnpm saleor api call local --query '{ shop { name } }'
 pnpm saleor api call staging --file products.graphql --variables '{"first": 10}'
 ```
 
-`api call` sends one GraphQL request and prints the data. It finds the token for you: `SALEOR_TOKEN`, a token saved for the store, a local store's own admin login, or a prompt that offers to save what you paste. Make that token in the store's Dashboard (Apps → Create app). `--anonymous` sends none, for public data.
+`api call` sends one GraphQL request and prints the data. It finds the token for you: `SALEOR_TOKEN`, a token saved for the store, a local store's own admin login, an app token made with your Cloud login for a Cloud store (an app named `Saleor CLI`), or a prompt that offers to save what you paste. Make that token in the store's Dashboard (Apps → Create app). `--anonymous` sends none, for public data.
 
 ## Receive webhooks while you build
 
