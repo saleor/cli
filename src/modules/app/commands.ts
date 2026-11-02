@@ -139,10 +139,12 @@ const addCommand = app.ensure({
       }
 
       const manifestUrl = input.manifest.value;
+
       const store = yield* connect(
         input.env,
         "MANAGE_APPS and the permissions the app asks for"
       );
+
       const deadline = deadlineIn(input.timeout);
       const { apps, installations } = yield* appsOn(store);
       const existing = apps.find((each) => each.manifestUrl === manifestUrl);
@@ -167,7 +169,11 @@ const addCommand = app.ensure({
         return {
           action: "reuse",
           apply: Effect.map(
-            installed(store, earlier.id, manifestUrl, deadline),
+            installed(
+              store,
+              { installationId: earlier.id, manifestUrl },
+              deadline
+            ),
             (made) => done(store, made, true)
           ),
           details: { installation: earlier },
@@ -190,7 +196,11 @@ const addCommand = app.ensure({
 
           return done(
             store,
-            yield* installed(store, installation, manifestUrl, deadline),
+            yield* installed(
+              store,
+              { installationId: installation, manifestUrl },
+              deadline
+            ),
             true
           );
         }),

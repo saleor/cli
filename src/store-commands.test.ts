@@ -508,6 +508,7 @@ describe("app", () => {
     manifestUrl: string;
     name: string;
   }[];
+
   let installing: {
     appName: string;
     id: string;
@@ -572,7 +573,7 @@ describe("app", () => {
 
   const mutations = () =>
     store
-      .map((each) => each.body.query as string)
+      .map((each): string => each.body.query)
       .filter((query) => query.trimStart().startsWith("mutation"))
       .map((query) => /(app[A-Za-z]+)\(/.exec(query)?.[1]);
 

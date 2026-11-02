@@ -192,8 +192,10 @@ export const retryInstall = (store: Store, installationId: string) =>
 // Waits until the installation is gone and the app with its manifest URL exists.
 export const installed = (
   store: Store,
-  installationId: string,
-  manifestUrl: string,
+  {
+    installationId,
+    manifestUrl,
+  }: { readonly installationId: string; readonly manifestUrl: string },
   deadline: Deadline
 ) =>
   Effect.gen(function* () {
