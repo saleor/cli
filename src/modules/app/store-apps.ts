@@ -42,18 +42,10 @@ const cloudOnly = (store: Store) =>
       )
     : Effect.void;
 
-const choiceOf = (each: StoreApp, installedUrls: ReadonlySet<string>) => {
-  const choice: { hint?: string; label: string; value: string } = {
-    label: each.name,
-    value: each.manifestUrl,
-  };
-
-  if (installedUrls.has(each.manifestUrl)) {
-    choice.hint = "installed";
-  }
-
-  return choice;
-};
+const choiceOf = (each: StoreApp, installedUrls: ReadonlySet<string>) =>
+  installedUrls.has(each.manifestUrl)
+    ? { hint: "installed", label: each.name, value: each.manifestUrl }
+    : { label: each.name, value: each.manifestUrl };
 
 const pick = (
   catalog: readonly StoreApp[],
@@ -175,6 +167,7 @@ const applyChanges = (store: Store, changes: Changes, deadline: Deadline) =>
 
     for (const { each, manifest } of changes.manifests) {
       const { manifestUrl } = each;
+
       const pending = changes.installations.find(
         (installation) => installation.manifestUrl === manifestUrl
       );

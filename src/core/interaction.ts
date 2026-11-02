@@ -139,19 +139,9 @@ export const Prompts = Context.Reference<PromptOperations>("saleor/Prompts", {
             options: Object.fromEntries(
               Object.entries(groups).map(([heading, choices]) => [
                 heading,
-                choices.map((choice) => {
-                  const option: {
-                    hint?: string;
-                    label: string;
-                    value: string;
-                  } = { label: choice.label, value: choice.value };
-
-                  if (choice.hint !== undefined) {
-                    option.hint = choice.hint;
-                  }
-
-                  return option;
-                }),
+                choices.map(({ hint, label, value }) =>
+                  hint === undefined ? { label, value } : { hint, label, value }
+                ),
               ])
             ),
             required: false,
