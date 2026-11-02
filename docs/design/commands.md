@@ -92,7 +92,7 @@ Menus are generated from the registered commands, never written by hand:
 
 ## `init`
 
-`init` is composed in `src/core/setup.ts` from **setup providers** that modules contribute through `defineModule({ setup })`. The default provider (Cloud) needs no flag; every other provider has one (`--local`).
+`init` is composed in `src/core/setup.ts` from **setup providers** that modules contribute through `defineModule({ setup })`. Every provider has a flag (`--cloud`, `--local`). The default one (Cloud) is used without its flag outside a terminal; in a terminal, its flag skips asking where the store should run, as onboarding does when it hands over to `init`.
 
 The provider is chosen in this order:
 

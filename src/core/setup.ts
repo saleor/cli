@@ -224,8 +224,13 @@ const extend = <R>(
 const isSet = (value: InputValue | undefined) =>
   Option.isOption(value) ? Option.isSome(value) : value === true;
 
+// The flag that names a provider on the command line: its own (`--local`), or its
+// name for the default one (`--cloud`), which is used without it outside a terminal.
+const selectorOf = <R>(provider: SetupProvider<R>) =>
+  provider.flag ?? provider.name;
+
 // Which provider sets up a store, shared by `init` and `env add`: the default one,
-// a flag for each other one (`--local`), and the rules below for choosing.
+// a flag for each provider (`--cloud`, `--local`), and the rules below for choosing.
 export const providerChoice = <R>(providers: readonly SetupProvider<R>[]) => {
   const [fallback, ...others] = [
     ...providers.filter((p) => p.flag === undefined),
@@ -237,11 +242,13 @@ export const providerChoice = <R>(providers: readonly SetupProvider<R>[]) => {
   }
 
   const selectors: Record<string, Input<boolean>> = Object.fromEntries(
-    others.map((p) => [
-      p.flag ?? p.name,
+    [fallback, ...others].map((p) => [
+      selectorOf(p),
       option.boolean(
-        p.flag ?? p.name,
-        `Set up with ${p.label} (${p.hint}) instead of ${fallback.label}.`
+        selectorOf(p),
+        p === fallback
+          ? `Set up with ${p.label} (${p.hint}), the default, without asking where in a terminal.`
+          : `Set up with ${p.label} (${p.hint}) instead of ${fallback.label}.`
       ),
     ])
   );
@@ -250,14 +257,13 @@ export const providerChoice = <R>(providers: readonly SetupProvider<R>[]) => {
     fallback,
     others,
     selectors,
-    ...providerSelection(providers, fallback, others),
+    ...providerSelection(providers, fallback),
   };
 };
 
 const providerSelection = <R>(
   providers: readonly SetupProvider<R>[],
-  fallback: SetupProvider<R>,
-  others: readonly SetupProvider<R>[]
+  fallback: SetupProvider<R>
 ) => {
   const typedBy = (provider: SetupProvider<R>, input: InputValues) =>
     Object.entries(provider.inputs)
@@ -274,7 +280,7 @@ const providerSelection = <R>(
       return Effect.fail(
         fail(
           "USAGE_ERROR",
-          `Choose one of ${selected.map((p) => `--${p.flag}`).join(", ")}.`
+          `Choose one of ${selected.map((p) => `--${selectorOf(p)}`).join(", ")}.`
         )
       );
     }
@@ -287,7 +293,7 @@ const providerSelection = <R>(
     }
 
     const parts = [
-      ...(chosen === undefined ? [] : [`--${chosen.flag}`]),
+      ...(chosen === undefined ? [] : [`--${selectorOf(chosen)}`]),
       ...clashing.map(
         (p) => `${p.label} flags (${typedBy(p, input).join(", ")})`
       ),
@@ -307,7 +313,7 @@ const providerSelection = <R>(
     Effect.gen(function* () {
       const chosen = yield* requireOneProvider(
         input,
-        others.filter((p) => input[p.flag ?? p.name] === true),
+        providers.filter((p) => input[selectorOf(p)] === true),
         providers.filter((p) => typedBy(p, input).length > 0)
       );
 
