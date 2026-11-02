@@ -84,7 +84,7 @@ See `pnpm saleor --help` for more commands and [known limitations](limitations.m
 
 ## Local instances
 
-`init` creates a store, with an optional storefront. Cloud is the default for existing scripts; `--local` selects Docker:
+`init` creates a store, with an optional storefront. Cloud is the default for existing scripts; `--local` selects Docker, and `--cloud` selects Cloud without the question a terminal otherwise asks:
 
 ```sh
 pnpm saleor init --local --name demo --sample-data
