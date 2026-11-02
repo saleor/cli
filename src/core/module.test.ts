@@ -13,12 +13,12 @@ const module = (name: string, word: string) =>
 
 it("rejects conflicting module ownership", () => {
   expect(() =>
-    collectCommands([module("cloud", "env"), module("local", "env")])
+    collectCommands([module("cloud", "store"), module("local", "store")])
   ).toThrow('claimed by both "cloud" and "local"');
 });
 
-it("reserves core command words", () => {
-  expect(() => collectCommands([module("cloud", "commands")])).toThrow(
+it.each(["commands", "env", "init"])("reserves the core word %s", (word) => {
+  expect(() => collectCommands([module("cloud", word)])).toThrow(
     'claimed by both "core" and "cloud"'
   );
 });

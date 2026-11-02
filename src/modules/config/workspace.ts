@@ -22,7 +22,7 @@ export const workspaceConfigurationLive = Layer.succeed(
         if (deployed.missed.length > 0) {
           return yield* fail(
             "DEPLOY_PARTIAL",
-            "Local configuration is incomplete. Run saleor local up to retry."
+            `The configuration is incomplete in ${instance.ref}. Run the same command again to retry.`
           );
         }
       }),

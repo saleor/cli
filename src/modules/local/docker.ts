@@ -37,7 +37,7 @@ const dockerFailure = (
     `Docker ${pulling ? "could not download the images" : "command failed"}: ${stderr.trim() || `exit ${code}`}`,
     {
       details: { args, stderr },
-      suggestion: `Check Docker and retry the same command. List instances and their state with: ${command("local", "list")}`,
+      suggestion: `Check Docker and retry the same command. List instances and their state with: ${command("env", "list")}`,
     }
   );
 };

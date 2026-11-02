@@ -34,7 +34,6 @@ it.each([true, false])(
             kind: "cloud",
             label: "Cloud",
             list: Effect.succeed([]),
-            listCommand: "saleor env list",
             populate,
           },
         ])
@@ -81,7 +80,7 @@ it("skips the sample export without credentials and preserves the existing file"
 
     expect(outcome.config).toBeNull();
     expect(outcome.lines.join("\n")).toContain(
-      "saleor config pull --instance cloud:org/key"
+      "saleor config pull cloud:org/key"
     );
     expect(readFileSync(file, "utf-8")).toBe("shop: {name: Existing}\n");
   } finally {

@@ -1,32 +1,52 @@
 # Command conventions
 
-The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), log in and out, see what stores exist (`env list`, `local list`) and get rid of one (`env delete`, `local delete`), and start a storefront connected to one (`storefront create`) or choose its backend (`storefront env`). `init` creates a store and supports retries by explicit name. `local up` starts an existing local store. Login is a step within Cloud actions when required; explicit login and logout commands remain available outside the exploratory menu. Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
+The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), see the stores there are and start, stop, add or remove one (`env`), keep a store's configuration as code (`config`), and connect a storefront to one (`storefront`). Login is a step within Cloud actions when required; explicit `login` and `logout` remain available outside the exploratory menu. Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
+
+## Grammar
+
+A command reads as a short sentence: `saleor <noun> <verb> [<env>] [flags]`.
+
+```
+saleor init                         saleor config status
+saleor env list                     saleor config diff     [<env>]
+saleor env add <name>               saleor config deploy   [<env>]
+saleor env start  [<env>]           saleor config pull     [<env>]
+saleor env stop   [<env>]           saleor config edit     "<description>"
+saleor env remove [<env>]           saleor storefront create [<env>]
+saleor login | logout               saleor storefront use    [<env>]
+```
+
+- **Three nouns.** `env` (the stores a project works with), `config` (their configuration) and `storefront`. Top-level verbs (`init`, `login`, `logout`, `onboard`, `commands`) are about the CLI or a new project, not a resource.
+- **One way to name a store.** The word after the verb, `<env>`: a name from `saleor.yml` (`local`, `staging`) or a store ref (`local:<name>`, `cloud:<org>/<env key>`) for any store, inside a project or not. No command but `init` names a store with a flag. `<env>` defaults to `SALEOR_ENV`, then the project's only environment, then a question.
+- **Where a store runs is configuration, not a command.** Local and Cloud stores answer the same commands. Each module that runs stores is an adapter behind `env` (an instance source, below), as a database adapter is behind Rails' `db:migrate`. A source that cannot do something (stop a Cloud environment) is refused with a usage error, not given its own command.
+- **A closed set of verbs, in pairs.** Each kind has its verbs, and a verb means the same change everywhere: `add`/`remove`, `start`/`stop`, `pull`/`deploy`. A new verb is a decision made in `src/core/conventions.test.ts`, not in passing.
 
 Every command is an action of one **kind**. The kind is the policy: which flags exist, how targets are found, when it asks for confirmation, what `--dry-run` does, how its result is shaped and what the catalog says about its safety. A command declares its kind and supplies only what is specific to it. It does not implement any of the rules below itself.
 
-The rules live in `src/core/action.ts` (kinds), `src/core/target.ts` (targets), `src/core/errors.ts` (error codes) and `src/core/invocation.ts` (hints). `src/core/conventions.test.ts` checks every registered command against them.
+The rules live in `src/core/action.ts` (kinds), `src/core/target.ts` (targets), `src/core/instances.ts` and `src/core/workspace.ts` (`<env>`), `src/core/errors.ts` (error codes) and `src/core/invocation.ts` (hints). `src/core/conventions.test.ts` checks every registered command against them, grammar included.
 
 ## Kinds
 
 | Kind | Examples | Adds | Result `data` | Text |
 | --- | --- | --- | --- | --- |
-| `list` | `env list`, `local list` | — | array of items | table, or an empty-state line |
-| `ensure` | `init`, `local up`, `storefront create`, `storefront env` | `--dry-run`; `--timeout` if it waits | the resource plus `created` | `✓ <target> is ready (created \| already existed).` then details |
-| `remove` | `env delete`, `local down`, `local delete` | `--dry-run`, `--force`; `--timeout` if it waits | `{ action, existed, target, … }` | `✓ Deleted <target>.`, `✓ Stopped <target>.`, or `✓ <target> does not exist; nothing to do.` |
-| `session` | `login`, `logout`, `commands` | — | about the CLI or its login | free text |
+| `list` | `env list`, `config status`, `config diff` | — | array of items | table, or an empty-state line |
+| `ensure` | `init`, `env add`, `env start`, `config deploy`, `storefront create`, `storefront use` | `--dry-run`; `--timeout` if it waits | the resource plus `created` | `✓ <target> is ready (created \| already existed).` then details |
+| `remove` | `env stop`, `env remove` | `--dry-run`; `--force` if it can lose data; `--timeout` if it waits | `{ action, existed, target, … }` | `✓ Deleted <target>.`, `✓ Stopped <target>.`, or `✓ <target> does not exist; nothing to do.` |
+| `session` | `login`, `logout`, `config validate`, `commands` | — | about the CLI or its login | free text |
 
-A module gets its definers from `defineActions(policy)`. A policy applies to every action of the module. For example, Cloud offers a browser login before any Cloud action. Groups (`env`, `local`) are declared with `defineGroup` and have no behavior of their own.
+A module gets its definers from `defineActions(policy)`. A policy applies to every action of the module. Groups (`env`, `config`, `storefront`) are declared with `defineGroup` and have no behavior of their own.
 
 ## Targets
 
-A target is anything a command acts on: an organization, project, environment or local instance. Every target is declared once with `target()` and resolved the same way:
+A target is anything a command acts on: a store (`<env>`), or, in `init`, an organization, project or new instance. Every target is declared once with `target()` and resolved the same way:
 
 1. The flag or argument, if given.
-2. Its environment variable (`SALEOR_ORG`, `SALEOR_PROJECT`, `SALEOR_ENV`). **`remove` actions never read these**: a deletion acts only on what the command line or a person named.
-3. In a terminal, a list of the existing ones to pick from, plus "create a new one" where the action creates it. Nothing is pre-selected, not even when only one exists.
-4. Otherwise `CONTEXT_MISSING` (exit 2). The error lists the choices in `details.choices` and says how to pass the target.
+2. Its environment variable (`SALEOR_ENV`; `SALEOR_ORG` and `SALEOR_PROJECT` in `init`). **`remove` actions never read these**: a stop or deletion acts only on what the command line or a person named.
+3. For `<env>` inside a project: the project's only environment (not for `remove` actions), else a pick among its environments.
+4. In a terminal, a list of the existing ones to pick from, plus "create a new one" where the action creates it. Nothing is pre-selected, not even when only one exists.
+5. Otherwise `CONTEXT_MISSING` (exit 2). The error lists the choices in `details.choices` and says how to pass the target.
 
-The parser never requires a target. A positional target is optional to the parser so that step 4, not a parser error, reports it. Filters such as `env list --project` take only steps 1 and 2 and are never asked for. Validation (`check`) applies however a value arrived, typed or answered.
+The parser never requires a target. A positional target is optional to the parser so that step 5, not a parser error, reports it. Validation (`check`) applies however a value arrived, typed or answered.
 
 Answers given at prompts are recorded. Every hint that says what to run next includes them, so the next run asks nothing and cannot pick something else.
 
@@ -58,14 +78,14 @@ Every error code, with its exit code and whether retrying can help, is listed in
 
 ## Hints
 
-Any command written into a message, suggestion or result is built with `command(...)` or `rerunCommand(...)`. These quote every word, so a pasted hint is the same command. Cloud hints carry the scope they need (`--org`, `--project`).
+Any command written into a message, suggestion or result is built with `command(...)` or `rerunCommand(...)`. These quote every word, so a pasted hint is the same command. A hint names a store as a person would type it here: its name in `saleor.yml` when it has one (`envWord`), else its ref.
 
 ## Menus
 
 Menus are generated from the registered commands, never written by hand:
 
 - `saleor` alone, or a person finishing `login`, opens the **home menu**. It lists every top-level command and is offered again after each one, until Exit.
-- A bare group (`saleor env`) offers that group's actions once; the chosen one runs and the command finishes.
+- A bare group (`saleor env`) offers that group's actions once; the chosen one runs and the command finishes. The menu is the same wherever a person works: local and Cloud stores are one `env` group.
 - Help, `--dry-run`, unattended runs and invalid commands never open a menu.
 - Ctrl-C exits 130.
 
@@ -84,6 +104,10 @@ Environment variables never choose a provider. Typing flags of two providers is 
 
 Modules that build on a store contribute a **setup extension** (`defineModule({ setupExtension })`) instead of a provider. Its questions come after the provider's, once everything needed for the store is known. Its plan joins the store's plan, so `--dry-run` and the review show it. Its preparation runs while the store is set up, and it finishes with whichever store the provider made. Its result sits under its name in `init`'s result (`data.storefront`).
 
-## Stores across modules
+## Environments and sources
 
-A command that works with a store wherever it runs takes it as a ref with `--instance` (`SALEOR_INSTANCE`): `cloud:<org>/<env key>` or `local:<name>`. Modules that run stores contribute an **instance source** (`defineModule({ instances })`) that lists and finds their instances; `src/core/instances.ts` resolves the ref through them and builds the picker from all of them. A source that needs a login shows a "Log in to …" row in the picker instead of failing it (a **detour** in `target.ts`: a row that does something and then asks again). Modules never import each other.
+`env` is core, like `init`: modules never own it. A module that runs stores contributes an **instance source** (`defineModule({ instances })`, `src/core/instance.ts`): how to list and find its stores, and the lifecycle steps it can carry out (`start`, `stop`, `remove`), each returning a plan like any other action. `env` resolves `<env>` to a ref, picks the source by the ref's kind and hands it the step; `src/core/environments.ts` holds the commands and knows no provider. Today the local source starts, stops and removes; the Cloud source removes sandboxes.
+
+A source that needs a login shows a "Log in to …" row in the picker instead of failing it (a **detour** in `target.ts`: a row that does something and then asks again), and an explicit ref that needs one offers it at a terminal. Modules never import each other.
+
+`env add <name>` sets up a store with the same **setup providers** as `init` (each says how a project's environment names its store: a Cloud environment of the same name, a local instance named after the project), then names it in `saleor.yml`: a Cloud store by its ref, a local one as a definition every checkout creates its own instance from. `env remove` deletes the store and, for a ref, its name; a local definition stays, so `env start` creates it again.

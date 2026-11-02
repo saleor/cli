@@ -1,11 +1,6 @@
-import { defineActions } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
 import { target } from "../../core/target.ts";
-import { ensureSignedIn } from "./auth/sign-in.ts";
 import { organizationChoices } from "./lookup.ts";
-
-// Every Cloud action offers a login first, when a person is at a terminal.
-export const cloud = defineActions({ before: ensureSignedIn });
 
 export const organization = target({
   env: "SALEOR_ORG",
@@ -23,8 +18,9 @@ export const project = target({
   noun: "project",
 });
 
+// The name of a new Cloud environment in `init`. SALEOR_ENV is not read here: it names
+// the environment a command acts on (see core/workspace.ts), not one to create.
 export const environment = target({
-  env: "SALEOR_ENV",
   identifiedBy: "name or key",
   metavar: "env",
   name: "env",

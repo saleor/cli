@@ -13,6 +13,7 @@ import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 import { configDir, SecretStore } from "../../core/secret-store.ts";
+import { envWord } from "../../core/workspace.ts";
 import {
   composeTemplate,
   type LocalConfig,
@@ -22,12 +23,12 @@ import {
 const NAME_PATTERN = /^[a-z][a-z0-9-]{0,39}$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
+// The command that starts a local instance, for hints.
+export const startCommand = (name: string, ...extra: readonly string[]) =>
+  command("env", "start", envWord(`local:${name}`), ...extra);
+
 // Why a local instance name is not allowed, if it is not. Names become Docker project
 // names and directory names, so they are restricted before anything else runs.
-// The command that creates or starts a local instance, for hints.
-export const startCommand = (name: string, ...extra: readonly string[]) =>
-  command("local", "up", "--name", name, ...extra);
-
 export const nameProblem = (name: string) =>
   NAME_PATTERN.test(name)
     ? undefined

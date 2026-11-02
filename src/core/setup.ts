@@ -45,10 +45,19 @@ export interface SetupProvider<R> {
   readonly inputs: Inputs;
   readonly label: string;
   readonly name: string;
+  // How `env add <name>` names the store it sets up for a project's environment.
+  readonly naming: Naming;
   readonly plan: (
     input: InputValues & KindValues
   ) => Effect.Effect<Planned<Ensured<SetupResult>, R>, CliFailure, R>;
   readonly requirement: Requirement<R> | undefined;
+}
+
+export interface Naming {
+  // The input that takes the store's name, which `env add` fills in instead.
+  readonly input: string;
+  // The store's name for environment `alias` of project `project`.
+  readonly name: (project: string, alias: string) => string;
 }
 
 // Something a provider needs before it can set up a store, such as a Cloud login.
@@ -74,6 +83,7 @@ export const defineSetup = <
   readonly inputs: I;
   readonly label: string;
   readonly name: string;
+  readonly naming: Naming & { readonly input: keyof I & string };
   readonly plan: (
     input: Values<I> & KindValues
   ) => Effect.Effect<Planned<Ensured<A>, RA>, CliFailure, R>;
@@ -86,6 +96,7 @@ export const defineSetup = <
   inputs: provider.inputs,
   label: provider.label,
   name: provider.name,
+  naming: provider.naming,
   plan: (input) =>
     // SAFETY: `init` declares every provider's inputs on one command and passes the parsed record, so the keys of `I` hold the values its inputs parse to.
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The combined command parses these exact provider inputs before invoking this adapter.
@@ -213,6 +224,36 @@ const extend = <R>(
 const isSet = (value: InputValue | undefined) =>
   Option.isOption(value) ? Option.isSome(value) : value === true;
 
+// Which provider sets up a store, shared by `init` and `env add`: the default one,
+// a flag for each other one (`--local`), and the rules below for choosing.
+export const providerChoice = <R>(providers: readonly SetupProvider<R>[]) => {
+  const [fallback, ...others] = [
+    ...providers.filter((p) => p.flag === undefined),
+    ...providers.filter((p) => p.flag !== undefined),
+  ];
+
+  if (fallback === undefined || fallback.flag !== undefined) {
+    throw new Error("Exactly one setup provider must be the default.");
+  }
+
+  const selectors: Record<string, Input<boolean>> = Object.fromEntries(
+    others.map((p) => [
+      p.flag ?? p.name,
+      option.boolean(
+        p.flag ?? p.name,
+        `Set up with ${p.label} (${p.hint}) instead of ${fallback.label}.`
+      ),
+    ])
+  );
+
+  return {
+    fallback,
+    others,
+    selectors,
+    ...providerSelection(providers, fallback, others),
+  };
+};
+
 const providerSelection = <R>(
   providers: readonly SetupProvider<R>[],
   fallback: SetupProvider<R>,
@@ -330,24 +371,8 @@ export const setupCommand = <R>(
   providers: readonly SetupProvider<R>[],
   extensions: readonly SetupExtension<R>[] = []
 ) => {
-  const [fallback, ...others] = [
-    ...providers.filter((p) => p.flag === undefined),
-    ...providers.filter((p) => p.flag !== undefined),
-  ];
-
-  if (fallback === undefined || fallback.flag !== undefined) {
-    throw new Error("Exactly one setup provider must be the default.");
-  }
-
-  const selectors: Record<string, Input<boolean>> = Object.fromEntries(
-    others.map((p) => [
-      p.flag ?? p.name,
-      option.boolean(
-        p.flag ?? p.name,
-        `Set up with ${p.label} (${p.hint}) instead of ${fallback.label}.`
-      ),
-    ])
-  );
+  const { fallback, others, selectors, decided, ask } =
+    providerChoice(providers);
 
   const merged = new Map<string, Input<InputValue>>(Object.entries(selectors));
 
@@ -362,8 +387,6 @@ export const setupCommand = <R>(
   }
 
   const inputs = Object.fromEntries(merged);
-
-  const { decided, ask } = providerSelection(providers, fallback, others);
 
   // A store that could not be resolved without questions might have been meant for
   // another provider: say how to ask for it.

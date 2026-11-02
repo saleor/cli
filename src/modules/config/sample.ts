@@ -50,7 +50,7 @@ export const sampleConfiguration = (
         config: null,
         lines: [
           `✓ Saleor's sample data is ready in ${made.ref}.`,
-          `Skipped saving the store configuration locally. Pull it later with: ${command("config", "pull", "--instance", made.ref)}`,
+          `Skipped saving the store configuration locally. Pull it later with: ${command("config", "pull", made.ref)}`,
         ],
       };
     }

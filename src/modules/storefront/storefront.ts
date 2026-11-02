@@ -21,6 +21,7 @@ import {
   installDependencies,
   template,
 } from "../../core/scaffold.ts";
+import { envWord } from "../../core/workspace.ts";
 
 // A storefront is the saleor/storefront template, downloaded as it is on `main`, with
 // its `.env` pointing at one store: the store's GraphQL API and a channel. Nothing else
@@ -106,7 +107,7 @@ export const connectedElsewhere = (dir: string, ref: string, wanted: string) =>
     `The storefront in ${shown(dir)} is connected to ${ref}, not ${wanted}.`,
     {
       details: { connected: ref, requested: wanted },
-      suggestion: `To switch this storefront to ${wanted}, run: ${command("storefront", "env", "--dir", shown(dir), "--instance", wanted)}`,
+      suggestion: `To switch this storefront to ${wanted}, run: ${command("storefront", "use", envWord(wanted), "--dir", shown(dir))}`,
     }
   );
 
@@ -160,8 +161,10 @@ const storeWarnings = (
 ) =>
   Effect.gen(function* () {
     if (!STARTED.has(store.state)) {
-      const id = store.ref.slice(store.ref.indexOf(":") + 1);
-      const start = source?.startCommand?.(id);
+      const start =
+        source?.start === undefined
+          ? undefined
+          : command("env", "start", envWord(store.ref));
 
       return [
         `${store.ref} is ${store.state}, so the channel was not checked. The storefront shows no products until the store runs.${start === undefined ? "" : ` Start it with: ${start}`}`,

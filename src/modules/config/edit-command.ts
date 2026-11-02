@@ -61,7 +61,7 @@ const offerDeploy = (file: string) =>
 
     // The same store `config deploy` would pick: the only environment, or a choice
     // among several, with the same version check.
-    const { instance, store } = yield* connect(Option.none(), Option.none());
+    const { instance, store } = yield* connect(Option.none());
     const plan = yield* planDeploy(store, file);
 
     if (plan.deployable.length === 0) {

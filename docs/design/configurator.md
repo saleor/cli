@@ -56,10 +56,10 @@ saleor config diff staging           # what would change
 saleor config deploy staging         # apply; deletions ask first
 saleor init --env pr-42 --from staging   # a preview sandbox with the same structure
 saleor config deploy production --dry-run
-saleor env delete pr-42
+saleor env remove pr-42
 ```
 
-Already have a store? `saleor config pull --instance cloud:acme/abc123` writes its `config.yml`, and the project is adopted. Run `saleor` inside such a folder and the menu offers the config tasks first, the way `storefront env` is offered only inside a storefront.
+Already have a store? `saleor config pull cloud:acme/abc123` writes its `config.yml`, and the project is adopted. Run `saleor` inside such a folder and the menu offers the config tasks first, the way `storefront use` is offered only inside a storefront.
 
 ### The loops this enables
 
@@ -108,7 +108,7 @@ Word: **`config`**, with `configurator` as an alias so `saleor configurator depl
 | `config schema` | `session` | `schema` | Written files also get a `yaml-language-server` `$schema` line, so editors validate without being set up. |
 | (menu) | | `start` | The context-aware home menu replaces the wizard. |
 
-Shared inputs: `--config <path>` (`SALEOR_CONFIG`), `--include` / `--exclude` sections, `--entity <Type/name>`, `--skip-media`. The target is a manifest environment name, `--instance <ref|url>`, or `SALEOR_INSTANCE`, resolved the way `target.ts` resolves every target. Deletions follow the CLI's single confirmation rule, so `--fail-on-delete` is not needed.
+Shared inputs: `--config <path>` (`SALEOR_CONFIG`), `--include` / `--exclude` sections, `--entity <Type/name>`, `--skip-media`. The target is `<env>`, the word after the command, as in every command: a manifest environment name or a store ref (a URL is proposed), or `SALEOR_ENV`, resolved the way `target.ts` resolves every target. Deletions follow the CLI's single confirmation rule, so `--fail-on-delete` is not needed.
 
 The kinds need one decision. `diff` fits `list`. `validate`, and a CI gate on drift (`diff --check`, failing with `DRIFT_DETECTED`), fit no kind cleanly. Adding a read-only **`check`** kind is a core change that `conventions.test.ts` would enforce. The alternative is to bend `list`. (Open question 5.)
 
@@ -231,7 +231,7 @@ The method is a strangler. The engine's interface stays where it is, and its ins
 
 | Legacy | Native |
 | --- | --- |
-| `introspect --url U --token T` | `SALEOR_TOKEN=T saleor config pull --instance U` |
+| `introspect --url U --token T` | `SALEOR_TOKEN=T saleor config pull U` (proposed: `<env>` accepting a URL) |
 | `diff` (exit 1 on changes) | `config diff` (exit 0; `data` lists operations); `--check` to gate CI |
 | `deploy --plan` | `config deploy --dry-run` |
 | `deploy` (deletes unless `--fail-on-delete`) | `config deploy` (deletions need `--force` unattended) |
@@ -239,14 +239,14 @@ The method is a strangler. The engine's interface stays where it is, and its ins
 | `introspect --drift-check` | `config diff --check` / `config status` |
 | `recipe apply X` | `config deploy --config recipe:X`, or `init --recipe X` |
 | `recipe export X --output f` | `config pull --from recipe:X --config f` |
-| `SALEOR_URL` | `SALEOR_INSTANCE` (accepts a URL) |
+| `SALEOR_URL` | `SALEOR_ENV` (proposed: accepting a URL) |
 | `.env.local` auto-load | none; `saleor.yml` + secret store, `SALEOR_TOKEN` in CI |
 | A token from the Dashboard | The same token: `SALEOR_TOKEN`, or saved once per store; local stores need none |
 | exit 2 (auth) | exit 1, `STORE_AUTH_INVALID` |
 | exit 4 / 5 / 6 / 7 | exit 1, `CONFIG_INVALID` / `DEPLOY_PARTIAL` / `CONFIRMATION_REQUIRED` / (breaking: open) |
 | `{command, exitCode, result, logs, errors}` | `{ok, data}` / `{ok: false, error}`; progress as JSON lines on stderr |
 
-Native commands answer legacy flags with a `USAGE_ERROR` whose suggestion is the exact native command: `--plan` → `--dry-run`, `--token` → `SALEOR_TOKEN`. `--url` is accepted as `--instance`. Nothing is silently reinterpreted.
+Native commands answer legacy flags with a `USAGE_ERROR` whose suggestion is the exact native command: `--plan` → `--dry-run`, `--token` → `SALEOR_TOKEN`. `--url U` is answered with `config … U`. Nothing is silently reinterpreted.
 
 The `configurator` alias means `saleor configurator deploy` works, but with the native contract. The contract comes from the front door, never from a flag, so no `--legacy-output` switch exists for anyone to forget.
 
@@ -295,7 +295,7 @@ Each phase ends at a gate. A gate is evidence, not a date.
 **Phase 1: extract the engine (no visible change).** Move the code into the monorepo with its history. Apply the refactors listed in section 4 behind the legacy front door. Publish a 3.23.x patch release built from the new structure.
 *Gate:* V3 green; V1 byte-identical; V2 old-vs-new green on the full corpus; the Action unchanged and passing on a sample repository.
 
-**Phase 2: native module and the parity release.** `config validate|pull|diff|deploy|recipes|schema` for local, URL and Cloud stores, with `--instance`, `SALEOR_TOKEN`, local sign-in, error codes, catalog entries, menu entries and the version preflight. Every existing Configurator user can switch: they hold a token already. Make the CLI installable and publish it (`limitations.md`: it is not yet). Generate the mapping guide from V0, and point the skills and the Claude plugin at `saleor config`. **Soft-deprecate `@saleor/configurator` in the same release.**
+**Phase 2: native module and the parity release.** `config validate|pull|diff|deploy|recipes|schema` for local, URL and Cloud stores, with `<env>`, `SALEOR_TOKEN`, local sign-in, error codes, catalog entries, menu entries and the version preflight. Every existing Configurator user can switch: they hold a token already. Make the CLI installable and publish it (`limitations.md`: it is not yet). Generate the mapping guide from V0, and point the skills and the Claude plugin at `saleor config`. **Soft-deprecate `@saleor/configurator` in the same release.**
 *Gate:* V4 green; V1 operation logs equal for native; V2 native-vs-legacy green on local stacks; mapping guide complete; the team has used it for real work.
 
 **Phase 3: the workbench loops.** The `saleor.yml` manifest, the `init` extension (`--recipe`, `--from`), `config status`, `--against`, the context-aware menu, and a v2 Action built on `saleor` while the v1 Action keeps working.
@@ -369,7 +369,7 @@ Drafts for a new store are merged onto what the store already has (by slug or na
 
 **What the agent did is visible.** Every drafting round prints one line, for example `Claude Code · claude-opus-5-5 · 33 s · $0.18 · session ad7f5869…7d62`, then the command that opens the conversation (`claude --resume <id>`, `codex resume <id>`). The details come from Claude Code's `--output-format json` (session, per-model usage, cost) and Codex's `--json` events (thread, tokens); Codex's model comes from its `config.toml`. Fix-up rounds continue the same session, so one session holds the whole draft. Results carry the same details as `session` in JSON.
 
-**Projects.** `saleor.yml` (in `core/project.ts`) names environments; `init`, the first pull or deploy write it. Commands take an environment as their first word, default to the project's only one, or ask when there are several; `--instance` still works. Which file was last deployed where is kept per user (`~/.config/saleor/projects.json`), for the menu headline and `config status`.
+**Projects.** `saleor.yml` (in `core/project.ts`) names environments; `init`, the first pull or deploy write it. Commands take an environment as their first word, default to the project's only one, or ask when there are several; a store ref works in its place. Which file was last deployed where is kept per user (`~/.config/saleor/projects.json`), for the menu headline and `config status`.
 
 **Plans say what will happen, in words.** "Create product type "Apparel" (attributes)", with what a deploy leaves alone and why. After applying, the CLI compares again and reports what changed, what was planned but skipped, and runs one more pass when a first one left planned changes behind (stage order: a collection is created before its products). `pull` explains what changed in the store since the file was written; when the store already matches, it says the file is only reformatted instead of warning about lost edits.
 
@@ -394,7 +394,7 @@ Drafts for a new store are merged onto what the store already has (by slug or na
 
 **Not done:**
 - **The interactive flows have not been completed in a real terminal**: accepting a review ("Use it?"), the "Describe it" draft loop, and `config edit`'s review. Drafting, checking, writing and deploying behind them were exercised with `--with` and without a terminal.
-- **The storefront switching channels after a deploy** is a hint (`saleor storefront env --channel …`), not automatic.
+- **The storefront switching channels after a deploy** is a hint (`saleor storefront use <env> --channel …`), not automatic.
 - **Engine patches 3 and 4** originally lived only in the copied source. The library dependency now supplies those fixes upstream.
 
 ## Library integration (2026-10-30)
@@ -410,7 +410,7 @@ The copied `packages/configurator` workspace is removed. The library remains laz
 ## Open questions
 
 1. **Preview environments.** Does a sandbox created from a backup of staging accept staging's app token? If not, loop 5 waits for Cloud to offer store tokens for new environments; until then, it is not planned.
-2. **Store token commands.** Saving and forgetting a store token belong to core, because storefronts need them too. What are they called, for example `saleor token set|remove --instance <ref>`?
+2. **Store token commands.** Saving and forgetting a store token belong to core, because storefronts need them too. What are they called, for example `saleor token set|remove <env>`?
 3. **Sunset:** which Saleor line is the last for `@saleor/configurator`?
 4. **Kinds:** add a read-only `check` kind for `validate` and `diff --check`, or bend `list`?
 5. **Breaking changes:** legacy `--fail-on-breaking` (exit 7) has no native equivalent yet. Is it a risk on the plan, or a separate code?

@@ -56,7 +56,7 @@ const run = async (args: string[], allowedCodes = [0]) => {
   return output;
 };
 
-await run(["env", "list", "--org", organization]);
+await run(["env", "list"]);
 
 console.log("PASS: production authentication and environment discovery");
 
@@ -67,9 +67,10 @@ if (writes && project) {
   // Removes whatever this run created, even when it failed half-way, and reports both
   // the test failure and a cleanup failure instead of letting one hide the other.
   const cleanup = async () => {
-    await run(["env", "delete", name, ...context, "--force"]);
+    const ref = `cloud:${organization}/${name}`;
+    await run(["env", "remove", ref, "--force"]);
 
-    const again = await run(["env", "delete", name, ...context, "--force"]);
+    const again = await run(["env", "remove", ref, "--force"]);
 
     const deleted = Schema.decodeUnknownSync(
       Schema.Struct({ action: Schema.String, existed: Schema.Boolean })

@@ -109,7 +109,7 @@ const usageFailure = (error: CliError.CliError) => {
   });
 };
 
-// `saleor help env delete` is `saleor env delete --help`; `--json` is `--output json`.
+// `saleor help env remove` is `saleor env remove --help`; `--json` is `--output json`.
 // When the output format is given more than once, the last one wins, as with any flag.
 const normalizeOptions = (rawArgv: readonly string[]) => {
   const words =

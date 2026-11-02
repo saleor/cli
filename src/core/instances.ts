@@ -4,38 +4,85 @@ import {
   type Instance,
   type InstanceSource,
   InstanceSources,
+  type Lifecycle,
 } from "./instance.ts";
-import type { Choice } from "./interaction.ts";
+import { askConfirm, type Choice, isInteractive } from "./interaction.ts";
 import { command } from "./invocation.ts";
 import { notice } from "./output.ts";
 import { findProject } from "./project.ts";
 import { target } from "./target.ts";
-import { resolveRef } from "./workspace.ts";
+import {
+  ENV_VARIABLE,
+  envWord,
+  kindOf,
+  REF,
+  resolveRef,
+  toRef,
+} from "./workspace.ts";
 
-// Commands that work with a store wherever it runs (a storefront connecting to one)
-// take it as a ref, `cloud:<org>/<env key>` or `local:<name>`: the same `ref` every
-// command prints. In a terminal, a person picks from the stores of every source; one
-// that needs a login is offered as "Log in to …" instead of failing the whole list.
+// Every command that acts on a store takes it as `<env>`: a name from saleor.yml or a
+// ref, `cloud:<org>/<env key>` or `local:<name>`, the same `ref` every command prints.
+// In a terminal, a person picks from the project's environments, else from the stores
+// of every source; one that needs a login is offered as "Log in to …" instead of
+// failing the whole list.
 
-const REF = /^[a-z]+:.+$/;
 const SIGN_IN = "\0sign-in:";
 
-export const instanceTarget = target({
+export const envTarget = target({
   check: (value) =>
     REF.test(value) ||
     Option.exists(findProject(), (project) =>
       project.environments.some(([name]) => name === value)
     )
       ? undefined
-      : `"${value}" is not a store ref. Refs look like cloud:<org>/<env key> or local:<name>, as printed in the ref column of env list and local list.`,
-  env: "SALEOR_INSTANCE",
-  identifiedBy: "ref: cloud:<org>/<env key> or local:<name>",
-  metavar: "ref",
-  name: "instance",
-  noun: "store",
+      : `"${value}" is neither an environment in saleor.yml nor a store ref. Refs look like cloud:<org>/<env key> or local:<name>, as printed in the REF column of ${command("env", "list")}.`,
+  env: ENV_VARIABLE,
+  identifiedBy:
+    "name in saleor.yml, or a store ref: cloud:<org>/<env key> or local:<name>",
+  metavar: "env",
+  name: "env",
+  noun: "environment",
 });
 
-export const instanceInput = instanceTarget.input();
+export const envInput = envTarget.input({ positional: true });
+
+const VERBS: Record<Lifecycle, string> = {
+  remove: "deleted",
+  start: "started",
+  stop: "stopped",
+};
+
+// Runs `effect` against a source; when it needs a login and a person is at a
+// terminal, offers one and runs it again.
+export const withSignIn = <A, R>(
+  source: InstanceSource<never>,
+  effect: Effect.Effect<A, CliFailure, R>
+) =>
+  effect.pipe(
+    Effect.catchTag("CliFailure", (failure: CliFailure) =>
+      Effect.gen(function* () {
+        const { signIn } = source;
+
+        if (
+          failure.code !== "AUTH_REQUIRED" ||
+          signIn === undefined ||
+          !(yield* isInteractive)
+        ) {
+          return yield* failure;
+        }
+
+        yield* notice(`You are not logged in to ${source.label}.`);
+
+        if (!(yield* askConfirm("Log in now in your browser?"))) {
+          return yield* failure;
+        }
+
+        yield* signIn;
+
+        return yield* effect;
+      })
+    )
+  );
 
 const choicesOf = (source: InstanceSource<never>) =>
   source.list.pipe(
@@ -64,27 +111,46 @@ const choicesOf = (source: InstanceSource<never>) =>
     })
   );
 
+export interface ResolvedRef {
+  // The part of the ref after `<kind>:`, which the source knows it by.
+  readonly id: string;
+  readonly ref: string;
+  readonly source: InstanceSource<never>;
+}
+
 export interface ResolvedInstance {
   readonly instance: Instance;
   readonly source: InstanceSource<never>;
 }
 
-// The store a command was given, or picked at a prompt, with the source it came from.
-// Inside a project, an environment name resolves to its ref and, with nothing given,
-// the project's environment is the default. `anyStore` skips that default, for
-// questions about some other store (which one to copy from), so every store is offered.
-export const resolveInstance = (
+export interface ResolveOptions {
+  // Skips the project's environments, for questions about some other store (which
+  // one to copy from), so every store is offered.
+  readonly anyStore?: boolean;
+  // Only stores whose source can do this; the others are refused with a usage error.
+  readonly can?: Lifecycle;
+}
+
+// The store a command was given, or picked at a prompt, as a ref and the source that
+// runs it. Does not look the store up, so it can name one that does not exist yet
+// (an environment saleor.yml defines, which `env start` creates).
+export const resolveStore = (
   supplied: Option.Option<string>,
-  { anyStore = false }: { readonly anyStore?: boolean } = {}
+  { anyStore = false, can }: ResolveOptions = {}
 ) =>
   Effect.gen(function* () {
-    const sources = yield* InstanceSources;
+    const all = yield* InstanceSources;
+
+    const sources =
+      can === undefined ? all : all.filter((each) => each[can] !== undefined);
 
     const contextual = anyStore
       ? supplied
-      : yield* resolveRef(Option.none(), supplied);
+      : yield* resolveRef(supplied, {
+          kinds: sources.map((each) => each.kind),
+        });
 
-    const ref = yield* instanceInput.resolve(contextual, {
+    const word = yield* envInput.resolve(contextual, {
       // Stores first; logins after them, so the first row is something to pick.
       choices: Effect.map(Effect.forEach(sources, choicesOf), (lists) => {
         const rows = lists.flat();
@@ -104,24 +170,53 @@ export const resolveInstance = (
       emptyHint: `Create one with: ${command("init")}`,
     });
 
-    const separator = ref.indexOf(":");
-    const kind = ref.slice(0, separator);
-    const id = ref.slice(separator + 1);
-    const source = sources.find((candidate) => candidate.kind === kind);
+    const ref = yield* toRef(word);
+    const kind = kindOf(ref);
+    const source = all.find((candidate) => candidate.kind === kind);
 
     if (source === undefined) {
       return yield* fail(
         "USAGE_ERROR",
-        `"${ref}" is not a store ref: stores are ${sources.map((s) => `${s.kind}:…`).join(" or ")}.`
+        `"${ref}" is not a store ref: stores are ${all.map((s) => `${s.kind}:…`).join(" or ")}.`
       );
     }
 
-    const found = yield* source.find(id);
+    if (can !== undefined && source[can] === undefined) {
+      return yield* fail(
+        "USAGE_ERROR",
+        `${source.label} stores cannot be ${VERBS[can]} with the CLI.`,
+        sources.length > 0
+          ? {
+              suggestion: `Only ${sources.map((each) => each.label).join(" and ")} stores can be.`,
+            }
+          : {}
+      );
+    }
+
+    return {
+      id: ref.slice(kind.length + 1),
+      ref,
+      source,
+    } satisfies ResolvedRef;
+  });
+
+// The store a command was given, or picked at a prompt, with the source it came from.
+export const resolveInstance = (
+  supplied: Option.Option<string>,
+  options: ResolveOptions = {}
+) =>
+  Effect.gen(function* () {
+    const { id, ref, source } = yield* resolveStore(supplied, options);
+    const found = yield* withSignIn(source, source.find(id));
 
     if (Option.isNone(found)) {
-      return yield* fail("NOT_FOUND", `Store "${ref}" does not exist.`, {
-        suggestion: `See the ${source.label} stores with: ${source.listCommand}`,
-      });
+      return yield* fail(
+        "NOT_FOUND",
+        `Store "${envWord(ref)}" does not exist.`,
+        {
+          suggestion: `See every store with: ${command("env", "list")}`,
+        }
+      );
     }
 
     return { instance: found.value, source } satisfies ResolvedInstance;

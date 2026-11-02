@@ -172,6 +172,8 @@ export const cloudSetup = defineSetup({
   },
   label: "Saleor Cloud",
   name: "cloud",
+  // An environment of a project is a Cloud environment of the same name.
+  naming: { input: "env", name: (_project, alias) => alias },
   plan: (input) =>
     Effect.gen(function* () {
       const organization = yield* organizationOf(input.org);
@@ -196,11 +198,7 @@ export const cloudSetup = defineSetup({
 
       // Without a requested environment this journey creates a new sandbox.
       // Check before asking its name or running any configuration extensions.
-      if (
-        parent !== undefined &&
-        Option.isNone(input.env) &&
-        !process.env.SALEOR_ENV
-      ) {
+      if (parent !== undefined && Option.isNone(input.env)) {
         yield* requireSandboxCapacity(organization, parent);
       }
 
