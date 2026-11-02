@@ -8,7 +8,10 @@ import {
   findProject,
   rememberEnvironment,
 } from "../../core/project.ts";
-import { storeAccess } from "../../core/store-access.ts";
+import {
+  storeAccess,
+  type StoreAccessOptions,
+} from "../../core/store-access.ts";
 import { resolveRef } from "../../core/workspace.ts";
 import { DEFAULT_CONFIG, supportedSaleor } from "./engine.ts";
 
@@ -44,7 +47,8 @@ const checkVersion = (instance: Instance) =>
 // The store, a token for its API, and the project environment it is known by.
 export const connect = (
   environment: Option.Option<string>,
-  instance: Option.Option<string>
+  instance: Option.Option<string>,
+  options?: StoreAccessOptions
 ) =>
   Effect.gen(function* () {
     const ref = yield* resolveRef(environment, instance);
@@ -52,7 +56,7 @@ export const connect = (
 
     yield* checkVersion(resolved.instance);
 
-    const access = yield* storeAccess(resolved);
+    const access = yield* storeAccess(resolved, options);
 
     return {
       instance: resolved.instance,

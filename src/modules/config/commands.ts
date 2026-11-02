@@ -13,6 +13,7 @@ import { argument, option } from "../../core/inputs.ts";
 import type { Instance } from "../../core/instance.ts";
 import { instanceInput } from "../../core/instances.ts";
 import { command } from "../../core/invocation.ts";
+import { notice } from "../../core/output.ts";
 import {
   ago,
   findProject,
@@ -347,7 +348,7 @@ const deployCommand = config.ensure({
 
 const statusCommand = config.list({
   description:
-    "For each environment in the project's saleor.yml: whether its store matches the configuration file, and how many changes a deploy would make. Contacts every store.",
+    "For each environment in the project's saleor.yml: whether its store matches the configuration file, and how many changes a deploy would make. Contacts every store. With several environments, SALEOR_TOKEN is not used: each store needs its own saved token.",
   examples: [
     { command: "saleor config status", description: "Check every environment" },
   ],
@@ -370,6 +371,15 @@ const statusCommand = config.list({
       const file = yield* existingConfig(configFile(input.config));
       yield* validateFile(file);
 
+      // SALEOR_TOKEN belongs to one store; with several, each uses its own token.
+      const envToken = project.environments.length === 1;
+
+      if (!envToken && process.env.SALEOR_TOKEN?.trim()) {
+        yield* notice(
+          "SALEOR_TOKEN is not used: this project has several environments, so each uses the token saved for its store."
+        );
+      }
+
       // Connecting may ask for a token, so connections take turns; the comparisons,
       // which are the slow part, run side by side.
       const prompts = yield* Semaphore.make(1);
@@ -379,7 +389,7 @@ const statusCommand = config.list({
         ([name, ref]) =>
           Effect.gen(function* () {
             const { instance, store } = yield* prompts.withPermit(
-              connect(Option.some(ref), Option.none())
+              connect(Option.some(ref), Option.none(), { envToken })
             );
 
             const plan = yield* planDeploy(store, file);

@@ -19,11 +19,20 @@ export interface StoreAccess {
 const dashboardHint = (dashboardUrl: string) =>
   `Create an app token in the store's Dashboard (${dashboardUrl}): Apps → Create app, with the permissions the configuration needs.`;
 
+export interface StoreAccessOptions {
+  // SALEOR_TOKEN is one token for one store, so commands that reach several stores
+  // turn it off rather than send it to all of them.
+  readonly envToken?: boolean;
+}
+
 // In order: SALEOR_TOKEN, the token saved for this store, the instance's own sign-in
 // (local instances), then a prompt that offers to save what is entered.
-export const storeAccess = ({ instance, source }: ResolvedInstance) =>
+export const storeAccess = (
+  { instance, source }: ResolvedInstance,
+  { envToken = true }: StoreAccessOptions = {}
+) =>
   Effect.gen(function* () {
-    const fromEnv = process.env.SALEOR_TOKEN?.trim();
+    const fromEnv = envToken ? process.env.SALEOR_TOKEN?.trim() : undefined;
 
     if (fromEnv) {
       return { from: "SALEOR_TOKEN", token: fromEnv } satisfies StoreAccess;
@@ -51,7 +60,9 @@ export const storeAccess = ({ instance, source }: ResolvedInstance) =>
         "STORE_AUTH_REQUIRED",
         `No token for the store ${instance.ref}.`,
         {
-          suggestion: `${dashboardHint(instance.dashboardUrl)} Then set it as SALEOR_TOKEN, or run this in a terminal to enter and save it.`,
+          suggestion: envToken
+            ? `${dashboardHint(instance.dashboardUrl)} Then set it as SALEOR_TOKEN, or run this in a terminal to enter and save it.`
+            : `${dashboardHint(instance.dashboardUrl)} Then run this in a terminal to enter and save it.`,
         }
       );
     }
