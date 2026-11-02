@@ -933,6 +933,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
 
           return { shop: { name: "Mock Saleor" } };
         };
+
         const data = answerTo(body.query);
 
         res.writeHead(200, { "content-type": "application/json" });
