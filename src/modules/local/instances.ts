@@ -16,10 +16,11 @@ import type {
   Started,
 } from "../../core/instance.ts";
 import { command } from "../../core/invocation.ts";
+import { lastInSync } from "../../core/deployments.ts";
+import { configuresOnCreate } from "../../core/manifest.ts";
 import {
   configPath,
   hasBinding,
-  lastInSync,
   projectLocalOf,
   saveBinding,
 } from "../../core/project.ts";
@@ -49,8 +50,8 @@ const configurationToken = (data: Parameters<typeof localAccess>[0]) =>
   );
 
 // Starts an instance, or creates it from the project's definition when this checkout
-// does not have it yet. On first setup, a definition with `configure: on-create`
-// applies the project's configuration before the store counts as ready.
+// does not have it yet. On first setup, the project's configuration is applied before
+// the store counts as ready, unless the definition says `configure: never`.
 const start = (name: string, input: StartOptions) =>
   Effect.gen(function* () {
     yield* localName(name);
@@ -86,7 +87,7 @@ const start = (name: string, input: StartOptions) =>
 
     const configure =
       Option.isSome(context) &&
-      context.value.definition.configure === "on-create" &&
+      configuresOnCreate(context.value.definition) &&
       !existsSync(marker) &&
       (existing === undefined ||
         Option.isNone(

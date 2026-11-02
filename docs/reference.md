@@ -133,8 +133,7 @@ pnpm saleor storefront create cloud:acme/env1 --dir shop --channel eu
 
 `init` creates a project with `saleor.yml`, `config.yml`, a short `AGENTS.md`,
 `CLAUDE.md`, and ignore rules. Existing configuration and agent instructions are
-preserved. Commands discover the project from nested directories. The conventional
-storefront location is `storefront/`; `storefront.path` overrides it. Explicit
+preserved. Commands discover the project from nested directories. Explicit
 `--dir` paths remain relative to the current directory.
 
 ```yaml
@@ -143,14 +142,42 @@ environments:
   local:
     kind: local
     saleor: "3.23.41"
-    configure: on-create
   staging: cloud:acme/environment-key
+components:
+  storefront:
+    kind: storefront
+    config: config/saleor/storefront-content.config.yml
 ```
 
+Every key is there because a command reads it. Keys with a default are written
+only when they differ from it: `config` (`config.yml`), a component's `path` (its
+name, so `storefront` lives in `storefront/`), a local environment's `configure`
+(`on-create`; `never` opts out), and `version` (1).
+
+`saleor.yml` says where things are, not how they are built, so a project works in
+any repository layout (a plain folder, or a pnpm, Turborepo or Nx workspace the
+project already uses). `components` lists what connects to the project's stores:
+`init --storefront` and `storefront create` inside a project add the storefront,
+with the template's own content configuration when it has one. The template
+commit it was downloaded at goes in the first commit's message and the command's
+result, not in `saleor.yml`, since no command reads it. Each component keeps its own packages, scripts and
+lockfile; the CLI does not write workspace files. Which store a component is
+connected to is not recorded here: that is each checkout's choice, in the
+component's ignored `.env`. Commands find the storefront where `components` says,
+else in `storefront/`. A manifest from before `components` with
+`storefront: { path }` is still read, and moves to `components` the next time a
+component is recorded. Unknown keys are reported on stderr, and a manifest with a
+`version` newer than the CLI reads is refused.
+
+`config validate`, `diff`, `deploy` and `status` cover every file the project
+deploys: `config.yml` first, then each component's `config`, in order. `--config`
+names one file instead. `config pull` writes `config.yml` only. A new store
+(`init`, `env add`, and `env start` unless `configure: never`) gets `config.yml`
+only; deploy component content to it with `config deploy <env>`.
+
 `env start local` provisions this checkout's local environment using the declared Saleor
-version. `configure: on-create` applies `config.yml` before setup is considered
-complete; failures can be retried with the same command. `configure: never` skips
-that step. Subsequent starts preserve data and configuration changes; apply edits
+version. Unless `configure: never`, it applies `config.yml` before setup is considered
+complete; failures can be retried with the same command. Subsequent starts preserve data and configuration changes; apply edits
 explicitly with `config deploy local`. A version mismatch requires an explicit
 recreation or migration; starting does not silently upgrade the database.
 

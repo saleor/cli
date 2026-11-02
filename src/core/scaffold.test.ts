@@ -1,6 +1,6 @@
 import { Effect, Predicate } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { createTarGzip } from "nanotar";
+import { createTar, createTarGzip } from "nanotar";
 import {
   existsSync,
   mkdirSync,
@@ -14,9 +14,15 @@ import {
 import { createServer, type Server } from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { gzipSync } from "node:zlib";
 import { create } from "tar";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { directoryState, downloadTemplate, template } from "./scaffold.ts";
+import {
+  directoryState,
+  downloadTemplate,
+  template,
+  templateSource,
+} from "./scaffold.ts";
 
 let dir: string;
 let server: Server;
@@ -124,4 +130,60 @@ it("reports a download the server refuses", async () => {
   expect(failure.code).toBe("TEMPLATE_FAILED");
   expect(failure.message).toContain("404");
   expect(directoryState(path.join(dir, "shop"))).toBe("absent");
+});
+
+// A pax global header as `git archive` (and so GitHub) writes one: the commit, as a
+// "comment" record, before the files.
+const globalHeader = (commit: string) => {
+  const record = `52 comment=${commit}\n`;
+  const header = Buffer.alloc(512);
+  header.write("pax_global_header", 0);
+  header.write("0000666\0", 100);
+  header.write("0000000\0", 108);
+  header.write("0000000\0", 116);
+  header.write(`${record.length.toString(8).padStart(11, "0")}\0`, 124);
+  header.write("00000000000\0", 136);
+  header.write("        ", 148);
+  header.write("g", 156);
+  header.write("ustar\0", 257);
+  header.write("00", 263);
+
+  const sum = header.reduce((total, byte) => total + byte, 0);
+  header.write(`${sum.toString(8).padStart(6, "0")}\0 `, 148);
+
+  const body = Buffer.alloc(512);
+  body.write(record, 0);
+
+  return Buffer.concat([header, body]);
+};
+
+it("says which commit the template was downloaded at, when the archive does", async () => {
+  const commit = "a6e357a575c6e694e1aa5e5def4a1783dd223117";
+
+  const files = createTar([
+    { data: "{}", name: "storefront-main/package.json" },
+  ]);
+
+  archive = gzipSync(Buffer.concat([globalHeader(commit), files]));
+
+  const into = path.join(dir, "shop");
+  const downloaded = await Effect.runPromise(download(into));
+
+  expect(downloaded).toStrictEqual({ commit });
+  expect(readFileSync(path.join(into, "package.json"), "utf-8")).toBe("{}");
+  expect(
+    templateSource(template("saleor/storefront", "main", url), downloaded)
+  ).toBe(`saleor/storefront@${commit}`);
+
+  // An archive that does not say is recorded by its branch.
+  archive = await createTarGzip([
+    { data: "{}", name: "storefront-main/package.json" },
+  ]);
+
+  const unknown = await Effect.runPromise(download(path.join(dir, "other")));
+
+  expect(unknown).toStrictEqual({ commit: undefined });
+  expect(
+    templateSource(template("saleor/storefront", "main", url), unknown)
+  ).toBe("saleor/storefront (main)");
 });

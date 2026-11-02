@@ -9,7 +9,7 @@ import { command } from "../../core/invocation.ts";
 
 import { notice } from "../../core/output.ts";
 
-import { recordInSync } from "../../core/project.ts";
+import { recordInSync } from "../../core/deployments.ts";
 
 import type { SetupResult } from "../../core/setup.ts";
 

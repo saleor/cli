@@ -54,7 +54,7 @@ pnpm saleor env add staging       # a new Cloud sandbox, named in saleor.yml
 pnpm saleor env add review --local
 ```
 
-Inside a project, `env start local` creates the local environment from `saleor.yml` when this checkout does not have it yet, and applies `config.yml` when it is defined with `configure: on-create`. Stopping keeps data. Removing deletes the store and its data: a Cloud environment's name leaves `saleor.yml` with it, while a local definition stays so `env start` can create it again. Saleor Cloud runs its environments itself, so they cannot be started or stopped here, and only sandboxes can be removed.
+Inside a project, `env start local` creates the local environment from `saleor.yml` when this checkout does not have it yet, and applies `config.yml` unless the definition says `configure: never`. Stopping keeps data. Removing deletes the store and its data: a Cloud environment's name leaves `saleor.yml` with it, while a local definition stays so `env start` can create it again. Saleor Cloud runs its environments itself, so they cannot be started or stopped here, and only sandboxes can be removed.
 
 Preview any change with `--dry-run`. Removals ask for confirmation, need `--force` without a terminal, and never read `SALEOR_ENV`: name what to delete.
 

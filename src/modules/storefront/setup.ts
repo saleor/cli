@@ -4,12 +4,9 @@ import { describeTarget } from "../../core/action.ts";
 import { option } from "../../core/inputs.ts";
 import { askConfirm, isInteractive } from "../../core/interaction.ts";
 import { recordAnswer } from "../../core/invocation.ts";
-import {
-  projectAt,
-  projectChannel,
-  projectFolder,
-} from "../../core/project.ts";
-import { downloadTemplate } from "../../core/scaffold.ts";
+import { projectChannel, storefrontPath } from "../../core/components.ts";
+import { projectAt, projectFolder } from "../../core/project.ts";
+import { type Downloaded, downloadTemplate } from "../../core/scaffold.ts";
 import { defineSetupExtension } from "../../core/setup.ts";
 import {
   connectedElsewhere,
@@ -62,12 +59,10 @@ export const storefrontSetup = defineSetupExtension({
 
       const dir = path.resolve(
         root,
-        Option.getOrElse(
-          Option.flatMap(projectAt(root), (project) =>
-            Option.fromUndefinedOr(project.storefront)
-          ),
-          () => "storefront"
-        )
+        Option.match(projectAt(root), {
+          onNone: () => "storefront",
+          onSome: storefrontPath,
+        })
       );
 
       const found = yield* inspect(dir);
@@ -81,6 +76,9 @@ export const storefrontSetup = defineSetupExtension({
       // A storefront whose setup finishes in this run counts as created, as when an
       // earlier run downloaded it and then stopped waiting for the store.
       const created = found.kind === "absent" || found.ref === undefined;
+
+      // Filled in by `prepare`, which downloads while the store is set up.
+      const downloads: Downloaded[] = [];
 
       return Option.some({
         apply: (made) =>
@@ -106,7 +104,9 @@ export const storefrontSetup = defineSetupExtension({
                   : configured,
               created,
               dir,
+              downloaded: downloads[0],
               install: true,
+              record: true,
               repository: created ? root : undefined,
               source: undefined,
               store: made,
@@ -127,7 +127,11 @@ export const storefrontSetup = defineSetupExtension({
           template: TEMPLATE.repository,
         },
         name: "storefront",
-        prepare: downloading ? downloadTemplate(TEMPLATE, dir) : Effect.void,
+        prepare: downloading
+          ? Effect.map(downloadTemplate(TEMPLATE, dir), (downloaded) => {
+              downloads.push(downloaded);
+            })
+          : Effect.void,
         summary: [
           [
             "Storefront",

@@ -1,9 +1,11 @@
 import { Effect, Option } from "effect";
 import path from "node:path";
 import { fail } from "../../core/errors.ts";
+import { option } from "../../core/inputs.ts";
 import { command } from "../../core/invocation.ts";
 import { InstanceSources, type Instance } from "../../core/instance.ts";
 import { resolveInstance } from "../../core/instances.ts";
+import { type ConfigFile, configFiles } from "../../core/components.ts";
 import {
   configPath,
   findProject,
@@ -13,7 +15,13 @@ import {
   storeAccess,
   type StoreAccessOptions,
 } from "../../core/store-access.ts";
-import { DEFAULT_CONFIG, supportedSaleor } from "./engine.ts";
+import {
+  DEFAULT_CONFIG,
+  existingConfig,
+  shown,
+  supportedSaleor,
+  validateFile,
+} from "./engine.ts";
 
 // The configuration file: --config, else the project's, else ./config.yml.
 export const configFile = (input: Option.Option<string>) =>
@@ -25,6 +33,38 @@ export const configFile = (input: Option.Option<string>) =>
       }),
     onSome: (file) => path.resolve(file),
   });
+
+// The files a command that compares or deploys works on: --config alone, else every
+// file the project deploys (its own, then its components'), else ./config.yml.
+export const deployedFiles = (
+  input: Option.Option<string>
+): readonly ConfigFile[] =>
+  Option.match(Option.isSome(input) ? Option.none() : findProject(), {
+    onNone: () => [{ component: undefined, file: configFile(input) }],
+    onSome: configFiles,
+  });
+
+// For commands that cover every file the project deploys: its own and its components'.
+export const deployedInput = option.string("config", {
+  description:
+    "One configuration file. Defaults to every file the project deploys (saleor.yml: its config, then each component's), else ./config.yml.",
+  metavar: "path",
+});
+
+// The files, each checked to exist and be valid, in the order they deploy.
+export const checkedFiles = (input: Option.Option<string>) =>
+  Effect.forEach(deployedFiles(input), ({ component, file }) =>
+    Effect.gen(function* () {
+      const found = yield* existingConfig(file);
+      const parsed = yield* validateFile(found);
+
+      return { component, file: found, parsed };
+    })
+  );
+
+// "config.yml" or "config.yml and storefront/…/content.yml", for sentences.
+export const filesShown = (files: readonly { readonly file: string }[]) =>
+  files.map(({ file }) => shown(file)).join(" and ");
 
 const checkVersion = (instance: Instance) =>
   Effect.gen(function* () {

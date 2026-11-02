@@ -19,13 +19,13 @@ import {
 import { envInput, resolveStore, withSignIn } from "./instances.ts";
 import { command } from "./invocation.ts";
 import { notice } from "./output.ts";
+import { recordInSync } from "./deployments.ts";
 import {
   addEnvironment,
   configPath,
   findProject,
   forgetEnvironment,
   type Project,
-  recordInSync,
 } from "./project.ts";
 import { providerChoice, type SetupProvider } from "./setup.ts";
 import { target } from "./target.ts";

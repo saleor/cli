@@ -5,12 +5,11 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { stringify } from "yaml";
+import { projectChannel, storefrontFolder } from "../../core/components.ts";
 import {
   findProject,
-  projectChannel,
   projectFolder,
   rememberEnvironment,
-  storefrontFolder,
 } from "../../core/project.ts";
 import {
   fromAnswers,
