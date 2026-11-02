@@ -11,6 +11,7 @@ import {
   type InstalledApp,
   installed,
   installFrom,
+  type Manifest,
   type Store,
   uninstall,
 } from "./store.ts";
@@ -41,6 +42,19 @@ const cloudOnly = (store: Store) =>
       )
     : Effect.void;
 
+const choiceOf = (each: StoreApp, installedUrls: ReadonlySet<string>) => {
+  const choice: { hint?: string; label: string; value: string } = {
+    label: each.name,
+    value: each.manifestUrl,
+  };
+
+  if (installedUrls.has(each.manifestUrl)) {
+    choice.hint = "installed";
+  }
+
+  return choice;
+};
+
 const pick = (
   catalog: readonly StoreApp[],
   installedUrls: ReadonlySet<string>
@@ -53,25 +67,18 @@ const pick = (
       });
     }
 
-    const groups: Record<
-      string,
-      { hint?: string; label: string; value: string }[]
-    > = {};
+    const groups: Record<string, ReturnType<typeof choiceOf>[]> = {};
 
     for (const each of catalog) {
-      (groups[each.category] ??= []).push({
-        ...(installedUrls.has(each.manifestUrl) ? { hint: "installed" } : {}),
-        label: each.name,
-        value: each.manifestUrl,
-      });
+      (groups[each.category] ??= []).push(choiceOf(each, installedUrls));
     }
 
     const ticked = new Set(
       yield* askMultiSelect({
         groups,
-        initialValues: catalog
-          .map((each) => each.manifestUrl)
-          .filter((url) => installedUrls.has(url)),
+        initialValues: catalog.flatMap((each) =>
+          installedUrls.has(each.manifestUrl) ? [each.manifestUrl] : []
+        ),
         message:
           "Which App Store apps should this store have? Space ticks, Enter confirms.",
       })
@@ -82,6 +89,132 @@ const pick = (
 
 const nameOf = (each: InstalledApp) => each.name ?? each.id;
 
+interface Changes {
+  readonly installations: Effect.Success<
+    ReturnType<typeof appsOn>
+  >["installations"];
+  readonly manifests: readonly {
+    readonly each: StoreApp;
+    readonly manifest: Manifest;
+  }[];
+  readonly toRemove: readonly InstalledApp[];
+}
+
+// What the store should have: the apps named, or ticked in the list. Only the list
+// removes; an app named with --store-app is added to the others.
+const decide = (store: Store, wanted: Option.Option<readonly string[]>) =>
+  Effect.gen(function* () {
+    const catalog = yield* storeApps;
+    const { apps, installations } = yield* appsOn(store);
+
+    const installedUrls = new Set(
+      apps.flatMap((each) =>
+        each.manifestUrl === null ? [] : [each.manifestUrl]
+      )
+    );
+
+    const selected = Option.isSome(wanted)
+      ? yield* resolveStoreApps(catalog, wanted.value)
+      : yield* pick(catalog, installedUrls);
+
+    const chosen = new Set(selected.map((each) => each.manifestUrl));
+    const fromCatalog = new Set(catalog.map((each) => each.manifestUrl));
+
+    const toRemove = Option.isNone(wanted)
+      ? apps.filter(
+          (each) =>
+            each.manifestUrl !== null &&
+            fromCatalog.has(each.manifestUrl) &&
+            !chosen.has(each.manifestUrl)
+        )
+      : [];
+
+    // A rerun with --store-app would not uninstall, so only a list without removals
+    // is offered as one.
+    if (Option.isNone(wanted) && toRemove.length === 0 && selected.length > 0) {
+      yield* recordAnswer({
+        option: ["--store-app", selected.map((each) => each.id).join(",")],
+      });
+    }
+
+    // Read now, so a manifest the store cannot reach fails before anything changes.
+    const manifests = yield* Effect.forEach(
+      selected.filter((each) => !installedUrls.has(each.manifestUrl)),
+      (each) =>
+        Effect.map(fetchManifest(store, each.manifestUrl), (manifest) => ({
+          each,
+          manifest,
+        }))
+    );
+
+    return { installations, manifests, toRemove } satisfies Changes;
+  });
+
+const headlineOf = (
+  store: Store,
+  done: readonly string[],
+  removed: readonly string[]
+) => {
+  if (done.length === 0 && removed.length === 0) {
+    return `${store.instance.ref} already has the App Store apps asked for.`;
+  }
+
+  const parts = [
+    done.length > 0 ? `Installed ${done.join(", ")}` : "",
+    removed.length > 0 ? `Uninstalled ${removed.join(", ")}` : "",
+  ];
+
+  return `${parts.filter(Boolean).join("; ")} on ${store.instance.ref}.`;
+};
+
+const applyChanges = (store: Store, changes: Changes, deadline: Deadline) =>
+  Effect.gen(function* () {
+    for (const each of changes.toRemove) {
+      yield* uninstall(store, each.id);
+    }
+
+    for (const { each, manifest } of changes.manifests) {
+      const { manifestUrl } = each;
+      const pending = changes.installations.find(
+        (installation) => installation.manifestUrl === manifestUrl
+      );
+
+      yield* pending !== undefined && pending.status !== "FAILED"
+        ? installed(
+            store,
+            { installationId: pending.id, manifestUrl },
+            deadline
+          )
+        : installFrom(
+            store,
+            { failed: pending, manifest, manifestUrl },
+            deadline
+          );
+    }
+
+    const done = changes.manifests.map(({ each }) => each.name);
+    const removed = changes.toRemove.map(nameOf);
+
+    return {
+      data: {
+        created: done.length > 0,
+        installed: done,
+        removed,
+        store: store.instance.ref,
+      },
+      headline: headlineOf(store, done, removed),
+      text: "",
+    } satisfies Ensured<StoreAppsResult>;
+  });
+
+const actionOf = (changes: Changes) => {
+  if (changes.toRemove.length > 0) {
+    return "update";
+  }
+
+  return changes.manifests.length > 0 ? "create" : "reuse";
+};
+
 export const planStoreApps = (
   store: Store,
   wanted: Option.Option<readonly string[]>,
@@ -90,133 +223,36 @@ export const planStoreApps = (
   Effect.gen(function* () {
     yield* cloudOnly(store);
 
-    const catalog = yield* storeApps;
-    const { apps, installations } = yield* appsOn(store);
-    const installedUrls = new Set(
-      apps.flatMap((each) =>
-        each.manifestUrl === null ? [] : [each.manifestUrl]
-      )
-    );
-
-    const picked = Option.isNone(wanted);
-
-    const selected = Option.isSome(wanted)
-      ? yield* resolveStoreApps(catalog, wanted.value)
-      : yield* pick(catalog, installedUrls);
-
-    const chosen = new Set(selected.map((each) => each.manifestUrl));
-    const toInstall = selected.filter(
-      (each) => !installedUrls.has(each.manifestUrl)
-    );
-
-    // Only the list removes: an app named with --store-app is added to the others.
-    const toRemove = picked
-      ? apps.filter(
-          (each) =>
-            each.manifestUrl !== null &&
-            catalog.some((entry) => entry.manifestUrl === each.manifestUrl) &&
-            !chosen.has(each.manifestUrl)
-        )
-      : [];
-
-    if (picked && toRemove.length === 0 && selected.length > 0) {
-      yield* recordAnswer({
-        option: ["--store-app", selected.map((each) => each.id).join(",")],
-      });
-    }
-
-    // Read now, so a manifest the store cannot reach fails before anything changes.
-    const manifests = yield* Effect.forEach(toInstall, (each) =>
-      Effect.map(fetchManifest(store, each.manifestUrl), (manifest) => ({
-        each,
-        manifest,
-      }))
-    );
-
-    const removedNames = toRemove.map(nameOf);
-    const changes = toInstall.length > 0 || toRemove.length > 0;
-
-    let action: "create" | "reuse" | "update" = "reuse";
-
-    if (toRemove.length > 0) {
-      action = "update";
-    } else if (changes) {
-      action = "create";
-    }
-
-    const apply = Effect.gen(function* () {
-      for (const each of toRemove) {
-        yield* uninstall(store, each.id);
-      }
-
-      for (const { each, manifest } of manifests) {
-        const pending = installations.find(
-          (installation) => installation.manifestUrl === each.manifestUrl
-        );
-
-        yield* pending !== undefined && pending.status !== "FAILED"
-          ? installed(
-              store,
-              { installationId: pending.id, manifestUrl: each.manifestUrl },
-              deadline
-            )
-          : installFrom(
-              store,
-              { failed: pending, manifest, manifestUrl: each.manifestUrl },
-              deadline
-            );
-      }
-
-      const done = toInstall.map((each) => each.name);
-
-      return {
-        data: {
-          created: done.length > 0,
-          installed: done,
-          removed: removedNames,
-          store: store.instance.ref,
-        },
-        headline: changes
-          ? [
-              done.length > 0 ? `Installed ${done.join(", ")}` : "",
-              removedNames.length > 0
-                ? `Uninstalled ${removedNames.join(", ")}`
-                : "",
-            ]
-              .filter(Boolean)
-              .join("; ")
-              .concat(` on ${store.instance.ref}.`)
-          : `${store.instance.ref} already has the App Store apps asked for.`,
-        text: "",
-      } satisfies Ensured<StoreAppsResult>;
-    });
+    const changes = yield* decide(store, wanted);
+    const removed = changes.toRemove.map(nameOf);
+    const action = actionOf(changes);
 
     return {
       action,
-      apply,
+      apply: applyChanges(store, changes, deadline),
       details: {
-        install: manifests.map(({ each, manifest }) => ({
+        install: changes.manifests.map(({ each, manifest }) => ({
           id: each.id,
           manifestUrl: each.manifestUrl,
           name: each.name,
           permissions: manifest.permissions,
         })),
-        remove: removedNames,
+        remove: removed,
       },
       risk:
-        toRemove.length > 0
-          ? `Uninstalling ${removedNames.join(", ")} deletes their webhooks, tokens and settings on the store.`
+        removed.length > 0
+          ? `Uninstalling ${removed.join(", ")} deletes their webhooks, tokens and settings on the store.`
           : null,
-      state: changes ? "absent" : "exists",
+      state: action === "reuse" ? "exists" : "absent",
       summary: [
-        ...manifests.map(
+        ...changes.manifests.map(
           ({ each, manifest }) =>
             [
               `Install ${each.name}`,
               manifest.permissions.join(", ") || "no permissions",
             ] as const
         ),
-        ...removedNames.map((name) => [`Uninstall ${name}`, ""] as const),
+        ...removed.map((name) => [`Uninstall ${name}`, ""] as const),
       ],
       target: {
         id: null,

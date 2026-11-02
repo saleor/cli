@@ -1293,9 +1293,11 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         removed: [],
       });
       expect(
-        calls
-          .filter((each) => each.body.query.includes("appInstall"))
-          .map((each) => each.body.variables.input)
+        calls.flatMap((each) =>
+          each.body.query.includes("appInstall")
+            ? [each.body.variables.input]
+            : []
+        )
       ).toStrictEqual([
         {
           activateAfterInstallation: true,

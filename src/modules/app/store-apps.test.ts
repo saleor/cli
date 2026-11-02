@@ -155,7 +155,7 @@ beforeEach(async () => {
     throw new Error("Expected TCP address");
   }
 
-  port = address.port;
+  ({ port } = address);
   vi.stubEnv("SALEOR_EXTENSIONS_URL", `http://127.0.0.1:${port}/extensions`);
   vi.stubEnv("SALEOR_POLL_INTERVAL_SECONDS", "0.001");
 });

@@ -95,6 +95,20 @@ const catalogUrls = (store: Store) =>
         Effect.orElseSucceed(() => undefined)
       );
 
+// Unknown when the App Store could not be read.
+const sourceOf = (
+  fromStore: ReadonlySet<string> | undefined,
+  manifestUrl: string | null
+): Row["source"] => {
+  if (fromStore === undefined) {
+    return null;
+  }
+
+  return manifestUrl !== null && fromStore.has(manifestUrl)
+    ? "app-store"
+    : "other";
+};
+
 const listCommand = app.list({
   description:
     "The apps installed on a store, with where they come from (the Saleor App Store or elsewhere), and installations that are still running or have failed. Needs a store token with MANAGE_APPS. With --store-apps, the apps the Saleor App Store offers instead, with the ids --store-app takes; that needs no store.",
@@ -132,12 +146,7 @@ const listCommand = app.list({
           id: each.id,
           manifestUrl: each.manifestUrl,
           name: each.name ?? each.id,
-          source:
-            fromStore === undefined
-              ? null
-              : each.manifestUrl !== null && fromStore.has(each.manifestUrl)
-                ? ("app-store" as const)
-                : ("other" as const),
+          source: sourceOf(fromStore, each.manifestUrl),
           state: each.isActive === false ? "inactive" : "installed",
         })),
         ...installations.map((each) => ({
