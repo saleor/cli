@@ -84,10 +84,11 @@ pnpm saleor api call staging --file products.graphql --variables '{"first": 10}'
 ```sh
 pnpm saleor app list staging
 pnpm saleor app add staging --manifest https://my-app.example.com/api/manifest
+pnpm saleor app reinstall staging --app "My app"
 pnpm saleor app remove staging --app "My app"
 ```
 
-`app add` installs an app from its manifest URL with the permissions the manifest asks for, waits until the store has installed it, and reuses an app that is already there (a failed installation is retried). The store fetches the manifest itself, so the URL must be reachable from the store. `app remove` deletes the app with its webhooks and settings, after confirmation. All three use the store's token, which needs `MANAGE_APPS`.
+`app add` installs an app from its manifest URL with the permissions the manifest asks for, waits until the store has installed it, and reuses an app that is already there (a failed installation is retried). The store fetches the manifest itself, so the URL must be reachable from the store. `app reinstall` deletes the app and installs it again from its manifest URL, after confirmation; it reads the manifest first, so an app the store cannot reach stays installed. `app remove` deletes the app with its webhooks and settings, after confirmation. All three use the store's token, which needs `MANAGE_APPS`.
 
 ## Receive webhooks while you build
 

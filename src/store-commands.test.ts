@@ -706,6 +706,79 @@ describe("app", () => {
     ]);
   });
 
+  it("reinstalls from the app's manifest only with confirmation", async () => {
+    apps = [
+      {
+        id: "a1",
+        identifier: "example.app",
+        manifestUrl: MANIFEST,
+        name: "Example",
+      },
+    ];
+    const reinstall = ["app", "reinstall", "local:demo", "--app", "Example"];
+    const env = { SALEOR_POLL_INTERVAL_SECONDS: "0.001" };
+
+    const refused = await cli(reinstall, env);
+    expect(refused.data.error.code).toBe("CONFIRMATION_REQUIRED");
+    expect(mutations()).toStrictEqual(["appFetchManifest"]);
+    expect(apps.map((each) => each.id)).toStrictEqual(["a1"]);
+
+    store = [];
+    const out = await cli([...reinstall, "--force"], env);
+    expect(out.code, out.stdout + out.stderr).toBe(0);
+    expect(out.data.data).toMatchObject({
+      app: { id: "QXBwOjk=", name: "Example" },
+      store: "local:demo",
+    });
+    expect(mutations()).toStrictEqual([
+      "appFetchManifest",
+      "appDelete",
+      "appInstall",
+    ]);
+    expect(
+      store.find((each) => each.body.query.includes("appDelete"))?.body
+        .variables
+    ).toStrictEqual({ id: "a1" });
+    expect(apps.map((each) => each.id)).toStrictEqual(["QXBwOjk="]);
+  });
+
+  it("keeps the app when the store cannot read its manifest", async () => {
+    apps = [
+      {
+        id: "a1",
+        identifier: "example.app",
+        manifestUrl: MANIFEST,
+        name: "Example",
+      },
+    ];
+    answer = (body) =>
+      body.query.includes("appFetchManifest")
+        ? {
+            data: {
+              appFetchManifest: {
+                errors: [{ field: "manifestUrl", message: "Unreachable" }],
+                manifest: null,
+              },
+            },
+          }
+        : appStore(body);
+
+    const out = await cli([
+      "app",
+      "reinstall",
+      "local:demo",
+      "--app",
+      "a1",
+      "--force",
+    ]);
+
+    expect(out.code).toBe(1);
+    expect(out.data.error.code).toBe("STORE_ERROR");
+    expect(out.data.error.message).toContain("Unreachable");
+    expect(mutations()).toStrictEqual(["appFetchManifest"]);
+    expect(apps).toHaveLength(1);
+  });
+
   it("uninstalls only with confirmation, and succeeds when the app is gone", async () => {
     apps = [
       {

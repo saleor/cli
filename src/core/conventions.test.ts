@@ -15,7 +15,17 @@ const { commands } = buildCatalog(
 // kind of change, and a new verb is a decision made here, not in passing.
 
 const VERBS: Record<ActionKind, readonly string[]> = {
-  ensure: ["init", "add", "start", "create", "use", "deploy", "pull", "edit"],
+  ensure: [
+    "init",
+    "add",
+    "start",
+    "create",
+    "use",
+    "deploy",
+    "pull",
+    "edit",
+    "reinstall",
+  ],
   list: ["list", "status", "diff"],
   remove: ["stop", "remove"],
   session: [

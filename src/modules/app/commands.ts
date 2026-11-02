@@ -300,10 +300,108 @@ const removeCommand = app.remove({
   summary: "Uninstall an app from a store.",
 });
 
+// Saleor has no reinstall: the app is deleted and installed again from its manifest
+// URL. The manifest is read before anything is deleted, so an app whose manifest the
+// store cannot reach stays installed.
+const reinstallCommand = app.ensure({
+  description:
+    "Uninstall an app and install it again from its manifest URL, with the permissions its manifest asks for now, then wait until it is installed. Named by its name, id, identifier or manifest URL. Its webhooks, tokens and settings on the store are deleted, and the app sets them up again as on a first install. Needs a store token with MANAGE_APPS and every permission the app asks for.",
+  examples: [
+    {
+      command: "saleor app reinstall staging --app 'My app' --force",
+      description: "Reinstall an app without asking",
+    },
+  ],
+  inputs: {
+    app: option.string("app", {
+      description: "The app: its name, id, identifier or manifest URL.",
+      metavar: "app",
+    }),
+    env: envInput,
+  },
+  name: "reinstall",
+  plan: (input) =>
+    Effect.gen(function* () {
+      if (Option.isNone(input.app)) {
+        return yield* fail("USAGE_ERROR", "Name the app to reinstall.", {
+          suggestion:
+            "Pass --app <name or id>; see the apps with: saleor app list",
+        });
+      }
+
+      const store = yield* connect(
+        input.env,
+        "MANAGE_APPS and the permissions the app asks for"
+      );
+
+      const { apps } = yield* appsOn(store);
+      const found = yield* findApp(apps, input.app.value);
+
+      if (Option.isNone(found)) {
+        return yield* fail(
+          "NOT_FOUND",
+          `No app "${input.app.value}" on ${store.instance.ref}.`,
+          {
+            suggestion:
+              "See the apps with: saleor app list. To install one, run: saleor app add --manifest <url>",
+          }
+        );
+      }
+
+      const each = found.value;
+      const { manifestUrl } = each;
+
+      if (manifestUrl === null) {
+        return yield* fail(
+          "USAGE_ERROR",
+          `"${each.name ?? each.id}" was not installed from a manifest, so it cannot be reinstalled.`
+        );
+      }
+
+      const manifest = yield* fetchManifest(store, manifestUrl);
+      const permissions = manifest.permissions.join(", ") || "none";
+      const deadline = deadlineIn(input.timeout);
+
+      return {
+        action: "update",
+        apply: Effect.gen(function* () {
+          yield* uninstall(store, each.id);
+
+          const installation = yield* install(store, {
+            ...manifest,
+            manifestUrl,
+          });
+
+          const made = yield* installed(
+            store,
+            { installationId: installation, manifestUrl },
+            deadline
+          );
+
+          return {
+            ...done(store, made, true),
+            headline: `Reinstalled the app "${made.name ?? made.id}" on ${store.instance.ref}.`,
+          };
+        }),
+        details: { app: shown(each), permissions: manifest.permissions },
+        risk: "Its webhooks, tokens and settings on the store are deleted before it is installed again.",
+        state: "exists",
+        summary: [
+          ["Manifest", manifestUrl],
+          ["Permissions", permissions],
+        ],
+        target: appTarget(store, each.name ?? each.id, each.id),
+      } satisfies Planned<Ensured<Added>, unknown>;
+    }),
+  risk: "Reinstalling deletes the app's webhooks, tokens and settings on the store before installing it again.",
+  summary: "Uninstall an app and install it again.",
+  waits: true,
+});
+
 export const appCommand = defineGroup({
-  actions: [listCommand, addCommand, removeCommand],
+  actions: [listCommand, addCommand, reinstallCommand, removeCommand],
   description:
     "Apps installed on a store. Name the store with the word after the command, as in every command: a name from saleor.yml or a store ref (cloud:<org>/<env key>, local:<name>); its token is found for you and needs MANAGE_APPS.",
   name: "app",
-  summary: "List, install and uninstall a store's apps.",
+  summary: "List, install, reinstall and uninstall a store's apps.",
 });
