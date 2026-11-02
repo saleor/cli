@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Semaphore } from "effect";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
   defineActions,
@@ -13,6 +13,7 @@ import { option } from "../../core/inputs.ts";
 import type { Instance } from "../../core/instance.ts";
 import { envInput } from "../../core/instances.ts";
 import { command } from "../../core/invocation.ts";
+import { notice } from "../../core/output.ts";
 import {
   ago,
   findProject,
@@ -330,7 +331,7 @@ const deployCommand = config.ensure({
 
 const statusCommand = config.list({
   description:
-    "For each environment in the project's saleor.yml: whether its store matches the configuration file, and how many changes a deploy would make. Contacts every store.",
+    "For each environment in the project's saleor.yml: whether its store matches the configuration file, and how many changes a deploy would make. Contacts every store. With several environments, SALEOR_TOKEN is not used: each store needs its own saved token.",
   examples: [
     { command: "saleor config status", description: "Check every environment" },
   ],
@@ -353,39 +354,57 @@ const statusCommand = config.list({
       const file = yield* existingConfig(configFile(input.config));
       yield* validateFile(file);
 
-      const rows = yield* Effect.forEach(project.environments, ([name, ref]) =>
-        Effect.gen(function* () {
-          const { instance, store } = yield* connect(Option.some(ref));
+      // SALEOR_TOKEN belongs to one store; with several, each uses its own token.
+      const envToken = project.environments.length === 1;
 
-          const plan = yield* planDeploy(store, file);
-          const synced = lastInSync(file, ref);
+      if (!envToken && process.env.SALEOR_TOKEN?.trim()) {
+        yield* notice(
+          "SALEOR_TOKEN is not used: this project has several environments, so each uses the token saved for its store."
+        );
+      }
 
-          return {
-            deployable: plan.deployable.length,
-            environment: name,
-            lastDeployed: Option.match(synced, {
-              onNone: () => null,
-              onSome: (note) => note.at.toISOString(),
-            }),
-            ref,
-            saleorVersion: instance.saleorVersion,
-            skipped: plan.skipped.length,
-            state:
-              plan.deployable.length === 0 ? "in sync" : "changes to deploy",
-          };
-        }).pipe(
-          Effect.catchTag("CliFailure", (failure) =>
-            Effect.succeed({
-              deployable: 0,
+      // Connecting may ask for a token, so connections take turns; the comparisons,
+      // which are the slow part, run side by side.
+      const prompts = yield* Semaphore.make(1);
+
+      const rows = yield* Effect.forEach(
+        project.environments,
+        ([name, ref]) =>
+          Effect.gen(function* () {
+            const { instance, store } = yield* prompts.withPermit(
+              connect(Option.some(ref), { envToken })
+            );
+
+            const plan = yield* planDeploy(store, file);
+            const synced = lastInSync(file, ref);
+
+            return {
+              deployable: plan.deployable.length,
               environment: name,
-              lastDeployed: null,
+              lastDeployed: Option.match(synced, {
+                onNone: () => null,
+                onSome: (note) => note.at.toISOString(),
+              }),
               ref,
-              saleorVersion: null,
-              skipped: 0,
-              state: `unknown: ${failure.code}`,
-            })
-          )
-        )
+              saleorVersion: instance.saleorVersion,
+              skipped: plan.skipped.length,
+              state:
+                plan.deployable.length === 0 ? "in sync" : "changes to deploy",
+            };
+          }).pipe(
+            Effect.catchTag("CliFailure", (failure) =>
+              Effect.succeed({
+                deployable: 0,
+                environment: name,
+                lastDeployed: null,
+                ref,
+                saleorVersion: null,
+                skipped: 0,
+                state: `unknown: ${failure.code}`,
+              })
+            )
+          ),
+        { concurrency: "unbounded" }
       );
 
       return listing(

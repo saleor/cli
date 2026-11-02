@@ -393,13 +393,31 @@ const bindingFile = (root: string, alias: string) =>
     `${encodeURIComponent(alias)}.json`
   );
 
+const decodeBinding = Schema.decodeUnknownOption(
+  Schema.fromJsonString(Schema.Struct({ name: Schema.String }))
+);
+
+// Files already warned about, so a command that reads the project twice warns once.
+const unreadable = new Set<string>();
+
 export const bindingName = (root: string, alias: string): string => {
   const file = bindingFile(root, alias);
 
   if (existsSync(file)) {
-    return Schema.decodeUnknownSync(Schema.Struct({ name: Schema.String }))(
-      JSON.parse(readFileSync(file, "utf-8"))
-    ).name;
+    const binding = decodeBinding(readFileSync(file, "utf-8"));
+
+    if (Option.isSome(binding)) {
+      return binding.value.name;
+    }
+
+    // A damaged binding must not break every command in the project: fall back to
+    // the default name and say so, since it may point at a different local store.
+    if (!unreadable.has(file)) {
+      unreadable.add(file);
+      process.stderr.write(
+        `Ignoring unreadable file ${file}; the "${alias}" environment uses the default local store name. Delete the file to stop this warning.\n`
+      );
+    }
   }
 
   return `project-${createHash("sha256")

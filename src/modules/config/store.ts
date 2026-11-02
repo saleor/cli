@@ -9,7 +9,10 @@ import {
   findProject,
   rememberEnvironment,
 } from "../../core/project.ts";
-import { storeAccess } from "../../core/store-access.ts";
+import {
+  storeAccess,
+  type StoreAccessOptions,
+} from "../../core/store-access.ts";
 import { DEFAULT_CONFIG, supportedSaleor } from "./engine.ts";
 
 // The configuration file: --config, else the project's, else ./config.yml.
@@ -42,13 +45,16 @@ const checkVersion = (instance: Instance) =>
   });
 
 // The store named by `<env>` (or the project's, or a pick), and a token for its API.
-export const connect = (env: Option.Option<string>) =>
+export const connect = (
+  env: Option.Option<string>,
+  options?: StoreAccessOptions
+) =>
   Effect.gen(function* () {
     const resolved = yield* resolveInstance(env);
 
     yield* checkVersion(resolved.instance);
 
-    const access = yield* storeAccess(resolved);
+    const access = yield* storeAccess(resolved, options);
 
     return {
       instance: resolved.instance,

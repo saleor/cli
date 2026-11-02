@@ -789,7 +789,9 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
           (request) => request.path === "/graphql/" && !request.auth
         )
       ).toBe(true);
-    }
+    },
+    // Runs over ten real CLI processes, which shared CI runners make slow.
+    60_000
   );
 
   it("rejects provider-specific init flags before provisioning", async () => {

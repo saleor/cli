@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -98,6 +99,35 @@ it("isolates two checkouts of the same project", () => {
   expect(bindingName(first, "local")).toBe("my-instance");
   expect(bindingName(second, "local")).not.toBe("my-instance");
   expect(readFileSync(path.join(first, "saleor.yml"), "utf-8")).toBe(manifest);
+});
+
+it("falls back to the default local name when a binding file is damaged", () => {
+  const config = temp();
+  vi.stubEnv("SALEOR_CONFIG_DIR", config);
+  const root = temp();
+  writeFileSync(
+    path.join(root, "saleor.yml"),
+    "environments:\n  local:\n    kind: local\n    saleor: 3.23.41\n"
+  );
+
+  const fallback = bindingName(root, "local");
+  saveBinding(root, "local", "my-instance");
+  const [workspace] = readdirSync(path.join(config, "workspaces"));
+  writeFileSync(
+    path.join(config, "workspaces", String(workspace), "local.json"),
+    '{"na'
+  );
+  const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+
+  try {
+    expect(Option.getOrThrow(projectAt(root)).environments).toStrictEqual([
+      ["local", `local:${fallback}`],
+    ]);
+    expect(bindingName(root, "local")).toBe(fallback);
+    expect(stderr).toHaveBeenCalledTimes(1);
+  } finally {
+    stderr.mockRestore();
+  }
 });
 
 it("rejects invalid manifests rather than replacing them", async () => {
