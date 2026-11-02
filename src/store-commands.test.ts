@@ -1,10 +1,13 @@
 import { Predicate } from "effect";
-import { type ChildProcess, spawn } from "node:child_process";
+import { createTarGzip } from "nanotar";
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import {
   chmodSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import {
@@ -820,5 +823,132 @@ describe("app", () => {
 
     const again = await cli([...remove, "--force"]);
     expect(again.data.data).toMatchObject({ action: "none", existed: false });
+  });
+});
+
+describe("app create", () => {
+  const MANIFEST_TS = `export default createManifestHandler({
+  async manifestFactory({ appBaseUrl }) {
+    return {
+      name: "Saleor App Template",
+      id: "saleor.app",
+    };
+  },
+});
+`;
+
+  let env: Record<string, string>;
+
+  beforeEach(async () => {
+    const archive = await createTarGzip([
+      {
+        data: '{"name":"saleor-app-template","dependencies":{"@saleor/app-sdk":"1.12.0"}}',
+        name: "t-main/package.json",
+      },
+      { data: MANIFEST_TS, name: "t-main/src/pages/api/manifest.ts" },
+      {
+        data: "APP_IFRAME_BASE_URL=\nAPP_API_BASE_URL=\n",
+        name: "t-main/.env.example",
+      },
+      { data: ".env\nnode_modules", name: "t-main/.gitignore" },
+    ]);
+
+    const port = await serve((_req, res) => {
+      res.writeHead(200);
+      res.end(Buffer.from(archive));
+    });
+
+    const fakeBin = path.join(cwd, "fake-bin");
+    writeFileSync(
+      path.join(fakeBin, "pnpm"),
+      `#!${process.execPath}
+require("node:fs").mkdirSync("node_modules", {recursive:true});
+`
+    );
+    chmodSync(path.join(fakeBin, "pnpm"), 0o700);
+    symlinkSync(
+      execFileSync("which", ["git"]).toString().trim(),
+      path.join(fakeBin, "git")
+    );
+
+    writeFileSync(path.join(cwd, "saleor.yml"), "name: Outdoor Shop\n");
+
+    env = {
+      GIT_AUTHOR_EMAIL: "test@example.com",
+      GIT_AUTHOR_NAME: "Test",
+      GIT_COMMITTER_EMAIL: "test@example.com",
+      GIT_COMMITTER_NAME: "Test",
+      SALEOR_APP_TEMPLATE_URL: `http://127.0.0.1:${port}/app.tar.gz`,
+    };
+  });
+
+  it("makes each app its own folder, manifest id and component", async () => {
+    const first = await cli(["app", "create", "--app", "Loyalty"], env);
+    expect(first.code, first.stdout + first.stderr).toBe(0);
+    expect(first.data.data).toMatchObject({
+      component: "loyalty",
+      created: true,
+      identifier: "outdoor-shop.loyalty",
+      installed: true,
+      next: ["cd apps/loyalty", "pnpm dev", "saleor app add <env>"],
+      repository: "created",
+      warnings: [],
+    });
+
+    const dir = path.join(cwd, "apps/loyalty");
+    const manifest = readFileSync(
+      path.join(dir, "src/pages/api/manifest.ts"),
+      "utf-8"
+    );
+    expect(manifest).toContain('id: "outdoor-shop.loyalty"');
+    expect(manifest).toContain('name: "Loyalty"');
+    expect(readFileSync(path.join(dir, ".gitignore"), "utf-8")).toContain(
+      "\n.auth-data.json\n"
+    );
+    expect(readFileSync(path.join(dir, ".env"), "utf-8")).toBe(
+      "APP_IFRAME_BASE_URL=\nAPP_API_BASE_URL=\n"
+    );
+    // The app tokens and .env never reach git.
+    expect(
+      execFileSync("git", ["ls-files"], { cwd: dir })
+        .toString()
+        .split("\n")
+        .filter(Boolean)
+        .sort()
+    ).toStrictEqual([
+      ".env.example",
+      ".gitignore",
+      "package.json",
+      "src/pages/api/manifest.ts",
+    ]);
+
+    const second = await cli(["app", "create", "--app", "Rewards"], env);
+    expect(second.data.data).toMatchObject({
+      component: "rewards",
+      identifier: "outdoor-shop.rewards",
+    });
+    expect(readFileSync(path.join(cwd, "saleor.yml"), "utf-8")).toContain(
+      "components:\n  loyalty:\n    kind: app\n    path: apps/loyalty\n  rewards:\n    kind: app\n    path: apps/rewards\n"
+    );
+
+    // Again: the files and id are kept.
+    const again = await cli(["app", "create", "--app", "Loyalty"], env);
+    expect(again.data.data).toMatchObject({
+      created: false,
+      identifier: "outdoor-shop.loyalty",
+    });
+    expect(
+      readFileSync(path.join(dir, "src/pages/api/manifest.ts"), "utf-8")
+    ).toBe(manifest);
+  });
+
+  it("refuses a folder that holds something else", async () => {
+    mkdirSync(path.join(cwd, "apps/loyalty"), { recursive: true });
+    writeFileSync(path.join(cwd, "apps/loyalty/notes.txt"), "mine");
+
+    const out = await cli(["app", "create", "--app", "loyalty"], env);
+
+    expect(out.code).toBe(1);
+    expect(out.data.error.code).toBe("NAME_CONFLICT");
   });
 });

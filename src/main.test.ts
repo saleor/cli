@@ -1487,6 +1487,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "saleor storefront use",
       "saleor api call",
       "saleor app list",
+      "saleor app create",
       "saleor app add",
       "saleor app reinstall",
       "saleor app remove",

@@ -25,6 +25,7 @@ import {
   uninstall,
 } from "./store.ts";
 import { storeApps } from "./catalog.ts";
+import { createCommand } from "./create-command.ts";
 import { planStoreApps, type StoreAppsResult } from "./store-apps.ts";
 
 const app = defineActions();
@@ -503,7 +504,13 @@ const reinstallCommand = app.ensure({
 });
 
 export const appCommand = defineGroup({
-  actions: [listCommand, addCommand, reinstallCommand, removeCommand],
+  actions: [
+    listCommand,
+    createCommand,
+    addCommand,
+    reinstallCommand,
+    removeCommand,
+  ],
   description:
     "Apps installed on a store. Name the store with the word after the command, as in every command: a name from saleor.yml or a store ref (cloud:<org>/<env key>, local:<name>); its token is found for you and needs MANAGE_APPS.",
   name: "app",
