@@ -32,6 +32,8 @@ Commands read as `saleor <noun> <verb> [<env>]`:
 | `env remove` | Deletes a store and its data: a local instance, or a Cloud sandbox. |
 | `config status`, `diff`, `deploy`, `pull`, `edit`, `validate` | Keeps a store's configuration as code in `config.yml`. |
 | `storefront create`, `storefront use` | Creates a storefront from the Saleor template connected to a store, or points an existing one at another store. |
+| `api call` | Sends one GraphQL request to a store's API, with its token, and prints the data. |
+| `webhook listen` | Prints a store's webhooks as they arrive, through a temporary app, and can forward them to your app. |
 | `login`, `logout` | Saves or removes the Cloud login. |
 
 `<env>` names a store: a name from `saleor.yml`, or a ref (`local:<name>`, `cloud:<org>/<env key>`) as `env list` prints it. `saleor commands` describes every command for agents. Manage plans, production environments and empty projects in the Saleor Cloud dashboard.
@@ -118,6 +120,14 @@ pnpm saleor storefront create cloud:acme/env1 --dir shop --channel eu
 `init --storefront` (asked last in a terminal) does the same for the store `init` sets up, in a folder for the project: the current directory when it is empty, else `./<project>`, with the storefront in `storefront/` and one git repository for the folder. The template downloads while the store is being set up; if `init` stops waiting for the store, running it again connects the downloaded storefront.
 
 `pnpm saleor storefront use` shows the current backend and asks which store to use. Defaults to the project's storefront, or the current directory outside a project; pass `--dir` when running elsewhere. `storefront use staging` or `storefront use cloud:<org>/<key>` selects the backend explicitly. `--channel` overrides the current channel. `--dry-run` previews the change without writing. Restart the development server afterward. This command only updates the local storefront's `.env`; it does not modify Cloud environments or hosted deployments. Exploratory navigation offers it only inside a storefront directory.
+
+## Store API and webhooks
+
+`api call` and `webhook listen` use the store's own API. Its token comes from `SALEOR_TOKEN` (only for commands that reach one store), then a token saved for the store, then the store's own sign-in (local instances sign in as the admin the CLI created), then a prompt in a terminal that offers to save it. Without a terminal and without a token, they fail with `STORE_AUTH_REQUIRED`, saying which permissions to give the token. Saleor Cloud does not issue store tokens to the CLI yet: create an app token in the store's Dashboard.
+
+- **`api call`.** The document comes from `--query`, or `--file <path>` (`--file -` reads stdin); `--variables` takes a JSON object. Queries and mutations are sent as given, without asking. `data` is the GraphQL answer's data. An answer with errors fails: `STORE_AUTH_INVALID` when the token lacks a permission (Saleor's message names it), `STORE_ERROR` otherwise; both carry `{data, errors}` in `error.details`. `--anonymous` sends no token.
+- **`webhook listen`.** It needs `--events` (comma-separated; `order_created`, `ORDER_CREATED` and `order.created` are the same) or `--subscription <file>`, whose events are used when `--events` is left out. It makes an app named `Saleor CLI listener <id>` with every permission the token's owner may grant, adds a webhook to a local HTTP listener on a random path, and deletes the app on Ctrl+C, SIGTERM or after `--count` deliveries; Ctrl+C exits 130. Each delivery shows Saleor's event, its payload and, with `--forward-to <url>`, your app's answer; the store gets that answer, so retries behave as they would for your app. In json mode, each delivery is a JSON line on stderr (`{"event": "webhook", "delivery": {event, receivedAt, headers, payload, forwarded}}`), and the result lists the deliveries with the app and webhook.
+- **Reaching this computer.** A local store delivers to `host.docker.internal`; local instances allow it (`HTTP_IP_FILTER_ENABLED=False`). On Linux the listener accepts connections from the Docker bridge, so it listens on every interface; the random path keeps others out. Any other store needs a tunnel: `--port <n>` for the local port, `--public-url <url>` for the tunnel's address.
 
 ## Project context
 

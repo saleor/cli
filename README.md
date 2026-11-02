@@ -70,6 +70,26 @@ Pick a store (Cloud or local) and the CLI downloads the [Saleor storefront templ
 
 Run `pnpm saleor storefront use staging` to point the storefront at another environment, or leave out the name to choose interactively; it shows the current backend before asking. Target a directory explicitly with `--dir path/to/storefront`. Restart the storefront development server after switching. This updates local configuration; hosted deployments keep their own settings.
 
+## Talk to a store's API
+
+```sh
+pnpm saleor api call local --query '{ shop { name } }'
+pnpm saleor api call staging --file products.graphql --variables '{"first": 10}'
+```
+
+`api call` sends one GraphQL request and prints the data. It finds the token for you: `SALEOR_TOKEN`, a token saved for the store, a local store's own admin login, or a prompt that offers to save what you paste. Make that token in the store's Dashboard (Apps → Create app). `--anonymous` sends none, for public data.
+
+## Receive webhooks while you build
+
+```sh
+pnpm saleor webhook listen local --events order_created
+pnpm saleor webhook listen local --subscription order.graphql --forward-to http://localhost:3000/api/webhooks/order
+```
+
+`webhook listen` creates a temporary app on the store, subscribes it to the events (or to a subscription query, which shapes the payload as your app's webhook would), and prints each delivery as it arrives. With `--forward-to`, each delivery also goes to your app, signature included, and the store gets your app's answer. Ctrl+C deletes the app; `--count <n>` stops after that many deliveries. The token needs `MANAGE_APPS` plus the permissions the events need.
+
+Local stores reach your computer through Docker. For a Cloud store, run a tunnel to a local port and pass it: `--port 4141 --public-url https://<tunnel>`. A local store made before this version refuses to deliver to your computer until you run `env stop` and `env start` on it once.
+
 ## Cloud stores
 
 ```sh

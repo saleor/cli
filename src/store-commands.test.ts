@@ -1,0 +1,498 @@
+import { Predicate } from "effect";
+import { type ChildProcess, spawn } from "node:child_process";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
+import os from "node:os";
+import path from "node:path";
+import { text } from "node:stream/consumers";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+// `api call` and `webhook listen` as separate CLI processes, against a local store
+// "demo" whose GraphQL API is a mock server, with a Docker that reports it running.
+
+const executable = path.resolve(process.env.SALEOR_CLI_BIN ?? "bin/saleor.mjs");
+
+interface Received {
+  readonly auth: string | undefined;
+  readonly body: any;
+  readonly headers: IncomingMessage["headers"];
+}
+
+let cwd: string;
+let store: Received[];
+
+// The store's JSON answer to one request.
+let answer: (body: any) => object;
+const servers: Server[] = [];
+
+const serve = async (
+  handle: (req: IncomingMessage, res: ServerResponse, body: string) => void
+) => {
+  const server = createServer((req, res) => {
+    text(req)
+      .then((body) => {
+        handle(req, res, body);
+      })
+      .catch(() => {
+        res.destroy();
+      });
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  servers.push(server);
+  const address = server.address();
+
+  if (address === null || Predicate.isString(address)) {
+    throw new Error("Expected TCP address");
+  }
+
+  return address.port;
+};
+
+beforeEach(async () => {
+  cwd = mkdtempSync(path.join(os.tmpdir(), "saleor-store-commands-"));
+  store = [];
+  answer = () => ({ data: { shop: { name: "Demo" } } });
+
+  const apiPort = await serve((req, res, body) => {
+    const parsed = body ? JSON.parse(body) : undefined;
+
+    // Finding the store checks that it answers; that is not the command's request.
+    if (parsed?.query === "query { shop { name } }") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ data: { shop: { name: "Demo" } } }));
+
+      return;
+    }
+
+    store.push({
+      auth: req.headers.authorization,
+      body: parsed,
+      headers: req.headers,
+    });
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(answer(parsed)));
+  });
+
+  const fakeBin = path.join(cwd, "fake-bin");
+  mkdirSync(fakeBin);
+  writeFileSync(
+    path.join(fakeBin, "docker"),
+    `#!${process.execPath}
+if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", State:"running"}));
+`
+  );
+  chmodSync(path.join(fakeBin, "docker"), 0o700);
+
+  const dir = path.join(cwd, "config/local/demo");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    path.join(dir, "instance.json"),
+    JSON.stringify({
+      apiPort,
+      dashboardPort: 9000,
+      initialized: true,
+      name: "demo",
+      saleorVersion: "3.23.41",
+      sampleData: false,
+    })
+  );
+});
+
+afterEach(async () => {
+  await Promise.all(
+    servers.splice(0).map(async (server) => {
+      await new Promise<void>((resolve) => {
+        server.closeAllConnections();
+        server.close(() => {
+          resolve();
+        });
+      });
+    })
+  );
+  rmSync(cwd, { force: true, recursive: true });
+});
+
+const start = (args: readonly string[], env: Record<string, string> = {}) =>
+  spawn(process.execPath, [executable, ...args], {
+    cwd,
+    env: {
+      PATH: path.join(cwd, "fake-bin"),
+      SALEOR_CONFIG_DIR: path.join(cwd, "config"),
+      SALEOR_CREDENTIAL_STORE: "file",
+      SALEOR_TOKEN: "store.secret",
+      ...env,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+const finish = async (child: ChildProcess) =>
+  await new Promise<{
+    code: number | null;
+    data: any;
+    stderr: string;
+    stdout: string;
+  }>((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr?.on("data", (chunk) => {
+      stderr += chunk;
+    });
+
+    const timeout = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error(`CLI timed out\n${stdout}\n${stderr}`));
+    }, 10_000);
+
+    child.on("close", (code) => {
+      clearTimeout(timeout);
+      let data: any;
+
+      try {
+        data = stdout.trim() ? JSON.parse(stdout) : undefined;
+      } catch {
+        /* Text output. */
+      }
+
+      resolve({ code, data, stderr, stdout });
+    });
+  });
+
+const cli = async (args: readonly string[], env: Record<string, string> = {}) =>
+  await finish(start([...args, "--agent"], env));
+
+describe("api call", () => {
+  it("sends the document with the store's token and returns its data", async () => {
+    const out = await cli([
+      "api",
+      "call",
+      "local:demo",
+      "--query",
+      "query($n: Int) { shop { name } }",
+      "--variables",
+      '{"n": 1}',
+    ]);
+
+    expect(out.code).toBe(0);
+    expect(out.data).toStrictEqual({
+      data: { shop: { name: "Demo" } },
+      ok: true,
+    });
+    expect(store).toHaveLength(1);
+    expect(store[0]?.auth).toBe("Bearer store.secret");
+    expect(store[0]?.body).toStrictEqual({
+      query: "query($n: Int) { shop { name } }",
+      variables: { n: 1 },
+    });
+    expect(out.stdout + out.stderr).not.toContain("store.secret");
+  });
+
+  it("sends no token with --anonymous", async () => {
+    const out = await cli(
+      [
+        "api",
+        "call",
+        "local:demo",
+        "--anonymous",
+        "--query",
+        "{ shop { name } }",
+      ],
+      {
+        SALEOR_TOKEN: "",
+      }
+    );
+
+    expect(out.code).toBe(0);
+    expect(store[0]?.auth).toBeUndefined();
+  });
+
+  it("reads the document from a file", async () => {
+    writeFileSync(path.join(cwd, "shop.graphql"), "{ shop { name } }");
+
+    const out = await cli([
+      "api",
+      "call",
+      "local:demo",
+      "--file",
+      "shop.graphql",
+    ]);
+
+    expect(out.code).toBe(0);
+    expect(store[0]?.body.query).toBe("{ shop { name } }");
+  });
+
+  it("fails on GraphQL errors, keeping partial data", async () => {
+    answer = () => ({
+      data: { shop: null },
+      errors: [{ message: "Something broke" }],
+    });
+
+    const out = await cli([
+      "api",
+      "call",
+      "local:demo",
+      "--query",
+      "{ shop { name } }",
+    ]);
+
+    expect(out.code).toBe(1);
+    expect(out.data.error.code).toBe("STORE_ERROR");
+    expect(out.data.error.details.data).toStrictEqual({ shop: null });
+  });
+
+  it("names a missing permission as the token's problem", async () => {
+    answer = () => ({
+      data: null,
+      errors: [
+        {
+          extensions: { exception: { code: "PermissionDenied" } },
+          message:
+            "To access this path, you need one of the following permissions: MANAGE_APPS",
+        },
+      ],
+    });
+
+    const out = await cli([
+      "api",
+      "call",
+      "local:demo",
+      "--query",
+      "{ apps { totalCount } }",
+    ]);
+
+    expect(out.code).toBe(1);
+    expect(out.data.error.code).toBe("STORE_AUTH_INVALID");
+    expect(out.data.error.message).toContain("MANAGE_APPS");
+  });
+
+  it.each([
+    [[], "No GraphQL document"],
+    [["--query", "{ shop { name } }", "--variables", "[1]"], "JSON object"],
+    [["--query", "{ a }", "--file", "x.graphql"], "not both"],
+  ])(
+    "refuses an invalid request before contacting the store (%j)",
+    async (args, message) => {
+      const out = await cli(["api", "call", "local:demo", ...args]);
+
+      expect(out.code).toBe(2);
+      expect(out.data.error.code).toBe("USAGE_ERROR");
+      expect(out.data.error.message).toContain(message);
+      expect(store).toStrictEqual([]);
+    }
+  );
+});
+
+describe("webhook listen", () => {
+  let forwarded: Received[];
+  let forwardUrl: string;
+
+  // The store answers the listener's setup; once the webhook exists, it delivers to
+  // its target (Docker's name for this computer is 127.0.0.1 here).
+  const storeAnswers =
+    (deliver: (targetUrl: string) => void) => (body: any) => {
+      const query: string = body.query;
+
+      if (query.includes("me {")) {
+        return {
+          data: {
+            me: {
+              userPermissions: [
+                { code: "MANAGE_APPS" },
+                { code: "MANAGE_ORDERS" },
+              ],
+            },
+          },
+        };
+      }
+
+      if (query.includes("appCreate")) {
+        return {
+          data: {
+            appCreate: {
+              app: { id: "app-1", name: body.variables.input.name },
+              errors: [],
+            },
+          },
+        };
+      }
+
+      if (query.includes("webhookCreate")) {
+        const { targetUrl } = body.variables.input;
+        setTimeout(() => {
+          deliver(targetUrl.replace("host.docker.internal", "127.0.0.1"));
+        }, 50);
+
+        return {
+          data: {
+            webhookCreate: {
+              errors: [],
+              webhook: {
+                asyncEvents: [{ code: "ORDER_CREATED" }],
+                id: "wh-1",
+                targetUrl,
+              },
+            },
+          },
+        };
+      }
+
+      if (query.includes("appDelete")) {
+        return { data: { appDelete: { errors: [] } } };
+      }
+
+      return { data: null, errors: [{ message: "unexpected" }] };
+    };
+
+  const deliverOrder = (targetUrl: string) => {
+    // Something other than the store, at another path: refused.
+    fetch(new URL("/elsewhere", targetUrl), { body: "{}", method: "POST" })
+      .then(
+        async () =>
+          await fetch(targetUrl, {
+            body: JSON.stringify([{ id: "order-1", type: "ORDER_CREATED" }]),
+            headers: {
+              "content-type": "application/json",
+              "saleor-event": "order_created",
+              "saleor-signature": "sig",
+            },
+            method: "POST",
+          })
+      )
+      .catch(() => undefined);
+  };
+
+  beforeEach(async () => {
+    forwarded = [];
+
+    const port = await serve((req, res, body) => {
+      forwarded.push({
+        auth: undefined,
+        body: JSON.parse(body),
+        headers: req.headers,
+      });
+      res.writeHead(202).end();
+    });
+
+    forwardUrl = `http://127.0.0.1:${port}/api/webhooks`;
+  });
+
+  it("subscribes a temporary app, forwards a delivery, and deletes the app", async () => {
+    answer = storeAnswers(deliverOrder);
+
+    const out = await cli([
+      "webhook",
+      "listen",
+      "local:demo",
+      "--events",
+      "order.created",
+      "--count",
+      "1",
+      "--forward-to",
+      forwardUrl,
+    ]);
+
+    expect(out.code).toBe(0);
+    const [delivery] = out.data.data.deliveries;
+    expect(delivery).toMatchObject({
+      event: "order_created",
+      forwarded: { status: 202, url: forwardUrl },
+      headers: { "saleor-event": "order_created", "saleor-signature": "sig" },
+      payload: [{ id: "order-1", type: "ORDER_CREATED" }],
+    });
+    expect(out.data.data.webhook.events).toStrictEqual(["ORDER_CREATED"]);
+
+    const create = store.find((each) => each.body.query.includes("appCreate"));
+    expect(create?.body.variables.input.permissions).toStrictEqual([
+      "MANAGE_APPS",
+      "MANAGE_ORDERS",
+    ]);
+
+    const hook = store.find((each) =>
+      each.body.query.includes("webhookCreate")
+    );
+
+    expect(hook?.body.variables.input).toMatchObject({
+      app: "app-1",
+      asyncEvents: ["ORDER_CREATED"],
+    });
+    expect(hook?.body.variables.input.targetUrl).toMatch(
+      /^http:\/\/host\.docker\.internal:\d+\/[0-9a-f]{32}$/
+    );
+
+    expect(store.at(-1)?.body).toMatchObject({ variables: { id: "app-1" } });
+    expect(forwarded).toHaveLength(1);
+    expect(forwarded[0]?.headers["saleor-signature"]).toBe("sig");
+    expect(out.stderr).toContain("Deleted the temporary app");
+  });
+
+  it.each(["SIGINT", "SIGTERM"] as const)(
+    "deletes the app when stopped with %s",
+    async (signal) => {
+      answer = storeAnswers(() => undefined);
+
+      const child = start([
+        "webhook",
+        "listen",
+        "local:demo",
+        "--events",
+        "order_created",
+        "--agent",
+      ]);
+
+      let stderr = "";
+
+      child.stderr.on("data", (chunk) => {
+        stderr += chunk;
+
+        if (stderr.includes("Listening for") && !child.killed) {
+          child.kill(signal);
+        }
+      });
+
+      const out = await finish(child);
+
+      expect(out.code).toBe(130);
+      expect(store.at(-1)?.body.query).toContain("appDelete");
+    }
+  );
+
+  it("needs events or a subscription", async () => {
+    const out = await cli(["webhook", "listen", "local:demo"]);
+
+    expect(out.code).toBe(2);
+    expect(out.data.error.code).toBe("USAGE_ERROR");
+    expect(store).toStrictEqual([]);
+  });
+
+  it("needs the tunnel's port with --public-url", async () => {
+    const out = await cli([
+      "webhook",
+      "listen",
+      "local:demo",
+      "--events",
+      "order_created",
+      "--public-url",
+      "https://tunnel.example",
+    ]);
+
+    expect(out.code).toBe(2);
+    expect(out.data.error.message).toContain("--port");
+    expect(store).toStrictEqual([]);
+  });
+});
