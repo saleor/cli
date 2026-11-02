@@ -164,7 +164,11 @@ afterEach(async () => {
   rmSync(cwd, { force: true, recursive: true });
 });
 
-const cli = async (args: string[], extra: Record<string, string> = {}) =>
+const cli = async (
+  args: string[],
+  extra: Record<string, string> = {},
+  dir = cwd
+) =>
   await new Promise<{
     code: number | null;
     data: any;
@@ -173,7 +177,7 @@ const cli = async (args: string[], extra: Record<string, string> = {}) =>
   }>((resolve, reject) => {
     // Deliberately do not inherit real credentials, context, or auth URLs.
     const child = spawn(process.execPath, [executable, ...args], {
-      cwd,
+      cwd: dir,
       env: {
         PATH: process.env.PATH ?? "",
         SALEOR_AUTH_URL: base,
@@ -395,9 +399,13 @@ basicConstraints=critical,CA:TRUE
           route === "/api/organizations/acme/environments/obtain/" &&
           method === "POST"
         ) {
-          environments.push({ ...environment(), domain, name: body.name });
+          environments.push({
+            ...environment(`env${environments.length + 1}`),
+            domain,
+            name: body.name,
+          });
 
-          return [201, { ...environments[0], task_id: "setup" }];
+          return [201, { ...environments.at(-1), task_id: "setup" }];
         }
 
         if (route === "/api/organizations/acme/environments/") {
@@ -408,7 +416,7 @@ basicConstraints=critical,CA:TRUE
           route === "/api/organizations/acme/environments/env1/" &&
           method === "DELETE"
         ) {
-          environments = [];
+          environments = environments.filter((env) => env.key !== "env1");
 
           return [202, undefined];
         }
@@ -426,10 +434,15 @@ basicConstraints=critical,CA:TRUE
         return fallback(method, url, body);
       };
 
+      // `init` makes the project in ./poc, next to the files already here.
+      let dir = cwd;
+
       const run = async (...args: string[]) => {
-        const out = await cli([...args, "--agent"], {
-          NODE_EXTRA_CA_CERTS: cert,
-        });
+        const out = await cli(
+          [...args, "--agent"],
+          { NODE_EXTRA_CA_CERTS: cert },
+          dir
+        );
 
         expect(out.code, out.stdout + out.stderr).toBe(0);
         expect(out.data.ok).toBe(true);
@@ -458,30 +471,57 @@ basicConstraints=critical,CA:TRUE
         ready: true,
       });
 
-      const [listed] = await run("env", "list", "--project", "poc");
-      expect(listed).toMatchObject({
-        dashboardUrl: `https://${domain}/dashboard/`,
-        graphqlUrl: `https://${domain}/graphql/`,
+      // Inside the project, the store has the name saleor.yml gives it.
+      dir = path.join(cwd, "poc");
+      expect(readFileSync(path.join(dir, "saleor.yml"), "utf-8")).toContain(
+        "dev: cloud:acme/env1"
+      );
+
+      // A second environment, named in saleor.yml as the Cloud environment is.
+      expect(
+        await run("env", "add", "staging", "--project", "poc", "--timeout", "5")
+      ).toMatchObject({ created: true, ref: "cloud:acme/env2" });
+      expect(readFileSync(path.join(dir, "saleor.yml"), "utf-8")).toContain(
+        "staging: cloud:acme/env2"
+      );
+      // Adding it again finds it, without asking Cloud for another.
+      expect(await run("env", "add", "staging")).toMatchObject({
+        created: false,
+        ref: "cloud:acme/env2",
       });
 
-      // Deletions never take their scope from SALEOR_ORG: it is always passed.
-      const remove = async (...args: string[]) =>
-        await run(...args, "--org", "acme");
+      const listed = await run("env", "list");
+      expect(listed).toMatchObject([
+        {
+          dashboardUrl: `https://${domain}/dashboard/`,
+          environment: "dev",
+          graphqlUrl: `https://${domain}/graphql/`,
+          ref: "cloud:acme/env1",
+        },
+        { environment: "staging", ref: "cloud:acme/env2" },
+      ]);
 
-      expect(await remove("env", "delete", "dev", "--dry-run")).toMatchObject({
+      expect(await run("env", "remove", "dev", "--dry-run")).toMatchObject({
         action: "delete",
         dryRun: true,
       });
-      expect(environments).toHaveLength(1);
-      expect(await remove("env", "delete", "dev", "--force")).toMatchObject({
+      expect(environments).toHaveLength(2);
+      expect(await run("env", "remove", "dev", "--force")).toMatchObject({
         action: "delete",
+        environment: "dev",
         existed: true,
+        forgotten: true,
       });
-      expect(await remove("env", "delete", "dev", "--force")).toMatchObject({
-        action: "none",
-        existed: false,
-      });
-      expect(await run("env", "list")).toStrictEqual([]);
+      // The store is gone, and so is its name.
+      expect(readFileSync(path.join(dir, "saleor.yml"), "utf-8")).not.toContain(
+        "dev:"
+      );
+      expect(
+        await run("env", "remove", "cloud:acme/dev", "--force")
+      ).toMatchObject({ action: "none", existed: false });
+      expect(await run("env", "list")).toMatchObject([
+        { environment: "staging" },
+      ]);
       expect(
         requests
           .filter((req) =>
@@ -490,6 +530,7 @@ basicConstraints=critical,CA:TRUE
           .map((req) => `${req.method} ${req.path}`)
       ).toStrictEqual([
         "POST /api/organizations/acme/projects/",
+        "POST /api/organizations/acme/environments/obtain/",
         "POST /api/organizations/acme/environments/obtain/",
         "DELETE /api/organizations/acme/environments/env1/",
       ]);
@@ -522,11 +563,12 @@ basicConstraints=critical,CA:TRUE
       "name: shared\nenvironments:\n  local:\n    kind: local\n    saleor: 3.23.41\n    configure: on-create\n"
     );
     writeFileSync(path.join(cwd, "config.yml"), "invalid: [");
-    const invalid = await cli(["local", "up", "--dry-run", "--agent"]);
+    const invalid = await cli(["env", "start", "--dry-run", "--agent"]);
     expect(invalid.code).not.toBe(0);
     writeFileSync(path.join(cwd, "config.yml"), "{}\n");
-    const first = await cli(["local", "up", "--dry-run", "--agent"]);
-    const second = await cli(["local", "up", "--dry-run", "--agent"]);
+    // The project's only environment is the default; naming it is the same.
+    const first = await cli(["env", "start", "--dry-run", "--agent"]);
+    const second = await cli(["env", "start", "local", "--dry-run", "--agent"]);
     expect(first.code, first.stdout + first.stderr).toBe(0);
     expect(first.data.data.action).toBe("create");
     expect(first.data.data.details).toMatchObject({
@@ -538,14 +580,49 @@ basicConstraints=critical,CA:TRUE
       existsSync(path.join(cwd, "config/local", first.data.data.target.name))
     ).toBe(false);
     expect(existsSync(path.join(cwd, "config/workspaces"))).toBe(false);
+
+    // Another local environment gets an instance named after the project too, since
+    // local names are shared by every project on this computer.
+    const added = await cli(
+      ["env", "add", "review", "--local", "--dry-run", "--agent"],
+      { SALEOR_ORG: "" }
+    );
+
+    expect(added.code, added.stdout + added.stderr).toBe(0);
+    expect(added.data.data).toMatchObject({
+      action: "create",
+      details: { environment: "review" },
+      target: { name: "shared-review", type: "local-instance" },
+    });
+    expect(readFileSync(path.join(cwd, "saleor.yml"), "utf-8")).not.toContain(
+      "review"
+    );
+
+    const outcomes = await Promise.all(
+      [
+        ["env", "add", "Review", "--local"],
+        ["env", "add", "--local"],
+      ].map(async (args) => await cli(args))
+    );
+
+    expect(outcomes.map((out) => out.data.error.code)).toStrictEqual([
+      "USAGE_ERROR",
+      "CONTEXT_MISSING",
+    ]);
   });
 
-  it.each([
-    { deleteArgs: ["delete"] },
-    { deleteArgs: ["down", "--delete-data"] },
-  ])(
-    "manages a local store without Cloud credentials ($deleteArgs)",
-    async ({ deleteArgs }) => {
+  it("adds environments only to a project", async () => {
+    const out = await cli(["env", "add", "staging", "--local"]);
+    expect(out.data.error).toMatchObject({
+      code: "NOT_FOUND",
+      suggestion: "Start one with: saleor init",
+    });
+  });
+
+  // The same store by its name in saleor.yml, and by its ref.
+  it.each(["local", "local:demo"])(
+    "manages a local store without Cloud credentials (%s)",
+    async (word) => {
       credentials = {};
       const fakeBin = path.join(cwd, "fake-bin");
       mkdirSync(fakeBin);
@@ -593,7 +670,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       expect(existsSync(path.join(cwd, "AGENTS.md"))).toBe(true);
       expect(existsSync(path.join(cwd, "CLAUDE.md"))).toBe(true);
 
-      const inferred = await cli(["local", "up", "--dry-run", "--agent"], {
+      const inferred = await cli(["env", "start", "--dry-run", "--agent"], {
         PATH: fakeBin,
       });
 
@@ -601,15 +678,24 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       expect(inferred.data.data.target.name).toBe("demo");
       expect(inferred.data.data.details.configure).toBe(false);
 
-      const removal = await cli(["local", "delete", "--dry-run", "--agent"], {
+      // A removal is never inferred, not even from the only environment.
+      const unnamed = await cli(["env", "remove", "--dry-run", "--agent"], {
         PATH: fakeBin,
       });
+
+      expect(unnamed.data.error.code).toBe("CONTEXT_MISSING");
+      expect(unnamed.data.error.details.choices).toStrictEqual(["local"]);
+
+      const removal = await cli(
+        ["env", "remove", word, "--dry-run", "--agent"],
+        { PATH: fakeBin }
+      );
 
       expect(removal.data.data.target.name).toBe("demo");
       expect(existsSync(instance)).toBe(true);
       writeFileSync(manifestFile, manifest.replace("3.23.41", "3.23.42"));
 
-      const mismatch = await cli(["local", "up", "--dry-run", "--agent"], {
+      const mismatch = await cli(["env", "start", "--dry-run", "--agent"], {
         PATH: fakeBin,
       });
 
@@ -617,8 +703,8 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       expect(mismatch.stdout).toContain("3.23.42");
       writeFileSync(manifestFile, manifest);
 
-      const local = async (...args: string[]) => {
-        const answer = await cli(["local", ...args, "--agent"], {
+      const env = async (...args: string[]) => {
+        const answer = await cli(["env", ...args, "--agent"], {
           PATH: fakeBin,
         });
 
@@ -627,67 +713,64 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         return answer.data.data;
       };
 
-      expect(await local("up", "--name", "demo")).toMatchObject({
+      expect(await env("start", word)).toMatchObject({
         created: false,
         ready: true,
         ref: "local:demo",
       });
 
-      const missing = await cli(
-        ["local", "up", "--name", "missing", "--agent"],
-        {
-          PATH: fakeBin,
-        }
-      );
+      const missing = await cli(["env", "start", "local:missing", "--agent"], {
+        PATH: fakeBin,
+      });
 
       expect(missing.data.error.code).toBe("NOT_FOUND");
       expect(existsSync(path.join(cwd, "config/local/missing"))).toBe(false);
 
-      expect(await local("list")).toMatchObject([
-        { name: "demo", state: "ready" },
+      // Cloud stores are left out without a login, with a note saying so.
+      expect(await env("list")).toMatchObject([
+        { environment: "local", name: "demo", state: "ready" },
       ]);
-      expect(await local("down", "--name", "demo", "--dry-run")).toMatchObject({
+      expect(await env("stop", word, "--dry-run")).toMatchObject({
         action: "stop",
+        destructive: false,
         dryRun: true,
       });
-      expect(await local("down", "--name", "demo")).toMatchObject({
+      expect(await env("stop", word)).toMatchObject({
         action: "stop",
         existed: true,
+        next: "saleor env start local",
       });
       expect(
         readFileSync(path.join(instance, "instance.json"), "utf-8")
       ).toContain("demo");
-      expect(
-        await local(...deleteArgs, "--name", "demo", "--dry-run")
-      ).toMatchObject({
+      expect(await env("remove", word, "--dry-run")).toMatchObject({
         action: "delete",
         destructive: true,
         dryRun: true,
       });
       expect(existsSync(instance)).toBe(true);
 
-      const unconfirmed = await cli(
-        ["local", ...deleteArgs, "--name", "demo", "--agent"],
-        {
-          PATH: fakeBin,
-        }
-      );
+      const unconfirmed = await cli(["env", "remove", word, "--agent"], {
+        PATH: fakeBin,
+      });
 
       expect(unconfirmed.code).toBe(1);
       expect(unconfirmed.data.error.code).toBe("CONFIRMATION_REQUIRED");
       expect(existsSync(instance)).toBe(true);
-      expect(
-        await local(...deleteArgs, "--name", "demo", "--force")
-      ).toMatchObject({
+      // The definition stays in saleor.yml, so `env start` can create it again.
+      expect(await env("remove", word, "--force")).toMatchObject({
         action: "delete",
+        environment: "local",
         existed: true,
+        forgotten: false,
       });
       expect(existsSync(instance)).toBe(false);
-      expect(await local(...deleteArgs, "--name", "demo")).toMatchObject({
+      expect(readFileSync(manifestFile, "utf-8")).toContain("kind: local");
+      expect(await env("remove", word)).toMatchObject({
         action: "none",
         existed: false,
       });
-      expect(await local("list")).toStrictEqual([]);
+      expect(await env("list")).toStrictEqual([]);
 
       const dockerCalls: string[][] = readFileSync(
         path.join(cwd, "docker-calls.jsonl"),
@@ -746,12 +829,12 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     // The last output flag wins.
     const text = await cli(["commands", "--json", "--output", "text"]);
     expect(text.data).toBeUndefined();
-    expect(text.stdout).toContain("saleor env delete");
+    expect(text.stdout).toContain("saleor env remove");
   });
 
   it("shows Cloud environments with the shared instance fields", async () => {
     resourceRoutes([environment()]);
-    const [listed] = (await cli(["env", "list", "--org", "acme"])).data.data;
+    const [listed] = (await cli(["env", "list"])).data.data;
 
     expect(listed).toMatchObject({
       kind: "cloud",
@@ -771,33 +854,46 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     );
   });
 
-  it("requires an explicit local target in unattended commands", async () => {
+  it("requires an explicit target in unattended commands", async () => {
     const outputs = await Promise.all(
       [
-        ["local", "down"],
+        ["env", "stop"],
+        ["env", "remove", "--dry-run", "--force"],
         ["init", "--local"],
-        ["local", "down", "--dry-run", "--force"],
-      ].map(async (args) => await cli(args))
+      ].map(async (args) => await cli(args, { SALEOR_ENV: "local:demo" }))
     );
 
-    for (const out of outputs) {
-      expect(out.data.error.code).toBe("CONTEXT_MISSING");
-      expect(out.data.error.suggestion).toContain("--name");
-    }
+    // A removal never reads SALEOR_ENV; init's provider flags name a new store.
+    expect(outputs.map((out) => out.data.error.code)).toStrictEqual([
+      "CONTEXT_MISSING",
+      "CONTEXT_MISSING",
+      "CONTEXT_MISSING",
+    ]);
+    expect(outputs[0]?.data.error.suggestion).toContain("Pass <env>");
+    expect(outputs[2]?.data.error.suggestion).toContain("--name");
+    expect(requests.every((request) => request.method === "GET")).toBe(true);
+  });
 
+  it("refuses what a store's source cannot do", async () => {
+    const out = await cli(["env", "stop", "cloud:acme/env1"]);
+    expect(out.code).toBe(2);
+    expect(out.data.error).toMatchObject({
+      code: "USAGE_ERROR",
+      message: "Saleor Cloud stores cannot be stopped with the CLI.",
+    });
     expect(requests).toStrictEqual([]);
   });
 
   it("does not infer even the only Cloud organization", async () => {
     Reflect.deleteProperty(credentials, "SALEOR_ORG");
-    const out = await cli(["env", "list"]);
+    const out = await cli(["init", "--project", "poc", "--env", "dev"]);
     expect(out.data.error.code).toBe("CONTEXT_MISSING");
     expect(out.data.error.suggestion).toContain("--org");
     expect(requests.every((request) => request.method === "GET")).toBe(true);
   });
 
   it("stops a local instance that does not exist without failing", async () => {
-    const out = await cli(["local", "down", "--name", "missing"]);
+    const out = await cli(["env", "stop", "local:missing"]);
     expect(out.code).toBe(0);
     expect(out.data.data).toMatchObject({ action: "none", existed: false });
   });
@@ -831,10 +927,10 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         })
       );
 
-      const listed = await cli(["local", "list"], { PATH: fakeBin });
+      const listed = await cli(["env", "list"], { PATH: fakeBin });
       expect(listed.code, listed.stderr).toBe(0);
       expect(listed.data.data).toMatchObject([
-        { name: "demo", state: "stopped" },
+        { environment: null, name: "demo", state: "stopped" },
       ]);
 
       if (!engine) {
@@ -843,7 +939,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         return;
       }
 
-      const stopped = await cli(["local", "down", "--name", "demo"], {
+      const stopped = await cli(["env", "stop", "local:demo"], {
         PATH: fakeBin,
       });
 
@@ -854,7 +950,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       });
 
       const text = await cli(
-        ["local", "down", "--name", "demo", "--output", "text"],
+        ["env", "stop", "local:demo", "--output", "text"],
         { PATH: fakeBin }
       );
 
@@ -887,7 +983,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     });
   });
 
-  it("reads SALEOR_PROJECT and SALEOR_ENV in init", async () => {
+  it("reads SALEOR_PROJECT in init", async () => {
     resourceRoutes([environment()]);
     const fallback = handler;
     handler = (method, url, body) => {
@@ -905,17 +1001,18 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       return fallback(method, url, body);
     };
 
-    const out = await cli(["init", "--org", "acme", "--timeout", "0"], {
-      SALEOR_ENV: "dev",
-      SALEOR_PROJECT: "poc",
-    });
+    // SALEOR_ENV names the environment a command acts on, not one for init to make.
+    const out = await cli(
+      ["init", "--org", "acme", "--env", "dev", "--timeout", "0"],
+      { SALEOR_ENV: "cloud:acme/other", SALEOR_PROJECT: "poc" }
+    );
 
     expect(out.code).toBe(75);
     expect(requests.some((req) => req.method === "POST")).toBe(false);
   });
 
   it("names an organization the account does not belong to", async () => {
-    const out = await cli(["env", "list", "--org", "nope"]);
+    const out = await cli(["env", "remove", "cloud:nope/dev", "--dry-run"]);
 
     expect(out.data.error.code).toBe("NOT_FOUND");
     expect(out.data.error.message).toContain('Organization "nope"');
@@ -990,6 +1087,11 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     const { commands, exitCodes, errorCodes, globalFlags } = out.data.data;
     expect(commands.map((item: any) => item.command)).toStrictEqual([
       "saleor init",
+      "saleor env list",
+      "saleor env add",
+      "saleor env start",
+      "saleor env stop",
+      "saleor env remove",
       "saleor config status",
       "saleor config diff",
       "saleor config deploy",
@@ -998,15 +1100,9 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "saleor config validate",
       "saleor config guide",
       "saleor storefront create",
-      "saleor storefront env",
+      "saleor storefront use",
       "saleor login",
       "saleor logout",
-      "saleor env list",
-      "saleor env delete",
-      "saleor local list",
-      "saleor local up",
-      "saleor local down",
-      "saleor local delete",
       "saleor onboard",
     ]);
     // Targets are optional to the parser: the action resolves them (flag, variable,
@@ -1017,9 +1113,13 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       expect.objectContaining({ env: "SALEOR_PROJECT", name: "--project" })
     );
     expect(
-      commands.find((item: any) => item.command === "saleor env delete")
+      commands.find((item: any) => item.command === "saleor env remove")
         .arguments[0]
     ).toMatchObject({ env: null, name: "env", required: false });
+    expect(
+      commands.find((item: any) => item.command === "saleor env start")
+        .arguments[0]
+    ).toMatchObject({ env: "SALEOR_ENV", name: "env", required: false });
     expect(globalFlags.map((flag: any) => flag.name)).toStrictEqual([
       "--help",
       "--version",
@@ -1072,7 +1172,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       }
     }
   });
-  it.each([[], ["local"], ["env", "delete"]])(
+  it.each([[], ["env"], ["env", "remove"]])(
     "advertises agent mode in help: %j",
     async (...args) => {
       const out = await cli([...args, "--help"]);
@@ -1142,8 +1242,18 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
   });
   it("requires auth and never prints credentials", async () => {
     credentials = {};
-    const out = await cli(["env", "list", "--org", "acme"]);
+    const out = await cli(["env", "remove", "cloud:acme/dev", "--dry-run"]);
     expect(out.data.error.code).toBe("AUTH_REQUIRED");
+    expect(requests).toStrictEqual([]);
+  });
+  it("lists the stores it can reach without a Cloud login, and says so", async () => {
+    credentials = {};
+    const out = await cli(["env", "list"]);
+    expect(out.code).toBe(0);
+    expect(out.data.data).toStrictEqual([]);
+    expect(out.stderr).toContain(
+      "Saleor Cloud stores are not listed: you are not logged in. Log in with: saleor login"
+    );
     expect(requests).toStrictEqual([]);
   });
   it("uses the environment token without persisting it", async () => {
@@ -1161,7 +1271,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
   });
   it.each([401, 403])("classifies HTTP %i", async (status) => {
     handler = () => [status, {}];
-    const out = await cli(["env", "list", "--org", "acme"]);
+    const out = await cli(["env", "remove", "cloud:acme/dev", "--dry-run"]);
     expect(out.code).toBe(1);
     expect(out.data.error.code).toBe(
       status === 401 ? "AUTH_INVALID" : "FORBIDDEN"
@@ -1187,22 +1297,20 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
   });
   it("refuses ambiguous environment names instead of selecting the first", async () => {
     resourceRoutes([environment(), environment("env2")]);
-    const out = await cli(["env", "delete", "dev", "--org", "acme", "--force"]);
+    const out = await cli(["env", "remove", "cloud:acme/dev", "--force"]);
     expect(out.data.error.code).toBe("AMBIGUOUS_TARGET");
     expect(out.code).toBe(2);
     expect(requests.some((req) => req.method === "DELETE")).toBe(false);
   });
   it.each([
-    ["env", "delete", "dev", "--project", "poc"],
-    ["init", "--env", "new", "--project", "poc"],
+    ["env", "remove", "cloud:acme/dev"],
+    ["init", "--env", "new", "--project", "poc", "--org", "acme"],
   ])(
     "previews %s %s without confirmation or writes, in either output format",
     async (...args) => {
-      resourceRoutes(
-        args[0] === "env" && args[1] === "delete" ? [environment()] : []
-      );
+      resourceRoutes(args[0] === "env" ? [environment()] : []);
 
-      const preview = [...args, "--org", "acme", "--dry-run"];
+      const preview = [...args, "--dry-run"];
       const out = await cli([...preview, "--json"]);
 
       expect(out.code).toBe(0);
@@ -1219,14 +1327,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
   it("previews a missing delete target", async () => {
     resourceRoutes();
 
-    const out = await cli([
-      "env",
-      "delete",
-      "missing",
-      "--org",
-      "acme",
-      "--dry-run",
-    ]);
+    const out = await cli(["env", "remove", "cloud:acme/missing", "--dry-run"]);
 
     expect(out.code).toBe(0);
     expect(out.data.data).toMatchObject({
@@ -1261,13 +1362,13 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
           code: "NAME_CONFLICT",
         },
         production: {
-          args: ["env", "delete", "dev", "--force"],
+          args: ["env", "remove", "cloud:acme/dev", "--force"],
           code: "PRODUCTION_DELETE_REFUSED",
         },
       };
 
       const { args, code } = cases[kind];
-      const out = await cli([...args, "--org", "acme", "--dry-run"]);
+      const out = await cli([...args, "--dry-run"], { SALEOR_ORG: "acme" });
       expect(out.data.error.code).toBe(code);
       expect(requests.every((req) => req.method === "GET")).toBe(true);
     }
@@ -1501,7 +1602,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
   it("publishes safety metadata and preview flags for every risky action", async () => {
     const out = await cli(["commands", "--json"]);
 
-    for (const command of ["env delete", "local down", "local delete"]) {
+    for (const command of ["env remove", "config pull"]) {
       const entry = out.data.data.commands.find(
         (item: any) => item.command === `saleor ${command}`
       );
@@ -1512,20 +1613,20 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         true
       );
     }
+
+    // Stopping keeps data: it previews, but needs no confirmation.
+    expect(
+      out.data.data.commands.find(
+        (item: any) => item.command === "saleor env stop"
+      )
+    ).toMatchObject({ destructive: false, warning: null });
   });
   it.each([[], ["--agent"]])(
     "requires --force for noninteractive deletion: %j",
     async (...mode) => {
       resourceRoutes([environment()]);
 
-      const out = await cli([
-        "env",
-        "delete",
-        "env1",
-        "--org",
-        "acme",
-        ...mode,
-      ]);
+      const out = await cli(["env", "remove", "cloud:acme/env1", ...mode]);
 
       expect(out.data.error.code).toBe("CONFIRMATION_REQUIRED");
       expect(requests.some((req) => req.method === "DELETE")).toBe(false);
@@ -1536,14 +1637,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     env.service.service_type = "PRODUCTION";
     resourceRoutes([env]);
 
-    const out = await cli([
-      "env",
-      "delete",
-      "env1",
-      "--org",
-      "acme",
-      "--force",
-    ]);
+    const out = await cli(["env", "remove", "cloud:acme/env1", "--force"]);
 
     expect(out.data.error.code).toBe("PRODUCTION_DELETE_REFUSED");
     expect(requests.some((req) => req.method === "DELETE")).toBe(false);
@@ -1551,7 +1645,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
   it("deleting an absent environment succeeds", async () => {
     resourceRoutes();
     expect(
-      await cli(["env", "delete", "missing", "--org", "acme", "--force"])
+      await cli(["env", "remove", "cloud:acme/missing", "--force"])
     ).toMatchObject({
       code: 0,
       data: { data: { action: "none", existed: false } },
@@ -1758,10 +1852,8 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
 
     const out = await cli([
       "env",
-      "delete",
-      "env1",
-      "--org",
-      "acme",
+      "remove",
+      "cloud:acme/env1",
       "--force",
       "--timeout",
       "0",
@@ -1771,7 +1863,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     expect(out.data.error.code).toBe("NOT_READY");
     // The resume hint drops `--timeout 0`, which would return at once again.
     expect(out.data.error.suggestion).toContain(
-      "run the same command again: saleor env delete env1 --org acme --force"
+      "run the same command again: saleor env remove cloud:acme/env1 --force"
     );
     expect(out.data.error.suggestion).not.toContain("--timeout");
   });
@@ -1801,14 +1893,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         : fallback(method, url, body);
     };
 
-    const out = await cli([
-      "env",
-      "delete",
-      "env1",
-      "--org",
-      "acme",
-      "--force",
-    ]);
+    const out = await cli(["env", "remove", "cloud:acme/env1", "--force"]);
 
     expect(out.code).toBe(0);
     expect(out.data.data.action).toBe("delete");
@@ -1822,14 +1907,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         ? [400, { detail: "Environment is protected" }]
         : fallback(method, url, body);
 
-    const out = await cli([
-      "env",
-      "delete",
-      "env1",
-      "--org",
-      "acme",
-      "--force",
-    ]);
+    const out = await cli(["env", "remove", "cloud:acme/env1", "--force"]);
 
     expect(out.code).toBe(1);
     expect(out.data.error.code).toBe("API_VALIDATION_ERROR");
@@ -1839,14 +1917,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     env.service.service_type = "STAGING";
     resourceRoutes([env]);
 
-    const out = await cli([
-      "env",
-      "delete",
-      "env1",
-      "--org",
-      "acme",
-      "--force",
-    ]);
+    const out = await cli(["env", "remove", "cloud:acme/env1", "--force"]);
 
     expect(out.data.error.code).toBe("PRODUCTION_DELETE_REFUSED");
     expect(requests.some((req) => req.method === "DELETE")).toBe(false);
@@ -1898,14 +1969,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         : fallback(method, url, body);
     };
 
-    const out = await cli([
-      "env",
-      "delete",
-      "env9",
-      "--org",
-      "acme",
-      "--force",
-    ]);
+    const out = await cli(["env", "remove", "cloud:acme/env9", "--force"]);
 
     expect(out.data.data).toMatchObject({
       action: "delete",
@@ -1959,7 +2023,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     };
 
     resourceRoutes();
-    const out = await cli(["env", "list", "--org", "acme"]);
+    const out = await cli(["env", "list"]);
 
     expect(out.code).toBe(0);
     expect(requests.at(-1)?.auth).toBe("Bearer jwt.new.token");
@@ -2011,9 +2075,10 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     expect(readFileSync(file, "utf-8")).not.toContain("pending-device-grant");
     expect(login.stdout + login.stderr).not.toContain("refresh-secret");
     expect((await cli(["logout"])).data.data.removed).toBe(true);
-    expect((await cli(["env", "list", "--org", "acme"])).data.error.code).toBe(
-      "AUTH_REQUIRED"
-    );
+    expect(
+      (await cli(["env", "remove", "cloud:acme/dev", "--dry-run"])).data.error
+        .code
+    ).toBe("AUTH_REQUIRED");
   });
   it.each(["access_denied", "expired_token"])(
     "handles device login %s",
@@ -2059,10 +2124,10 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
         : fallback(method, url, body);
     };
 
-    const out = await cli(
-      ["env", "delete", "preview", "--org", "acme", "--force"],
-      { SALEOR_ENV: "dev", SALEOR_PROJECT: "poc" }
-    );
+    const out = await cli(["env", "remove", "cloud:acme/preview", "--force"], {
+      SALEOR_ENV: "dev",
+      SALEOR_PROJECT: "poc",
+    });
 
     expect(out.data.data).toMatchObject({ action: "delete", existed: true });
     expect(requests.filter((req) => req.method === "DELETE")).toHaveLength(1);
@@ -2080,20 +2145,13 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
     expect(init.flags.map((flag: any) => flag.name)).not.toContain("--force");
   });
   it("writes suggested commands so they can be pasted as they are", async () => {
-    resourceRoutes();
+    resourceRoutes([environment("env1", "My Store")]);
 
-    const out = await cli([
-      "env",
-      "list",
-      "--org",
-      "acme",
-      "--project",
-      "My Store",
-    ]);
+    const out = await cli(["env", "remove", "cloud:acme/My Store"]);
 
-    expect(out.data.error.code).toBe("NOT_FOUND");
+    expect(out.data.error.code).toBe("CONFIRMATION_REQUIRED");
     expect(out.data.error.suggestion).toContain(
-      "saleor init --org acme --project 'My Store'"
+      "saleor env remove 'cloud:acme/My Store' --force"
     );
   });
   it("reports a Cloud with no sandbox service as unavailable, not as a usage error", async () => {
@@ -2242,7 +2300,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       await cli(["storefront", ...args, "--agent"], env());
 
     it("creates a storefront connected to a store and safely reuses it", async () => {
-      const created = await storefront("create", "--instance", "local:demo");
+      const created = await storefront("create", "local:demo");
       expect(created.code, created.stdout + created.stderr).toBe(0);
       expect(created.data.data).toMatchObject({
         channel: "default-channel",
@@ -2278,14 +2336,14 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
         "package.json",
       ]);
 
-      const again = await storefront("create", "--instance", "local:demo");
+      const again = await storefront("create", "local:demo");
       expect(again.data.data).toMatchObject({ created: false });
       expect(again.data.data.installed).toBe(true);
       expect(
         readFileSync(path.join(dir, "node_modules/install-calls"), "utf-8")
       ).toBe("install\ninstall\n");
 
-      const elsewhere = await storefront("create", "--instance", "local:other");
+      const elsewhere = await storefront("create", "local:other");
       expect(elsewhere.code).toBe(1);
       expect(elsewhere.data.error.code).toBe("NAME_CONFLICT");
       expect(elsewhere.data.error.suggestion).toContain("--dir");
@@ -2293,7 +2351,6 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
 
       const unavailableChannel = await storefront(
         "create",
-        "--instance",
         "local:other",
         "--dir",
         "other-shop",
@@ -2307,11 +2364,10 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       ]);
 
       const previewSwitch = await storefront(
-        "env",
+        "use",
+        "local:other",
         "--dir",
         "storefront",
-        "--instance",
-        "local:other",
         "--dry-run"
       );
 
@@ -2322,11 +2378,10 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       expect(readFileSync(path.join(dir, ".env"), "utf-8")).toBe(dotenv);
 
       const switched = await storefront(
-        "env",
+        "use",
+        "local:other",
         "--dir",
-        "storefront",
-        "--instance",
-        "local:other"
+        "storefront"
       );
 
       expect(switched.code, switched.stderr).toBe(0);
@@ -2340,11 +2395,10 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       expect(switchedEnv).toContain("CONTENT_PROVIDER=saleor");
 
       const same = await storefront(
-        "env",
+        "use",
+        "local:other",
         "--dir",
-        "storefront",
-        "--instance",
-        "local:other"
+        "storefront"
       );
 
       expect(same.code).toBe(0);
@@ -2354,7 +2408,6 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
     it("previews without writing and refuses directories that are not storefronts", async () => {
       const preview = await storefront(
         "create",
-        "--instance",
         "local:demo",
         "--dir",
         "shop",
@@ -2373,7 +2426,6 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
 
       const refused = await storefront(
         "create",
-        "--instance",
         "local:demo",
         "--dir",
         "notes"
@@ -2381,10 +2433,10 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
 
       expect(refused.data.error.code).toBe("NAME_CONFLICT");
 
-      const removed = await storefront("connect", "--instance", "local:demo");
+      const removed = await storefront("env", "local:demo");
       expect(removed.code).toBe(2);
       expect(removed.data.error.code).toBe("USAGE_ERROR");
-      const missing = await storefront("env", "--instance", "local:demo");
+      const missing = await storefront("use", "local:demo");
       expect(missing.data.error).toMatchObject({
         code: "NOT_FOUND",
         suggestion: expect.stringContaining("--dir"),
@@ -2397,7 +2449,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
         code: "CONTEXT_MISSING",
         details: {
           choices: ["local:demo", "local:other"],
-          input: "--instance <ref>",
+          input: "<env>",
         },
       });
     });
@@ -2410,7 +2462,7 @@ console.error("installation failed for test");
 process.exit(1);
 `
       );
-      const failed = await storefront("create", "--instance", "local:demo");
+      const failed = await storefront("create", "local:demo");
       expect(failed.code).toBe(0);
       expect(failed.data.data).toMatchObject({
         installed: false,

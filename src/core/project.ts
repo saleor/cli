@@ -414,12 +414,26 @@ export const saveBinding = (root: string, alias: string, name: string) => {
   writeFileSync(file, JSON.stringify({ name }));
 };
 
+type LocalEntry = readonly [alias: string, definition: LocalDefinition];
+
+const localEntries = (project: Project): readonly LocalEntry[] =>
+  Object.entries(project.definitions ?? {}).filter(
+    (candidate): candidate is [string, LocalDefinition] =>
+      !Predicate.isString(candidate[1])
+  );
+
+const localContext = (project: Project, [alias, definition]: LocalEntry) => ({
+  alias,
+  definition,
+  name: bindingName(project.root, alias),
+  project,
+});
+
+// The project's local environment, for `init --local` inside a project: the one
+// named "local", else the only one.
 export const projectLocal = () =>
   Option.flatMap(findProject(), (project) => {
-    const locals = Object.entries(project.definitions ?? {}).filter(
-      (candidate): candidate is [string, LocalDefinition] =>
-        !Predicate.isString(candidate[1])
-    );
+    const locals = localEntries(project);
 
     const entry =
       locals.find(([name]) => name === "local") ??
@@ -427,12 +441,87 @@ export const projectLocal = () =>
 
     return entry === undefined
       ? Option.none()
-      : Option.some({
-          alias: entry[0],
-          definition: entry[1],
-          name: bindingName(project.root, entry[0]),
-          project,
-        });
+      : Option.some(localContext(project, entry));
+  });
+
+// The local environment saleor.yml defines for this instance, if any: what `env start`
+// creates it from.
+export const projectLocalOf = (name: string) =>
+  Option.flatMap(findProject(), (project) => {
+    const entry = localEntries(project).find(
+      ([alias]) => bindingName(project.root, alias) === name
+    );
+
+    return entry === undefined
+      ? Option.none()
+      : Option.some(localContext(project, entry));
+  });
+
+const editManifest = (
+  root: string,
+  edit: (document: ReturnType<typeof parseDocument>) => void
+) =>
+  Effect.try({
+    catch: () =>
+      fail(
+        "LOCAL_STATE_ERROR",
+        `Could not write ${path.join(root, MANIFEST)}.`
+      ),
+    try: () => {
+      const file = path.join(root, MANIFEST);
+      const document = parseDocument(readFileSync(file, "utf-8"));
+      edit(document);
+      writeFileSync(file, document.toString());
+    },
+  });
+
+// `env add`: names a store in saleor.yml. A Cloud store is named by its ref; a local
+// one by a definition every checkout creates its own instance from, with this
+// checkout's instance bound to it.
+export const addEnvironment = (
+  root: string,
+  alias: string,
+  store: {
+    readonly kind: string;
+    readonly name: string;
+    readonly ref: string;
+    readonly saleorVersion: string | null;
+  }
+) =>
+  editManifest(root, (document) => {
+    if (store.kind === "local" && store.saleorVersion !== null) {
+      saveBinding(root, alias, store.name);
+      document.setIn(["environments", alias], {
+        configure: "on-create",
+        kind: "local",
+        saleor: store.saleorVersion,
+      });
+
+      return;
+    }
+
+    document.setIn(["environments", alias], store.ref);
+  });
+
+// After `env remove`: a name for a store that no longer exists goes too. A local
+// definition stays, since it is a recipe every checkout creates its own instance
+// from, not one store. Returns whether saleor.yml changed.
+export const forgetEnvironment = (root: string, alias: string) =>
+  Effect.gen(function* () {
+    const value = Option.match(projectAt(root), {
+      onNone: () => undefined,
+      onSome: (project) => project.definitions?.[alias],
+    });
+
+    if (!Predicate.isString(value)) {
+      return false;
+    }
+
+    yield* editManifest(root, (document) => {
+      document.deleteIn(["environments", alias]);
+    });
+
+    return true;
   });
 
 export const initializeProject = (
@@ -494,7 +583,7 @@ export const initializeProject = (
 const writeProjectGuides = (root: string) => {
   const guides = {
     "AGENTS.md":
-      "# Saleor project\n\nsaleor.yml defines environments; config.yml describes store configuration.\nThe optional storefront/ and apps/* directories contain services connected to those environments.\nRun saleor local up to prepare this checkout's local environment.\nBefore changing a store, select its environment and inspect saleor config diff <environment>.\nKeep credentials in the CLI secret store or ignored environment files.\nUse saleor --help for workflows and follow component-specific instructions when editing a component.\n",
+      "# Saleor project\n\nsaleor.yml defines environments; config.yml describes store configuration.\nThe optional storefront/ and apps/* directories contain services connected to those environments.\nCommands name an environment as the word after the command: saleor env start local, saleor config deploy staging.\nRun saleor env list to see every environment and its state.\nBefore changing a store, inspect saleor config diff <env>.\nKeep credentials in the CLI secret store or ignored environment files.\nUse saleor --help for workflows and follow component-specific instructions when editing a component.\n",
     "CLAUDE.md": "@AGENTS.md\n",
   };
 

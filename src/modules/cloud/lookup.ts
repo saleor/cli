@@ -3,7 +3,6 @@ import type { TargetRef } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
 import { type InstanceState, instance } from "../../core/instance.ts";
 import type { Choice } from "../../core/interaction.ts";
-import { command } from "../../core/invocation.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
 import {
   type EnvironmentResponse,
@@ -150,35 +149,6 @@ export const findProject = (organization: string, ref: string) =>
     })
   );
 
-const requireProject = (organization: string, ref: string) =>
-  Effect.flatMap(findProject(organization, ref), (project) =>
-    Option.match(project, {
-      onNone: () =>
-        fail(
-          "NOT_FOUND",
-          `Project "${ref}" does not exist in organization "${organization}".`,
-          {
-            suggestion: `See the environments in each project with: ${command("env", "list", "--org", organization)}\nOr create a store in it with: ${command("init", "--org", organization, "--project", ref)}`,
-          }
-        ),
-      onSome: Effect.succeed,
-    })
-  );
-
-// Validates an optional project selection and returns its slug, for commands that
-// narrow by project but do not require one.
-export const projectSlugOf = (
-  organization: string,
-  ref: Option.Option<string>
-) =>
-  Effect.gen(function* () {
-    if (Option.isNone(ref)) {
-      return;
-    }
-
-    return (yield* requireProject(organization, ref.value)).slug;
-  });
-
 export const listEnvironments = (organization: string, projectSlug?: string) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
@@ -238,18 +208,5 @@ export const projectChoices = (organization: string) =>
       hint: `${project.slug} · ${project.region} · ${project.plan.slug}`,
       label: project.name,
       value: project.slug,
-    }))
-  );
-
-export const environmentChoices = (
-  organization: string,
-  projectSlug: string | undefined,
-  only: (env: Environment) => boolean = () => true
-) =>
-  Effect.map(listEnvironments(organization, projectSlug), (envs) =>
-    envs.filter(only).map((env): Choice<string> => ({
-      hint: `${env.key} · ${env.project.slug} · ${serviceTypeLabel(env)}`,
-      label: env.name,
-      value: env.key,
     }))
   );

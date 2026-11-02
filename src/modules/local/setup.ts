@@ -3,7 +3,7 @@ import type { Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { hasBinding, projectLocal } from "../../core/project.ts";
+import { hasBinding, projectLocal, slugify } from "../../core/project.ts";
 import { defineSetup } from "../../core/setup.ts";
 import { SALEOR_VERSION } from "./compose.ts";
 import { type LocalUpOptions, localTarget, planUp, up } from "./lifecycle.ts";
@@ -51,6 +51,18 @@ export const localSetup = defineSetup({
   },
   label: "Docker",
   name: "local",
+  // Local names are shared by every project on this computer, so an environment's
+  // instance is named after its project too.
+  naming: {
+    input: "name",
+    name: (project, alias) => {
+      const slug = slugify(`${project}-${alias}`);
+
+      return (/^[a-z]/.test(slug) ? slug : `saleor-${slug}`)
+        .slice(0, 40)
+        .replace(/-+$/, "");
+    },
+  },
   plan: (input) =>
     Effect.gen(function* () {
       const context = Option.isNone(input.name)

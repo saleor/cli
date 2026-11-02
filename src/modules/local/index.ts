@@ -1,19 +1,10 @@
-import { Effect, Layer, Option } from "effect";
+import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { defineModule } from "../../core/module.ts";
-import { projectLocal } from "../../core/project.ts";
+import { type CoreServices, defineModule } from "../../core/module.ts";
 import { SecretStoreLive } from "../../core/secret-store.ts";
-import { localCommand } from "./commands.ts";
 import { DockerLive } from "./docker.ts";
 import { localInstances } from "./instances.ts";
 import { localSetup } from "./setup.ts";
-import { listInstanceNames } from "./state.ts";
-
-// Whether this computer has any local instance to manage.
-export const hasLocalInstances = Effect.map(
-  listInstanceNames(),
-  (names) => names.length > 0 || Option.isSome(projectLocal())
-);
 
 export const localLayer = Layer.mergeAll(
   DockerLive,
@@ -21,8 +12,12 @@ export const localLayer = Layer.mergeAll(
   FetchHttpClient.layer
 );
 
-export const localModule = defineModule({
-  commands: [localCommand],
+// Local stores have no commands of their own: `env` starts, stops and removes them
+// through their instance source, as it does every other store.
+export const localModule = defineModule<
+  Layer.Success<typeof localLayer> | CoreServices
+>({
+  commands: [],
   description: "Local Saleor instances running in Docker.",
   instances: localInstances,
   layer: localLayer,

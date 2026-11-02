@@ -9,9 +9,9 @@ import {
 } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
-import { argument, option } from "../../core/inputs.ts";
+import { option } from "../../core/inputs.ts";
 import type { Instance } from "../../core/instance.ts";
-import { instanceInput } from "../../core/instances.ts";
+import { envInput } from "../../core/instances.ts";
 import { command } from "../../core/invocation.ts";
 import {
   ago,
@@ -48,11 +48,6 @@ const configInput = option.string("config", {
     "The configuration file. Defaults to the project's (saleor.yml), else ./config.yml.",
   metavar: "path",
 });
-
-const environmentInput = argument.string(
-  "environment",
-  "An environment named in the project's saleor.yml (or a store ref). Defaults to the project's only environment."
-);
 
 const fileTarget = (file: string): TargetRef => ({
   id: null,
@@ -100,7 +95,7 @@ const pullCommand = config.ensure({
     "Write a store's configuration to the project's file (Configurator's introspect). When the file exists, the plan says in words what changed in the store since; replacing it asks first, since edits not yet deployed are lost. The store is remembered in saleor.yml.",
   examples: [
     {
-      command: "saleor config pull --instance local:demo",
+      command: "saleor config pull local:demo",
       description: "Start a project from a local store",
     },
     {
@@ -110,18 +105,14 @@ const pullCommand = config.ensure({
   ],
   inputs: {
     config: configInput,
-    environment: environmentInput,
-    instance: instanceInput,
+    env: envInput,
   },
   name: "pull",
   plan: (input) =>
     Effect.gen(function* () {
       const file = configFile(input.config);
 
-      const { instance, store } = yield* connect(
-        input.environment,
-        input.instance
-      );
+      const { instance, store } = yield* connect(input.env);
 
       const existing = existsSync(file) ? readFileSync(file, "utf-8") : null;
 
@@ -228,8 +219,7 @@ const diffCommand = config.list({
   ],
   inputs: {
     config: configInput,
-    environment: environmentInput,
-    instance: instanceInput,
+    env: envInput,
   },
   name: "diff",
   run: (input) =>
@@ -237,10 +227,7 @@ const diffCommand = config.list({
       const file = yield* existingConfig(configFile(input.config));
       yield* validateFile(file);
 
-      const { instance, store } = yield* connect(
-        input.environment,
-        input.instance
-      );
+      const { instance, store } = yield* connect(input.env);
 
       const summary = yield* diff(store, file);
 
@@ -277,14 +264,13 @@ const deployCommand = config.ensure({
       description: "Show the plan for staging",
     },
     {
-      command: "SALEOR_TOKEN=… saleor config deploy --instance cloud:acme/env1",
+      command: "SALEOR_TOKEN=… saleor config deploy cloud:acme/env1",
       description: "Deploy from CI with a store token",
     },
   ],
   inputs: {
     config: configInput,
-    environment: environmentInput,
-    instance: instanceInput,
+    env: envInput,
   },
   name: "deploy",
   plan: (input) =>
@@ -292,10 +278,7 @@ const deployCommand = config.ensure({
       const file = yield* existingConfig(configFile(input.config));
       yield* validateFile(file);
 
-      const { instance, store } = yield* connect(
-        input.environment,
-        input.instance
-      );
+      const { instance, store } = yield* connect(input.env);
 
       const plan = yield* planDeploy(store, file);
 
@@ -361,7 +344,7 @@ const statusCommand = config.list({
             "NOT_FOUND",
             "Not in a project: there is no saleor.yml here or above.",
             {
-              suggestion: `Start one with: ${command("config", "pull")} --instance <ref>`,
+              suggestion: `Start one with: ${command("init")}, or from an existing store: ${command("config", "pull")} <ref>`,
             }
           ),
         onSome: Effect.succeed,
@@ -372,10 +355,7 @@ const statusCommand = config.list({
 
       const rows = yield* Effect.forEach(project.environments, ([name, ref]) =>
         Effect.gen(function* () {
-          const { instance, store } = yield* connect(
-            Option.some(ref),
-            Option.none()
-          );
+          const { instance, store } = yield* connect(Option.some(ref));
 
           const plan = yield* planDeploy(store, file);
           const synced = lastInSync(file, ref);
@@ -424,7 +404,7 @@ const statusCommand = config.list({
                 : ago(new Date(row.lastDeployed)),
           ],
         ],
-        "This project has no environments yet. Add one with a pull or deploy and --instance <ref>."
+        `This project has no environments yet. Add one with: ${command("env", "add")} <name>`
       );
     }),
   summary: "Show whether each environment matches the file.",
@@ -456,7 +436,7 @@ export const configCommand = defineGroup({
     guideCommand,
   ],
   description:
-    "Store configuration as code, with Saleor Configurator's engine. Inside a project (saleor.yml), commands act on its environments by name: saleor config deploy staging. Describe changes in plain words with config edit; see where each environment stands with config status. Store API tokens come from SALEOR_TOKEN, a token saved for the store, or a prompt; local stores need none.",
+    "Store configuration as code, with Saleor Configurator's engine. Commands name the store with the word after them, as in every command: an environment from saleor.yml (saleor config deploy staging) or a store ref. Describe changes in plain words with config edit; see where each environment stands with config status. Store API tokens come from SALEOR_TOKEN, a token saved for the store, or a prompt; local stores need none.",
   name: "config",
   summary: "Configure your store's catalog and settings.",
 });

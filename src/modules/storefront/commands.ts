@@ -3,13 +3,12 @@ import { Command } from "effect/cli";
 import { defineActions, defineGroup, type Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
-import { argument, option } from "../../core/inputs.ts";
-import { instanceInput, resolveInstance } from "../../core/instances.ts";
+import { option } from "../../core/inputs.ts";
+import { envInput, resolveInstance } from "../../core/instances.ts";
 import { isInteractive } from "../../core/interaction.ts";
 import { MenuAvailable } from "../../core/menu.ts";
 import { notice } from "../../core/output.ts";
 import { storefrontFolder } from "../../core/project.ts";
-import { resolveRef } from "../../core/workspace.ts";
 import {
   connectedElsewhere,
   create,
@@ -54,14 +53,14 @@ const summary = ({
   ] as const;
 
 const createCommand = storefront.ensure({
-  description: `Download the Saleor storefront template (${TEMPLATE.repository}, as it is on ${TEMPLATE.ref}) into a new directory and connect it to a store: its .env gets the store's GraphQL API and channel. The directory becomes a git repository unless it is inside one. In a terminal, it asks for the store. Dependencies are installed automatically. Running it again on the same directory and store reuses the files and retries dependency installation.`,
+  description: `Download the Saleor storefront template (${TEMPLATE.repository}, as it is on ${TEMPLATE.ref}) into a new directory and connect it to a store: its .env gets the store's GraphQL API and channel. Inside a project, it goes in the project's storefront folder. The directory becomes a git repository unless it is inside one. In a terminal, it asks for the store. Dependencies are installed automatically. Running it again on the same directory and store reuses the files and retries dependency installation.`,
   examples: [
     {
-      command: "saleor storefront create --instance local:demo",
-      description: "Create ./storefront connected to a local store",
+      command: "saleor storefront create local",
+      description: "Create the project's storefront for its local environment",
     },
     {
-      command: "saleor storefront create --instance cloud:acme/env1 --dir shop",
+      command: "saleor storefront create cloud:acme/env1 --dir shop",
       description: "Create ./shop for a Cloud environment",
     },
   ],
@@ -74,7 +73,7 @@ const createCommand = storefront.ensure({
         "Directory to create it in, relative to the current one. Must be new or empty.",
       metavar: "path",
     }),
-    instance: instanceInput,
+    env: envInput,
   },
   name: "create",
   plan: (input) =>
@@ -86,9 +85,7 @@ const createCommand = storefront.ensure({
         return yield* notStorefront(dir);
       }
 
-      const { instance: store, source } = yield* resolveInstance(
-        input.instance
-      );
+      const { instance: store, source } = yield* resolveInstance(input.env);
 
       if (
         found.kind === "storefront" &&
@@ -151,14 +148,18 @@ const createCommand = storefront.ensure({
   summary: "Create a new storefront from the Saleor template.",
 });
 
-const environmentCommand = storefront
+const useCommand = storefront
   .ensure({
     description:
-      "Choose the Saleor backend used by an existing local storefront: set the store's GraphQL API and channel in its .env, keeping every other line. Works on storefronts the CLI did not create. Defaults to the current directory. Changes local configuration only; restart the development server to use it.",
+      "Point an existing storefront at another store: set the store's GraphQL API and channel in its .env, keeping every other line. Works on storefronts the CLI did not create. Defaults to the project's storefront, or the current directory outside a project. Changes local configuration only; restart the development server to use it.",
     examples: [
       {
-        command: "saleor storefront env --instance cloud:acme/env1",
-        description: "Point the storefront here at a Cloud environment",
+        command: "saleor storefront use staging",
+        description: "Point the project's storefront at staging",
+      },
+      {
+        command: "saleor storefront use cloud:acme/env1 --dir shop",
+        description: "Point ./shop at a Cloud environment",
       },
     ],
     inputs: {
@@ -171,13 +172,9 @@ const environmentCommand = storefront
           "The storefront's directory. Defaults to the project storefront, or the current directory outside a project.",
         metavar: "path",
       }),
-      environment: argument.string(
-        "environment",
-        "An environment named in saleor.yml, or an instance ref."
-      ),
-      instance: instanceInput,
+      env: envInput,
     },
-    name: "env",
+    name: "use",
     plan: (input) =>
       Effect.gen(function* () {
         const dir = storefrontFolder(input.dir, ".");
@@ -203,9 +200,7 @@ const environmentCommand = storefront
           );
         }
 
-        const { instance: store, source } = yield* resolveInstance(
-          yield* resolveRef(input.environment, input.instance)
-        );
+        const { instance: store, source } = yield* resolveInstance(input.env);
 
         const channel = Option.getOrElse(
           input.channel,
@@ -265,7 +260,7 @@ const environmentCommand = storefront
           target: storefrontTarget(dir),
         } satisfies Planned<unknown, unknown>;
       }),
-    summary: "Switch the Saleor backend used by this storefront.",
+    summary: "Point the storefront at another store.",
   })
   .pipe(
     Command.annotate(
@@ -280,8 +275,8 @@ const environmentCommand = storefront
   );
 
 export const storefrontCommand = defineGroup({
-  actions: [createCommand, environmentCommand],
-  description: `Create a storefront from the Saleor template (${TEMPLATE.repository}), or choose the backend used by an existing local storefront with env. This does not manage Cloud environments; use saleor env for that. Stores are given as refs (cloud:<org>/<env key>, local:<name>), or picked in a terminal.`,
+  actions: [createCommand, useCommand],
+  description: `Storefronts from the Saleor template (${TEMPLATE.repository}), connected to a store. Name the store with the word after the command, as in every command: a name from saleor.yml or a store ref (cloud:<org>/<env key>, local:<name>); in a terminal, it is picked.`,
   name: "storefront",
-  summary: "Create a storefront or switch its Saleor environment.",
+  summary: "Create a storefront or point it at another store.",
 });

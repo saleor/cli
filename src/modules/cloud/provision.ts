@@ -325,7 +325,7 @@ export const requireSandboxCapacity = (
       `Project "${project.slug}" already has ${count} of ${cap} sandbox environments allowed on its "${project.plan.slug}" plan. Delete a sandbox before creating another.`,
       {
         details: { count, limit: cap },
-        suggestion: `See existing sandboxes with: ${command("env", "list", "--org", organization, "--project", project.slug)}. Delete one with: ${command("env", "delete", "<name-or-key>", "--org", organization, "--project", project.slug)} (asks for confirmation).`,
+        suggestion: `See existing sandboxes with: ${command("env", "list")}. Delete one with: ${command("env", "remove")} cloud:${organization}/<env key> (asks for confirmation).`,
       }
     )
   );
@@ -382,7 +382,7 @@ const classifyCreateRejection = ({
         `Project "${project.slug}" has reached the limit of ${limit === undefined ? "" : `${limit} `}sandbox environments on its "${project.plan.slug}" plan.`,
         {
           details: { body: error.body, limit: limit ?? null },
-          suggestion: `List sandboxes with: ${command("env", "list", "--org", organization, "--project", project.slug)}. Delete one with: ${command("env", "delete", "<name-or-key>", "--org", organization, "--project", project.slug)} (asks for confirmation).`,
+          suggestion: `List sandboxes with: ${command("env", "list")}. Delete one with: ${command("env", "remove")} cloud:${organization}/<env key> (asks for confirmation).`,
         }
       )
     );

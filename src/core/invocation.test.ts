@@ -29,35 +29,39 @@ it("quotes every word so a pasted hint is the same command", () => {
   expect(command("init", "--org", "acme", "--project", "My Store")).toBe(
     "saleor init --org acme --project 'My Store'"
   );
-  expect(command("env", "delete", "<env>")).toBe("saleor env delete <env>");
+  expect(command("env", "remove", "<env>")).toBe("saleor env remove <env>");
 });
 
 it("adds answers given at prompts, options before the marker", async () => {
   expect(
     await rerun(
-      ["env", "delete", "--"],
-      [{ option: ["--org", "acme"] }, { positional: "dev" }],
-      { add: ["--force"] }
+      ["env", "add", "--"],
+      [
+        { flag: "--local" },
+        { option: ["--saleor-version", "3.23.41"] },
+        { positional: "dev" },
+      ],
+      { add: ["--dry-run"] }
     )
-  ).toBe("saleor env delete --org acme --force -- dev");
+  ).toBe("saleor env add --local --saleor-version 3.23.41 --dry-run -- dev");
 });
 
 it("protects a flag-shaped positional answer with a marker", async () => {
-  expect(await rerun(["env", "delete"], [{ positional: "-dev" }])).toBe(
-    "saleor env delete -- -dev"
+  expect(await rerun(["env", "remove"], [{ positional: "-dev" }])).toBe(
+    "saleor env remove -- -dev"
   );
 });
 
 it("drops a zero wait budget when resuming, but not a flag-shaped name", async () => {
   expect(
-    await rerun(["env", "delete", "--timeout", "0", "--", "--timeout=0"], [], {
+    await rerun(["env", "remove", "--timeout", "0", "--", "--timeout=0"], [], {
       resume: true,
     })
-  ).toBe("saleor env delete -- --timeout=0");
+  ).toBe("saleor env remove -- --timeout=0");
 });
 
 it("does not repeat a flag that is already there", async () => {
   expect(
-    await rerun(["env", "delete", "x", "--force"], [], { add: ["--force"] })
-  ).toBe("saleor env delete x --force");
+    await rerun(["env", "remove", "x", "--force"], [], { add: ["--force"] })
+  ).toBe("saleor env remove x --force");
 });

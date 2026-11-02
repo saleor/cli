@@ -239,7 +239,7 @@ it.each(
           (entry) =>
             !(
               entry.unlisted ||
-              (group.name === "storefront" && entry.name === "env")
+              (group.name === "storefront" && entry.name === "use")
             )
         )
         .map((entry) => ({
@@ -259,24 +259,26 @@ it("preserves an explicit end-of-options marker when selecting an action", async
   expect(action).toHaveBeenCalledOnce();
 });
 
+// Environments are one group wherever they run, so the menu is the same for Cloud and
+// local work; only the login is left out once there is one.
 it.each([
   {
     cloud: false,
-    expected: ["init", "storefront", "login", "local", "commands"],
+    expected: ["init", "env", "storefront", "login", "commands"],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "storefront", "env", "commands"],
+    expected: ["init", "env", "storefront", "commands"],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "storefront", "env", "local", "commands"],
+    expected: ["init", "env", "storefront", "commands"],
     local: true,
   },
 ])(
-  "offers the menu for where the person works (cloud=$cloud, local=$local)",
+  "offers the same menu wherever the person works (cloud=$cloud, local=$local)",
   async ({ cloud, expected, local }) => {
     const config = mkdtempSync(path.join(tmpdir(), "saleor-config-"));
     const originalDirectory = process.cwd();
@@ -400,7 +402,7 @@ it.each([
 );
 
 it.each([false, true])(
-  "offers storefront env only inside a storefront (inside=%s)",
+  "offers storefront use only inside a storefront (inside=%s)",
   async (inside) => {
     const directory = mkdtempSync(path.join(tmpdir(), "saleor-menu-"));
 
@@ -420,7 +422,7 @@ it.each([false, true])(
 
       const match = expect.objectContaining({
         choices: expect.arrayContaining([
-          expect.objectContaining({ value: "env" }),
+          expect.objectContaining({ value: "use" }),
         ]),
       });
 

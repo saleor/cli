@@ -1,6 +1,7 @@
 import { Effect, Option } from "effect";
 import path from "node:path";
 import { fail } from "../../core/errors.ts";
+import { command } from "../../core/invocation.ts";
 import { InstanceSources, type Instance } from "../../core/instance.ts";
 import { resolveInstance } from "../../core/instances.ts";
 import {
@@ -9,7 +10,6 @@ import {
   rememberEnvironment,
 } from "../../core/project.ts";
 import { storeAccess } from "../../core/store-access.ts";
-import { resolveRef } from "../../core/workspace.ts";
 import { DEFAULT_CONFIG, supportedSaleor } from "./engine.ts";
 
 // The configuration file: --config, else the project's, else ./config.yml.
@@ -41,14 +41,10 @@ const checkVersion = (instance: Instance) =>
     }
   });
 
-// The store, a token for its API, and the project environment it is known by.
-export const connect = (
-  environment: Option.Option<string>,
-  instance: Option.Option<string>
-) =>
+// The store named by `<env>` (or the project's, or a pick), and a token for its API.
+export const connect = (env: Option.Option<string>) =>
   Effect.gen(function* () {
-    const ref = yield* resolveRef(environment, instance);
-    const resolved = yield* resolveInstance(ref);
+    const resolved = yield* resolveInstance(env);
 
     yield* checkVersion(resolved.instance);
 
@@ -93,6 +89,6 @@ export const remember = (file: string, instance: Instance) =>
     }),
     ({ added, name }) =>
       added
-        ? `Remembered ${instance.ref} as environment "${name}" in saleor.yml; next time, run: saleor config deploy ${name}`
+        ? `Remembered ${instance.ref} as environment "${name}" in saleor.yml; next time, run: ${command("config", "deploy", name)}`
         : undefined
   );

@@ -3,7 +3,9 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import type { Instance } from "../../core/instance.ts";
+import { command } from "../../core/invocation.ts";
 import { findProject, recordInSync } from "../../core/project.ts";
+import { envWord } from "../../core/workspace.ts";
 import { applies, sentence, why } from "./describe.ts";
 import {
   type Change,
@@ -182,7 +184,7 @@ export const deployedText = (
         : []),
       ...(Option.isSome(storefront) && channels.length > 0
         ? [
-            `New channel${channels.length > 1 ? "s" : ""}: ${channels.map((each) => each.name).join(", ")}. To show it in the storefront: saleor storefront env --dir ${path.relative(process.cwd(), storefront.value) || "."} --channel ${channels[0]?.name ?? ""}`,
+            `New channel${channels.length > 1 ? "s" : ""}: ${channels.map((each) => each.name).join(", ")}. To show it in the storefront: ${command("storefront", "use", envWord(instance.ref), "--dir", path.relative(process.cwd(), storefront.value) || ".", "--channel", channels[0]?.name ?? "")}`,
           ]
         : []),
     ].join("\n"),

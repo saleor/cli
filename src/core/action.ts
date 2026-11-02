@@ -342,10 +342,12 @@ export interface RemoveSpec<I extends Inputs, X, R, RA> extends ChangeSpec<
   R,
   RA
 > {
-  // A line added to the result text, such as how to undo a stop.
-  readonly note?: (data: RemoveResult) => string | undefined;
-  // What can be lost, for `saleor commands --json`.
-  readonly risk: string;
+  // A line added to the result text, such as how to undo a stop. Sees what `apply`
+  // added, when it ran.
+  readonly note?: (data: RemoveResult & Partial<X>) => string | undefined;
+  // What can be lost, for `saleor commands --json`. A removal that loses nothing (a
+  // stop, which keeps data) has none, and takes no `--force`.
+  readonly risk?: string;
 }
 
 export interface Policy<R> {
@@ -611,10 +613,10 @@ export const defineActions = <RP = never>(policy: Policy<RP> = {}) => {
     ) =>
       build({
         rules: {
-          destructive: true,
+          destructive: spec.risk !== undefined,
           kind: "remove",
           waits: spec.waits === true,
-          warning: spec.risk,
+          warning: spec.risk ?? null,
         },
         spec,
         body: (input) =>
@@ -629,9 +631,10 @@ export const defineActions = <RP = never>(policy: Policy<RP> = {}) => {
 
             yield* confirm(plan);
 
-            const extra = plan.action === "none" ? {} : yield* plan.apply;
+            const extra: Partial<X> =
+              plan.action === "none" ? {} : yield* plan.apply;
 
-            const data: RemoveResult = {
+            const data = {
               ...extra,
               action: plan.action,
               existed: plan.state !== "absent",

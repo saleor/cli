@@ -1,4 +1,5 @@
 import { Context, type Effect, type Option } from "effect";
+import type { Ensured, Planned } from "./action.ts";
 import type { CliFailure } from "./errors.ts";
 
 // What a Saleor instance looks like in command output, wherever it runs. Every command
@@ -44,9 +45,22 @@ export const instance = (fields: Omit<Instance, "ready">): Instance => ({
   ready: fields.state === "ready",
 });
 
-// Where instances of one kind come from. Each module that runs stores contributes one,
-// so a command that works with any store (a storefront connecting to it) can list and
-// find them without knowing which modules exist. See core/instances.ts.
+// What `env start` passes to the source that runs the store.
+export interface StartOptions {
+  // Local stores: move to new free ports, for when another program took one.
+  readonly newPorts: boolean;
+  readonly timeout: number;
+}
+
+// A store that `env start` made ready, with whether this run created it.
+export type Started = Instance & { readonly created: boolean };
+
+// Where instances of one kind come from: the adapter between the CLI's one set of
+// environment commands and a place stores run. Each module that runs stores
+// contributes one, so `env list`, `env start`, a storefront connecting to a store and
+// the rest work with any store without knowing which modules exist. A source offers
+// the lifecycle steps it can carry out; `env` refuses the others with a usage error.
+// See core/instances.ts and core/environments.ts.
 export interface InstanceSource<R> {
   // A token for the store's own API, when the source can get one without asking (a
   // local instance signs in with the admin the CLI created). None when it cannot.
@@ -61,18 +75,32 @@ export interface InstanceSource<R> {
   // How a person knows where they run: "Saleor Cloud", "Docker".
   readonly label: string;
   readonly list: Effect.Effect<readonly Instance[], CliFailure, R>;
-  // The command that lists them, for hints.
-  readonly listCommand: string;
   // Loads Saleor's sample data (products, orders, customers) into the store, when the
   // source can. It replaces what the store holds, so only new stores are offered it.
   readonly populate?: (
     instance: Instance
   ) => Effect.Effect<void, CliFailure, R>;
+  // Plans deleting the store and its data. Planning only reads.
+  readonly remove?: (
+    id: string,
+    options: { readonly timeout: number }
+  ) => Effect.Effect<Planned<object, R>, CliFailure, R>;
   // Offered instead of the list when listing needs a login (AUTH_REQUIRED).
   readonly signIn?: Effect.Effect<void, CliFailure, R>;
-  // The command that starts a stopped one, if the CLI can.
-  readonly startCommand?: (id: string) => string;
+  // Plans starting the store, creating it first when the project defines it but this
+  // computer does not have it yet.
+  readonly start?: (
+    id: string,
+    options: StartOptions
+  ) => Effect.Effect<Planned<Ensured<Started>, R>, CliFailure, R>;
+  // Plans stopping the store, keeping its data.
+  readonly stop?: (
+    id: string
+  ) => Effect.Effect<Planned<object, R>, CliFailure, R>;
 }
+
+// The lifecycle steps a source may offer.
+export type Lifecycle = "remove" | "start" | "stop";
 
 export class InstanceSources extends Context.Service<
   InstanceSources,

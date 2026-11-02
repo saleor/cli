@@ -13,9 +13,21 @@ pnpm saleor init
 
 Choose where to create your new store. Cloud setup asks you to log in when needed. In Cloud, you can use an existing project as its destination. The CLI offers to open your dashboard when your store is ready.
 
-Run `pnpm saleor` for a short first-run welcome: connect to Cloud, continue locally, or browse commands without setup. Browsing skips login and skills installation. Revisit setup with `pnpm saleor onboard`. Onboarding can install Saleor skills for Claude Code, Codex, or Cursor, either in your current project or for all your projects. The Cloud path also offers MCP installation. In this prototype, the MCP backend is mocked: the prompts show the intended setup experience, but no app is installed and no MCP configuration is written. Later runs open the command menu, which follows where you work: before you log in to Cloud it offers login and local commands; once logged in it offers Cloud environments, and local commands only if you have local instances. Every command still works when typed. `init` always asks where the new store should run. When you are logged in, it first shows which Cloud account it would use and lists Cloud first; otherwise local comes first. Press Esc at any question to go back a step: to the first onboarding question, to where `init`'s store should run, or to the menu you came from. Press Ctrl+C to exit. After a command finishes, the CLI returns to your shell. Add `--help` to any command for details.
+Run `pnpm saleor` for a short first-run welcome: connect to Cloud, continue locally, or browse commands without setup. Browsing skips login and skills installation. Revisit setup with `pnpm saleor onboard`. Onboarding can install Saleor skills for Claude Code, Codex, or Cursor, either in your current project or for all your projects. The Cloud path also offers MCP installation. In this prototype, the MCP backend is mocked: the prompts show the intended setup experience, but no app is installed and no MCP configuration is written. Later runs open the command menu: the same commands whether you work locally or in Cloud, with login offered until you have one. Every command still works when typed. `init` always asks where the new store should run. When you are logged in, it first shows which Cloud account it would use and lists Cloud first; otherwise local comes first. Press Esc at any question to go back a step: to the first onboarding question, to where `init`'s store should run, or to the menu you came from. Press Ctrl+C to exit. After a command finishes, the CLI returns to your shell. Add `--help` to any command for details.
 
 Small terminals and `NO_COLOR` use a compact welcome.
+
+## How commands read
+
+Every command is a short sentence: `saleor <noun> <verb> [<env>]`.
+
+```sh
+pnpm saleor env start local
+pnpm saleor config deploy staging
+pnpm saleor storefront use staging
+```
+
+`<env>` names a store the same way everywhere: by its name in the project's `saleor.yml` (`local`, `staging`), or by its ref (`local:demo`, `cloud:acme/abc123`) as `env list` prints it. Inside a project with one environment, you can leave it out.
 
 ## Run locally
 
@@ -29,16 +41,22 @@ pnpm saleor init --local
 
 No Cloud account is needed. The first setup can take several minutes. When ready, the CLI shows your dashboard, API address, and admin login.
 
-Manage your local stores:
+## Manage environments
+
+Local instances and Cloud environments answer the same commands:
 
 ```sh
-pnpm saleor local list
-pnpm saleor local up
-pnpm saleor local down
-pnpm saleor local delete
+pnpm saleor env list              # every store, local and Cloud, with its state
+pnpm saleor env start local       # start it, or print its addresses again
+pnpm saleor env stop local        # stop it and keep its data
+pnpm saleor env remove local      # delete it and its data, after confirmation
+pnpm saleor env add staging       # a new Cloud sandbox, named in saleor.yml
+pnpm saleor env add review --local
 ```
 
-Inside a project, these commands use its local environment. `local up` creates it from `saleor.yml` when needed and applies `config.yml` when configured with `configure: on-create`. Outside a project, you'll be asked which instance to use. To choose it directly, add `--name my-store`. Stopping an instance keeps its data. Run `pnpm saleor local up --name my-store` to start it again, or to print its addresses and admin login. Deleting an instance permanently removes its database, media and saved credentials after confirmation.
+Inside a project, `env start local` creates the local environment from `saleor.yml` when this checkout does not have it yet, and applies `config.yml` when it is defined with `configure: on-create`. Stopping keeps data. Removing deletes the store and its data: a Cloud environment's name leaves `saleor.yml` with it, while a local definition stays so `env start` can create it again. Saleor Cloud runs its environments itself, so they cannot be started or stopped here, and only sandboxes can be removed.
+
+Preview any change with `--dry-run`. Removals ask for confirmation, need `--force` without a terminal, and never read `SALEOR_ENV`: name what to delete.
 
 ## Create a storefront
 
@@ -46,26 +64,21 @@ Inside a project, these commands use its local environment. `local up` creates i
 pnpm saleor storefront create
 ```
 
-Pick a store (Cloud or local) and the CLI downloads the [Saleor storefront template](https://github.com/saleor/storefront) into `./storefront`, points its `.env` at the store's API and channel, and makes it a git repository. Dependencies are installed automatically. Then `cd storefront && pnpm dev`.
+Pick a store (Cloud or local) and the CLI downloads the [Saleor storefront template](https://github.com/saleor/storefront) into the project's `storefront/` folder (`./storefront` outside a project), points its `.env` at the store's API and channel, and makes it a git repository. Dependencies are installed automatically. Then `cd storefront && pnpm dev`.
 
 `pnpm saleor init` also offers a storefront for the store it sets up (`--storefront`), in a folder for the project: `<project>/storefront`.
 
-Inside a project, run `pnpm saleor storefront env staging` to connect its storefront to a named environment. Run `pnpm saleor storefront env` to choose its Saleor backend interactively. It shows the current backend before asking for another. You can target a directory explicitly with `--dir path/to/storefront`. Restart the storefront development server after switching. This updates local configuration; hosted deployments keep their own settings.
+Run `pnpm saleor storefront use staging` to point the storefront at another environment, or leave out the name to choose interactively; it shows the current backend before asking. Target a directory explicitly with `--dir path/to/storefront`. Restart the storefront development server after switching. This updates local configuration; hosted deployments keep their own settings.
 
-## Manage Cloud stores
+## Cloud stores
 
 ```sh
-# List environments and their addresses
-pnpm saleor env list --org my-org --project my-store
-
-# Create another sandbox, or reuse it and print its addresses
+# Create a project and a sandbox, or reuse them and print their addresses
 pnpm saleor init --org my-org --project my-store --env preview
 
-# Delete a sandbox
-pnpm saleor env delete preview --org my-org
+# Delete a sandbox by its ref
+pnpm saleor env remove cloud:my-org/<env key>
 ```
-
-Preview changes with `--dry-run` before creating or deleting resources. Deletion is permanent and asks for confirmation. Deletions never read `SALEOR_ORG`, `SALEOR_PROJECT` or `SALEOR_ENV`; name what to delete.
 
 ## Scripts and coding agents
 

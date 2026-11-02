@@ -3,54 +3,37 @@ import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import packageJson from "../package.json" with { type: "json" };
 import { catalogCommand } from "./core/catalog.ts";
+import { environmentCommand } from "./core/environments.ts";
 import { GLOBAL_INPUTS } from "./core/globals.ts";
 import { InstanceSources } from "./core/instance.ts";
 import { NoInputFlag } from "./core/interaction.ts";
-import { HideFromMenu, MenuAvailable, MenuStatus } from "./core/menu.ts";
+import { HideFromMenu, MenuStatus } from "./core/menu.ts";
 import { collectCommands } from "./core/module.ts";
 import { onboard, onboardCommand } from "./core/onboarding.ts";
 import { AgentFlag, OutputFlag } from "./core/output.ts";
 import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { setupCommand } from "./core/setup.ts";
-import {
-  cloudAccount,
-  cloudModule,
-  cloudSignedIn,
-} from "./modules/cloud/index.ts";
+import { cloudAccount, cloudModule } from "./modules/cloud/index.ts";
 import { projectStatus } from "./modules/config/commands.ts";
 import { configModule } from "./modules/config/index.ts";
 import { workspaceConfigurationLive } from "./modules/config/workspace.ts";
-import { hasLocalInstances, localModule } from "./modules/local/index.ts";
+import { localModule } from "./modules/local/index.ts";
 import { storefrontModule } from "./modules/storefront/index.ts";
 
-// People mostly work in Cloud or locally, not both. Once logged in to Cloud, the menu
-// leaves out local commands unless there are local instances to manage. Typed commands
-// always work.
-const offerLocal = Effect.map(
-  Effect.all([cloudSignedIn, hasLocalInstances]),
-  ([cloud, local]) => !cloud || local
-);
+// Configuration runs before the storefront during setup, so it sets the channel.
+const modules = [configModule, storefrontModule, cloudModule, localModule];
 
-const modules = [
-  // Put day-to-day configuration and storefront work before environment management.
-  // Configuration also runs before the storefront during setup, so it sets the channel.
-  configModule,
-  storefrontModule,
-  cloudModule,
-  {
-    ...localModule,
-    commands: localModule.commands.map((command) =>
-      command.pipe(Command.annotate(MenuAvailable, offerLocal))
-    ),
-  },
-];
+const providers = modules.flatMap((module) => module.setup ?? []);
 
-// `init` comes first: getting a store is what most people come for.
+// The grammar is `saleor <noun> <verb> [<env>]`. `init` comes first: getting a store
+// is what most people come for. `env` is core, like `init`: every module that runs
+// stores is an adapter behind it, not a command group of its own.
 const moduleCommands = [
   setupCommand(
-    modules.flatMap((module) => module.setup ?? []),
+    providers,
     modules.flatMap((module) => module.setupExtension ?? [])
   ),
+  environmentCommand(providers),
   ...collectCommands(modules),
   onboardCommand.pipe(Command.annotate(HideFromMenu, true)),
 ];
