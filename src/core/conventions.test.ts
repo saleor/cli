@@ -18,7 +18,16 @@ const VERBS: Record<ActionKind, readonly string[]> = {
   ensure: ["init", "add", "start", "create", "use", "deploy", "pull", "edit"],
   list: ["list", "status", "diff"],
   remove: ["stop", "remove"],
-  session: ["login", "logout", "onboard", "commands", "validate", "guide"],
+  session: [
+    "login",
+    "logout",
+    "onboard",
+    "commands",
+    "validate",
+    "guide",
+    "call",
+    "listen",
+  ],
 };
 
 // Verbs that undo each other: a group with one has the other.

@@ -383,6 +383,9 @@ export const prepareSecrets = (config: LocalConfig) =>
             `DASHBOARD_URL=http://localhost:${config.dashboardPort}/`,
             "DEFAULT_CHANNEL_SLUG=default-channel",
             "HTTP_IP_FILTER_ALLOW_LOOPBACK_IPS=True",
+            // Webhooks to this computer (`webhook listen`, an app in development)
+            // go to a private address, which Saleor refuses by default.
+            "HTTP_IP_FILTER_ENABLED=False",
             "OTEL_TRACES_EXPORTER=none",
             "OTEL_METRICS_EXPORTER=none",
           ].join("\n")}\n`,

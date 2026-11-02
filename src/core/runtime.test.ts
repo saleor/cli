@@ -264,17 +264,25 @@ it("preserves an explicit end-of-options marker when selecting an action", async
 it.each([
   {
     cloud: false,
-    expected: ["init", "env", "storefront", "login", "commands"],
+    expected: [
+      "init",
+      "env",
+      "storefront",
+      "api",
+      "webhook",
+      "login",
+      "commands",
+    ],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "env", "storefront", "commands"],
+    expected: ["init", "env", "storefront", "api", "webhook", "commands"],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "env", "storefront", "commands"],
+    expected: ["init", "env", "storefront", "api", "webhook", "commands"],
     local: true,
   },
 ])(

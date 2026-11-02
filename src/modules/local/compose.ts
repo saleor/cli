@@ -23,6 +23,8 @@ export const composeTemplate = (config: LocalConfig) => {
       db: { condition: "service_healthy" },
     },
     env_file: ["./backend.env"],
+    // Docker Desktop has this name built in; Linux needs it mapped to the host.
+    extra_hosts: ["host.docker.internal:host-gateway"],
     image: `ghcr.io/saleor/saleor:${config.saleorVersion}`,
     volumes: ["media:/app/media"],
   };

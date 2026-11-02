@@ -1103,6 +1103,8 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "saleor config guide",
       "saleor storefront create",
       "saleor storefront use",
+      "saleor api call",
+      "saleor webhook listen",
       "saleor login",
       "saleor logout",
       "saleor onboard",

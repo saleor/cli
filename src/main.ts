@@ -13,15 +13,24 @@ import { onboard, onboardCommand } from "./core/onboarding.ts";
 import { AgentFlag, OutputFlag } from "./core/output.ts";
 import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { setupCommand } from "./core/setup.ts";
+import { apiModule } from "./modules/api/index.ts";
 import { cloudAccount, cloudModule } from "./modules/cloud/index.ts";
 import { projectStatus } from "./modules/config/commands.ts";
 import { configModule } from "./modules/config/index.ts";
 import { workspaceConfigurationLive } from "./modules/config/workspace.ts";
 import { localModule } from "./modules/local/index.ts";
 import { storefrontModule } from "./modules/storefront/index.ts";
+import { webhookModule } from "./modules/webhook/index.ts";
 
 // Configuration runs before the storefront during setup, so it sets the channel.
-const modules = [configModule, storefrontModule, cloudModule, localModule];
+const modules = [
+  configModule,
+  storefrontModule,
+  apiModule,
+  webhookModule,
+  cloudModule,
+  localModule,
+];
 
 const providers = modules.flatMap((module) => module.setup ?? []);
 

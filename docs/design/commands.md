@@ -1,6 +1,6 @@
 # Command conventions
 
-The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), see the stores there are and start, stop, add or remove one (`env`), keep a store's configuration as code (`config`), and connect a storefront to one (`storefront`). Login is a step within Cloud actions when required; explicit `login` and `logout` remain available outside the exploratory menu. Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
+The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), see the stores there are and start, stop, add or remove one (`env`), keep a store's configuration as code (`config`), connect a storefront to one (`storefront`), talk to its API (`api`) and receive its webhooks while building an app (`webhook`). Login is a step within Cloud actions when required; explicit `login` and `logout` remain available outside the exploratory menu. Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
 
 ## Grammar
 
@@ -14,9 +14,10 @@ saleor env start  [<env>]           saleor config pull     [<env>]
 saleor env stop   [<env>]           saleor config edit     "<description>"
 saleor env remove [<env>]           saleor storefront create [<env>]
 saleor login | logout               saleor storefront use    [<env>]
+saleor api call [<env>]             saleor webhook listen    [<env>]
 ```
 
-- **Three nouns.** `env` (the stores a project works with), `config` (their configuration) and `storefront`. Top-level verbs (`init`, `login`, `logout`, `onboard`, `commands`) are about the CLI or a new project, not a resource.
+- **Five nouns.** `env` (the stores a project works with), `config` (their configuration), `storefront`, `api` (a store's own GraphQL API) and `webhook` (its webhooks, received here). Top-level verbs (`init`, `login`, `logout`, `onboard`, `commands`) are about the CLI or a new project, not a resource.
 - **One way to name a store.** The word after the verb, `<env>`: a name from `saleor.yml` (`local`, `staging`) or a store ref (`local:<name>`, `cloud:<org>/<env key>`) for any store, inside a project or not. No command but `init` names a store with a flag. `<env>` defaults to `SALEOR_ENV`, then the project's only environment, then a question.
 - **Where a store runs is configuration, not a command.** Local and Cloud stores answer the same commands. Each module that runs stores is an adapter behind `env` (an instance source, below), as a database adapter is behind Rails' `db:migrate`. A source that cannot do something (stop a Cloud environment) is refused with a usage error, not given its own command.
 - **A closed set of verbs, in pairs.** Each kind has its verbs, and a verb means the same change everywhere: `add`/`remove`, `start`/`stop`, `pull`/`deploy`. A new verb is a decision made in `src/core/conventions.test.ts`, not in passing.
@@ -32,7 +33,7 @@ The rules live in `src/core/action.ts` (kinds), `src/core/target.ts` (targets), 
 | `list` | `env list`, `config status`, `config diff` | — | array of items | table, or an empty-state line |
 | `ensure` | `init`, `env add`, `env start`, `config deploy`, `storefront create`, `storefront use` | `--dry-run`; `--timeout` if it waits | the resource plus `created` | `✓ <target> is ready (created \| already existed).` then details |
 | `remove` | `env stop`, `env remove` | `--dry-run`; `--force` if it can lose data; `--timeout` if it waits | `{ action, existed, target, … }` | `✓ Deleted <target>.`, `✓ Stopped <target>.`, or `✓ <target> does not exist; nothing to do.` |
-| `session` | `login`, `logout`, `config validate`, `commands` | — | about the CLI or its login | free text |
+| `session` | `login`, `logout`, `config validate`, `commands`, `api call`, `webhook listen` | — | whatever it is about: the login, a check, an API answer, deliveries | free text |
 
 A module gets its definers from `defineActions(policy)`. A policy applies to every action of the module. Groups (`env`, `config`, `storefront`) are declared with `defineGroup` and have no behavior of their own.
 

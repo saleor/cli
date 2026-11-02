@@ -15,7 +15,7 @@
     "lint:fix": "pnpm lint:code --fix && pnpm format",
     "saleor": "node bin/saleor.mjs",
     "test": "vitest run",
-    "test:build": "tsdown && SALEOR_CLI_BIN=dist/saleor.mjs vitest run src/main.test.ts",
+    "test:build": "tsdown && SALEOR_CLI_BIN=dist/saleor.mjs vitest run src/main.test.ts src/store-commands.test.ts",
     "test:e2e": "pnpm test:build",
     "test:live": "node scripts/live-smoke.ts",
     "typecheck": "tsc --noEmit",
