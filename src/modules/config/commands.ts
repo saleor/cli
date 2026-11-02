@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Semaphore } from "effect";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
   defineActions,
@@ -370,42 +370,48 @@ const statusCommand = config.list({
       const file = yield* existingConfig(configFile(input.config));
       yield* validateFile(file);
 
-      const rows = yield* Effect.forEach(project.environments, ([name, ref]) =>
-        Effect.gen(function* () {
-          const { instance, store } = yield* connect(
-            Option.some(ref),
-            Option.none()
-          );
+      // Connecting may ask for a token, so connections take turns; the comparisons,
+      // which are the slow part, run side by side.
+      const prompts = yield* Semaphore.make(1);
 
-          const plan = yield* planDeploy(store, file);
-          const synced = lastInSync(file, ref);
+      const rows = yield* Effect.forEach(
+        project.environments,
+        ([name, ref]) =>
+          Effect.gen(function* () {
+            const { instance, store } = yield* prompts.withPermit(
+              connect(Option.some(ref), Option.none())
+            );
 
-          return {
-            deployable: plan.deployable.length,
-            environment: name,
-            lastDeployed: Option.match(synced, {
-              onNone: () => null,
-              onSome: (note) => note.at.toISOString(),
-            }),
-            ref,
-            saleorVersion: instance.saleorVersion,
-            skipped: plan.skipped.length,
-            state:
-              plan.deployable.length === 0 ? "in sync" : "changes to deploy",
-          };
-        }).pipe(
-          Effect.catchTag("CliFailure", (failure) =>
-            Effect.succeed({
-              deployable: 0,
+            const plan = yield* planDeploy(store, file);
+            const synced = lastInSync(file, ref);
+
+            return {
+              deployable: plan.deployable.length,
               environment: name,
-              lastDeployed: null,
+              lastDeployed: Option.match(synced, {
+                onNone: () => null,
+                onSome: (note) => note.at.toISOString(),
+              }),
               ref,
-              saleorVersion: null,
-              skipped: 0,
-              state: `unknown: ${failure.code}`,
-            })
-          )
-        )
+              saleorVersion: instance.saleorVersion,
+              skipped: plan.skipped.length,
+              state:
+                plan.deployable.length === 0 ? "in sync" : "changes to deploy",
+            };
+          }).pipe(
+            Effect.catchTag("CliFailure", (failure) =>
+              Effect.succeed({
+                deployable: 0,
+                environment: name,
+                lastDeployed: null,
+                ref,
+                saleorVersion: null,
+                skipped: 0,
+                state: `unknown: ${failure.code}`,
+              })
+            )
+          ),
+        { concurrency: "unbounded" }
       );
 
       return listing(
