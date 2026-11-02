@@ -837,7 +837,15 @@ describe("app create", () => {
 });
 `;
 
-  let env: Record<string, string>;
+  let templateUrl = "";
+
+  const env = () => ({
+    GIT_AUTHOR_EMAIL: "test@example.com",
+    GIT_AUTHOR_NAME: "Test",
+    GIT_COMMITTER_EMAIL: "test@example.com",
+    GIT_COMMITTER_NAME: "Test",
+    SALEOR_APP_TEMPLATE_URL: templateUrl,
+  });
 
   beforeEach(async () => {
     const archive = await createTarGzip([
@@ -873,17 +881,11 @@ require("node:fs").mkdirSync("node_modules", {recursive:true});
 
     writeFileSync(path.join(cwd, "saleor.yml"), "name: Outdoor Shop\n");
 
-    env = {
-      GIT_AUTHOR_EMAIL: "test@example.com",
-      GIT_AUTHOR_NAME: "Test",
-      GIT_COMMITTER_EMAIL: "test@example.com",
-      GIT_COMMITTER_NAME: "Test",
-      SALEOR_APP_TEMPLATE_URL: `http://127.0.0.1:${port}/app.tar.gz`,
-    };
+    templateUrl = `http://127.0.0.1:${port}/app.tar.gz`;
   });
 
   it("makes each app its own folder, manifest id and component", async () => {
-    const first = await cli(["app", "create", "--app", "Loyalty"], env);
+    const first = await cli(["app", "create", "--app", "Loyalty"], env());
     expect(first.code, first.stdout + first.stderr).toBe(0);
     expect(first.data.data).toMatchObject({
       component: "loyalty",
@@ -896,10 +898,12 @@ require("node:fs").mkdirSync("node_modules", {recursive:true});
     });
 
     const dir = path.join(cwd, "apps/loyalty");
+
     const manifest = readFileSync(
       path.join(dir, "src/pages/api/manifest.ts"),
       "utf-8"
     );
+
     expect(manifest).toContain('id: "outdoor-shop.loyalty"');
     expect(manifest).toContain('name: "Loyalty"');
     expect(readFileSync(path.join(dir, ".gitignore"), "utf-8")).toContain(
@@ -922,7 +926,7 @@ require("node:fs").mkdirSync("node_modules", {recursive:true});
       "src/pages/api/manifest.ts",
     ]);
 
-    const second = await cli(["app", "create", "--app", "Rewards"], env);
+    const second = await cli(["app", "create", "--app", "Rewards"], env());
     expect(second.data.data).toMatchObject({
       component: "rewards",
       identifier: "outdoor-shop.rewards",
@@ -932,7 +936,7 @@ require("node:fs").mkdirSync("node_modules", {recursive:true});
     );
 
     // Again: the files and id are kept.
-    const again = await cli(["app", "create", "--app", "Loyalty"], env);
+    const again = await cli(["app", "create", "--app", "Loyalty"], env());
     expect(again.data.data).toMatchObject({
       created: false,
       identifier: "outdoor-shop.loyalty",
@@ -946,7 +950,7 @@ require("node:fs").mkdirSync("node_modules", {recursive:true});
     mkdirSync(path.join(cwd, "apps/loyalty"), { recursive: true });
     writeFileSync(path.join(cwd, "apps/loyalty/notes.txt"), "mine");
 
-    const out = await cli(["app", "create", "--app", "loyalty"], env);
+    const out = await cli(["app", "create", "--app", "loyalty"], env());
 
     expect(out.code).toBe(1);
     expect(out.data.error.code).toBe("NAME_CONFLICT");

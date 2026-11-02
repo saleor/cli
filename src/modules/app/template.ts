@@ -123,6 +123,7 @@ const personalize = (dir: string, name: string, identifier: string) =>
       }
 
       const ignore = path.join(dir, ".gitignore");
+
       const ignored = (read(ignore) ?? "")
         .split("\n")
         .map((line) => line.trim());
@@ -155,6 +156,7 @@ export const finishApp = (spec: Made) =>
       : [];
 
     const component = yield* recordComponent(spec.dir, { kind: "app" });
+
     const source = templateSource(
       TEMPLATE,
       spec.downloaded ?? { commit: undefined }
@@ -174,6 +176,7 @@ export const finishApp = (spec: Made) =>
     ];
 
     const cd = shown(spec.dir);
+
     const next = [
       ...(cd === "." ? [] : [`cd ${cd}`]),
       ...(installed.installed ? [] : ["pnpm install"]),
