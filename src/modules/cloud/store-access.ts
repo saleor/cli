@@ -130,6 +130,7 @@ export const cloudAccess = (instance: Instance) =>
             app: existing.node.id,
             name: os.hostname(),
           });
+
     const issued = Option.map(answer, (data) => data.issued);
 
     if (Option.isNone(issued) || issued.value.authToken === null) {
@@ -138,6 +139,7 @@ export const cloudAccess = (instance: Instance) =>
         onSome: (value) =>
           value.errors.map((error) => error.message ?? "").join("; "),
       });
+
       yield* notice(
         `Could not make a token for ${instance.ref} with your Saleor Cloud login (${reasons}), so it needs a token.`
       );

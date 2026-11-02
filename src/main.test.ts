@@ -882,11 +882,13 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
 
   it("makes a Cloud store's token with the Cloud login, then reuses it", async () => {
     const { cert, key } = testCertificate();
+
     const received: {
       auth: string | undefined;
       bearer: string | undefined;
       body: any;
     }[] = [];
+
     const apps: { id: string; name: string }[] = [];
 
     const store = createSecureServer(
@@ -902,28 +904,36 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
         const bearer = req.headers["authorization-bearer"];
         received.push({
           auth: req.headers.authorization,
-          bearer: Array.isArray(bearer) ? bearer.join() : bearer,
+          bearer: Array.isArray(bearer) ? bearer.join(",") : bearer,
           body,
         });
 
-        let data: object = { shop: { name: "Mock Saleor" } };
+        const answerTo = (query: string) => {
+          if (query.includes("userPermissions")) {
+            return {
+              apps: { edges: apps.map((node) => ({ node })) },
+              me: {
+                userPermissions: [
+                  { code: "MANAGE_APPS" },
+                  { code: "MANAGE_PRODUCTS" },
+                ],
+              },
+            };
+          }
 
-        if (body.query.includes("userPermissions")) {
-          data = {
-            apps: { edges: apps.map((node) => ({ node })) },
-            me: {
-              userPermissions: [
-                { code: "MANAGE_APPS" },
-                { code: "MANAGE_PRODUCTS" },
-              ],
-            },
-          };
-        } else if (body.query.includes("appCreate")) {
-          apps.push({ id: "QXBwOjE=", name: body.variables.name });
-          data = { issued: { authToken: "app.token.1", errors: [] } };
-        } else if (body.query.includes("appTokenCreate")) {
-          data = { issued: { authToken: "app.token.2", errors: [] } };
-        }
+          if (query.includes("appCreate")) {
+            apps.push({ id: "QXBwOjE=", name: body.variables.name });
+
+            return { issued: { authToken: "app.token.1", errors: [] } };
+          }
+
+          if (query.includes("appTokenCreate")) {
+            return { issued: { authToken: "app.token.2", errors: [] } };
+          }
+
+          return { shop: { name: "Mock Saleor" } };
+        };
+        const data = answerTo(body.query);
 
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify({ data }));
@@ -957,6 +967,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
           ],
           { NODE_EXTRA_CA_CERTS: cert }
         );
+
         expect(out.code, out.stdout + out.stderr).toBe(0);
         expect(out.data.data).toStrictEqual({ shop: { name: "Mock Saleor" } });
 
@@ -964,7 +975,9 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
           .splice(0)
           .filter((each) => each.body.query !== "query { shop { name } }");
       };
+
       const credentialsFile = path.join(cwd, "config/credentials.json");
+
       const saved = () =>
         JSON.parse(readFileSync(credentialsFile, "utf-8"))[
           "store:cloud:acme/env1"
