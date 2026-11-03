@@ -1,13 +1,13 @@
 import { Effect, Option } from "effect";
 import { afterEach, expect, it, vi } from "vitest";
-import { instance } from "./instance.ts";
+import { storeFrom } from "./store.ts";
 import { OutputFlag } from "./output.ts";
-import type { ResolvedInstance } from "./instances.ts";
+import type { ResolvedStore } from "./stores.ts";
 import { SecretStore } from "./secret-store.ts";
-import { storeAccess, storeTokenKey } from "./store-access.ts";
+import { storeToken, storeTokenKey } from "./store-token.ts";
 
-const resolved: ResolvedInstance = {
-  instance: instance({
+const resolved: ResolvedStore = {
+  store: storeFrom({
     dashboardUrl: "https://staging.example.com/dashboard/",
     graphqlUrl: "https://staging.example.com/graphql/",
     kind: "cloud",
@@ -26,7 +26,7 @@ const resolved: ResolvedInstance = {
 
 const access = async (envToken = true) =>
   await Effect.runPromise(
-    storeAccess(resolved, { envToken }).pipe(
+    storeToken(resolved, { envToken }).pipe(
       Effect.provideService(OutputFlag, Option.some("json")),
       Effect.provideService(SecretStore, {
         backend: "file",

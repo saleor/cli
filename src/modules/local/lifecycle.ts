@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { rmSync } from "node:fs";
 import type { TargetRef } from "../../core/action.ts";
 import { type CliFailure, fail } from "../../core/errors.ts";
-import { type InstanceState, instance } from "../../core/instance.ts";
+import { type StoreState, storeFrom } from "../../core/store.ts";
 import { command } from "../../core/invocation.ts";
 import { withLock } from "../../core/lock.ts";
 import { notice, withProgress } from "../../core/output.ts";
@@ -80,8 +80,8 @@ const graphqlUrlOf = (config: LocalConfig) =>
   `http://localhost:${config.apiPort}/graphql/`;
 
 // The shared instance fields (see core/target.ts) plus the local mail inbox.
-export const localInstance = (config: LocalConfig, state: InstanceState) => ({
-  ...instance({
+export const localStore = (config: LocalConfig, state: StoreState) => ({
+  ...storeFrom({
     dashboardUrl: `http://localhost:${config.dashboardPort}/`,
     graphqlUrl: graphqlUrlOf(config),
     kind: "local",
@@ -316,7 +316,7 @@ export const up = (options: LocalUpOptions) =>
         const secrets = yield* prepareSecrets(config);
 
         const outcome = () => ({
-          ...localInstance(config, "ready"),
+          ...localStore(config, "ready"),
           admin: { email: adminEmail, password: secrets.password },
           created,
         });
@@ -350,7 +350,7 @@ export const up = (options: LocalUpOptions) =>
           if (isPast(deadline)) {
             return yield* notReady(
               "the local GraphQL API is not responding yet.",
-              { instance: localInstance(config, "starting") },
+              { instance: localStore(config, "starting") },
               "Docker"
             );
           }
@@ -370,7 +370,7 @@ const describeInstance = (config: LocalConfig) =>
     const apiRunning = isRunning(containers, "api");
     const answers = apiRunning && (yield* probeGraphql(graphqlUrlOf(config)));
 
-    let state: InstanceState = "stopped";
+    let state: StoreState = "stopped";
 
     if (!config.initialized) {
       state = "incomplete";
@@ -380,7 +380,7 @@ const describeInstance = (config: LocalConfig) =>
       state = "starting";
     }
 
-    return { ...localInstance(config, state), containers };
+    return { ...localStore(config, state), containers };
   });
 
 export const list = Effect.gen(function* () {
@@ -411,7 +411,7 @@ export const list = Effect.gen(function* () {
       }
 
       if (!engine) {
-        return [localInstance(config, "stopped")];
+        return [localStore(config, "stopped")];
       }
 
       const { containers: _, ...shown } = yield* describeInstance(config);

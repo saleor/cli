@@ -1,7 +1,7 @@
 import { Effect, Option, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { fail } from "../../core/errors.ts";
-import type { Instance } from "../../core/instance.ts";
+import type { Store } from "../../core/store.ts";
 import { adminEmail, savedAdminPassword } from "./state.ts";
 
 const TokenCreate = Schema.Struct({
@@ -18,7 +18,7 @@ const TokenCreate = Schema.Struct({
 // lasts 5 minutes, and an app token would not do instead, since installing and
 // creating apps takes a staff user (appInstall, appCreate). None for an instance
 // without a saved password.
-export const localAccess = (instance: Instance) =>
+export const localStaffToken = (instance: Store) =>
   Effect.gen(function* () {
     const password = yield* savedAdminPassword(instance.name);
 

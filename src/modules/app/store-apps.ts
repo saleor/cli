@@ -12,9 +12,9 @@ import {
   installed,
   installFrom,
   type Manifest,
-  type Store,
   uninstall,
 } from "./store.ts";
+import type { StoreClient } from "../../core/store-api.ts";
 
 // App Store apps on one store: install the ones named, or, in a terminal, tick them in
 // a list where installed apps start ticked, so unticking one uninstalls it.
@@ -28,12 +28,12 @@ export interface StoreAppsResult {
 
 // App Store apps are hosted by Saleor and call back to the store's API, which a store
 // on this computer does not offer them.
-const cloudOnly = (store: Store) =>
-  store.instance.kind === "local"
+const cloudOnly = (client: StoreClient) =>
+  client.store.kind === "local"
     ? Effect.fail(
         fail(
           "USAGE_ERROR",
-          `App Store apps cannot be installed on ${store.instance.ref}: they run in Saleor Cloud and cannot reach a store on this computer.`,
+          `App Store apps cannot be installed on ${client.store.ref}: they run in Saleor Cloud and cannot reach a store on this computer.`,
           {
             suggestion:
               "Install them on a Saleor Cloud store, or install an app you run yourself with --manifest <url>.",
@@ -94,10 +94,13 @@ interface Changes {
 
 // What the store should have: the apps named, or ticked in the list. Only the list
 // removes; an app named with --store-app is added to the others.
-const decide = (store: Store, wanted: Option.Option<readonly string[]>) =>
+const decide = (
+  client: StoreClient,
+  wanted: Option.Option<readonly string[]>
+) =>
   Effect.gen(function* () {
     const catalog = yield* storeApps;
-    const { apps, installations } = yield* appsOn(store);
+    const { apps, installations } = yield* appsOn(client);
 
     const installedUrls = new Set(
       apps.flatMap((each) =>
@@ -133,7 +136,7 @@ const decide = (store: Store, wanted: Option.Option<readonly string[]>) =>
     const manifests = yield* Effect.forEach(
       selected.filter((each) => !installedUrls.has(each.manifestUrl)),
       (each) =>
-        Effect.map(fetchManifest(store, each.manifestUrl), (manifest) => ({
+        Effect.map(fetchManifest(client, each.manifestUrl), (manifest) => ({
           each,
           manifest,
         }))
@@ -143,12 +146,12 @@ const decide = (store: Store, wanted: Option.Option<readonly string[]>) =>
   });
 
 const headlineOf = (
-  store: Store,
+  client: StoreClient,
   done: readonly string[],
   removed: readonly string[]
 ) => {
   if (done.length === 0 && removed.length === 0) {
-    return `${store.instance.ref} already has the App Store apps asked for.`;
+    return `${client.store.ref} already has the App Store apps asked for.`;
   }
 
   const parts = [
@@ -156,13 +159,17 @@ const headlineOf = (
     removed.length > 0 ? `Uninstalled ${removed.join(", ")}` : "",
   ];
 
-  return `${parts.filter(Boolean).join("; ")} on ${store.instance.ref}.`;
+  return `${parts.filter(Boolean).join("; ")} on ${client.store.ref}.`;
 };
 
-const applyChanges = (store: Store, changes: Changes, deadline: Deadline) =>
+const applyChanges = (
+  client: StoreClient,
+  changes: Changes,
+  deadline: Deadline
+) =>
   Effect.gen(function* () {
     for (const each of changes.toRemove) {
-      yield* uninstall(store, each.id);
+      yield* uninstall(client, each.id);
     }
 
     for (const { each, manifest } of changes.manifests) {
@@ -174,12 +181,12 @@ const applyChanges = (store: Store, changes: Changes, deadline: Deadline) =>
 
       yield* pending !== undefined && pending.status !== "FAILED"
         ? installed(
-            store,
+            client,
             { installationId: pending.id, manifestUrl },
             deadline
           )
         : installFrom(
-            store,
+            client,
             { failed: pending, manifest, manifestUrl },
             deadline
           );
@@ -193,9 +200,9 @@ const applyChanges = (store: Store, changes: Changes, deadline: Deadline) =>
         created: done.length > 0,
         installed: done,
         removed,
-        store: store.instance.ref,
+        store: client.store.ref,
       },
-      headline: headlineOf(store, done, removed),
+      headline: headlineOf(client, done, removed),
       text: "",
     } satisfies Ensured<StoreAppsResult>;
   });
@@ -209,20 +216,20 @@ const actionOf = (changes: Changes) => {
 };
 
 export const planStoreApps = (
-  store: Store,
+  client: StoreClient,
   wanted: Option.Option<readonly string[]>,
   deadline: Deadline
 ) =>
   Effect.gen(function* () {
-    yield* cloudOnly(store);
+    yield* cloudOnly(client);
 
-    const changes = yield* decide(store, wanted);
+    const changes = yield* decide(client, wanted);
     const removed = changes.toRemove.map(nameOf);
     const action = actionOf(changes);
 
     return {
       action,
-      apply: applyChanges(store, changes, deadline),
+      apply: applyChanges(client, changes, deadline),
       details: {
         install: changes.manifests.map(({ each, manifest }) => ({
           id: each.id,
@@ -250,7 +257,7 @@ export const planStoreApps = (
       target: {
         id: null,
         name: "App Store apps",
-        scope: { store: store.instance.ref },
+        scope: { store: client.store.ref },
         type: "apps",
       },
     } satisfies Planned<Ensured<StoreAppsResult>, unknown>;

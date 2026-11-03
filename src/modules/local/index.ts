@@ -3,7 +3,7 @@ import { FetchHttpClient } from "effect/http";
 import { type CoreServices, defineModule } from "../../core/module.ts";
 import { SecretStoreLive } from "../../core/secret-store.ts";
 import { DockerLive } from "./docker.ts";
-import { localInstances } from "./instances.ts";
+import { localStores } from "./stores.ts";
 import { localSetup } from "./setup.ts";
 
 export const localLayer = Layer.mergeAll(
@@ -19,7 +19,7 @@ export const localModule = defineModule<
 >({
   commands: [],
   description: "Local Saleor instances running in Docker.",
-  instances: localInstances,
+  stores: localStores,
   layer: localLayer,
   name: "local",
   setup: localSetup,

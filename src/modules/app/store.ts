@@ -1,27 +1,17 @@
 import { Effect, Schema } from "effect";
 import { fail } from "../../core/errors.ts";
-import type { Instance } from "../../core/instance.ts";
 import { type Deadline, isPast, notReady, POLL } from "../../core/readiness.ts";
-import { storeQuery } from "../../core/store-api.ts";
+import {
+  mutationRejected,
+  MutationErrors,
+  PermissionCodes,
+  type StoreClient,
+  storeData,
+} from "../../core/store-api.ts";
 
 // Apps installed on a store, through the store's own GraphQL API. Saleor installs an
 // app from its manifest URL in a background job: `appInstall` starts an installation,
 // which is deleted once the app exists, or kept with status FAILED and a message.
-
-export interface Store {
-  readonly instance: Instance;
-  readonly token: string;
-}
-
-const Codes = Schema.Array(Schema.Struct({ code: Schema.String }));
-
-const MutationErrors = Schema.Array(
-  Schema.Struct({
-    code: Schema.optionalKey(Schema.NullOr(Schema.String)),
-    field: Schema.NullOr(Schema.String),
-    message: Schema.NullOr(Schema.String),
-  })
-);
 
 const InstalledApp = Schema.Struct({
   id: Schema.String,
@@ -58,7 +48,7 @@ const Manifest = Schema.Struct({
       Schema.Struct({
         identifier: Schema.NullOr(Schema.String),
         name: Schema.String,
-        permissions: Schema.NullOr(Codes),
+        permissions: Schema.NullOr(PermissionCodes),
       })
     ),
   }),
@@ -125,54 +115,27 @@ const UPDATE_PRIVATE_METADATA = `mutation($id: ID!, $input: [MetadataInput!]!) {
   updated: updatePrivateMetadata(id: $id, input: $input) { errors { field message } }
 }`;
 
-const query = <S extends Schema.Top>(
-  store: Store,
-  schema: S,
-  request: { readonly query: string; readonly variables?: Schema.JsonObject }
-) =>
-  storeQuery(store.instance, { ...request, token: store.token }).pipe(
-    Effect.flatMap((data) =>
-      Schema.decodeUnknownEffect(schema)(data).pipe(
-        Effect.mapError(() =>
-          fail(
-            "STORE_ERROR",
-            `${store.instance.ref} answered in a shape this CLI does not know.`
-          )
-        )
-      )
-    )
-  );
-
-type Errors = typeof MutationErrors.Type;
-
-const rejected = (store: Store, what: string, errors: Errors) =>
-  fail(
-    "STORE_ERROR",
-    `${store.instance.ref} did not ${what}: ${errors
-      .map((error) => [error.field, error.message].filter(Boolean).join(": "))
-      .join("; ")}`,
-    { details: { errors } }
-  );
-
 // The apps on the store, and installations that have not finished or have failed.
-export const appsOn = (store: Store) =>
-  Effect.map(query(store, Apps, { query: APPS }), (data) => ({
+export const appsOn = (client: StoreClient) =>
+  Effect.map(storeData(client, Apps, { query: APPS }), (data) => ({
     apps: data.apps.edges.map((edge) => edge.node),
     installations: data.appsInstallations,
   }));
 
 // What the app asks for, read by the store from its manifest URL, as installing does.
-export const fetchManifest = (store: Store, manifestUrl: string) =>
+export const fetchManifest = (client: StoreClient, manifestUrl: string) =>
   Effect.gen(function* () {
-    const { appFetchManifest: answer } = yield* query(store, Manifest, {
+    const { appFetchManifest: answer } = yield* storeData(client, Manifest, {
       query: FETCH_MANIFEST,
       variables: { manifestUrl },
     });
 
     if (answer.manifest === null) {
-      return yield* rejected(store, `read the manifest at ${manifestUrl}`, [
-        ...answer.errors,
-      ]);
+      return yield* mutationRejected(
+        client.store,
+        `read the manifest at ${manifestUrl}`,
+        [...answer.errors]
+      );
     }
 
     return {
@@ -182,13 +145,15 @@ export const fetchManifest = (store: Store, manifestUrl: string) =>
     };
   });
 
-const started = (store: Store, answer: typeof Started.Type) =>
+const started = (client: StoreClient, answer: typeof Started.Type) =>
   answer.started.appInstallation === null
-    ? Effect.fail(rejected(store, "install the app", answer.started.errors))
+    ? Effect.fail(
+        mutationRejected(client.store, "install the app", answer.started.errors)
+      )
     : Effect.succeed(answer.started.appInstallation.id);
 
 export const install = (
-  store: Store,
+  client: StoreClient,
   app: {
     readonly manifestUrl: string;
     readonly name: string;
@@ -196,7 +161,7 @@ export const install = (
   }
 ) =>
   Effect.flatMap(
-    query(store, Started, {
+    storeData(client, Started, {
       query: INSTALL,
       variables: {
         input: {
@@ -207,18 +172,21 @@ export const install = (
         },
       },
     }),
-    (answer) => started(store, answer)
+    (answer) => started(client, answer)
   );
 
-export const retryInstall = (store: Store, installationId: string) =>
+export const retryInstall = (client: StoreClient, installationId: string) =>
   Effect.flatMap(
-    query(store, Started, { query: RETRY, variables: { id: installationId } }),
-    (answer) => started(store, answer)
+    storeData(client, Started, {
+      query: RETRY,
+      variables: { id: installationId },
+    }),
+    (answer) => started(client, answer)
   );
 
 // Waits until the installation is gone and the app with its manifest URL exists.
 export const installed = (
-  store: Store,
+  client: StoreClient,
   {
     installationId,
     manifestUrl,
@@ -227,13 +195,13 @@ export const installed = (
 ) =>
   Effect.gen(function* () {
     for (;;) {
-      const { apps, installations } = yield* appsOn(store);
+      const { apps, installations } = yield* appsOn(client);
       const pending = installations.find((each) => each.id === installationId);
 
       if (pending?.status === "FAILED") {
         return yield* fail(
           "STORE_ERROR",
-          `${store.instance.ref} could not install ${pending.appName}: ${pending.message ?? "no reason given"}`,
+          `${client.store.ref} could not install ${pending.appName}: ${pending.message ?? "no reason given"}`,
           {
             details: { installation: pending },
             suggestion:
@@ -252,14 +220,14 @@ export const installed = (
         if (pending === undefined) {
           return yield* fail(
             "STORE_ERROR",
-            `${store.instance.ref} finished installing from ${manifestUrl}, but no app has that manifest URL.`
+            `${client.store.ref} finished installing from ${manifestUrl}, but no app has that manifest URL.`
           );
         }
       }
 
       if (isPast(deadline)) {
         return yield* notReady(
-          `${store.instance.ref} is still installing the app.`,
+          `${client.store.ref} is still installing the app.`,
           { installation: pending ?? null },
           "the store"
         );
@@ -269,15 +237,19 @@ export const installed = (
     }
   });
 
-export const uninstall = (store: Store, id: string) =>
+export const uninstall = (client: StoreClient, id: string) =>
   Effect.gen(function* () {
-    const { appDelete } = yield* query(store, Deleted, {
+    const { appDelete } = yield* storeData(client, Deleted, {
       query: DELETE,
       variables: { id },
     });
 
     if (appDelete.errors.length > 0) {
-      return yield* rejected(store, "delete the app", appDelete.errors);
+      return yield* mutationRejected(
+        client.store,
+        "delete the app",
+        appDelete.errors
+      );
     }
   });
 
@@ -286,9 +258,9 @@ export type Manifest = Effect.Success<ReturnType<typeof fetchManifest>>;
 // Whether the store can read the manifest of an app it has installed: Saleor refuses
 // to read one whose app is installed already (identifier: UNIQUE), which still means
 // it reached the manifest. Any other refusal is the failure.
-export const canReadManifest = (store: Store, manifestUrl: string) =>
+export const canReadManifest = (client: StoreClient, manifestUrl: string) =>
   Effect.gen(function* () {
-    const { appFetchManifest: answer } = yield* query(store, Manifest, {
+    const { appFetchManifest: answer } = yield* storeData(client, Manifest, {
       query: FETCH_MANIFEST,
       variables: { manifestUrl },
     });
@@ -298,16 +270,18 @@ export const canReadManifest = (store: Store, manifestUrl: string) =>
     );
 
     if (answer.manifest === null && others.length > 0) {
-      return yield* rejected(store, `read the manifest at ${manifestUrl}`, [
-        ...others,
-      ]);
+      return yield* mutationRejected(
+        client.store,
+        `read the manifest at ${manifestUrl}`,
+        [...others]
+      );
     }
   });
 
 // Installs from a manifest the store has read, or retries an installation that
 // failed, then waits for the app.
 export const installFrom = (
-  store: Store,
+  client: StoreClient,
   app: {
     readonly failed: Installation | undefined;
     readonly manifest: Manifest;
@@ -318,14 +292,14 @@ export const installFrom = (
   Effect.gen(function* () {
     const installationId =
       app.failed === undefined
-        ? yield* install(store, {
+        ? yield* install(client, {
             ...app.manifest,
             manifestUrl: app.manifestUrl,
           })
-        : yield* retryInstall(store, app.failed.id);
+        : yield* retryInstall(client, app.failed.id);
 
     return yield* installed(
-      store,
+      client,
       { installationId, manifestUrl: app.manifestUrl },
       deadline
     );
@@ -333,9 +307,9 @@ export const installFrom = (
 
 export type Metadata = typeof Entries.Type;
 
-export const metadataOf = (store: Store, id: string) =>
+export const metadataOf = (client: StoreClient, id: string) =>
   Effect.map(
-    query(store, AppMetadata, { query: METADATA, variables: { id } }),
+    storeData(client, AppMetadata, { query: METADATA, variables: { id } }),
     (data) => ({
       metadata: data.app?.metadata ?? [],
       privateMetadata: data.app?.privateMetadata ?? [],
@@ -343,7 +317,7 @@ export const metadataOf = (store: Store, id: string) =>
   );
 
 export const writeMetadata = (
-  store: Store,
+  client: StoreClient,
   id: string,
   {
     metadata,
@@ -359,14 +333,18 @@ export const writeMetadata = (
       entries.length === 0
         ? Effect.void
         : Effect.flatMap(
-            query(store, MetadataUpdated, {
+            storeData(client, MetadataUpdated, {
               query: mutation,
               variables: { id, input: entries.map((each) => ({ ...each })) },
             }),
             ({ updated }) =>
               updated.errors.length > 0
                 ? Effect.fail(
-                    rejected(store, "copy the app's metadata", updated.errors)
+                    mutationRejected(
+                      client.store,
+                      "copy the app's metadata",
+                      updated.errors
+                    )
                   )
                 : Effect.void
           ),

@@ -12,10 +12,10 @@ import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { HideFromMenu } from "../../core/menu.ts";
 import { option } from "../../core/inputs.ts";
-import { envInput } from "../../core/instances.ts";
+import { envInput } from "../../core/stores.ts";
 import { command } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
-import { ago, lastInSync, recordInSync } from "../../core/deployments.ts";
+import { ago, lastDeploy, recordDeploy } from "../../core/deploy-record.ts";
 import { findProject } from "../../core/project.ts";
 import { planDeploy } from "./deploying.ts";
 import { applies, pulledSentence, review } from "./describe.ts";
@@ -113,7 +113,7 @@ const pullCommand = config.ensure({
     Effect.gen(function* () {
       const file = configFile(input.config);
 
-      const { instance, store } = yield* connect(input.env);
+      const client = yield* connect(input.env);
 
       const existing = existsSync(file) ? readFileSync(file, "utf-8") : null;
 
@@ -122,14 +122,14 @@ const pullCommand = config.ensure({
       const compared =
         existing === null
           ? Option.some([])
-          : yield* diff(store, file).pipe(
+          : yield* diff(client, file).pipe(
               Effect.map((summary) => Option.some(summary.results.map(change))),
               Effect.orElseSucceed(() => Option.none())
             );
 
       const changed = Option.getOrElse(compared, () => []);
 
-      const pulled = yield* pull(store);
+      const pulled = yield* pull(client);
       const yaml = yield* serialize(pulled);
       const same = existing === yaml;
 
@@ -146,8 +146,8 @@ const pullCommand = config.ensure({
             writeFileSync(file, yaml);
           }
 
-          yield* recordInSync(file, instance.ref);
-          const remembered = yield* remember(file, instance);
+          yield* recordDeploy(file, client.store.ref);
+          const remembered = yield* remember(file, client.store);
 
           return {
             data: {
@@ -155,12 +155,12 @@ const pullCommand = config.ensure({
               config: shown(file),
               created: existing === null,
               sections: sections(pulled),
-              store: instance.ref,
+              store: client.store.ref,
               written: !same,
             },
             headline: same
-              ? `${shown(file)} already matches ${instance.ref}.`
-              : `Wrote ${shown(file)} from ${instance.ref}.`,
+              ? `${shown(file)} already matches ${client.store.ref}.`
+              : `Wrote ${shown(file)} from ${client.store.ref}.`,
             text: [
               ...changed.map((each) => `  • ${pulledSentence(each)}`),
               ...(existing === null
@@ -170,7 +170,7 @@ const pullCommand = config.ensure({
             ].join("\n"),
           };
         }),
-        details: { config: shown(file), store: instance.ref },
+        details: { config: shown(file), store: client.store.ref },
         // A file whose content the store already matches loses nothing: only its
         // formatting changes to the store's.
         risk:
@@ -181,7 +181,7 @@ const pullCommand = config.ensure({
             : null,
         state: existing === null ? "absent" : "exists",
         summary: [
-          ["Store", instance.ref],
+          ["Store", client.store.ref],
           ["File", shown(file)],
           ...changed
             .slice(0, 12)
@@ -227,10 +227,10 @@ const diffCommand = config.list({
     Effect.gen(function* () {
       const files = yield* checkedFiles(input.config);
 
-      const { instance, store } = yield* connect(input.env);
+      const client = yield* connect(input.env);
 
       const rows = yield* Effect.forEach(files, ({ file }) =>
-        Effect.map(diff(store, file), (summary) =>
+        Effect.map(diff(client, file), (summary) =>
           summary.results.map(change).map((each) => ({
             ...each,
             config: shown(file),
@@ -259,7 +259,7 @@ const diffCommand = config.list({
             (each) => (each.fields.length > 0 ? each.fields.join(", ") : null),
           ],
         ],
-        `No differences: ${instance.ref} matches ${filesShown(files)}.`
+        `No differences: ${client.store.ref} matches ${filesShown(files)}.`
       );
     }),
   summary: "Show what a deploy would change.",
@@ -306,12 +306,12 @@ const statusCommand = config.list({
         project.environments,
         ([name, ref]) =>
           Effect.gen(function* () {
-            const { instance, store } = yield* prompts.withPermit(
+            const client = yield* prompts.withPermit(
               connect(Option.some(ref), { envToken })
             );
 
             const plans = yield* Effect.forEach(files, ({ file }) =>
-              planDeploy(store, file)
+              planDeploy(client, file)
             );
 
             const deployable = plans.reduce(
@@ -321,7 +321,7 @@ const statusCommand = config.list({
 
             // Deployed from here when every file was; as of the oldest of them.
             const synced = Option.all(
-              files.map(({ file }) => lastInSync(file, ref))
+              files.map(({ file }) => lastDeploy(file, ref))
             );
 
             return {
@@ -335,7 +335,7 @@ const statusCommand = config.list({
                   ).toISOString(),
               }),
               ref,
-              saleorVersion: instance.saleorVersion,
+              saleorVersion: client.store.saleorVersion,
               skipped: plans.reduce(
                 (total, plan) => total + plan.skipped.length,
                 0
@@ -427,7 +427,7 @@ export const projectStatus = Effect.sync(() =>
 
       const [name, ref] = first;
       const file = configFile(Option.none());
-      const note = lastInSync(file, ref);
+      const note = lastDeploy(file, ref);
       const where = `Project ${project.name} · ${name} (${ref})`;
 
       return Option.match(note, {

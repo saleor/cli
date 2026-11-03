@@ -61,26 +61,26 @@ const offerDeploy = (file: string) =>
 
     // The same store `config deploy` would pick: the only environment, or a choice
     // among several, with the same version check.
-    const { instance, store } = yield* connect(Option.none());
-    const plan = yield* planDeploy(store, file);
+    const client = yield* connect(Option.none());
+    const plan = yield* planDeploy(client, file);
 
     if (plan.deployable.length === 0) {
-      return [`${instance.ref} already has all of it.`];
+      return [`${client.store.ref} already has all of it.`];
     }
 
     yield* notice(
       [
-        `Deploying to ${instance.ref} would:`,
+        `Deploying to ${client.store.ref} would:`,
         ...plan.deployable.map((each) => `  • ${sentence(each)}`),
       ].join("\n")
     );
 
-    if (!(yield* askConfirm(`Deploy to ${instance.ref} now?`, true))) {
+    if (!(yield* askConfirm(`Deploy to ${client.store.ref} now?`, true))) {
       return [`Deploy it later with: ${command("config", "deploy")}`];
     }
 
-    const outcome = yield* applyDeploy({ instance, store, file, plan });
-    const words = deployedText(instance, file, outcome);
+    const outcome = yield* applyDeploy({ client, file, plan });
+    const words = deployedText(client.store, file, outcome);
 
     return [`✓ ${words.headline}`, words.text].filter(Boolean);
   });

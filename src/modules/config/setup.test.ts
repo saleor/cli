@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, it, vi } from "vitest";
-import { InstanceSources } from "../../core/instance.ts";
+import { StoreSources } from "../../core/store.ts";
 import { OutputFlag } from "../../core/output.ts";
 import { SecretStore } from "../../core/secret-store.ts";
 import { prepareSampleData, sampleConfiguration } from "./setup.ts";
@@ -28,7 +28,7 @@ it.each([true, false])(
 
     await Effect.runPromise(
       prepareSampleData(store).pipe(
-        Effect.provideService(InstanceSources, [
+        Effect.provideService(StoreSources, [
           {
             find: () => Effect.die("unused"),
             kind: "cloud",
@@ -67,7 +67,7 @@ it("skips the sample export without credentials and preserves the existing file"
         file,
         false
       ).pipe(
-        Effect.provideService(InstanceSources, []),
+        Effect.provideService(StoreSources, []),
         Effect.provideService(OutputFlag, Option.some("json")),
         Effect.provideService(SecretStore, {
           backend: "file",

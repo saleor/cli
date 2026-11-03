@@ -1,8 +1,8 @@
 import type { Layer } from "effect";
 import type { Command, GlobalFlag } from "effect/cli";
-import type { InstanceSource, InstanceSources } from "./instance.ts";
+import type { StoreSource, StoreSources } from "./store.ts";
 import type { SetupExtension, SetupProvider } from "./setup.ts";
-import type { WorkspaceConfiguration } from "./workspace-configuration.ts";
+import type { ProjectConfiguration } from "./project-configuration.ts";
 
 // A module is a unit of code ownership (Cloud, local, storefront; Configurator later).
 // It owns one or more top-level command words, and the layer that builds the services
@@ -13,7 +13,7 @@ import type { WorkspaceConfiguration } from "./workspace-configuration.ts";
 export interface CliModule {
   readonly commands: readonly Command.Command.Any[];
   readonly description: string;
-  readonly instances: InstanceSource<never> | undefined;
+  readonly stores: StoreSource<never> | undefined;
   // Erased here; `defineModule` checked it against the commands' requirements.
   readonly layer: Layer.Layer<never>;
   readonly name: string;
@@ -25,8 +25,8 @@ export interface CliModule {
 // instances every module contributes.
 export type CoreServices =
   | GlobalFlag.Setting.Identifier<"output">
-  | InstanceSources
-  | WorkspaceConfiguration;
+  | StoreSources
+  | ProjectConfiguration;
 
 // Any command, keeping only what it requires to run.
 // oxlint-disable-next-line typescript/no-explicit-any -- Command names are invariant; a module holds commands of any name.
@@ -38,7 +38,7 @@ type ModuleCommand<R> = Command.Command<any, never, unknown, unknown, R>;
 export const defineModule = <R>(module: {
   readonly commands: readonly ModuleCommand<R>[];
   readonly description: string;
-  readonly instances?: InstanceSource<R>;
+  readonly stores?: StoreSource<R>;
   readonly layer: Layer.Layer<NoInfer<Exclude<R, CoreServices>>>;
   readonly name: string;
   readonly setup?: SetupProvider<R>;
@@ -49,7 +49,7 @@ export const defineModule = <R>(module: {
   // layer above, and the composition root provides every module's layer.
   // SAFETY: requirements checked against the module's layer, as described above.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- defineModule checks requirements against its layer before erasing them for registration.
-  instances: module.instances as InstanceSource<never> | undefined,
+  stores: module.stores as StoreSource<never> | undefined,
   // SAFETY: requirements checked against the module's layer, as described above.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- defineModule checks requirements against its layer before erasing them for registration.
   setup: module.setup as SetupProvider<never> | undefined,

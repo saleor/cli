@@ -2,11 +2,11 @@ import { Effect, Option, Predicate } from "effect";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { option } from "../../core/inputs.ts";
-import { resolveInstance } from "../../core/instances.ts";
+import { resolveStore } from "../../core/stores.ts";
 import { askSelect, isInteractive } from "../../core/interaction.ts";
 import { command, recordAnswer } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
-import { lastInSync, recordInSync } from "../../core/deployments.ts";
+import { recordDeploy } from "../../core/deploy-record.ts";
 import { configuresOnCreate } from "../../core/manifest.ts";
 import {
   configPath,
@@ -15,8 +15,11 @@ import {
   rememberEnvironment,
 } from "../../core/project.ts";
 import { defineSetupExtension, type SetupResult } from "../../core/setup.ts";
-import { storeAccess } from "../../core/store-access.ts";
-import { WorkspaceConfiguration } from "../../core/workspace-configuration.ts";
+import {
+  applyConfiguration,
+  configurationPending,
+  hasConfiguration,
+} from "../../core/project-configuration.ts";
 import { fromAnswers } from "./blocks.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { review } from "./describe.ts";
@@ -30,11 +33,16 @@ import {
   installedAuthors,
   type Session,
 } from "./draft.ts";
-import { pull, shown, type Store } from "./engine.ts";
+import { pull, shown } from "./engine.ts";
 import { reviewText, writeConfig } from "./file-output.ts";
 import { mergeConfig, NEW_STORE } from "./merge.ts";
 import { sampleConfiguration } from "./sample.ts";
-import { connectMade, environmentName } from "./store.ts";
+import { environmentName } from "./store.ts";
+import {
+  connectStore,
+  connectTo,
+  type StoreClient,
+} from "../../core/store-api.ts";
 
 type Config = Document;
 
@@ -173,13 +181,13 @@ const chooseSource = (input: {
 
     if (choice === "copy") {
       // Any store, not the project's own environment, which is what is being set up.
-      const { instance } = yield* resolveInstance(Option.none(), {
+      const { store } = yield* resolveStore(Option.none(), {
         anyStore: true,
       });
 
-      yield* recordAnswer({ option: ["--copy-from", instance.ref] });
+      yield* recordAnswer({ option: ["--copy-from", store.ref] });
 
-      return Option.some<Source>({ kind: "copy", ref: instance.ref });
+      return Option.some<Source>({ kind: "copy", ref: store.ref });
     }
 
     return Option.some<Source>(
@@ -232,7 +240,7 @@ const startForAgent = ({
 }: {
   readonly finishing: Finishing;
   readonly description: string;
-  readonly target: Store;
+  readonly target: StoreClient;
   readonly kept: Option.Option<Document>;
 }) =>
   Effect.gen(function* () {
@@ -240,7 +248,7 @@ const startForAgent = ({
 
     if (Option.isNone(kept)) {
       yield* writeConfig(file, yield* pull(target));
-      yield* recordInSync(file, made.ref);
+      yield* recordDeploy(file, made.ref);
     }
 
     return {
@@ -256,15 +264,7 @@ const startForAgent = ({
   });
 
 const copied = (ref: string) =>
-  Effect.gen(function* () {
-    const resolved = yield* resolveInstance(Option.some(ref));
-    const access = yield* storeAccess(resolved);
-
-    return yield* pull({
-      token: access.token,
-      url: resolved.instance.graphqlUrl,
-    });
-  });
+  Effect.flatMap(connectStore(Option.some(ref)), pull);
 
 // Writes the drafted (or copied) configuration over the store's own, deploys it,
 // and says what the store now has.
@@ -276,7 +276,7 @@ const deployDraft = ({
 }: {
   readonly finishing: Finishing;
   readonly draft: Document;
-  readonly target: Store;
+  readonly target: StoreClient;
   readonly kept: Option.Option<Document>;
 }) =>
   Effect.gen(function* () {
@@ -293,12 +293,7 @@ const deployDraft = ({
 
     const plan = yield* planDeploy(target, file);
 
-    const outcome = yield* applyDeploy({
-      instance: made,
-      store: target,
-      file,
-      plan,
-    });
+    const outcome = yield* applyDeploy({ client: target, file, plan });
 
     const words = deployedText(made, file, outcome);
 
@@ -349,7 +344,7 @@ const contents = ({
 }: {
   readonly finishing: Finishing;
   readonly chosen: Exclude<Source, { readonly kind: "sample" }>;
-  readonly target: Store;
+  readonly target: StoreClient;
   readonly kept: Option.Option<Document>;
 }) =>
   Effect.gen(function* () {
@@ -403,7 +398,7 @@ const finish = (finishing: Finishing) =>
       };
     }
 
-    const target = yield* connectMade(made);
+    const target = yield* connectTo(made);
 
     // Running `init` again keeps the project's file: drafts are added to it. The
     // empty file `init` itself starts the project with is not worth keeping: the
@@ -442,12 +437,14 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
       return { data: {}, text: "" };
     }
 
-    const alias = project.value.environments.find(
+    const environment = project.value.environments.find(
       ([, ref]) => ref === made.ref
     )?.[0];
 
     const definition =
-      alias === undefined ? undefined : project.value.definitions?.[alias];
+      environment === undefined
+        ? undefined
+        : project.value.definitions?.[environment];
 
     if (
       definition === undefined ||
@@ -459,12 +456,9 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
 
     const file = configPath(project.value);
 
-    if (!made.created && Option.isSome(lastInSync(file, made.ref))) {
-      return { data: {}, text: "" };
-    }
-
-    if (readFileSync(file, "utf-8").trim() === "{}") {
-      yield* recordInSync(file, made.ref);
+    if (!hasConfiguration(file)) {
+      // Nothing to apply; the store matches the file as it is.
+      yield* recordDeploy(file, made.ref);
 
       return {
         data: { file },
@@ -472,8 +466,11 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
       };
     }
 
-    const target = yield* connectMade(made);
-    yield* (yield* WorkspaceConfiguration).apply(made, target.token, file);
+    if (!configurationPending(file, made.ref, made.created)) {
+      return { data: {}, text: "" };
+    }
+
+    yield* applyConfiguration(yield* connectTo(made), file);
 
     return { data: { file }, text: "Project configuration applied." };
   });

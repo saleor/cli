@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import type { TargetRef } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
-import { type InstanceState, instance } from "../../core/instance.ts";
+import { type StoreState, storeFrom } from "../../core/store.ts";
 import type { Choice } from "../../core/interaction.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
 import {
@@ -32,7 +32,7 @@ export const graphqlUrlOf = (env: Environment) =>
 
 // Without `apiAnswered` only what Cloud reports is known: a task running ("busy"),
 // maintenance, or neither ("running"). With it, the store itself was asked.
-const stateOf = (env: Environment, apiAnswered?: boolean): InstanceState => {
+const stateOf = (env: Environment, apiAnswered?: boolean): StoreState => {
   if (env.maintenance_mode) {
     return "maintenance";
   }
@@ -53,7 +53,7 @@ export const describeEnvironment = (
   env: Environment,
   apiAnswered?: boolean
 ) => ({
-  ...instance({
+  ...storeFrom({
     dashboardUrl: `https://${env.domain}/dashboard/`,
     graphqlUrl: graphqlUrlOf(env),
     kind: "cloud",

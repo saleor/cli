@@ -4,8 +4,8 @@ import {
   type Planned,
   type TargetRef,
 } from "../../core/action.ts";
-import type { Instance } from "../../core/instance.ts";
-import { envInput } from "../../core/instances.ts";
+import type { Store } from "../../core/store.ts";
+import { envInput } from "../../core/stores.ts";
 import {
   applyDeploy,
   counted,
@@ -28,7 +28,7 @@ const config = defineActions();
 
 // One headline for a deploy of several files.
 const deployedHeadline = (
-  instance: Instance,
+  store: Store,
   files: readonly { readonly file: string }[],
   {
     applied,
@@ -36,10 +36,10 @@ const deployedHeadline = (
   }: { readonly applied: readonly Change[]; readonly missed: number }
 ) =>
   applied.length === 0 && missed === 0
-    ? `${instance.ref} already matches ${filesShown(files)}; nothing to deploy.`
-    : `Deployed ${filesShown(files)} to ${instance.ref}: ${counted(applied, true)}.`;
+    ? `${store.ref} already matches ${filesShown(files)}; nothing to deploy.`
+    : `Deployed ${filesShown(files)} to ${store.ref}: ${counted(applied, true)}.`;
 
-const storeTarget = (store: Instance): TargetRef => ({
+const storeTarget = (store: Store): TargetRef => ({
   id: store.ref,
   name: store.name,
   scope: {},
@@ -72,10 +72,10 @@ export const deployCommand = config.ensure({
     Effect.gen(function* () {
       const files = yield* checkedFiles(input.config);
 
-      const { instance, store } = yield* connect(input.env);
+      const client = yield* connect(input.env);
 
       const plans = yield* Effect.forEach(files, ({ component, file }) =>
-        Effect.map(planDeploy(store, file), (plan) => ({
+        Effect.map(planDeploy(client, file), (plan) => ({
           component,
           file,
           plan,
@@ -91,14 +91,11 @@ export const deployCommand = config.ensure({
         apply: Effect.gen(function* () {
           // One file after another: a component's content can build on the project's.
           const outcomes = yield* Effect.forEach(plans, ({ file, plan }) =>
-            Effect.map(
-              applyDeploy({ instance, store, file, plan }),
-              (outcome) => ({
-                file,
-                outcome,
-                words: deployedText(instance, file, outcome),
-              })
-            )
+            Effect.map(applyDeploy({ client, file, plan }), (outcome) => ({
+              file,
+              outcome,
+              words: deployedText(client.store, file, outcome),
+            }))
           );
 
           const [first] = outcomes;
@@ -108,12 +105,12 @@ export const deployCommand = config.ensure({
           const remembered =
             first === undefined
               ? undefined
-              : yield* remember(first.file, instance);
+              : yield* remember(first.file, client.store);
 
           const headline =
             !several && first !== undefined
               ? first.words.headline
-              : deployedHeadline(instance, files, {
+              : deployedHeadline(client.store, files, {
                   applied,
                   missed: missed.length,
                 });
@@ -134,7 +131,7 @@ export const deployCommand = config.ensure({
               ),
               missed,
               skipped: outcomes.flatMap(({ outcome }) => outcome.skipped),
-              store: instance.ref,
+              store: client.store.ref,
             },
             headline,
             text: [
@@ -152,12 +149,12 @@ export const deployCommand = config.ensure({
           configs: files.map(({ file }) => shown(file)),
           deployable,
           skipped,
-          store: instance.ref,
+          store: client.store.ref,
         },
         risk: null,
-        state: instance.state,
+        state: client.store.state,
         summary: [
-          ["Store", instance.ref],
+          ["Store", client.store.ref],
           ...plans.flatMap(({ component, file, plan }) => [
             [
               "File",
@@ -167,7 +164,7 @@ export const deployCommand = config.ensure({
             ...planRows(plan),
           ]),
         ],
-        target: storeTarget(instance),
+        target: storeTarget(client.store),
       } satisfies Planned<unknown, unknown>;
     }),
   summary: "Apply the configuration to a store.",

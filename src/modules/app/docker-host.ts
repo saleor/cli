@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { setEnv } from "../../core/env-file.ts";
 import { fail } from "../../core/errors.ts";
-import type { Instance } from "../../core/instance.ts";
+import type { Store } from "../../core/store.ts";
 import { findProject } from "../../core/project.ts";
 import { deadlineIn, isPast, POLL } from "../../core/readiness.ts";
 import { inspect, shown } from "./template.ts";
@@ -201,7 +201,7 @@ export const pointAtDocker = (
 
 // The manifest URL to give a store, what to do before installing so the app answers
 // it, and how to show that. Only a local store and an app on this computer need any.
-export const reachableManifest = (instance: Instance, given: string) =>
+export const reachableManifest = (instance: Store, given: string) =>
   Effect.gen(function* () {
     if (instance.kind !== "local" || !isLoopback(given)) {
       return {

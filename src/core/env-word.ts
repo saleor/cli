@@ -4,16 +4,13 @@ import { fail } from "./errors.ts";
 import { askSelect, isInteractive } from "./interaction.ts";
 import { ActionContext, command, recordAnswer } from "./invocation.ts";
 import { findProject, type Project } from "./project.ts";
+import { kindOf, REF } from "./ref.ts";
 
 // Every command that acts on a store names it with one word, `<env>`: an environment
 // named in the project's saleor.yml, or a ref (`local:<name>`, `cloud:<org>/<env key>`)
 // for any store, inside a project or not. This file turns that word into a ref.
 
-export const REF = /^[a-z]+:.+$/;
-
 export const ENV_VARIABLE = "SALEOR_ENV";
-
-export const kindOf = (ref: string) => ref.slice(0, ref.indexOf(":"));
 
 const environmentsOf = (project: Option.Option<Project>) =>
   Option.match(project, {

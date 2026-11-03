@@ -4,11 +4,11 @@ import path from "node:path";
 import type { Ensured, Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { option } from "../../core/inputs.ts";
-import type { InstanceState } from "../../core/instance.ts";
+import type { StoreState } from "../../core/store.ts";
 import { deadlineIn } from "../../core/readiness.ts";
 import { defineSetup } from "../../core/setup.ts";
-import { ensureSignedIn } from "./auth/sign-in.ts";
-import { account, signedIn } from "./auth/signed-in.ts";
+import { ensureLoggedIn } from "./auth/ensure-login.ts";
+import { account, loggedIn } from "./auth/logged-in.ts";
 import {
   describeEnvironment,
   type EnvironmentDetails,
@@ -30,7 +30,7 @@ import {
 } from "./provision.ts";
 import { environment, organizationOf, orgInput, project } from "./targets.ts";
 
-const stateText: Record<InstanceState, string> = {
+const stateText: Record<StoreState, string> = {
   busy: "busy: Saleor Cloud is running a task on it (setup, upgrade or deletion)",
   incomplete: "incomplete",
   maintenance: "in maintenance mode",
@@ -149,7 +149,7 @@ const setupLines = ({
 // `saleor init` in Saleor Cloud: a project and a sandbox in it, each created or
 // reused by name, then waited on until the store answers.
 export const cloudSetup = defineSetup({
-  before: ensureSignedIn,
+  before: ensureLoggedIn,
   example: {
     command: "saleor init --org acme --project my-store --env dev",
     description: "Create a Cloud project and sandbox",
@@ -290,7 +290,7 @@ export const cloudSetup = defineSetup({
     }),
   requirement: {
     hint: "you will log in to your Saleor Cloud account first",
-    met: signedIn,
+    met: loggedIn,
     status: account,
   },
 });

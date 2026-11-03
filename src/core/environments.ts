@@ -1,5 +1,4 @@
 import { Effect, Option } from "effect";
-import { existsSync, readFileSync } from "node:fs";
 import {
   defineActions,
   defineGroup,
@@ -11,17 +10,16 @@ import {
 import { type CliFailure, fail } from "./errors.ts";
 import { type Input, type InputValue, option } from "./inputs.ts";
 import {
-  type InstanceSource,
-  InstanceSources,
+  type StoreSource,
+  StoreSources,
   type Lifecycle,
   type Started,
-} from "./instance.ts";
-import { envInput, resolveStore, withSignIn } from "./instances.ts";
+} from "./store.ts";
+import { envInput, resolveStoreRef, sourceFor, withLogin } from "./stores.ts";
 import { command } from "./invocation.ts";
 import { notice } from "./output.ts";
-import { recordInSync } from "./deployments.ts";
 import { SecretStore } from "./secret-store.ts";
-import { storeTokenKey } from "./store-access.ts";
+import { storeTokenKey } from "./store-token.ts";
 import {
   addEnvironment,
   configPath,
@@ -31,8 +29,13 @@ import {
 } from "./project.ts";
 import { providerChoice, type SetupProvider } from "./setup.ts";
 import { target } from "./target.ts";
-import { WorkspaceConfiguration } from "./workspace-configuration.ts";
-import { envWord } from "./workspace.ts";
+import {
+  applyConfiguration,
+  configurationPending,
+  hasConfiguration,
+  validateConfiguration,
+} from "./project-configuration.ts";
+import { envWord } from "./env-word.ts";
 
 // `saleor env`: the stores a project works with, wherever they run. The commands are
 // the same for every store; each one names its store with `<env>` (see
@@ -42,8 +45,8 @@ import { envWord } from "./workspace.ts";
 
 const env = defineActions();
 
-// What a source offers for one step; resolveStore only returns sources that offer it.
-const step = <L extends Lifecycle>(source: InstanceSource<never>, which: L) => {
+// What a source offers for one step; resolveStoreRef only returns sources that offer it.
+const step = <L extends Lifecycle>(source: StoreSource<never>, which: L) => {
   const offered = source[which];
 
   return offered === undefined
@@ -75,7 +78,7 @@ const listCommand = env.list({
   name: "list",
   run: () =>
     Effect.gen(function* () {
-      const sources = yield* InstanceSources;
+      const sources = yield* StoreSources;
       const names = projectNames(findProject());
 
       const lists = yield* Effect.forEach(sources, (source) =>
@@ -146,10 +149,13 @@ const startCommand = env.ensure({
   name: "start",
   plan: (input) =>
     Effect.gen(function* () {
-      const { id, source } = yield* resolveStore(input.env, { can: "start" });
+      const { id, source } = yield* resolveStoreRef(input.env, {
+        can: "start",
+      });
+
       const start = yield* step(source, "start");
 
-      return yield* withSignIn(
+      return yield* withLogin(
         source,
         start(id, { newPorts: input.newPorts, timeout: input.timeout })
       );
@@ -187,12 +193,12 @@ const stopCommand = env.remove({
       : undefined,
   plan: (input) =>
     Effect.gen(function* () {
-      const { id, ref, source } = yield* resolveStore(input.env, {
+      const { id, ref, source } = yield* resolveStoreRef(input.env, {
         can: "stop",
       });
 
       const stop = yield* step(source, "stop");
-      const planned = yield* withSignIn(source, stop(id));
+      const planned = yield* withLogin(source, stop(id));
 
       return {
         ...planned,
@@ -235,14 +241,14 @@ const removeCommand = env.remove({
   },
   plan: (input) =>
     Effect.gen(function* () {
-      const { id, ref, source } = yield* resolveStore(input.env, {
+      const { id, ref, source } = yield* resolveStoreRef(input.env, {
         can: "remove",
       });
 
       const remove = yield* step(source, "remove");
       const secrets = yield* SecretStore;
 
-      const planned = yield* withSignIn(
+      const planned = yield* withLogin(
         source,
         remove(id, { timeout: input.timeout })
       );
@@ -302,57 +308,52 @@ const requireProject = Effect.suspend(() =>
   })
 );
 
-const hasContent = (file: string) =>
-  existsSync(file) && !["", "{}"].includes(readFileSync(file, "utf-8").trim());
-
 // A new environment starts as the project describes it: its configuration is applied
-// when the store's source can sign in without asking (local stores). Otherwise, the
-// line says how to deploy it.
-const configureNew = (project: Project, alias: string, made: Started) =>
+// when the store's source can get a token without asking (local stores). Otherwise,
+// the line says how to deploy it.
+const configureNew = (project: Project, environment: string, made: Started) =>
   Effect.gen(function* () {
     const file = configPath(project);
 
-    if (!hasContent(file)) {
+    if (!configurationPending(file, made.ref, true)) {
       return undefined;
     }
 
-    const sources = yield* InstanceSources;
-    const source = sources.find((each) => each.kind === made.kind);
+    const source = yield* sourceFor(made.ref);
 
     const token =
-      source?.access === undefined
+      source.token === undefined
         ? Option.none<string>()
-        : yield* source.access(made);
+        : yield* source.token(made);
 
     if (Option.isNone(token)) {
-      return `Give it the project's configuration with: ${command("config", "deploy", alias)}`;
+      return `Give it the project's configuration with: ${command("config", "deploy", environment)}`;
     }
 
-    yield* (yield* WorkspaceConfiguration).apply(made, token.value, file);
-    yield* recordInSync(file, made.ref);
+    yield* applyConfiguration({ store: made, token: token.value }, file);
 
     return "Applied the project's configuration.";
   });
 
 // Adding a name saleor.yml already has makes sure its store is there: started (and
 // created, for a local definition) when its source can, else found.
-const existingPlan = (alias: string, ref: string, timeout: number) =>
+const existingPlan = (environment: string, ref: string, timeout: number) =>
   Effect.gen(function* () {
-    const { id, source } = yield* resolveStore(Option.some(ref));
+    const { id, source } = yield* resolveStoreRef(Option.some(ref));
 
     if (source.start !== undefined) {
-      return yield* withSignIn(
+      return yield* withLogin(
         source,
         source.start(id, { newPorts: false, timeout })
       );
     }
 
-    const found = yield* withSignIn(source, source.find(id));
+    const found = yield* withLogin(source, source.find(id));
 
     if (Option.isNone(found)) {
       return yield* fail(
         "NOT_FOUND",
-        `saleor.yml names "${alias}" as ${ref}, which does not exist.`,
+        `saleor.yml names "${environment}" as ${ref}, which does not exist.`,
         {
           suggestion:
             "Remove it from saleor.yml, or add the environment under another name.",
@@ -366,10 +367,10 @@ const existingPlan = (alias: string, ref: string, timeout: number) =>
         data: { ...found.value, created: false },
         text: "",
       }),
-      details: { environment: alias },
+      details: { environment },
       risk: null,
       state: found.value.state,
-      target: { id: ref, name: alias, scope: {}, type: "environment" },
+      target: { id: ref, name: environment, scope: {}, type: "environment" },
     } satisfies Planned<Ensured<Started>, never>;
   });
 
@@ -387,7 +388,7 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
     }
   }
 
-  merged.set("alias", nameInput);
+  merged.set("environment", nameInput);
 
   return env.ensure({
     description: `Add an environment to the project: set up a store for it and name it in saleor.yml. Uses ${fallback.label} by default${others.map((p) => `; pass --${p.flag} for ${p.label}`).join("")}. A local environment is saved as a definition each checkout creates its own instance from; a Cloud one by its ref. The project's configuration is applied to a new local store; for a Cloud one, the result says how to deploy it. Adding a name saleor.yml already has makes sure its store is there.`,
@@ -407,9 +408,9 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
       Effect.gen(function* () {
         const project = yield* requireProject;
 
-        const supplied = input.alias;
+        const supplied = input.environment;
 
-        const alias = yield* nameInput.resolve(
+        const environment = yield* nameInput.resolve(
           Option.isOption(supplied) ? supplied : Option.none(),
           {
             choices: Effect.succeed([]),
@@ -420,10 +421,12 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
           }
         );
 
-        const existing = project.environments.find(([name]) => name === alias);
+        const existing = project.environments.find(
+          ([name]) => name === environment
+        );
 
         if (existing !== undefined) {
-          return yield* existingPlan(alias, existing[1], input.timeout);
+          return yield* existingPlan(environment, existing[1], input.timeout);
         }
 
         const { provider } = yield* Option.match(yield* decided(input), {
@@ -435,14 +438,14 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
 
         const file = configPath(project);
 
-        if (hasContent(file)) {
-          yield* (yield* WorkspaceConfiguration).validate(file);
+        if (hasConfiguration(file)) {
+          yield* validateConfiguration(file);
         }
 
         const store = yield* provider.plan({
           ...input,
           [provider.naming.input]: Option.some(
-            provider.naming.name(project.name, alias)
+            provider.naming.name(project.name, environment)
           ),
         });
 
@@ -450,23 +453,28 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
           ...store,
           apply: Effect.gen(function* () {
             const made = yield* store.apply;
-            yield* addEnvironment(project.root, alias, made.data);
-            const configured = yield* configureNew(project, alias, made.data);
+            yield* addEnvironment(project.root, environment, made.data);
+
+            const configured = yield* configureNew(
+              project,
+              environment,
+              made.data
+            );
 
             return {
               ...made,
               text: [
                 made.text,
-                `Added "${alias}" to saleor.yml; commands call it ${alias}.`,
+                `Added "${environment}" to saleor.yml; commands call it ${environment}.`,
                 ...(configured === undefined ? [] : [configured]),
               ]
                 .filter(Boolean)
                 .join("\n"),
             };
           }),
-          details: { ...store.details, environment: alias },
+          details: { ...store.details, environment },
           summary: [
-            ["Environment", `${alias} (saleor.yml)`],
+            ["Environment", `${environment} (saleor.yml)`],
             ...(store.summary ?? []),
           ],
         };

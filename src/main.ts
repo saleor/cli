@@ -5,7 +5,7 @@ import packageJson from "../package.json" with { type: "json" };
 import { catalogCommand } from "./core/catalog.ts";
 import { environmentCommand } from "./core/environments.ts";
 import { GLOBAL_INPUTS } from "./core/globals.ts";
-import { InstanceSources } from "./core/instance.ts";
+import { StoreSources } from "./core/store.ts";
 import { NoInputFlag } from "./core/interaction.ts";
 import { HideFromMenu, MenuStatus } from "./core/menu.ts";
 import { collectCommands } from "./core/module.ts";
@@ -18,7 +18,7 @@ import { appModule } from "./modules/app/index.ts";
 import { cloudAccount, cloudModule } from "./modules/cloud/index.ts";
 import { projectStatus } from "./modules/config/commands.ts";
 import { configModule } from "./modules/config/index.ts";
-import { workspaceConfigurationLive } from "./modules/config/workspace.ts";
+import { projectConfigurationLive } from "./modules/config/project-configuration.ts";
 import { localModule } from "./modules/local/index.ts";
 import { storefrontModule } from "./modules/storefront/index.ts";
 import { webhookModule } from "./modules/webhook/index.ts";
@@ -74,11 +74,11 @@ export const root = Command.make("saleor").pipe(
 const runCli = createCliRuntime(root, {
   onboard,
   services: Layer.mergeAll(
-    workspaceConfigurationLive,
+    projectConfigurationLive,
     NodeServices.layer,
     Layer.succeed(
-      InstanceSources,
-      modules.flatMap((module) => module.instances ?? [])
+      StoreSources,
+      modules.flatMap((module) => module.stores ?? [])
     ),
     ...modules.map((module) => module.layer)
   ),

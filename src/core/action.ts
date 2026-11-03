@@ -8,7 +8,7 @@ import {
   type InputValue,
   option,
 } from "./inputs.ts";
-import type { InstanceState } from "./instance.ts";
+import type { StoreState } from "./store.ts";
 import { askConfirm, isInteractive, openBrowser } from "./interaction.ts";
 import { ActionContext, type ActionKind, rerunCommand } from "./invocation.ts";
 import { columns, notice } from "./output.ts";
@@ -52,7 +52,7 @@ export type PlanAction =
   | "stop"
   | "none";
 
-export type ResourceState = InstanceState | "absent" | "exists";
+export type ResourceState = StoreState | "absent" | "exists";
 
 export interface TargetRef {
   // The short unique identifier (environment key, project slug), when it exists.

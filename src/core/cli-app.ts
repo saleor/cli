@@ -1,11 +1,11 @@
 import { Effect, Option, Schema } from "effect";
 import os from "node:os";
 import { fail } from "./errors.ts";
-import type { Instance } from "./instance.ts";
+import type { Store } from "./store.ts";
 import { notice } from "./output.ts";
 import { SecretStore } from "./secret-store.ts";
 import { storeRequest } from "./store-api.ts";
-import { storeTokenKey } from "./store-access.ts";
+import { storeTokenKey } from "./store-token.ts";
 
 // A lasting token for a store's own API, made with a login that may manage its apps.
 // The CLI makes an app named "Saleor CLI" on the store with every permission the login
@@ -66,7 +66,7 @@ export interface Login {
 }
 
 // None when the store does not let the login make the app; it says why first.
-export const cliAppToken = (instance: Instance, login: Login) =>
+export const cliAppToken = (instance: Store, login: Login) =>
   Effect.gen(function* () {
     const ask = <S extends Schema.Top>(
       schema: S,

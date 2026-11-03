@@ -4,15 +4,16 @@ import { defineActions, defineGroup } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import type { Instance } from "../../core/instance.ts";
+import type { Store } from "../../core/store.ts";
 import {
   envInput,
-  type ResolvedInstance,
-  resolveInstance,
-} from "../../core/instances.ts";
+  type ResolvedStore,
+  resolveStore,
+} from "../../core/stores.ts";
 import { command } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
-import { storeAccess } from "../../core/store-access.ts";
+import type { StoreClient } from "../../core/store-api.ts";
+import { storeToken } from "../../core/store-token.ts";
 import { createApp, deleteApp, subscribe } from "./app.ts";
 import { listen } from "./listener.ts";
 import { receiveUntil, showDelivery, untilCtrlC } from "./stream.ts";
@@ -48,7 +49,7 @@ const readSubscription = (file: Option.Option<string>) =>
 // Where the store can reach this computer: a local store in Docker through Docker's
 // name for the host, anything else only through a tunnel the person runs.
 const reachable = (
-  instance: Instance,
+  store: Store,
   input: { readonly port: number; readonly publicUrl: Option.Option<string> }
 ) =>
   Effect.gen(function* () {
@@ -66,12 +67,12 @@ const reachable = (
       };
     }
 
-    if (instance.kind !== "local") {
+    if (store.kind !== "local") {
       return yield* fail(
         "USAGE_ERROR",
-        `${instance.ref} cannot reach this computer by itself.`,
+        `${store.ref} cannot reach this computer by itself.`,
         {
-          suggestion: `Start a tunnel to a local port (for example: cloudflared tunnel --url http://localhost:4141), then run: ${command("webhook", "listen", instance.ref, "--port", "4141", "--public-url", "<tunnel url>")}`,
+          suggestion: `Start a tunnel to a local port (for example: cloudflared tunnel --url http://localhost:4141), then run: ${command("webhook", "listen", store.ref, "--port", "4141", "--public-url", "<tunnel url>")}`,
         }
       );
     }
@@ -86,23 +87,23 @@ const reachable = (
   });
 
 // Deleting the temporary app when listening stops, which can be long after the token
-// was made: a local store's sign-in lasts minutes, so a refused token is made again
+// was made: a local store's login lasts minutes, so a refused token is made again
 // once, by the store's source itself (never a prompt, while stopping).
 const deleteAgain = (
-  { instance, source }: ResolvedInstance,
-  store: { readonly instance: Instance; readonly token: string },
+  { store, source }: ResolvedStore,
+  client: StoreClient,
   id: string
 ) =>
-  deleteApp(store, id).pipe(
+  deleteApp(client, id).pipe(
     Effect.catchIf(
       (failure) =>
-        failure.code === "STORE_AUTH_INVALID" && source.access !== undefined,
+        failure.code === "STORE_AUTH_INVALID" && source.token !== undefined,
       (failure) =>
         Effect.flatMap(
-          source.access?.(instance) ?? Effect.succeedNone,
+          source.token?.(store) ?? Effect.succeedNone,
           Option.match({
             onNone: () => Effect.fail(failure),
-            onSome: (token) => deleteApp({ instance, token }, id),
+            onSome: (token) => deleteApp({ store, token }, id),
           })
         )
     )
@@ -175,17 +176,17 @@ const listenCommand = webhook.session({
         });
       }
 
-      const resolved = yield* resolveInstance(input.env);
-      const { instance } = resolved;
-      const where = yield* reachable(instance, input);
+      const resolved = yield* resolveStore(input.env);
+      const { store } = resolved;
+      const where = yield* reachable(store, input);
 
-      const { token } = yield* storeAccess(resolved, {
+      const { token } = yield* storeToken(resolved, {
         needs: "MANAGE_APPS and the permissions the events need",
         // Saleor lets only a staff user create the temporary app.
         staff: true,
       });
 
-      const store = { instance, token };
+      const client: StoreClient = { store, token };
 
       const forwardTo = Option.getOrUndefined(input.forwardTo);
 
@@ -200,20 +201,22 @@ const listenCommand = webhook.session({
 
             const targetUrl = `${where.base ?? `http://host.docker.internal:${listening.port}`}${listening.path}`;
 
-            const app = yield* Effect.acquireRelease(createApp(store), (made) =>
-              deleteAgain(resolved, store, made.id).pipe(
-                Effect.matchEffect({
-                  onFailure: () =>
-                    notice(
-                      `Could not delete the temporary app "${made.name}"; delete it in the store's Dashboard (Apps).`
-                    ),
-                  onSuccess: () =>
-                    notice(`Deleted the temporary app "${made.name}".`),
-                })
-              )
+            const app = yield* Effect.acquireRelease(
+              createApp(client),
+              (made) =>
+                deleteAgain(resolved, client, made.id).pipe(
+                  Effect.matchEffect({
+                    onFailure: () =>
+                      notice(
+                        `Could not delete the temporary app "${made.name}"; delete it in the store's Dashboard (Apps).`
+                      ),
+                    onSuccess: () =>
+                      notice(`Deleted the temporary app "${made.name}".`),
+                  })
+                )
             );
 
-            const hook = yield* subscribe(store, {
+            const hook = yield* subscribe(client, {
               app: app.id,
               events,
               subscription,
@@ -222,7 +225,7 @@ const listenCommand = webhook.session({
 
             yield* notice(
               [
-                `Listening for ${hook.events.join(", ")} on ${instance.ref}.`,
+                `Listening for ${hook.events.join(", ")} on ${store.ref}.`,
                 ...(forwardTo === undefined
                   ? []
                   : [`Forwarding to ${forwardTo}.`]),
@@ -230,7 +233,7 @@ const listenCommand = webhook.session({
                   ? "Press Ctrl+C to stop."
                   : `Stopping after ${input.count} ${input.count === 1 ? "delivery" : "deliveries"}.`,
               ].join(" "),
-              { port: listening.port, store: instance.ref, targetUrl }
+              { port: listening.port, store: store.ref, targetUrl }
             );
 
             const deliveries = yield* receiveUntil(
@@ -240,8 +243,8 @@ const listenCommand = webhook.session({
             );
 
             return result(
-              { app, deliveries, store: instance.ref, webhook: hook },
-              `✓ Received ${deliveries.length} ${deliveries.length === 1 ? "delivery" : "deliveries"} from ${instance.ref}.`
+              { app, deliveries, store: store.ref, webhook: hook },
+              `✓ Received ${deliveries.length} ${deliveries.length === 1 ? "delivery" : "deliveries"} from ${store.ref}.`
             );
           })
         )

@@ -16,7 +16,7 @@ import {
   type InputValues,
   option,
 } from "./inputs.ts";
-import type { Instance } from "./instance.ts";
+import type { Store } from "./store.ts";
 import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
 import { askThen } from "./navigation.ts";
@@ -31,7 +31,7 @@ import { initializeProject, projectFolder } from "./project.ts";
 type Inputs = Readonly<Record<string, Input<InputValue>>>;
 
 // Every provider sets up a store, so its result is one: an instance (see instance.ts).
-export interface SetupResult extends Instance {
+export interface SetupResult extends Store {
   readonly created: boolean;
   readonly sampleDataReady?: boolean | undefined;
 }

@@ -13,7 +13,7 @@ import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 import { configDir, SecretStore } from "../../core/secret-store.ts";
-import { envWord } from "../../core/workspace.ts";
+import { envWord } from "../../core/env-word.ts";
 import {
   composeTemplate,
   type LocalConfig,

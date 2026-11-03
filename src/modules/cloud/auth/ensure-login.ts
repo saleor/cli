@@ -8,14 +8,14 @@ import { Session } from "./session.ts";
 // Offers browser login instead of failing when nobody is logged in. Returns once
 // credentials exist, so the original command can continue. Without a terminal it does
 // nothing, and the first Cloud request reports AUTH_REQUIRED.
-export const ensureSignedIn = Effect.gen(function* () {
+export const ensureLoggedIn = Effect.gen(function* () {
   if (!(yield* isInteractive)) {
     return;
   }
 
   const session = yield* Session;
 
-  const signedIn = yield* session.credential.pipe(
+  const loggedIn = yield* session.credential.pipe(
     Effect.as(true),
     Effect.catchIf(
       (failure) => failure.code === "AUTH_REQUIRED",
@@ -34,7 +34,7 @@ export const ensureSignedIn = Effect.gen(function* () {
     )
   );
 
-  if (!signedIn) {
+  if (!loggedIn) {
     const user = yield* currentUser;
     yield* notice(`✓ Logged in as ${user.email}.`);
   }

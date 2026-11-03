@@ -164,19 +164,19 @@ it("treats cancellation as an interruption", async () => {
 
 it("runs a detour row, asks again, and never lists it as a choice", async () => {
   const answers: Answer[] = [];
-  let signedIn = false;
+  let loggedIn = false;
   const picks = ["\0sign-in", "acme"];
   const select = vi.fn(async () => picks.shift() ?? "");
 
   const options = {
     choices: Effect.sync(() =>
-      signedIn
+      loggedIn
         ? [{ label: "acme", value: "acme" }]
         : [{ label: "Log in", value: "\0sign-in" }]
     ),
     detours: {
       "\0sign-in": Effect.sync(() => {
-        signedIn = true;
+        loggedIn = true;
       }),
     },
   };
@@ -198,7 +198,7 @@ it("runs a detour row, asks again, and never lists it as a choice", async () => 
       })
     );
 
-  signedIn = false;
+  loggedIn = false;
   const failure = await Effect.runPromise(Effect.flip(run(true)));
   expect(failure.details).toMatchObject({ choices: [] });
 

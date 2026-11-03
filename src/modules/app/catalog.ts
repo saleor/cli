@@ -1,7 +1,7 @@
 import { Duration, Effect, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { fail } from "../../core/errors.ts";
-import type { Instance } from "../../core/instance.ts";
+import type { Store } from "../../core/store.ts";
 
 // The Saleor App Store: the list the Dashboard shows under Extensions, from
 // apps.saleor.io (the Dashboard's EXTENSIONS_API_URL). Only apps with a manifest URL
@@ -165,7 +165,7 @@ export const resolveStoreApps = (
   });
 
 // App Store apps only run on Cloud stores, so a local store's apps are not looked up.
-export const catalogUrls = (instance: Instance) =>
+export const catalogUrls = (instance: Store) =>
   instance.kind === "local"
     ? Effect.succeed(new Set<string>())
     : storeApps.pipe(

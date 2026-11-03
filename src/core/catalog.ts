@@ -5,7 +5,7 @@ import { result } from "./command.ts";
 import { ERROR_CODES, ERRORS, EXIT_CODE_MEANINGS } from "./errors.ts";
 import { BUILT_IN_DESCRIPTIONS } from "./help.ts";
 import type { InputDefault, InputInfo } from "./inputs.ts";
-import { INSTANCE_STATES } from "./instance.ts";
+import { STORE_STATES } from "./store.ts";
 import type { ActionKind } from "./invocation.ts";
 import { columns } from "./output.ts";
 
@@ -187,7 +187,7 @@ export const buildCatalog = (
     errorCodes: ERROR_CODES.map((code) => ({ code, ...ERRORS[code] })),
     exitCodes: EXIT_CODE_MEANINGS,
     globalFlags: globalFlagInputs(globals),
-    instanceStates: INSTANCE_STATES,
+    instanceStates: STORE_STATES,
   };
 };
 

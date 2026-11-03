@@ -581,7 +581,10 @@ describe("real CLI process", () => {
     writeFileSync(path.join(cwd, "config.yml"), "invalid: [");
     const invalid = await cli(["env", "start", "--dry-run", "--agent"]);
     expect(invalid.code).not.toBe(0);
-    writeFileSync(path.join(cwd, "config.yml"), "{}\n");
+    writeFileSync(
+      path.join(cwd, "config.yml"),
+      "shop:\n  defaultMailSenderName: Shared\n"
+    );
     // The project's only environment is the default; naming it is the same.
     const first = await cli(["env", "start", "--dry-run", "--agent"]);
     const second = await cli(["env", "start", "local", "--dry-run", "--agent"]);

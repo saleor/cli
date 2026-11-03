@@ -38,7 +38,7 @@ export const fileHash = (file: string) =>
     : null;
 
 // Records that the store `ref` matched `file` as it is now.
-export const recordInSync = (file: string, ref: string) =>
+export const recordDeploy = (file: string, ref: string) =>
   Effect.sync(() => {
     const hash = fileHash(file);
 
@@ -58,16 +58,16 @@ export const recordInSync = (file: string, ref: string) =>
     writeFileSync(stateFile(), `${JSON.stringify(next, null, 2)}\n`);
   });
 
-export interface SyncNote {
+export interface DeployRecord {
   readonly at: Date;
   readonly edited: boolean;
 }
 
 // Whether `file` changed since `ref` last matched it, by this computer's records.
-export const lastInSync = (
+export const lastDeploy = (
   file: string,
   ref: string
-): Option.Option<SyncNote> => {
+): Option.Option<DeployRecord> => {
   const entry = readState()[path.resolve(file)]?.[ref];
 
   return entry === undefined

@@ -1,24 +1,18 @@
 import { Effect, Option } from "effect";
 import { type CliFailure, fail } from "./errors.ts";
 import {
-  type Instance,
-  type InstanceSource,
-  InstanceSources,
+  type Store,
+  type StoreSource,
+  StoreSources,
   type Lifecycle,
-} from "./instance.ts";
+} from "./store.ts";
 import { askConfirm, type Choice, isInteractive } from "./interaction.ts";
 import { command } from "./invocation.ts";
 import { notice } from "./output.ts";
 import { findProject } from "./project.ts";
 import { target } from "./target.ts";
-import {
-  ENV_VARIABLE,
-  envWord,
-  kindOf,
-  REF,
-  resolveRef,
-  toRef,
-} from "./workspace.ts";
+import { ENV_VARIABLE, envWord, resolveRef, toRef } from "./env-word.ts";
+import { idOf, kindOf, REF } from "./ref.ts";
 
 // Every command that acts on a store takes it as `<env>`: a name from saleor.yml or a
 // ref, `cloud:<org>/<env key>` or `local:<name>`, the same `ref` every command prints.
@@ -26,7 +20,7 @@ import {
 // of every source; one that needs a login is offered as "Log in to …" instead of
 // failing the whole list.
 
-const SIGN_IN = "\0sign-in:";
+const LOGIN = "\0login:";
 
 export const envTarget = target({
   check: (value) =>
@@ -52,20 +46,37 @@ const VERBS: Record<Lifecycle, string> = {
   stop: "stopped",
 };
 
+// The source that runs the store with this ref.
+export const sourceFor = (ref: string) =>
+  Effect.gen(function* () {
+    const all = yield* StoreSources;
+    const kind = kindOf(ref);
+    const source = all.find((candidate) => candidate.kind === kind);
+
+    if (source === undefined) {
+      return yield* fail(
+        "USAGE_ERROR",
+        `"${ref}" is not a store ref: stores are ${all.map((each) => `${each.kind}:…`).join(" or ")}.`
+      );
+    }
+
+    return source;
+  });
+
 // Runs `effect` against a source; when it needs a login and a person is at a
 // terminal, offers one and runs it again.
-export const withSignIn = <A, R>(
-  source: InstanceSource<never>,
+export const withLogin = <A, R>(
+  source: StoreSource<never>,
   effect: Effect.Effect<A, CliFailure, R>
 ) =>
   effect.pipe(
     Effect.catchTag("CliFailure", (failure: CliFailure) =>
       Effect.gen(function* () {
-        const { signIn } = source;
+        const { login } = source;
 
         if (
           failure.code !== "AUTH_REQUIRED" ||
-          signIn === undefined ||
+          login === undefined ||
           !(yield* isInteractive)
         ) {
           return yield* failure;
@@ -77,28 +88,28 @@ export const withSignIn = <A, R>(
           return yield* failure;
         }
 
-        yield* signIn;
+        yield* login;
 
         return yield* effect;
       })
     )
   );
 
-const choicesOf = (source: InstanceSource<never>) =>
+const choicesOf = (source: StoreSource<never>) =>
   source.list.pipe(
-    Effect.map((instances) =>
-      instances.map((found): Choice<string> => ({
+    Effect.map((stores) =>
+      stores.map((found): Choice<string> => ({
         hint: `${found.ref} · ${found.state}`,
         label: `${source.label} · ${found.name}`,
         value: found.ref,
       }))
     ),
     Effect.catchTag("CliFailure", (failure: CliFailure) => {
-      if (failure.code === "AUTH_REQUIRED" && source.signIn !== undefined) {
+      if (failure.code === "AUTH_REQUIRED" && source.login !== undefined) {
         return Effect.succeed([
           {
             label: `Log in to ${source.label} to see its stores`,
-            value: `${SIGN_IN}${source.kind}`,
+            value: `${LOGIN}${source.kind}`,
           },
         ]);
       }
@@ -115,12 +126,12 @@ export interface ResolvedRef {
   // The part of the ref after `<kind>:`, which the source knows it by.
   readonly id: string;
   readonly ref: string;
-  readonly source: InstanceSource<never>;
+  readonly source: StoreSource<never>;
 }
 
-export interface ResolvedInstance {
-  readonly instance: Instance;
-  readonly source: InstanceSource<never>;
+export interface ResolvedStore {
+  readonly store: Store;
+  readonly source: StoreSource<never>;
 }
 
 export interface ResolveOptions {
@@ -134,12 +145,12 @@ export interface ResolveOptions {
 // The store a command was given, or picked at a prompt, as a ref and the source that
 // runs it. Does not look the store up, so it can name one that does not exist yet
 // (an environment saleor.yml defines, which `env start` creates).
-export const resolveStore = (
+export const resolveStoreRef = (
   supplied: Option.Option<string>,
   { anyStore = false, can }: ResolveOptions = {}
 ) =>
   Effect.gen(function* () {
-    const all = yield* InstanceSources;
+    const all = yield* StoreSources;
 
     const sources =
       can === undefined ? all : all.filter((each) => each[can] !== undefined);
@@ -156,30 +167,20 @@ export const resolveStore = (
         const rows = lists.flat();
 
         return [
-          ...rows.filter((row) => !row.value.startsWith(SIGN_IN)),
-          ...rows.filter((row) => row.value.startsWith(SIGN_IN)),
+          ...rows.filter((row) => !row.value.startsWith(LOGIN)),
+          ...rows.filter((row) => row.value.startsWith(LOGIN)),
         ];
       }),
       detours: Object.fromEntries(
         sources.flatMap((each) =>
-          each.signIn === undefined
-            ? []
-            : [[`${SIGN_IN}${each.kind}`, each.signIn]]
+          each.login === undefined ? [] : [[`${LOGIN}${each.kind}`, each.login]]
         )
       ),
       emptyHint: `Create one with: ${command("init")}`,
     });
 
     const ref = yield* toRef(word);
-    const kind = kindOf(ref);
-    const source = all.find((candidate) => candidate.kind === kind);
-
-    if (source === undefined) {
-      return yield* fail(
-        "USAGE_ERROR",
-        `"${ref}" is not a store ref: stores are ${all.map((s) => `${s.kind}:…`).join(" or ")}.`
-      );
-    }
+    const source = yield* sourceFor(ref);
 
     if (can !== undefined && source[can] === undefined) {
       return yield* fail(
@@ -194,20 +195,20 @@ export const resolveStore = (
     }
 
     return {
-      id: ref.slice(kind.length + 1),
+      id: idOf(ref),
       ref,
       source,
     } satisfies ResolvedRef;
   });
 
 // The store a command was given, or picked at a prompt, with the source it came from.
-export const resolveInstance = (
+export const resolveStore = (
   supplied: Option.Option<string>,
   options: ResolveOptions = {}
 ) =>
   Effect.gen(function* () {
-    const { id, ref, source } = yield* resolveStore(supplied, options);
-    const found = yield* withSignIn(source, source.find(id));
+    const { id, ref, source } = yield* resolveStoreRef(supplied, options);
+    const found = yield* withLogin(source, source.find(id));
 
     if (Option.isNone(found)) {
       return yield* fail(
@@ -219,5 +220,5 @@ export const resolveInstance = (
       );
     }
 
-    return { instance: found.value, source } satisfies ResolvedInstance;
+    return { source, store: found.value } satisfies ResolvedStore;
   });

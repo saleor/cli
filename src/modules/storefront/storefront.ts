@@ -11,7 +11,7 @@ import {
   setEnv,
 } from "../../core/env-file.ts";
 import { fail } from "../../core/errors.ts";
-import type { Instance, InstanceSource } from "../../core/instance.ts";
+import type { Store, StoreSource } from "../../core/store.ts";
 import { command } from "../../core/invocation.ts";
 import { columns } from "../../core/output.ts";
 import { recordComponent } from "../../core/components.ts";
@@ -24,7 +24,7 @@ import {
   template,
   templateSource,
 } from "../../core/scaffold.ts";
-import { envWord } from "../../core/workspace.ts";
+import { envWord } from "../../core/env-word.ts";
 
 // A storefront is the saleor/storefront template, downloaded as it is on `main`, with
 // its `.env` pointing at one store: the store's GraphQL API and a channel. The `.env`
@@ -163,8 +163,8 @@ const channelExists = (graphqlUrl: string, slug: string) =>
 const STARTED = new Set(["ready", "running"]);
 
 const storeWarnings = (
-  store: Instance,
-  source: InstanceSource<never> | undefined,
+  store: Store,
+  source: StoreSource<never> | undefined,
   channel: string
 ) =>
   Effect.gen(function* () {
@@ -196,7 +196,7 @@ const storeWarnings = (
 
 // Points the storefront's `.env` at the store: the file itself if there is one, else a
 // copy of the template's `.env.example`, so its documented defaults stay.
-const writeEnv = (dir: string, store: Instance, channel: string) =>
+const writeEnv = (dir: string, store: Store, channel: string) =>
   Effect.try({
     catch: (error) =>
       fail(
@@ -247,8 +247,8 @@ export interface Finish {
   readonly record: boolean;
   // Where to make a repository, if the storefront was just downloaded.
   readonly repository: string | undefined;
-  readonly source: InstanceSource<never> | undefined;
-  readonly store: Instance;
+  readonly source: StoreSource<never> | undefined;
+  readonly store: Store;
 }
 
 // Lists the storefront in the project it sits in. None outside a project.
