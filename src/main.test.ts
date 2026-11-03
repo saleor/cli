@@ -890,6 +890,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     }[] = [];
 
     const apps: { id: string; name: string }[] = [];
+    const installed: { id: string; manifestUrl: string; name: string }[] = [];
 
     const store = createSecureServer(
       { cert: readFileSync(cert), key: readFileSync(key) },
@@ -929,6 +930,47 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
 
           if (query.includes("appTokenCreate")) {
             return { issued: { authToken: "app.token.2", errors: [] } };
+          }
+
+          if (query.includes("appsInstallations")) {
+            return {
+              apps: {
+                edges: installed.map((node) => ({
+                  node: {
+                    ...node,
+                    identifier: "example.app",
+                    isActive: true,
+                    type: "THIRDPARTY",
+                  },
+                })),
+              },
+              appsInstallations: [],
+            };
+          }
+
+          if (query.includes("appFetchManifest")) {
+            return {
+              appFetchManifest: {
+                errors: [],
+                manifest: {
+                  identifier: "example.app",
+                  name: "Example",
+                  permissions: [],
+                },
+              },
+            };
+          }
+
+          if (query.includes("appInstall")) {
+            installed.push({
+              id: "QXBwOjI=",
+              manifestUrl: body.variables.input.manifestUrl,
+              name: "Example",
+            });
+
+            return {
+              started: { appInstallation: { id: "inst-1" }, errors: [] },
+            };
           }
 
           return { shop: { name: "Mock Saleor" } };
@@ -1018,6 +1060,43 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
       expect(third.at(-1)?.auth).toBe("Bearer app.token.2");
       expect(apps).toHaveLength(1);
       expect(saved()).toBe("app.token.2");
+
+      // Installing an app takes a staff user, which the app token is not: app add
+      // sends the Cloud login instead, while app list keeps the saved app token.
+      received.splice(0);
+
+      const added = await cli(
+        [
+          "app",
+          "add",
+          "cloud:acme/env1",
+          "--manifest",
+          "https://apps.example.test/api/manifest",
+          "--agent",
+        ],
+        { NODE_EXTRA_CA_CERTS: cert, SALEOR_POLL_INTERVAL_SECONDS: "0.001" }
+      );
+
+      expect(added.code, added.stdout + added.stderr).toBe(0);
+
+      const commandRequests = () =>
+        received
+          .splice(0)
+          .filter((each) => each.body.query !== "query { shop { name } }");
+
+      expect(new Set(commandRequests().map((each) => each.auth))).toStrictEqual(
+        new Set(["Bearer test.secret"])
+      );
+      expect(saved()).toBe("app.token.2");
+
+      const listed = await cli(["app", "list", "cloud:acme/env1", "--agent"], {
+        NODE_EXTRA_CA_CERTS: cert,
+      });
+
+      expect(listed.code, listed.stdout + listed.stderr).toBe(0);
+      expect(new Set(commandRequests().map((each) => each.auth))).toStrictEqual(
+        new Set(["Bearer app.token.2"])
+      );
     } finally {
       store.closeAllConnections();
       await new Promise<void>((resolve) => {

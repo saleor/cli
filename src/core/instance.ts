@@ -67,6 +67,12 @@ export interface InstanceSource<R> {
   readonly access?: (
     instance: Instance
   ) => Effect.Effect<Option.Option<string>, CliFailure, R>;
+  // A staff user's token, for what Saleor lets only a person do: installing and
+  // creating apps (appInstall, appCreate), which an app token cannot. A local instance
+  // signs in as its admin; a Cloud store takes the Cloud login. None when it cannot.
+  readonly staffAccess?: (
+    instance: Instance
+  ) => Effect.Effect<Option.Option<string>, CliFailure, R>;
   // The instance with this id (the part of its ref after `<kind>:`), if it exists.
   readonly find: (
     id: string

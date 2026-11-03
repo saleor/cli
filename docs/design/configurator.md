@@ -85,7 +85,7 @@ Credentials are resolved like targets:
 
 1. `SALEOR_TOKEN`, if set. This is how CI keeps working: the same secret it holds today, under the name the CLI uses.
 2. The token saved for this ref in the secret store.
-3. For local instances, the admin login the CLI generated: `tokenCreate`, silently, because the CLI made that store. For Cloud stores, an app token made with the Cloud login, as described above. This works through an optional `access(id)` capability in core, so the config module does not import the local module.
+3. For local instances, the admin login the CLI generated: `tokenCreate`, silently, because the CLI made that store. It is not swapped for a lasting app token as Cloud's login is: Saleor lets only a staff user install or create apps, so `app add` and `webhook listen` need the sign-in itself. The sign-in lasts 5 minutes; `webhook listen` signs in again to delete its app. For Cloud stores, an app token made with the Cloud login, as described above. This works through an optional `access(id)` capability in core, so the config module does not import the local module.
 4. Interactively, a hidden prompt for the token, which says where to create one in the Dashboard (**Apps → Create app**, with the permissions the configuration needs). The CLI offers to save it under the ref.
 5. Otherwise `STORE_AUTH_REQUIRED`, whose suggestion names `SALEOR_TOKEN` and the prompt.
 

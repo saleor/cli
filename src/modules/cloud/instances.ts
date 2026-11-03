@@ -23,7 +23,7 @@ import {
 } from "./lookup.ts";
 import { deleteEnvironment } from "./provision.ts";
 import { waitForTask } from "./readiness.ts";
-import { cloudAccess } from "./store-access.ts";
+import { cloudAccess, cloudLogin } from "./store-access.ts";
 
 // Cloud environments as stores other modules can connect to, in every organization
 // the account belongs to. Refs are `cloud:<org>/<environment key>`.
@@ -145,6 +145,7 @@ const populate = (environment: Instance) =>
 
 export const cloudInstances = {
   access: cloudAccess,
+  staffAccess: cloudLogin,
   find,
   kind: "cloud",
   label: "Saleor Cloud",

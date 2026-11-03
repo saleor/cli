@@ -5,7 +5,11 @@ import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
 import type { Instance } from "../../core/instance.ts";
-import { envInput, resolveInstance } from "../../core/instances.ts";
+import {
+  envInput,
+  type ResolvedInstance,
+  resolveInstance,
+} from "../../core/instances.ts";
 import { command } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
 import { storeAccess } from "../../core/store-access.ts";
@@ -81,6 +85,29 @@ const reachable = (
     };
   });
 
+// Deleting the temporary app when listening stops, which can be long after the token
+// was made: a local store's sign-in lasts minutes, so a refused token is made again
+// once, by the store's source itself (never a prompt, while stopping).
+const deleteAgain = (
+  { instance, source }: ResolvedInstance,
+  store: { readonly instance: Instance; readonly token: string },
+  id: string
+) =>
+  deleteApp(store, id).pipe(
+    Effect.catchIf(
+      (failure) =>
+        failure.code === "STORE_AUTH_INVALID" && source.access !== undefined,
+      (failure) =>
+        Effect.flatMap(
+          source.access?.(instance) ?? Effect.succeedNone,
+          Option.match({
+            onNone: () => Effect.fail(failure),
+            onSome: (token) => deleteApp({ instance, token }, id),
+          })
+        )
+    )
+  );
+
 const listenCommand = webhook.session({
   description:
     "Receive a store's webhooks on this computer and print each one as it arrives, until Ctrl+C or --count deliveries. It creates a temporary app on the store with a webhook for the events (or for a subscription query), and deletes it when it stops. With --forward-to, each delivery is also sent on to your app, headers and signature included, and the store gets your app's answer. Local stores in Docker reach this computer directly; any other store needs a tunnel: pass its address with --public-url and the port it forwards to with --port. The token needs MANAGE_APPS and the permissions the events need. In json mode, each delivery is a JSON line on stderr, and the result lists them all.",
@@ -154,6 +181,8 @@ const listenCommand = webhook.session({
 
       const { token } = yield* storeAccess(resolved, {
         needs: "MANAGE_APPS and the permissions the events need",
+        // Saleor lets only a staff user create the temporary app.
+        staff: true,
       });
 
       const store = { instance, token };
@@ -172,7 +201,7 @@ const listenCommand = webhook.session({
             const targetUrl = `${where.base ?? `http://host.docker.internal:${listening.port}`}${listening.path}`;
 
             const app = yield* Effect.acquireRelease(createApp(store), (made) =>
-              deleteApp(store, made.id).pipe(
+              deleteAgain(resolved, store, made.id).pipe(
                 Effect.matchEffect({
                   onFailure: () =>
                     notice(

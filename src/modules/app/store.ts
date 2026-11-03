@@ -17,6 +17,7 @@ const Codes = Schema.Array(Schema.Struct({ code: Schema.String }));
 
 const MutationErrors = Schema.Array(
   Schema.Struct({
+    code: Schema.optionalKey(Schema.NullOr(Schema.String)),
     field: Schema.NullOr(Schema.String),
     message: Schema.NullOr(Schema.String),
   })
@@ -96,7 +97,7 @@ const APPS = `query {
 const FETCH_MANIFEST = `mutation($manifestUrl: String!) {
   appFetchManifest(manifestUrl: $manifestUrl) {
     manifest { name identifier permissions { code } }
-    errors { field message }
+    errors { field message code }
   }
 }`;
 
@@ -281,6 +282,27 @@ export const uninstall = (store: Store, id: string) =>
   });
 
 export type Manifest = Effect.Success<ReturnType<typeof fetchManifest>>;
+
+// Whether the store can read the manifest of an app it has installed: Saleor refuses
+// to read one whose app is installed already (identifier: UNIQUE), which still means
+// it reached the manifest. Any other refusal is the failure.
+export const canReadManifest = (store: Store, manifestUrl: string) =>
+  Effect.gen(function* () {
+    const { appFetchManifest: answer } = yield* query(store, Manifest, {
+      query: FETCH_MANIFEST,
+      variables: { manifestUrl },
+    });
+
+    const others = answer.errors.filter(
+      (error) => !(error.field === "identifier" && error.code === "UNIQUE")
+    );
+
+    if (answer.manifest === null && others.length > 0) {
+      return yield* rejected(store, `read the manifest at ${manifestUrl}`, [
+        ...others,
+      ]);
+    }
+  });
 
 // Installs from a manifest the store has read, or retries an installation that
 // failed, then waits for the app.

@@ -37,8 +37,9 @@ const MANIFEST_SOURCE = "src/pages/api/manifest.ts";
 const TEMPLATE_ID = 'id: "saleor.app"';
 const TEMPLATE_NAME = 'name: "Saleor App Template"';
 
-// The template's FileAPL keeps each store's app token here.
-const AUTH_DATA = ".auth-data.json";
+// The app SDK's FileAPL keeps each store's app token here (the template's comment
+// says .auth-data.json, but the SDK writes this name).
+const AUTH_DATA = ".saleor-app-auth.json";
 
 const read = (file: string) =>
   existsSync(file) ? readFileSync(file, "utf-8") : undefined;
@@ -90,6 +91,14 @@ const quoted = (text: string) => JSON.stringify(text);
 
 // Gives the copy its id and name, and keeps its app tokens out of git. Each step
 // warns when the template no longer looks as expected instead of failing.
+// The template's .env.example sets its base URLs to nothing, meaning "the address the
+// app is reached at"; but its manifest takes an empty value as the URL itself, so the
+// manifest fails (HTTP 500). Commented out, they are unset and the fallback works.
+const BASE_URLS = /^(APP_IFRAME_BASE_URL|APP_API_BASE_URL)=[ \t]*$/gm;
+
+export const withoutEmptyBaseUrls = (example: string) =>
+  example.replaceAll(BASE_URLS, "# $1=");
+
 const personalize = (dir: string, name: string, identifier: string) =>
   Effect.try({
     catch: (error) =>
@@ -119,7 +128,7 @@ const personalize = (dir: string, name: string, identifier: string) =>
       const example = read(path.join(dir, ".env.example"));
 
       if (!existsSync(env) && example !== undefined) {
-        writeFileSync(env, example);
+        writeFileSync(env, withoutEmptyBaseUrls(example));
       }
 
       const ignore = path.join(dir, ".gitignore");
@@ -181,7 +190,7 @@ export const finishApp = (spec: Made) =>
       ...(cd === "." ? [] : [`cd ${cd}`]),
       ...(installed.installed ? [] : ["pnpm install"]),
       "pnpm dev",
-      "saleor app add <env>",
+      "saleor app add <env> --manifest <url>/api/manifest",
     ];
 
     return result(
@@ -212,8 +221,11 @@ export const finishApp = (spec: Made) =>
           onSome: (name) => [`  Listed in saleor.yml as component "${name}".`],
         }),
         "",
-        "Run it, then install it on a store from its folder:",
+        "Run it, then install it on a store:",
         ...next.map((line) => `  ${line}`),
+        "",
+        "<url> is http://localhost:3000 for a local store; the CLI points the store in Docker",
+        "and the app's .env at this computer. A Saleor Cloud store needs a tunnel to port 3000.",
       ].join("\n")
     );
   });
