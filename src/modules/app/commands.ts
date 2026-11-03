@@ -50,7 +50,7 @@ const appTarget = (client: StoreClient, name: string, id: string | null) =>
     type: "app",
   }) satisfies TargetRef;
 
-const shown = (each: InstalledApp) => ({
+const appData = (each: InstalledApp) => ({
   active: each.isActive ?? false,
   id: each.id,
   identifier: each.identifier,
@@ -155,14 +155,14 @@ const listCommand = app.list({
 });
 
 interface Added {
-  readonly app: ReturnType<typeof shown>;
+  readonly app: ReturnType<typeof appData>;
   readonly created: boolean;
   readonly store: string;
 }
 
 const done = (client: StoreClient, each: InstalledApp, created: boolean) =>
   ({
-    data: { app: shown(each), created, store: client.store.ref },
+    data: { app: appData(each), created, store: client.store.ref },
     headline: created
       ? `Installed the app "${each.name ?? each.id}" on ${client.store.ref}.`
       : `The app "${each.name ?? each.id}" is already installed on ${client.store.ref}.`,
@@ -250,7 +250,7 @@ const addCommand = app.ensure({
         return addPlan({
           action: "reuse",
           apply: Effect.succeed(done(client, existing, false)),
-          details: { app: shown(existing) },
+          details: { app: appData(existing) },
           risk: null,
           state: "exists",
           target: appTarget(client, existing.name ?? existing.id, existing.id),
@@ -338,7 +338,7 @@ const findApp = (apps: readonly InstalledApp[], wanted: string) =>
         "USAGE_ERROR",
         `${named.length} apps are named "${wanted}".`,
         {
-          details: { apps: named.map(shown) },
+          details: { apps: named.map(appData) },
           suggestion: `Name one by its id: ${named.map((each) => each.id).join(", ")}`,
         }
       );
@@ -384,12 +384,15 @@ const removeCommand = app.remove({
 
       return {
         action: "delete",
-        apply: Effect.as(deleteApp(client, each.id), { app: shown(each) }),
-        details: { app: shown(each) },
+        apply: Effect.as(deleteApp(client, each.id), { app: appData(each) }),
+        details: { app: appData(each) },
         risk: "Its webhooks, tokens and settings on the store are deleted.",
         state: "exists",
         target: appTarget(client, each.name ?? each.id, each.id),
-      } satisfies Planned<{ readonly app: ReturnType<typeof shown> }, unknown>;
+      } satisfies Planned<
+        { readonly app: ReturnType<typeof appData> },
+        unknown
+      >;
     }),
   risk: "Uninstalling deletes the app's webhooks, tokens and settings on the store.",
   summary: "Uninstall an app from a store.",
@@ -496,7 +499,7 @@ const reinstallCommand = app.ensure({
             headline: `Reinstalled the app "${made.name ?? made.id}" on ${client.store.ref}${copying ? ", with its metadata" : ""}.`,
           };
         }),
-        details: { app: shown(each), copyMetadata: copying },
+        details: { app: appData(each), copyMetadata: copying },
         risk: copying
           ? "Saleor has no reinstall: the app is uninstalled and installed again as a new app. Its metadata is copied over, but anything it keeps elsewhere for the old installation may not carry over."
           : "Saleor has no reinstall: the app is uninstalled and installed again as a new app. Its metadata is deleted, and anything it keeps elsewhere for the old installation may not carry over.",

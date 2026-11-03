@@ -7,7 +7,7 @@ import { option } from "../../core/inputs.ts";
 import { envInput, resolveStore } from "../../core/stores.ts";
 import { isInteractive } from "../../core/interaction.ts";
 import { MenuAvailable } from "../../core/menu.ts";
-import { notice } from "../../core/output.ts";
+import { notice, shown } from "../../core/output.ts";
 import { storefrontFolder } from "./project.ts";
 import {
   connectedElsewhere,
@@ -16,7 +16,6 @@ import {
   finish,
   inspect,
   notStorefront,
-  shown,
   storefrontTarget,
   TEMPLATE,
 } from "./storefront.ts";

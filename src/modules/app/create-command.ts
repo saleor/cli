@@ -12,9 +12,9 @@ import {
   createApp,
   finishApp,
   inspect,
-  shown,
   TEMPLATE,
 } from "./template.ts";
+import { shown } from "../../core/output.ts";
 
 const app = defineActions();
 

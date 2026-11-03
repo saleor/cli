@@ -13,7 +13,7 @@ import {
   planDeploy,
   planRows,
 } from "./deploying.ts";
-import { type Change, shown } from "./engine.ts";
+import type { Change } from "./engine.ts";
 import {
   checkedFiles,
   connect,
@@ -21,6 +21,7 @@ import {
   filesShown,
   remember,
 } from "./store.ts";
+import { shown } from "../../core/output.ts";
 
 // `config deploy`: every file the project deploys, one after another, as one plan.
 

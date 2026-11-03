@@ -16,10 +16,10 @@ import { storeToken, type StoreTokenOptions } from "../../core/store-token.ts";
 import {
   DEFAULT_CONFIG,
   existingConfig,
-  shown,
   supportedSaleor,
   validateFile,
 } from "./engine.ts";
+import { shown } from "../../core/output.ts";
 
 // The configuration file: --config, else the project's, else ./config.yml.
 export const configFile = (input: Option.Option<string>) =>

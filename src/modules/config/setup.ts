@@ -5,7 +5,7 @@ import { option } from "../../core/inputs.ts";
 import { resolveStore } from "../../core/stores.ts";
 import { askSelect, isInteractive } from "../../core/interaction.ts";
 import { command, recordAnswer } from "../../core/invocation.ts";
-import { notice } from "../../core/output.ts";
+import { notice, shown } from "../../core/output.ts";
 import { recordDeploy } from "../../core/deploy-record.ts";
 import { configuresOnCreate } from "../../core/manifest.ts";
 import {
@@ -33,7 +33,7 @@ import {
   installedAuthors,
   type Session,
 } from "./draft.ts";
-import { pull, shown } from "./engine.ts";
+import { pull } from "./engine.ts";
 import { reviewText, writeConfig } from "./file-output.ts";
 import { mergeConfig, NEW_STORE } from "./merge.ts";
 import { sampleConfiguration } from "./sample.ts";

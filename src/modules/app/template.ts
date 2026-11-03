@@ -9,17 +9,15 @@ import path from "node:path";
 import { result } from "../../core/command.ts";
 import { recordComponent } from "../../core/components.ts";
 import { fail } from "../../core/errors.ts";
-import { columns } from "../../core/output.ts";
+import { columns, shown } from "../../core/output.ts";
 import { slugify } from "../../core/names.ts";
 import { findProject } from "../../core/project.ts";
 import {
   type Downloaded,
   directoryState,
   downloadTemplate,
-  initRepository,
-  installDependencies,
+  finishCopy,
   template,
-  templateSource,
 } from "../../core/scaffold.ts";
 
 // An app of your own is saleor/saleor-app-template, downloaded as it is on `main`, in
@@ -44,8 +42,6 @@ const AUTH_DATA = ".saleor-app-auth.json";
 
 const read = (file: string) =>
   existsSync(file) ? readFileSync(file, "utf-8") : undefined;
-
-export const shown = (dir: string) => path.relative(process.cwd(), dir) || ".";
 
 export type Found =
   | { readonly kind: "absent" }
@@ -167,30 +163,18 @@ export const finishApp = (spec: Made) =>
 
     const component = yield* recordComponent(spec.dir, { kind: "app" });
 
-    const source = templateSource(
-      TEMPLATE,
-      spec.downloaded ?? { commit: undefined }
-    );
+    const copy = yield* finishCopy({
+      dir: spec.dir,
+      downloaded: spec.downloaded,
+      install: true,
+      repository: spec.created ? spec.dir : undefined,
+      template: TEMPLATE,
+    });
 
-    const repository = spec.created
-      ? yield* initRepository(spec.dir, `Start from ${source}`)
-      : undefined;
-
-    const installed = yield* installDependencies(spec.dir);
-
-    const all = [
-      ...warnings,
-      ...[repository?.warning, installed.warning].filter(
-        (warning): warning is string => warning !== undefined
-      ),
-    ];
-
-    const cd = shown(spec.dir);
+    const all = [...warnings, ...copy.warnings];
 
     const next = [
-      ...(cd === "." ? [] : [`cd ${cd}`]),
-      ...(installed.installed ? [] : ["pnpm install"]),
-      "pnpm dev",
+      ...copy.next,
       "saleor app add <env> --manifest <url>/api/manifest",
     ];
 
@@ -199,21 +183,17 @@ export const finishApp = (spec: Made) =>
         component: Option.getOrNull(component),
         created: spec.created,
         identifier: spec.identifier,
-        installed: installed.installed,
+        installed: copy.installed,
         name: spec.name,
         next,
         path: spec.dir,
-        repository: repository?.repository ?? null,
-        template: {
-          commit: spec.downloaded?.commit ?? null,
-          ref: TEMPLATE.ref,
-          repository: TEMPLATE.repository,
-        },
+        repository: copy.repository,
+        template: copy.template,
         warnings: all,
       },
       [
         columns([
-          ["  Directory:", cd],
+          ["  Directory:", shown(spec.dir)],
           ["  Manifest id:", spec.identifier],
         ]),
         ...all.map((warning) => `  Warning: ${warning}`),

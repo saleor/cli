@@ -12,12 +12,12 @@ import {
   isInteractive,
 } from "../../core/interaction.ts";
 import { command } from "../../core/invocation.ts";
-import { notice } from "../../core/output.ts";
+import { notice, shown } from "../../core/output.ts";
 import { findProject } from "../../core/project.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { fileChanges, sentence } from "./describe.ts";
 import { chooseAuthor, draftWith } from "./draft.ts";
-import { existingConfig, shown, validateFile } from "./engine.ts";
+import { existingConfig, validateFile } from "./engine.ts";
 import { writeConfig } from "./file-output.ts";
 import { configFile, connect } from "./store.ts";
 

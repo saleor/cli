@@ -7,7 +7,8 @@ import { fail } from "../../core/errors.ts";
 import type { Store } from "../../core/store.ts";
 import { findProject } from "../../core/project.ts";
 import { deadlineIn, isPast, POLL } from "../../core/readiness.ts";
-import { inspect, shown } from "./template.ts";
+import { inspect } from "./template.ts";
+import { shown } from "../../core/output.ts";
 
 // An app running on this computer, installed on a local store in Docker. Inside the
 // store's container `localhost` is the container itself, whatever Saleor's IP filter

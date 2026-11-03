@@ -14,7 +14,7 @@ import { HideFromMenu } from "../../core/menu.ts";
 import { option } from "../../core/inputs.ts";
 import { envInput } from "../../core/stores.ts";
 import { command } from "../../core/invocation.ts";
-import { notice } from "../../core/output.ts";
+import { notice, shown } from "../../core/output.ts";
 import { lastDeploy, recordDeploy } from "../../core/deploy-record.ts";
 import { ago } from "../../core/durations.ts";
 import { findProject } from "../../core/project.ts";
@@ -22,7 +22,7 @@ import { planDeploy } from "./deploying.ts";
 import { applies, pulledSentence, review } from "./describe.ts";
 import { GUIDE } from "./draft.ts";
 import { editCommand } from "./edit-command.ts";
-import { change, diff, pull, sections, serialize, shown } from "./engine.ts";
+import { change, diff, pull, sections, serialize } from "./engine.ts";
 import { deployCommand } from "./deploy-command.ts";
 import {
   checkedFiles,

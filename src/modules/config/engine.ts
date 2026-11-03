@@ -7,11 +7,11 @@ import type {
 } from "@saleor/configurator";
 import { Effect } from "effect";
 import { existsSync } from "node:fs";
-import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 import { isDocument, isJsonArray, type Json } from "./document.ts";
 import type { StoreClient } from "../../core/store-api.ts";
+import { shown } from "../../core/output.ts";
 
 // Configurator's public library, run in-process and loaded on first use. Commands
 // that do not touch configuration pay nothing for it at startup.
@@ -20,8 +20,6 @@ const engineModule = Effect.promise(
 );
 
 export const DEFAULT_CONFIG = "config.yml";
-
-export const shown = (file: string) => path.relative(process.cwd(), file);
 
 // The engine's own suggestions name the standalone tool's flags (--token), so each
 // code gets the CLI's suggestion instead.

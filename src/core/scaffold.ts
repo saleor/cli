@@ -8,9 +8,10 @@ import {
   renameSync,
   rmSync,
 } from "node:fs";
+import path from "node:path";
 import { type ReadEntry, Unpack } from "tar";
 import { fail } from "./errors.ts";
-import { withProgress } from "./output.ts";
+import { shown, withProgress } from "./output.ts";
 
 // Starting a project from a template repository (the storefront today, the app
 // template next): download it as a fresh copy without its history, make it a
@@ -282,3 +283,58 @@ export const installDependencies = (dir: string) =>
       } satisfies Installed;
     })
   );
+
+export interface FinishSpec {
+  readonly dir: string;
+  readonly downloaded: Downloaded | undefined;
+  // Whether to install its packages now.
+  readonly install: boolean;
+  // The folder to make a repository of, if any: the copy, or the project around it.
+  readonly repository: string | undefined;
+  readonly template: Template;
+}
+
+// What every copy of a template ends with: a repository with the template as its first
+// commit, its packages, what to run next, and where it came from. Nothing here fails:
+// each step that cannot be done is a warning.
+export const finishCopy = (spec: FinishSpec) =>
+  Effect.gen(function* () {
+    // Where the files came from: the commit when the download said, else the branch.
+    // Kept in the first commit's message and the result, not in saleor.yml.
+    const source = templateSource(
+      spec.template,
+      spec.downloaded ?? { commit: undefined }
+    );
+
+    const repository =
+      spec.repository === undefined
+        ? undefined
+        : yield* initRepository(spec.repository, `Start from ${source}`);
+
+    const installed = spec.install
+      ? yield* installDependencies(spec.dir)
+      : undefined;
+
+    const dependenciesInstalled =
+      installed?.installed ?? existsSync(path.join(spec.dir, "node_modules"));
+
+    const cd = shown(spec.dir);
+
+    return {
+      installed: dependenciesInstalled,
+      next: [
+        ...(cd === "." ? [] : [`cd ${cd}`]),
+        ...(dependenciesInstalled ? [] : ["pnpm install"]),
+        "pnpm dev",
+      ],
+      repository: repository?.repository ?? null,
+      template: {
+        commit: spec.downloaded?.commit ?? null,
+        ref: spec.template.ref,
+        repository: spec.template.repository,
+      },
+      warnings: [repository?.warning, installed?.warning].filter(
+        (warning): warning is string => warning !== undefined
+      ),
+    };
+  });

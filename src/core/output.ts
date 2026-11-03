@@ -1,6 +1,7 @@
 import { spinner } from "@clack/prompts";
 import { Effect, Exit, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
+import path from "node:path";
 import type { CliFailure } from "./errors.ts";
 
 export type OutputFormat = "text" | "json";
@@ -209,6 +210,10 @@ export const notice = (
         : `${message}\n`
     )
   );
+
+// How a file or folder is named in output: relative to where the command ran.
+export const shown = (file: string) =>
+  path.relative(process.cwd(), file) || ".";
 
 // Warnings already given, so a command that reads the same file twice warns once.
 const warned = new Set<string>();

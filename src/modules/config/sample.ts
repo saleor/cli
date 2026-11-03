@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import { recordDeploy } from "../../core/deploy-record.ts";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
-import { notice } from "../../core/output.ts";
+import { notice, shown } from "../../core/output.ts";
 import type { SetupResult } from "../../core/setup.ts";
 import { connectTo } from "../../core/store-api.ts";
 import { sourceFor } from "../../core/stores.ts";
-import { pull, shown } from "./engine.ts";
+import { pull } from "./engine.ts";
 import { reviewText, writeConfig } from "./file-output.ts";
 
 export const prepareSampleData = (made: SetupResult) =>

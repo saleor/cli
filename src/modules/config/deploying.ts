@@ -9,8 +9,9 @@ import { recordDeploy } from "../../core/deploy-record.ts";
 import { findProject } from "../../core/project.ts";
 import { envWord } from "../../core/env-word.ts";
 import { applies, sentence, why } from "./describe.ts";
-import { type Change, change, deploy, diff, shown } from "./engine.ts";
+import { type Change, change, deploy, diff } from "./engine.ts";
 import type { StoreClient } from "../../core/store-api.ts";
+import { shown } from "../../core/output.ts";
 
 // A deploy plan: the differences, split into what a deploy changes and what it
 // leaves as it is, so a plan never promises what the engine will not do.
