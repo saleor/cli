@@ -127,5 +127,5 @@ export const createCommand = app.ensure({
         unknown
       >;
     }),
-  summary: "Start an app of your own from the template.",
+  summary: "Create your own app from the Saleor app template.",
 });

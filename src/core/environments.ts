@@ -152,7 +152,7 @@ const startCommand = env.ensure({
         start(id, { newPorts: input.newPorts, timeout: input.timeout })
       );
     }),
-  summary: "Start a store, creating it from saleor.yml if needed.",
+  summary: "Run a local store in Docker.",
   waits: true,
 });
 
@@ -200,7 +200,7 @@ const stopCommand = env.remove({
         })),
       } satisfies Planned<Stopped, never>;
     }),
-  summary: "Stop a store, keeping its data.",
+  summary: "Stop a local store, keeping its data.",
 });
 
 const removeCommand = env.remove({
@@ -465,7 +465,7 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
           ],
         };
       }),
-    summary: "Add an environment to the project.",
+    summary: "Add a new store to the project.",
     waits: true,
   });
 };
@@ -482,5 +482,5 @@ export const environmentCommand = <R>(providers: readonly SetupProvider<R>[]) =>
     description:
       "Environments are the stores a project works with, wherever they run: local instances in Docker and Saleor Cloud environments. Every command names one with the word after it: a name from saleor.yml (local, staging) or a store ref (local:<name>, cloud:<org>/<env key>), as env list prints them. The first environment comes from saleor init.",
     name: "env",
-    summary: "List, add, start, stop and remove environments.",
+    summary: "Run and manage stores in your project.",
   });

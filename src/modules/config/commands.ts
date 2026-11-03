@@ -1,4 +1,5 @@
 import { Effect, Option, Semaphore } from "effect";
+import { Command } from "effect/cli";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
   defineActions,
@@ -9,6 +10,7 @@ import {
 } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
+import { HideFromMenu } from "../../core/menu.ts";
 import { option } from "../../core/inputs.ts";
 import { envInput } from "../../core/instances.ts";
 import { command } from "../../core/invocation.ts";
@@ -86,7 +88,7 @@ const validateCommand = config.session({
           .join("\n")
       );
     }),
-  summary: "Check a configuration file offline.",
+  summary: "Check the configuration for mistakes.",
 });
 
 const pullCommand = config.ensure({
@@ -200,7 +202,7 @@ const pullCommand = config.ensure({
       } satisfies Planned<unknown, unknown>;
     }),
   risk: "Replaces an existing configuration file; edits not deployed to a store are lost.",
-  summary: "Write a store's configuration to a file.",
+  summary: "Save a store's current configuration.",
 });
 
 const diffCommand = config.list({
@@ -375,23 +377,25 @@ const statusCommand = config.list({
         `This project has no environments yet. Add one with: ${command("env", "add")} <name>`
       );
     }),
-  summary: "Show whether each environment matches the file.",
+  summary: "Check which stores match the configuration.",
 });
 
-const guideCommand = config.session({
-  description:
-    "Print the rules for writing config.yml, with a complete example. For coding agents that write or change a configuration themselves; the CLI gives the same guide to the agents it runs.",
-  examples: [
-    {
-      command: "saleor config guide --agent",
-      description: "The guide as JSON",
-    },
-  ],
-  inputs: {},
-  name: "guide",
-  run: () => Effect.succeed(result({ guide: GUIDE }, GUIDE)),
-  summary: "How to write config.yml (for agents).",
-});
+const guideCommand = config
+  .session({
+    description:
+      "Print the rules for writing config.yml, with a complete example. For coding agents that write or change a configuration themselves; the CLI gives the same guide to the agents it runs.",
+    examples: [
+      {
+        command: "saleor config guide --agent",
+        description: "The guide as JSON",
+      },
+    ],
+    inputs: {},
+    name: "guide",
+    run: () => Effect.succeed(result({ guide: GUIDE }, GUIDE)),
+    summary: "How to write config.yml (for agents).",
+  })
+  .pipe(Command.annotate(HideFromMenu, true));
 
 export const configCommand = defineGroup({
   actions: [

@@ -224,5 +224,5 @@ export const editCommand = config.ensure({
         target: fileTarget(file),
       } satisfies Planned<unknown, unknown>;
     }),
-  summary: "Change the configuration from a description.",
+  summary: "Describe a configuration change in plain words.",
 });

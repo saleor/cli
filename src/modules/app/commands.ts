@@ -172,7 +172,7 @@ const listCommand = app.list({
         `No apps on ${store.instance.ref}.`
       );
     }),
-  summary: "List the apps on a store, or in the App Store.",
+  summary: "See the apps installed on a store.",
 });
 
 interface Added {
@@ -499,14 +499,14 @@ const reinstallCommand = app.ensure({
       } satisfies Planned<Ensured<Added>, unknown>;
     }),
   risk: "Reinstalling deletes the app's webhooks, tokens and settings on the store before installing it again.",
-  summary: "Uninstall an app and install it again.",
+  summary: "Reinstall an app to apply its manifest changes.",
   waits: true,
 });
 
 export const appCommand = defineGroup({
   actions: [
-    listCommand,
     createCommand,
+    listCommand,
     addCommand,
     reinstallCommand,
     removeCommand,
@@ -514,5 +514,5 @@ export const appCommand = defineGroup({
   description:
     "Apps installed on a store. Name the store with the word after the command, as in every command: a name from saleor.yml or a store ref (cloud:<org>/<env key>, local:<name>); its token is found for you and needs MANAGE_APPS.",
   name: "app",
-  summary: "List, install, reinstall and uninstall a store's apps.",
+  summary: "Install apps on a store, or create your own.",
 });

@@ -218,7 +218,7 @@ const listenCommand = webhook.session({
         )
       );
     }),
-  summary: "Print a store's webhooks as they arrive.",
+  summary: "Watch a store's webhooks and forward them to your app.",
 });
 
 export const webhookCommand = defineGroup({

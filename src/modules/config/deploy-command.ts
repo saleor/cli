@@ -170,5 +170,5 @@ export const deployCommand = config.ensure({
         target: storeTarget(instance),
       } satisfies Planned<unknown, unknown>;
     }),
-  summary: "Make a store match its configuration files.",
+  summary: "Apply the configuration to a store.",
 });

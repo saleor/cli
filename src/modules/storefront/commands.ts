@@ -262,7 +262,7 @@ const useCommand = storefront
           target: storefrontTarget(dir),
         } satisfies Planned<unknown, unknown>;
       }),
-    summary: "Point the storefront at another store.",
+    summary: "Connect the storefront to another store.",
   })
   .pipe(
     Command.annotate(
@@ -280,5 +280,5 @@ export const storefrontCommand = defineGroup({
   actions: [createCommand, useCommand],
   description: `Storefronts from the Saleor template (${TEMPLATE.repository}), connected to a store. Name the store with the word after the command, as in every command: a name from saleor.yml or a store ref (cloud:<org>/<env key>, local:<name>); in a terminal, it is picked.`,
   name: "storefront",
-  summary: "Create a storefront or point it at another store.",
+  summary: "Create a storefront and connect it to a store.",
 });
