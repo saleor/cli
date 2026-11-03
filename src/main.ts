@@ -14,6 +14,7 @@ import { AgentFlag, OutputFlag } from "./core/output.ts";
 import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { setupCommand } from "./core/setup.ts";
 import { apiModule } from "./modules/api/index.ts";
+import { appModule } from "./modules/app/index.ts";
 import { cloudAccount, cloudModule } from "./modules/cloud/index.ts";
 import { projectStatus } from "./modules/config/commands.ts";
 import { configModule } from "./modules/config/index.ts";
@@ -27,6 +28,7 @@ const modules = [
   configModule,
   storefrontModule,
   apiModule,
+  appModule,
   webhookModule,
   cloudModule,
   localModule,

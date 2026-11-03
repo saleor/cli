@@ -17,10 +17,10 @@ saleor login | logout               saleor storefront use    [<env>]
 saleor api call [<env>]             saleor webhook listen    [<env>]
 ```
 
-- **Five nouns.** `env` (the stores a project works with), `config` (their configuration), `storefront`, `api` (a store's own GraphQL API) and `webhook` (its webhooks, received here). Top-level verbs (`init`, `login`, `logout`, `onboard`, `commands`) are about the CLI or a new project, not a resource.
+- **Six nouns.** `env` (the stores a project works with), `config` (their configuration), `storefront`, `api` (a store's own GraphQL API), `app` (the apps installed on a store) and `webhook` (its webhooks, received here). Top-level verbs (`init`, `login`, `logout`, `onboard`, `commands`) are about the CLI or a new project, not a resource.
 - **One way to name a store.** The word after the verb, `<env>`: a name from `saleor.yml` (`local`, `staging`) or a store ref (`local:<name>`, `cloud:<org>/<env key>`) for any store, inside a project or not. No command but `init` names a store with a flag. `<env>` defaults to `SALEOR_ENV`, then the project's only environment, then a question.
 - **Where a store runs is configuration, not a command.** Local and Cloud stores answer the same commands. Each module that runs stores is an adapter behind `env` (an instance source, below), as a database adapter is behind Rails' `db:migrate`. A source that cannot do something (stop a Cloud environment) is refused with a usage error, not given its own command.
-- **A closed set of verbs, in pairs.** Each kind has its verbs, and a verb means the same change everywhere: `add`/`remove`, `start`/`stop`, `pull`/`deploy`. A new verb is a decision made in `src/core/conventions.test.ts`, not in passing.
+- **A closed set of verbs, in pairs.** Each kind has its verbs, and a verb means the same change everywhere: `add`/`remove`, `start`/`stop`, `pull`/`deploy`. A new verb is a decision made in `src/core/conventions.test.ts`, not in passing. `reinstall` (`app reinstall`) is the one unpaired change verb: Saleor apps cannot be updated in place, so it names a delete and a new install as one step.
 
 Every command is an action of one **kind**. The kind is the policy: which flags exist, how targets are found, when it asks for confirmation, what `--dry-run` does, how its result is shaped and what the catalog says about its safety. A command declares its kind and supplies only what is specific to it. It does not implement any of the rules below itself.
 

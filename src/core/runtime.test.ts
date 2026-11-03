@@ -269,6 +269,7 @@ it.each([
       "env",
       "storefront",
       "api",
+      "app",
       "webhook",
       "login",
       "commands",
@@ -277,12 +278,28 @@ it.each([
   },
   {
     cloud: true,
-    expected: ["init", "env", "storefront", "api", "webhook", "commands"],
+    expected: [
+      "init",
+      "env",
+      "storefront",
+      "api",
+      "app",
+      "webhook",
+      "commands",
+    ],
     local: false,
   },
   {
     cloud: true,
-    expected: ["init", "env", "storefront", "api", "webhook", "commands"],
+    expected: [
+      "init",
+      "env",
+      "storefront",
+      "api",
+      "app",
+      "webhook",
+      "commands",
+    ],
     local: true,
   },
 ])(

@@ -496,3 +496,313 @@ describe("webhook listen", () => {
     expect(store).toStrictEqual([]);
   });
 });
+
+describe("app", () => {
+  const MANIFEST = "https://apps.example.test/api/manifest";
+
+  // A store with the apps in `apps` and the installations in `installing`; installing
+  // makes the app at once, as Saleor does when its job finishes.
+  let apps: {
+    id: string;
+    identifier: string;
+    manifestUrl: string;
+    name: string;
+  }[];
+
+  let installing: {
+    appName: string;
+    id: string;
+    manifestUrl: string;
+    message: string | null;
+    status: string;
+  }[];
+
+  const appStore = (body: any) => {
+    const query: string = body.query;
+
+    if (query.includes("appsInstallations")) {
+      return {
+        data: {
+          apps: {
+            edges: apps.map((node) => ({
+              node: { ...node, isActive: true, type: "THIRDPARTY" },
+            })),
+          },
+          appsInstallations: installing,
+        },
+      };
+    }
+
+    if (query.includes("appFetchManifest")) {
+      return {
+        data: {
+          appFetchManifest: {
+            errors: [],
+            manifest: {
+              identifier: "example.app",
+              name: "Example",
+              permissions: [{ code: "MANAGE_ORDERS" }],
+            },
+          },
+        },
+      };
+    }
+
+    if (query.includes("appInstall") || query.includes("appRetryInstall")) {
+      installing = [];
+      apps.push({
+        id: "QXBwOjk=",
+        identifier: "example.app",
+        manifestUrl: MANIFEST,
+        name: "Example",
+      });
+
+      return {
+        data: { started: { appInstallation: { id: "inst-1" }, errors: [] } },
+      };
+    }
+
+    if (query.includes("appDelete")) {
+      apps = apps.filter((each) => each.id !== body.variables.id);
+
+      return { data: { appDelete: { errors: [] } } };
+    }
+
+    return { data: null, errors: [{ message: `unexpected: ${query}` }] };
+  };
+
+  const mutations = () =>
+    store
+      .map((each): string => each.body.query)
+      .filter((query) => query.trimStart().startsWith("mutation"))
+      .map((query) => /(app[A-Za-z]+)\(/.exec(query)?.[1]);
+
+  beforeEach(() => {
+    apps = [];
+    installing = [];
+    answer = appStore;
+  });
+
+  it("installs from a manifest URL with the permissions it asks for, then reuses it", async () => {
+    const env = { SALEOR_POLL_INTERVAL_SECONDS: "0.001" };
+    const add = ["app", "add", "local:demo", "--manifest", MANIFEST];
+
+    const preview = await cli([...add, "--dry-run"], env);
+    expect(preview.code, preview.stdout + preview.stderr).toBe(0);
+    expect(preview.data.data).toMatchObject({
+      action: "create",
+      details: { permissions: ["MANAGE_ORDERS"] },
+      dryRun: true,
+    });
+    expect(mutations()).toStrictEqual(["appFetchManifest"]);
+    expect(apps).toHaveLength(0);
+
+    store = [];
+    const first = await cli(add, env);
+    expect(first.code, first.stdout + first.stderr).toBe(0);
+    expect(first.data.data).toMatchObject({
+      app: { id: "QXBwOjk=", name: "Example" },
+      created: true,
+      store: "local:demo",
+    });
+    expect(mutations()).toStrictEqual(["appFetchManifest", "appInstall"]);
+    expect(
+      store.find((each) => each.body.query.includes("appInstall"))?.body
+        .variables.input
+    ).toStrictEqual({
+      activateAfterInstallation: true,
+      appName: "Example",
+      manifestUrl: MANIFEST,
+      permissions: ["MANAGE_ORDERS"],
+    });
+    expect(store.every((each) => each.auth === "Bearer store.secret")).toBe(
+      true
+    );
+
+    store = [];
+    const again = await cli(add, env);
+    expect(again.data.data).toMatchObject({ created: false });
+    expect(mutations()).toStrictEqual([]);
+  });
+
+  it("retries a failed installation instead of starting another", async () => {
+    installing = [
+      {
+        appName: "Example",
+        id: "inst-0",
+        manifestUrl: MANIFEST,
+        message: "Timeout",
+        status: "FAILED",
+      },
+    ];
+
+    const out = await cli(
+      ["app", "add", "local:demo", "--manifest", MANIFEST],
+      { SALEOR_POLL_INTERVAL_SECONDS: "0.001" }
+    );
+
+    expect(out.code, out.stdout + out.stderr).toBe(0);
+    expect(mutations()).toStrictEqual(["appFetchManifest", "appRetryInstall"]);
+  });
+
+  it("reports an installation the store could not finish", async () => {
+    answer = (body) => {
+      if (body.query.includes("appInstall")) {
+        installing = [
+          {
+            appName: "Example",
+            id: "inst-1",
+            manifestUrl: MANIFEST,
+            message: "Manifest unreachable",
+            status: "FAILED",
+          },
+        ];
+
+        return {
+          data: { started: { appInstallation: { id: "inst-1" }, errors: [] } },
+        };
+      }
+
+      return appStore(body);
+    };
+
+    const out = await cli(
+      ["app", "add", "local:demo", "--manifest", MANIFEST],
+      { SALEOR_POLL_INTERVAL_SECONDS: "0.001" }
+    );
+
+    expect(out.code).toBe(1);
+    expect(out.data.error.code).toBe("STORE_ERROR");
+    expect(out.data.error.message).toContain("Manifest unreachable");
+  });
+
+  it("lists apps and installations", async () => {
+    apps = [
+      {
+        id: "a1",
+        identifier: "one",
+        manifestUrl: "https://one/m",
+        name: "One",
+      },
+    ];
+    installing = [
+      {
+        appName: "Two",
+        id: "i2",
+        manifestUrl: "https://two/m",
+        message: null,
+        status: "PENDING",
+      },
+    ];
+
+    const out = await cli(["app", "list", "local:demo"]);
+
+    expect(out.code, out.stdout + out.stderr).toBe(0);
+    expect(
+      out.data.data.map((each: any) => [each.name, each.state])
+    ).toStrictEqual([
+      ["One", "installed"],
+      ["Two", "installing"],
+    ]);
+  });
+
+  it("reinstalls from the app's manifest only with confirmation", async () => {
+    apps = [
+      {
+        id: "a1",
+        identifier: "example.app",
+        manifestUrl: MANIFEST,
+        name: "Example",
+      },
+    ];
+    const reinstall = ["app", "reinstall", "local:demo", "--app", "Example"];
+    const env = { SALEOR_POLL_INTERVAL_SECONDS: "0.001" };
+
+    const refused = await cli(reinstall, env);
+    expect(refused.data.error.code).toBe("CONFIRMATION_REQUIRED");
+    expect(mutations()).toStrictEqual(["appFetchManifest"]);
+    expect(apps.map((each) => each.id)).toStrictEqual(["a1"]);
+
+    store = [];
+    const out = await cli([...reinstall, "--force"], env);
+    expect(out.code, out.stdout + out.stderr).toBe(0);
+    expect(out.data.data).toMatchObject({
+      app: { id: "QXBwOjk=", name: "Example" },
+      store: "local:demo",
+    });
+    expect(mutations()).toStrictEqual([
+      "appFetchManifest",
+      "appDelete",
+      "appInstall",
+    ]);
+    expect(
+      store.find((each) => each.body.query.includes("appDelete"))?.body
+        .variables
+    ).toStrictEqual({ id: "a1" });
+    expect(apps.map((each) => each.id)).toStrictEqual(["QXBwOjk="]);
+  });
+
+  it("keeps the app when the store cannot read its manifest", async () => {
+    apps = [
+      {
+        id: "a1",
+        identifier: "example.app",
+        manifestUrl: MANIFEST,
+        name: "Example",
+      },
+    ];
+    answer = (body) =>
+      body.query.includes("appFetchManifest")
+        ? {
+            data: {
+              appFetchManifest: {
+                errors: [{ field: "manifestUrl", message: "Unreachable" }],
+                manifest: null,
+              },
+            },
+          }
+        : appStore(body);
+
+    const out = await cli([
+      "app",
+      "reinstall",
+      "local:demo",
+      "--app",
+      "a1",
+      "--force",
+    ]);
+
+    expect(out.code).toBe(1);
+    expect(out.data.error.code).toBe("STORE_ERROR");
+    expect(out.data.error.message).toContain("Unreachable");
+    expect(mutations()).toStrictEqual(["appFetchManifest"]);
+    expect(apps).toHaveLength(1);
+  });
+
+  it("uninstalls only with confirmation, and succeeds when the app is gone", async () => {
+    apps = [
+      {
+        id: "a1",
+        identifier: "one",
+        manifestUrl: "https://one/m",
+        name: "One",
+      },
+    ];
+    const remove = ["app", "remove", "local:demo", "--app", "One"];
+
+    const refused = await cli(remove);
+    expect(refused.data.error.code).toBe("CONFIRMATION_REQUIRED");
+    expect(apps).toHaveLength(1);
+
+    const removed = await cli([...remove, "--force"]);
+    expect(removed.code, removed.stdout + removed.stderr).toBe(0);
+    expect(removed.data.data).toMatchObject({
+      action: "delete",
+      existed: true,
+    });
+    expect(apps).toStrictEqual([]);
+
+    const again = await cli([...remove, "--force"]);
+    expect(again.data.data).toMatchObject({ action: "none", existed: false });
+  });
+});
