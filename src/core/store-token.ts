@@ -11,7 +11,7 @@ import { SecretStore } from "./secret-store.ts";
 // This is the one place commands get a store token. A source that can get one by
 // itself plugs in through `StoreSource.token`: local stores log in as the
 // admin the CLI created, and Cloud stores get an app token made with the Cloud login
-// (modules/cloud/store-access.ts). When a source cannot, people supply one.
+// (modules/cloud/store-token.ts). When a source cannot, people supply one.
 
 export const storeTokenKey = (ref: string) => `store:${ref}`;
 

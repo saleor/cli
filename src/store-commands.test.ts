@@ -506,7 +506,7 @@ describe("webhook listen", () => {
     expect(out.stderr).toContain("Deleted the temporary app");
   });
 
-  it("signs in again to delete the app when the local sign-in has expired", async () => {
+  it("logs in again to delete the app when the local login has expired", async () => {
     writeFileSync(
       path.join(cwd, "config/credentials.json"),
       JSON.stringify({
@@ -519,15 +519,15 @@ describe("webhook listen", () => {
     );
 
     const listening = storeAnswers(deliverOrder);
-    let signIns = 0;
+    let logins = 0;
     let deletes = 0;
 
     answer = (body) => {
       if (body.query.includes("tokenCreate(email")) {
-        signIns += 1;
+        logins += 1;
 
         return {
-          data: { tokenCreate: { errors: [], token: `staff.jwt.${signIns}` } },
+          data: { tokenCreate: { errors: [], token: `staff.jwt.${logins}` } },
         };
       }
 
@@ -564,7 +564,7 @@ describe("webhook listen", () => {
     );
 
     expect(out.code, out.stdout + out.stderr).toBe(0);
-    expect(signIns).toBe(2);
+    expect(logins).toBe(2);
     expect(
       store
         .filter((each) => each.body.query.includes("appDelete"))

@@ -31,7 +31,7 @@ import { initializeProject } from "./project-init.ts";
 
 type Inputs = Readonly<Record<string, Input<InputValue>>>;
 
-// Every provider sets up a store, so its result is one: an instance (see instance.ts).
+// Every provider sets up a store, so its result is one: a store (see store.ts).
 export interface SetupResult extends Store {
   readonly created: boolean;
   readonly sampleDataReady?: boolean | undefined;

@@ -13,7 +13,7 @@ export const localLayer = Layer.mergeAll(
 );
 
 // Local stores have no commands of their own: `env` starts, stops and removes them
-// through their instance source, as it does every other store.
+// through their store source, as it does every other store.
 export const localModule = defineModule<
   Layer.Success<typeof localLayer> | CoreServices
 >({

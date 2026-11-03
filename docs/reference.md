@@ -8,7 +8,7 @@ Agents and scripts should explicitly pass `--agent` (shorthand for `--json --no-
 
 Explicit `login` still waits for browser approval until the device code expires. Use `login --no-browser` to print the link without launching a browser, or supply `SALEOR_CLOUD_TOKEN` for unattended authentication.
 
-- **Output.** Results go to stdout: text in a terminal, JSON (`{"ok": true, "data": …}`) otherwise or with `--json`. Errors are `{"ok": false, "error": {code, message, suggestion, retry, details?}}` in JSON, or a `✗` line on stderr in text. Progress goes to stderr; in JSON mode each progress message is one JSON line (`{"event": "progress", "message": …}`), and `login` emits `{"event": "login", "verificationUrl", "userCode", "expiresAt"}` before it waits for approval. Help (`--help` or `saleor help <command>`) and `--version` go to stdout. `saleor commands --json` describes every command (its kind and safety), flag (with defaults and environment variables), exit code, error code (with its exit code and whether retrying helps) and instance state.
+- **Output.** Results go to stdout: text in a terminal, JSON (`{"ok": true, "data": …}`) otherwise or with `--json`. Errors are `{"ok": false, "error": {code, message, suggestion, retry, details?}}` in JSON, or a `✗` line on stderr in text. Progress goes to stderr; in JSON mode each progress message is one JSON line (`{"event": "progress", "message": …}`), and `login` emits `{"event": "login", "verificationUrl", "userCode", "expiresAt"}` before it waits for approval. Help (`--help` or `saleor help <command>`) and `--version` go to stdout. `saleor commands --json` describes every command (its kind and safety), flag (with defaults and environment variables), exit code, error code (with its exit code and whether retrying helps) and store state.
 - **Instances.** Every command that shows a store, Cloud or local, returns the same fields: `kind` (`cloud` or `local`), `ref`, `name`, `state`, `ready`, `graphqlUrl`, `dashboardUrl` and `saleorVersion`, with provider-specific fields next to them (`key`, `organization`, `project`, … for Cloud; `mailUrl`, `admin`, … for local). `state` is `ready` (the API answered during the command), `running` (the provider reports it running; not contacted, as in `env list`), `starting`, `busy`, `maintenance`, `stopped` or `incomplete`.
 - **Exit codes.** `0` success, `1` failure (see `error.code`), `2` the command line must change: an invalid value (`USAGE_ERROR`), a missing target (`CONTEXT_MISSING`, with the choices in `error.details.choices`) or an ambiguous name (`AMBIGUOUS_TARGET`). `75` started but not finished yet (`NOT_READY`; run the same command again to keep waiting), `130` interrupted.
 - **Environment variables.** `SALEOR_ENV` fills `<env>`, the store a command acts on (a name from `saleor.yml` or a ref), in every command that takes it, except removals: `env stop` and `env remove` act only on what the command line names. `SALEOR_ORG` and `SALEOR_PROJECT` fill `--org` and `--project` in `init` and `env add`.
@@ -25,7 +25,7 @@ Commands read as `saleor <noun> <verb> [<env>]`:
 
 | Command | Does |
 | --- | --- |
-| `init` | Creates a project and its first store, and prints how to reach it: a project and sandbox in Saleor Cloud, or with `--local` an instance in Docker. Explicit names support retries. |
+| `init` | Creates a project and its first store, and prints how to reach it: a project and sandbox in Saleor Cloud, or with `--local` a store in Docker. Explicit names support retries. |
 | `env list` | Lists every store the CLI can reach, local and Cloud, with its state and URLs; a project's environments first, with their names. |
 | `env add <name>` | Sets up a store for a new project environment (Cloud by default, `--local` for Docker) and names it in `saleor.yml`. |
 | `env start`, `env stop` | Starts a local store (creating it from `saleor.yml` when needed) or stops it, keeping its data. |
@@ -93,11 +93,11 @@ pnpm saleor env stop local:demo
 pnpm saleor env start local:demo
 ```
 
-`init --local` prints the addresses and the admin login. Use `env start` to start an existing instance or print its connection details again. `env list` shows each store's state and URLs. Stopping preserves the database, media and login. To permanently remove them, use `env remove local:demo` and confirm (or pass `--force` for unattended use).
+`init --local` prints the addresses and the admin login. Use `env start` to start an existing store or print its connection details again. `env list` shows each store's state and URLs. Stopping preserves the database, media and login. To permanently remove them, use `env remove local:demo` and confirm (or pass `--force` for unattended use).
 
-The first setup downloads pinned images and migrates the database, which can take several minutes. `--timeout` limits the GraphQL readiness wait after setup; exit 75 means the containers are still starting and the same command can be retried. `env list` reports readiness without waiting. Ports are allocated automatically and published on loopback only: the API, the Dashboard and a Mailpit inbox for the store's emails. If another program takes one of them while the instance is stopped, `init --local` names the port; stop that program or add `--new-ports` (to `init --local` or `env start`). State and private Docker environment files live under `SALEOR_CONFIG_DIR` (by default `~/.config/saleor`); generated credentials use the CLI secret store, and Docker also needs private environment files to start the services. These stacks are for local development.
+The first setup downloads pinned images and migrates the database, which can take several minutes. `--timeout` limits the GraphQL readiness wait after setup; exit 75 means the containers are still starting and the same command can be retried. `env list` reports readiness without waiting. Ports are allocated automatically and published on loopback only: the API, the Dashboard and a Mailpit inbox for the store's emails. If another program takes one of them while the store is stopped, `init --local` names the port; stop that program or add `--new-ports` (to `init --local` or `env start`). State and private Docker environment files live under `SALEOR_CONFIG_DIR` (by default `~/.config/saleor`); generated credentials use the CLI secret store, and Docker also needs private environment files to start the services. These stacks are for local development.
 
-The API defaults to 3.23.41; `--saleor-version <major.minor.patch>` chooses another version for a new instance. The bundled Dashboard stays pinned to 3.23.0, so compatibility with other API series is not guaranteed. Existing instances keep their version; use a new name for another version. `--sample-data` can be added to an existing instance. If the first setup failed (for example, a version that does not exist), running `init --local` again with corrected options replaces them.
+The API defaults to 3.23.41; `--saleor-version <major.minor.patch>` chooses another version for a new store. The bundled Dashboard stays pinned to 3.23.0, so compatibility with other API series is not guaranteed. Existing stores keep their version; use a new name for another version. `--sample-data` can be added to an existing store. If the first setup failed (for example, a version that does not exist), running `init --local` again with corrected options replaces them.
 
 Cloud credentials authenticate with the Cloud API and cannot be used as store API credentials.
 
@@ -183,7 +183,7 @@ recreation or migration; starting does not silently upgrade the database.
 
 The environment definition is committed. Its binding to a local store lives
 in the user's CLI state, keyed by checkout path. Separate clones get separate
-instances. To adopt an existing named instance, run `init --local --name <name>`
+stores. To adopt an existing named store, run `init --local --name <name>`
 inside the project. Legacy string references remain supported.
 
 `env stop` and `env remove` act only on the environment they are given
@@ -191,7 +191,7 @@ inside the project. Legacy string references remain supported.
 local environment retains its definition so `env start` can recreate it; removing
 a Cloud environment removes its name from `saleor.yml` too. Removal still requires
 confirmation. `env add review --local` adds another local definition, with an
-instance named after the project.
+store named after the project.
 
 `storefront use staging` selects a project environment for the local storefront.
 This does not select a deployment target for Configurator or other components.

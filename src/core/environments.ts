@@ -39,7 +39,7 @@ import { envWord } from "./env-word.ts";
 
 // `saleor env`: the stores a project works with, wherever they run. The commands are
 // the same for every store; each one names its store with `<env>` (see
-// core/instances.ts) and hands the work to the source that runs it, as Rails hands a
+// core/stores.ts) and hands the work to the source that runs it, as Rails hands a
 // migration to whichever database adapter is configured. A source that cannot do
 // something (stop a Cloud environment) is refused with a usage error.
 
