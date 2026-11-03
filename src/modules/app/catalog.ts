@@ -165,8 +165,8 @@ export const resolveStoreApps = (
   });
 
 // App Store apps only run on Cloud stores, so a local store's apps are not looked up.
-export const catalogUrls = (instance: Store) =>
-  instance.kind === "local"
+export const catalogUrls = (store: Store) =>
+  store.kind === "local"
     ? Effect.succeed(new Set<string>())
     : storeApps.pipe(
         Effect.map(

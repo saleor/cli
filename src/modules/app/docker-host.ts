@@ -202,9 +202,9 @@ export const pointAtDocker = (
 
 // The manifest URL to give a store, what to do before installing so the app answers
 // it, and how to show that. Only a local store and an app on this computer need any.
-export const reachableManifest = (instance: Store, given: string) =>
+export const reachableManifest = (store: Store, given: string) =>
   Effect.gen(function* () {
-    if (instance.kind !== "local" || !isLoopback(given)) {
+    if (store.kind !== "local" || !isLoopback(given)) {
       return {
         env: null,
         manifestUrl: given,
@@ -218,7 +218,7 @@ export const reachableManifest = (instance: Store, given: string) =>
     return {
       env: Option.getOrNull(docker.env),
       manifestUrl: docker.manifestUrl,
-      prepare: pointAtDocker(docker, { manifestUrl: given, ref: instance.ref }),
+      prepare: pointAtDocker(docker, { manifestUrl: given, ref: store.ref }),
       summary: Option.match(docker.env, {
         onNone: () => [],
         onSome: ({ file, values }) => [

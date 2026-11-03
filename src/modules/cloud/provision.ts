@@ -27,12 +27,12 @@ import {
 import {
   describeEnvironment,
   describeProject,
-  type Environment,
+  type CloudEnvironment,
   type EnvironmentDetails,
-  findEnvironment,
-  findProject,
+  findCloudEnvironment,
+  findCloudProject,
   isSandbox,
-  type Project,
+  type CloudProject,
   serviceTypeLabel,
 } from "./lookup.ts";
 import {
@@ -118,7 +118,7 @@ export interface ProjectInput {
 
 // A new environment in a project that is not on the free plan may be billed, depending
 // on the plan. Said once, right before it is created; the CLI does not work out prices.
-export const billingNotice = (project: Project) =>
+export const billingNotice = (project: CloudProject) =>
   project.plan.type === "dev"
     ? undefined
     : `Depending on your plan (${project.plan.slug}), you might be charged for this environment.`;
@@ -175,7 +175,7 @@ const regionFor = (requested: Option.Option<string>) =>
 export const planProject = (input: ProjectInput) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
-    const existing = yield* findProject(input.organization, input.name);
+    const existing = yield* findCloudProject(input.organization, input.name);
 
     if (Option.isSome(existing)) {
       const project = existing.value;
@@ -237,7 +237,7 @@ export const applyProject = (input: ProjectInput, planned: ProjectPlan) =>
 
     // The create response is a smaller shape; read the project back as list returns it.
     const project = yield* Effect.flatMap(
-      findProject(input.organization, created.slug),
+      findCloudProject(input.organization, created.slug),
       Option.match({
         onNone: () =>
           fail(
@@ -261,7 +261,7 @@ export interface EnvironmentInput {
   readonly domainLabel: Option.Option<string>;
   readonly name: string;
   readonly organization: string;
-  readonly project: Project;
+  readonly project: CloudProject;
 }
 
 const compareVersions = (a: string, b: string) => {
@@ -280,7 +280,7 @@ const compareVersions = (a: string, b: string) => {
 };
 
 // The newest sandbox service that is not in maintenance.
-const pickSandboxService = (organization: string, project: Project) =>
+const pickSandboxService = (organization: string, project: CloudProject) =>
   Effect.gen(function* () {
     const api = yield* CloudApi;
 
@@ -314,7 +314,7 @@ const pickSandboxService = (organization: string, project: Project) =>
 // Only an explicit cap is a hard limit; included allowance may allow paid overage.
 export const requireSandboxCapacity = (
   organization: string,
-  project: Project
+  project: CloudProject
 ) => {
   const cap = project.plan.allowance?.sandboxes?.cap;
   const { count } = project.sandboxes;
@@ -344,7 +344,7 @@ const classifyCreateRejection = ({
   readonly error: ApiStatusError;
   readonly domainLabel: Option.Option<string>;
   readonly organization: string;
-  readonly project: Project;
+  readonly project: CloudProject;
 }): Effect.Effect<never, ApiStatusError | CliFailure> => {
   const text = error.status === 400 ? flattenMessages(error.body) : "";
 
@@ -438,7 +438,11 @@ export const planEnvironment = (input: EnvironmentInput) =>
   Effect.gen(function* () {
     // `--env` and the picker give a name or a key; both find the same environment.
     const existing = Option.getOrUndefined(
-      yield* findEnvironment(input.organization, input.name, input.project.slug)
+      yield* findCloudEnvironment(
+        input.organization,
+        input.name,
+        input.project.slug
+      )
     );
 
     if (existing !== undefined) {
@@ -527,7 +531,7 @@ export const applyEnvironment = (
 // that is waited out within the same budget.
 export const deleteEnvironment = (
   organization: string,
-  env: Environment,
+  env: CloudEnvironment,
   deadline: Deadline
 ) =>
   Effect.gen(function* () {
@@ -566,7 +570,7 @@ export const deleteEnvironment = (
         break;
       }
 
-      if (Option.isNone(yield* findEnvironment(organization, env.key))) {
+      if (Option.isNone(yield* findCloudEnvironment(organization, env.key))) {
         return;
       }
 

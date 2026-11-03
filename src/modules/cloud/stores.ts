@@ -15,9 +15,9 @@ import { deviceLogin } from "./auth/device-login.ts";
 import {
   describeEnvironment,
   environmentTarget,
-  findEnvironment,
+  findCloudEnvironment,
   isSandbox,
-  listEnvironments,
+  listCloudEnvironments,
   listOrganizations,
   serviceTypeLabel,
 } from "./lookup.ts";
@@ -31,7 +31,7 @@ const list = Effect.gen(function* () {
   const organizations = yield* listOrganizations;
 
   const environments = yield* Effect.forEach(organizations, (org) =>
-    Effect.map(listEnvironments(org.slug), (envs) =>
+    Effect.map(listCloudEnvironments(org.slug), (envs) =>
       envs.map((env): Store => describeEnvironment(org.slug, env))
     )
   );
@@ -63,7 +63,7 @@ const find = (id: string) =>
     const { environment, organization } = parsed.value;
 
     return Option.map(
-      yield* findEnvironment(organization, environment),
+      yield* findCloudEnvironment(organization, environment),
       (env): Store => describeEnvironment(organization, env)
     );
   });
@@ -81,7 +81,7 @@ const remove = (id: string, { timeout }: { readonly timeout: number }) =>
     }
 
     const { environment, organization } = parsed.value;
-    const found = yield* findEnvironment(organization, environment);
+    const found = yield* findCloudEnvironment(organization, environment);
 
     if (Option.isNone(found)) {
       return absent({

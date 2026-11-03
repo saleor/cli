@@ -24,15 +24,12 @@ import { fromAnswers } from "./blocks.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { review } from "./describe.ts";
 import { type Document, parseYamlDocument } from "./document.ts";
+import { askAnswers, chooseAgent, describeAsked, draftWith } from "./draft.ts";
 import {
-  askAnswers,
-  type Author,
-  chooseAuthor,
-  describeAsked,
-  draftWith,
-  installedAuthors,
-  type Session,
-} from "./draft.ts";
+  type AgentRun,
+  type HeadlessAgent,
+  installedHeadlessAgents,
+} from "../../core/agent-run.ts";
 import { pull } from "./engine.ts";
 import { reviewText, writeConfig } from "./file-output.ts";
 import { mergeConfig, NEW_STORE } from "./merge.ts";
@@ -53,7 +50,7 @@ type Source =
       readonly by: string;
       readonly config: Config;
       // The coding agent's run, when one drafted it.
-      readonly session: Session | undefined;
+      readonly session: AgentRun | undefined;
     }
   | { readonly kind: "copy"; readonly ref: string }
   // Saleor's sample data, loaded into the store; the file is pulled from it.
@@ -63,16 +60,16 @@ type Source =
   | {
       readonly kind: "later";
       readonly description: string;
-      readonly who: Option.Option<Author>;
+      readonly who: Option.Option<HeadlessAgent>;
     };
 
 type Drafted = Extract<Source, { readonly kind: "drafted" }>;
 
-const drafted = (author: Author, description: string) =>
+const drafted = (agent: HeadlessAgent, description: string) =>
   Effect.map(
-    draftWith(author, { base: NEW_STORE, description, kind: "new" }),
+    draftWith(agent, { base: NEW_STORE, description, kind: "new" }),
     ({ config, session }): Drafted => ({
-      by: `drafted by ${author.label} from “${description}”`,
+      by: `drafted by ${agent.label} from “${description}”`,
       config,
       kind: "drafted",
       session,
@@ -81,12 +78,12 @@ const drafted = (author: Author, description: string) =>
 
 // Drafts (or, without a coding agent, asks a few questions), shows the review, and
 // lets the person accept it or try again. Returns the accepted configuration.
-const draftInteractively = (author: Option.Option<Author>) =>
+const draftInteractively = (agent: Option.Option<HeadlessAgent>) =>
   Effect.gen(function* () {
     for (;;) {
-      const source: Drafted = Option.isSome(author)
+      const source: Drafted = Option.isSome(agent)
         ? yield* drafted(
-            author.value,
+            agent.value,
             yield* describeAsked(
               "Describe the store: what it sells, where, and how"
             )
@@ -111,7 +108,7 @@ const draftInteractively = (author: Option.Option<Author>) =>
         choices: [
           { label: "Use this configuration", value: "use" },
           {
-            label: Option.isSome(author)
+            label: Option.isSome(agent)
               ? "Describe it differently"
               : "Answer again",
             value: "again",
@@ -139,13 +136,13 @@ const chooseSource = (input: {
 
     if (Option.isSome(input.describe)) {
       const description = input.describe.value;
-      const author = yield* chooseAuthor(input.with);
+      const agent = yield* chooseAgent(input.with);
 
-      if (Option.isNone(author) || input.dryRun) {
-        return Option.some<Source>({ description, kind: "later", who: author });
+      if (Option.isNone(agent) || input.dryRun) {
+        return Option.some<Source>({ description, kind: "later", who: agent });
       }
 
-      return Option.some(yield* drafted(author.value, description));
+      return Option.some(yield* drafted(agent.value, description));
     }
 
     if (input.dryRun || !(yield* isInteractive)) {
@@ -154,13 +151,13 @@ const chooseSource = (input: {
 
     // With a coding agent, a description; without one, a few questions instead.
     // Which agent drafts is asked only once a description is wanted.
-    const authors = installedAuthors();
+    const agents = installedHeadlessAgents();
 
     const choice = yield* askSelect({
       choices: [
-        authors.length > 0
+        agents.length > 0
           ? {
-              hint: `drafted by ${authors.map((each) => each.label).join(" or ")}`,
+              hint: `drafted by ${agents.map((each) => each.label).join(" or ")}`,
               label: "Describe it in plain words",
               value: "describe",
             }
@@ -192,7 +189,7 @@ const chooseSource = (input: {
 
     return Option.some<Source>(
       yield* draftInteractively(
-        choice === "describe" ? yield* chooseAuthor(input.with) : Option.none()
+        choice === "describe" ? yield* chooseAgent(input.with) : Option.none()
       )
     );
   });
@@ -211,8 +208,8 @@ const describeSource = (source: Source) => {
       return Option.match(source.who, {
         onNone: () =>
           `“${source.description}”, written by the agent running this CLI`,
-        onSome: (author) =>
-          `drafted by ${author.label} from “${source.description}”`,
+        onSome: (agent) =>
+          `drafted by ${agent.label} from “${source.description}”`,
       });
     }
 

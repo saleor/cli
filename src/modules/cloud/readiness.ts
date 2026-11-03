@@ -14,7 +14,11 @@ import {
   listEnvironmentTaskLists,
   retrieveTaskStatus,
 } from "./api/contract.ts";
-import { type Environment, findEnvironment, graphqlUrlOf } from "./lookup.ts";
+import {
+  type CloudEnvironment,
+  findCloudEnvironment,
+  graphqlUrlOf,
+} from "./lookup.ts";
 
 const isFailedStatus = (status: string) =>
   status === "FAILED" || status === "TIMED_OUT";
@@ -158,7 +162,7 @@ export const waitUntilReady = ({
         });
       }
 
-      const found = yield* findEnvironment(organization, envKey);
+      const found = yield* findCloudEnvironment(organization, envKey);
 
       if (Option.isNone(found)) {
         return yield* fail(
@@ -167,7 +171,7 @@ export const waitUntilReady = ({
         );
       }
 
-      const env: Environment = found.value;
+      const env: CloudEnvironment = found.value;
       const graphqlUrl = graphqlUrlOf(env);
 
       if (
@@ -202,7 +206,7 @@ export const waitUntilGone = (
     const beat = heartbeat();
 
     for (;;) {
-      if (Option.isNone(yield* findEnvironment(organization, envKey))) {
+      if (Option.isNone(yield* findCloudEnvironment(organization, envKey))) {
         return;
       }
 

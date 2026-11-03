@@ -2,7 +2,7 @@ import { stringify } from "yaml";
 import { fromAnswers } from "./blocks.ts";
 
 const EXAMPLE = stringify(
-  fromAnswers({ kind: "apparel", region: "us", samples: true })
+  fromAnswers({ catalog: "apparel", region: "us", samples: true })
 );
 
 export const GUIDE = `# Writing a Saleor configuration (config.yml)

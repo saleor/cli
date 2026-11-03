@@ -6,9 +6,9 @@ import { describe, expect, it } from "vitest";
 import { stringify } from "yaml";
 import {
   fromAnswers,
-  KINDS,
+  CATALOGS,
   REGIONS,
-  type KindKey,
+  type CatalogKey,
   type RegionKey,
 } from "./blocks.ts";
 import { applies, fileChanges, review, sentence } from "./describe.ts";
@@ -21,7 +21,7 @@ const THREE_PRODUCTS = /^3: Everyday Tee/;
 const temp = () => mkdtempSync(path.join(os.tmpdir(), "saleor-config-test-"));
 
 describe("building blocks", () => {
-  const kinds: readonly KindKey[] = [
+  const catalogs: readonly CatalogKey[] = [
     "apparel",
     "digital",
     "electronics",
@@ -37,19 +37,19 @@ describe("building blocks", () => {
     "worldwide",
   ];
 
-  const combinations = kinds.flatMap((kind) =>
+  const combinations = catalogs.flatMap((catalog) =>
     regions.flatMap((region) =>
-      [true, false].map((samples) => ({ kind, region, samples }))
+      [true, false].map((samples) => ({ catalog, region, samples }))
     )
   );
 
-  it("covers every kind and region", () => {
-    expect([...kinds].sort()).toStrictEqual(Object.keys(KINDS).sort());
+  it("covers every catalog and region", () => {
+    expect([...catalogs].sort()).toStrictEqual(Object.keys(CATALOGS).sort());
     expect([...regions].sort()).toStrictEqual(Object.keys(REGIONS).sort());
   });
 
   it.each(combinations)(
-    "$kind in $region (samples: $samples) passes the engine's checks",
+    "$catalog in $region (samples: $samples) passes the engine's checks",
     async (answers) => {
       const file = path.join(temp(), "config.yml");
       writeFileSync(
@@ -196,7 +196,11 @@ describe("differences", () => {
   it("describes a configuration and an edit in words", () => {
     const config = mergeConfig(
       NEW_STORE,
-      fromAnswers({ kind: "apparel", region: "north-america", samples: true })
+      fromAnswers({
+        catalog: "apparel",
+        region: "north-america",
+        samples: true,
+      })
     );
 
     expect(Object.fromEntries(review(config))).toMatchObject({

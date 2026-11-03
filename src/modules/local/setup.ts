@@ -10,7 +10,7 @@ import { defineSetup } from "../../core/setup.ts";
 import { SALEOR_VERSION } from "./compose.ts";
 import { type LocalUpOptions, localTarget, planUp, up } from "./lifecycle.ts";
 import { readConfig } from "./state.ts";
-import { instance } from "./targets.ts";
+import { localStoreName } from "./targets.ts";
 
 export const connection = (data: {
   readonly graphqlUrl: string;
@@ -26,9 +26,9 @@ export const connection = (data: {
     data.admin.password === null ? "" : `  Password:    ${data.admin.password}`,
   ].filter(Boolean);
 
-const newInstance = instance.input({ creates: true });
+const newStore = localStoreName.input({ creates: true });
 
-// Create a local store; an explicitly named instance can resume an earlier setup.
+// Create a local store; an explicitly named store can resume an earlier setup.
 export const localSetup = defineSetup({
   example: {
     command: "saleor init --local",
@@ -37,7 +37,7 @@ export const localSetup = defineSetup({
   flag: "local",
   hint: "Docker on this computer, no login needed",
   inputs: {
-    name: newInstance,
+    name: newStore,
     newPorts: option.boolean(
       "new-ports",
       "Move a local store to new free ports, for when another program took one. Its URLs change; data is kept."
@@ -54,7 +54,7 @@ export const localSetup = defineSetup({
   label: "Docker",
   name: "local",
   // Local names are shared by every project on this computer, so an environment's
-  // instance is named after its project too.
+  // store is named after its project too.
   onboarding: {
     hint: "Docker or self-hosted. No login needed",
     label: "Local / self-hosted",
@@ -77,7 +77,7 @@ export const localSetup = defineSetup({
         ? projectLocal()
         : Option.none();
 
-      const name = yield* newInstance.resolve(
+      const name = yield* newStore.resolve(
         Option.orElse(input.name, () =>
           Option.map(context, (value) => value.name)
         ),

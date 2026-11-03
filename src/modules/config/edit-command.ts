@@ -16,7 +16,7 @@ import { notice, shown } from "../../core/output.ts";
 import { findProject } from "../../core/project.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { fileChanges, sentence } from "./describe.ts";
-import { chooseAuthor, draftWith } from "./draft.ts";
+import { chooseAgent, draftWith } from "./draft.ts";
 import { existingConfig, validateFile } from "./engine.ts";
 import { writeConfig } from "./file-output.ts";
 import { configFile, connect } from "./store.ts";
@@ -85,13 +85,13 @@ const offerDeploy = (file: string) =>
     return [`✓ ${words.headline}`, words.text].filter(Boolean);
   });
 
-const confirmEdit = (file: string, author: string, lines: readonly string[]) =>
+const confirmEdit = (file: string, agent: string, lines: readonly string[]) =>
   Effect.gen(function* () {
     if (yield* isInteractive) {
       yield* notice(
         [
           "",
-          `${author} suggests:`,
+          `${agent} suggests:`,
           ...(lines.length > 0
             ? lines.map((line) => `  • ${line}`)
             : ["  (no changes)"]),
@@ -134,9 +134,9 @@ export const editCommand = config.ensure({
       const file = yield* existingConfig(configFile(input.config));
       const current = yield* validateFile(file);
       const interactive = yield* isInteractive;
-      const author = yield* chooseAuthor(input.with);
+      const agent = yield* chooseAgent(input.with);
 
-      if (Option.isNone(author)) {
+      if (Option.isNone(agent)) {
         return yield* fail(
           "CONTEXT_MISSING",
           interactive
@@ -161,7 +161,7 @@ export const editCommand = config.ensure({
           action: "update",
           apply: Effect.die("dry run"),
           details: {
-            author: author.value.id,
+            agent: agent.value.id,
             config: shown(file),
             description,
           },
@@ -169,14 +169,14 @@ export const editCommand = config.ensure({
           state: "exists",
           summary: [
             ["File", shown(file)],
-            ["Drafted by", author.value.label],
+            ["Drafted by", agent.value.label],
             ["Change", description],
           ],
           target: fileTarget(file),
         } satisfies Planned<never, unknown>;
       }
 
-      const { config: next, session } = yield* draftWith(author.value, {
+      const { config: next, session } = yield* draftWith(agent.value, {
         current,
         description,
         kind: "edit",
@@ -184,7 +184,7 @@ export const editCommand = config.ensure({
 
       const lines = fileChanges(current, next);
 
-      yield* confirmEdit(file, author.value.label, lines);
+      yield* confirmEdit(file, agent.value.label, lines);
 
       return {
         action: lines.length === 0 ? "reuse" : "update",

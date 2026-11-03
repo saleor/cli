@@ -166,4 +166,4 @@ export const marketFragment = (market: Market, shipping: boolean): Fragment => {
   };
 };
 
-// ── Kinds of store: attributes, product types, categories, samples ───────
+// ── Catalogs: attributes, product types, categories, samples ─────────────

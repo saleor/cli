@@ -351,7 +351,7 @@ export const up = (options: LocalUpOptions) =>
           if (isPast(deadline)) {
             return yield* notReady(
               "the local GraphQL API is not responding yet.",
-              { instance: localStore(config, "starting") },
+              { store: localStore(config, "starting") },
               "Docker"
             );
           }
@@ -403,7 +403,7 @@ export const list = Effect.gen(function* () {
     )
   );
 
-  const instances = yield* Effect.forEach(names, (name) =>
+  const stores = yield* Effect.forEach(names, (name) =>
     Effect.gen(function* () {
       const config = yield* readConfig(name);
 
@@ -421,7 +421,7 @@ export const list = Effect.gen(function* () {
     })
   );
 
-  return instances.flat();
+  return stores.flat();
 });
 
 // Read-only: what `up` would do with these options.

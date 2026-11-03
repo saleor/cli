@@ -861,7 +861,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(text.stdout).toContain("saleor env remove");
   });
 
-  it("shows Cloud environments with the shared instance fields", async () => {
+  it("shows Cloud environments with the shared store fields", async () => {
     resourceRoutes([environment()]);
     const [listed] = (await cli(["env", "list"])).data.data;
 
@@ -1155,7 +1155,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
   });
 
   it.each([true, false])(
-    "lists a stopped instance, and stopping it again does nothing (engine=%s)",
+    "lists a stopped store, and stopping it again does nothing (engine=%s)",
     async (engine) => {
       // A Docker that runs no containers, with its engine up or down.
       const fakeBin = path.join(cwd, "fake-bin");

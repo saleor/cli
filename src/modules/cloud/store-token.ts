@@ -20,7 +20,7 @@ const loginToken = Effect.gen(function* () {
   );
 });
 
-export const cloudAppToken = (instance: Store) =>
+export const cloudAppToken = (store: Store) =>
   Effect.gen(function* () {
     const login = yield* loginToken;
 
@@ -29,7 +29,7 @@ export const cloudAppToken = (instance: Store) =>
       return Option.none<string>();
     }
 
-    return yield* cliAppToken(instance, {
+    return yield* cliAppToken(store, {
       headers: { "Authorization-Bearer": login.value },
       label: "your Saleor Cloud login",
       otherwise: "it needs a token",
@@ -40,4 +40,4 @@ export const cloudAppToken = (instance: Store) =>
 // staff user for the account, and Saleor reads it the same way in `Authorization` as
 // in `Authorization-Bearer`. Used only where an app token cannot do (installing and
 // creating apps), since it lasts less than the app's token.
-export const cloudLoginToken = (_instance: Store) => loginToken;
+export const cloudLoginToken = () => loginToken;

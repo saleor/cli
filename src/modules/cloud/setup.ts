@@ -13,7 +13,7 @@ import {
   describeEnvironment,
   type EnvironmentDetails,
   environmentTarget,
-  type Project,
+  type CloudProject,
   projectChoices,
 } from "./lookup.ts";
 import {
@@ -28,7 +28,12 @@ import {
   type ProjectInput,
   requireSandboxCapacity,
 } from "./provision.ts";
-import { environment, organizationOf, orgInput, project } from "./targets.ts";
+import {
+  cloudEnvironment,
+  cloudProject,
+  organizationOf,
+  orgInput,
+} from "./targets.ts";
 import { saleorMcp } from "./mcp.ts";
 
 const stateText: Record<StoreState, string> = {
@@ -124,8 +129,8 @@ const environmentPlan = (
   } satisfies Planned<unknown, unknown>;
 };
 
-const projectInput = project.input({ creates: true });
-const envInput = environment.input({ creates: true });
+const projectInput = cloudProject.input({ creates: true });
+const envInput = cloudEnvironment.input({ creates: true });
 
 type EnsuredEnvironment = Ensured<EnvironmentDetails & { created: boolean }>;
 
@@ -216,7 +221,7 @@ export const cloudSetup = defineSetup({
         create: sandboxName,
       });
 
-      const envRequest = (inProject: Project): EnvironmentInput => ({
+      const envRequest = (inProject: CloudProject): EnvironmentInput => ({
         domainLabel: input.domainLabel,
         name: envName,
         organization,
