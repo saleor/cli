@@ -4,14 +4,11 @@ import { CodingAgents } from "./agents.ts";
 import { askConfirm, askSelect } from "./interaction.ts";
 import { onboardingSection } from "./onboarding-presentation.ts";
 import { notice, withProgress } from "./output.ts";
+import type { AgentTool } from "./setup.ts";
 
-// Prototype backend: show the intended installation experience until MCP v2's
-// app installation and agent authorization are wired in. No configuration writes.
-const mockMcpInstallation = Effect.sleep("400 millis");
-
-// Cloud eligibility comes from the onboarding path after successful login. Local
-// onboarding never offers the Cloud MCP, even if a saved Cloud session exists.
-export const setupCodingAgent = (cloud: boolean) =>
+// Skills for any coding agent, and the tool the chosen onboarding path offers besides,
+// if any: only the path picked decides, never a saved login.
+export const setupCodingAgent = (tool: AgentTool | undefined) =>
   Effect.gen(function* () {
     yield* onboardingSection(
       "02",
@@ -23,17 +20,14 @@ export const setupCodingAgent = (cloud: boolean) =>
       "Install Saleor skills in your coding agent?"
     );
 
-    if (cloud) {
-      yield* notice(
-        "Saleor MCP connects your coding agent to your Saleor Cloud store."
-      );
+    if (tool !== undefined) {
+      yield* notice(tool.offer);
     }
 
-    const mcp =
-      cloud &&
-      (yield* askConfirm("Install Saleor MCP in your coding agent?", false));
+    const withTool =
+      tool !== undefined && (yield* askConfirm(tool.question, false));
 
-    if (!(skills || mcp)) {
+    if (!(skills || withTool)) {
       return true;
     }
 
@@ -110,16 +104,8 @@ export const setupCodingAgent = (cloud: boolean) =>
       }
     }
 
-    if (mcp) {
-      yield* withProgress(
-        `Installing Saleor MCP for ${agent.label}…`,
-        "Saleor MCP is ready.",
-        mockMcpInstallation
-      );
-
-      yield* notice(
-        `Saleor MCP is configured for ${agent.label}.\nRestart ${agent.label} to connect to Saleor Cloud.`
-      );
+    if (withTool && tool !== undefined) {
+      yield* tool.install(agent.label);
     }
 
     return true;

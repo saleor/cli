@@ -1,37 +1,21 @@
-import { Effect, Option, Predicate, Schema } from "effect";
-import { existsSync, readFileSync } from "node:fs";
+import { Effect, Option, Predicate } from "effect";
 import path from "node:path";
-import { parseDocument } from "yaml";
 import type { Component } from "./manifest.ts";
 import {
   configPath,
   editManifest,
   findProject,
   type Project,
-  projectAt,
-  slugify,
 } from "./project.ts";
+import { freeName } from "./names.ts";
 
 // The components saleor.yml lists (see manifest.ts): where they are, and the
 // configuration files they bring.
 
-// YAML text through a schema; none when either rejects it.
-const decodeYaml = <S extends Schema.ConstraintDecoder<unknown>>(
-  schema: S,
-  text: string
-): Option.Option<S["Type"]> => {
-  try {
-    return Schema.decodeUnknownOption(schema)(parseDocument(text).toJS());
-  } catch {
-    return Option.none();
-  }
-};
-
-// Where the project's storefront is, relative to the root: the first storefront
-// component, else the conventional folder.
-export const storefrontPath = (project: Project) =>
-  project.components.find((each) => each.kind === "storefront")?.path ??
-  "storefront";
+// Where the project's component of this kind is, relative to the root: the first one
+// saleor.yml lists, else the conventional folder, named after the kind.
+export const componentPath = (project: Project, kind: string) =>
+  project.components.find((each) => each.kind === kind)?.path ?? kind;
 
 export interface ConfigFile {
   // The component it belongs to; none for the project's own configuration.
@@ -58,19 +42,6 @@ export const configFiles = (project: Project): readonly ConfigFile[] => [
 
 const portable = (relative: string) => relative.split(path.sep).join("/");
 
-// A name from the folder, with a suffix when another component has it.
-const freeName = (components: readonly Component[], folder: string) => {
-  const taken = new Set(components.map((each) => each.name));
-  const base = slugify(folder);
-  let name = base;
-
-  for (let n = 2; taken.has(name); n += 1) {
-    name = `${base}-${n}`;
-  }
-
-  return name;
-};
-
 // Records a component in the project's saleor.yml: under the name it already has
 // when one is listed at the same path, else a name from its folder. A folder outside
 // the project, or a folder with no project, is not recorded. Returns the name.
@@ -95,7 +66,11 @@ export const recordComponent = (
     const existing = components.find((each) => each.path === relative);
 
     const name =
-      existing?.name ?? freeName(components, path.basename(relative));
+      existing?.name ??
+      freeName(
+        components.map((each) => each.name),
+        path.basename(relative)
+      );
 
     // A configuration not found this time stays as recorded.
     const config = component.config ?? existing?.config;
@@ -136,38 +111,11 @@ export const recordComponent = (
     return Option.some(name);
   });
 
-// The channel a storefront in this project should show: the configuration's first
-// channel other than Saleor's default, when there is a configuration.
-const ChannelsSchema = Schema.Struct({
-  channels: Schema.optional(
-    Schema.Array(Schema.Struct({ slug: Schema.optional(Schema.String) }))
-  ),
-});
-
-export const projectChannel = (root: string): Option.Option<string> =>
-  Option.flatMap(projectAt(root), (project) => {
-    if (!existsSync(configPath(project))) {
-      return Option.none();
-    }
-
-    return Option.flatMap(
-      decodeYaml(ChannelsSchema, readFileSync(configPath(project), "utf-8")),
-      (config) => {
-        const slugs = (config.channels ?? []).flatMap((channel) =>
-          channel.slug === undefined ? [] : [channel.slug]
-        );
-
-        return Option.fromUndefinedOr(
-          slugs.find((slug) => slug !== "default-channel") ?? slugs[0]
-        );
-      }
-    );
-  });
-
-// Conventional component paths are relative to the project, even from a nested cwd.
-// Explicit paths remain relative to the caller.
-export const storefrontFolder = (
+// Where a component of this kind is: the explicit folder, relative to the caller; else
+// the project's, relative to its root, even from a nested folder; else `standalone`.
+export const componentFolder = (
   explicit: Option.Option<string>,
+  kind: string,
   standalone: string
 ): string =>
   Option.match(explicit, {
@@ -175,7 +123,7 @@ export const storefrontFolder = (
       Option.match(findProject(), {
         onNone: () => path.resolve(standalone),
         onSome: (project) =>
-          path.resolve(project.root, storefrontPath(project)),
+          path.resolve(project.root, componentPath(project, kind)),
       }),
     onSome: (dir) => path.resolve(dir),
   });

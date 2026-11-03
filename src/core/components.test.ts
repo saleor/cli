@@ -10,11 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { parse } from "yaml";
-import {
-  configFiles,
-  recordComponent,
-  storefrontFolder,
-} from "./components.ts";
+import { configFiles, recordComponent, componentFolder } from "./components.ts";
 import { decodeManifest } from "./manifest.ts";
 import { projectAt } from "./project.ts";
 
@@ -71,7 +67,7 @@ it("records a component by its folder, keeping a configuration a later record do
 
   // The storefront is found where saleor.yml says, from anywhere in the project.
   vi.spyOn(process, "cwd").mockReturnValue(root);
-  expect(storefrontFolder(Option.none(), ".")).toBe(dir);
+  expect(componentFolder(Option.none(), "storefront", ".")).toBe(dir);
 });
 
 it("moves the old storefront key into components without losing its folder", async () => {

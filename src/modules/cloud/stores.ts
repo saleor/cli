@@ -5,7 +5,7 @@ import {
   type Planned,
 } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
-import type { Instance, InstanceSource } from "../../core/instance.ts";
+import type { Store, StoreSource } from "../../core/store.ts";
 import { notice } from "../../core/output.ts";
 import { deadlineIn } from "../../core/readiness.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
@@ -15,15 +15,15 @@ import { deviceLogin } from "./auth/device-login.ts";
 import {
   describeEnvironment,
   environmentTarget,
-  findEnvironment,
+  findCloudEnvironment,
   isSandbox,
-  listEnvironments,
+  listCloudEnvironments,
   listOrganizations,
   serviceTypeLabel,
 } from "./lookup.ts";
 import { deleteEnvironment } from "./provision.ts";
 import { waitForTask } from "./readiness.ts";
-import { cloudAccess, cloudLogin } from "./store-access.ts";
+import { cloudAppToken, cloudLoginToken } from "./store-token.ts";
 
 // Cloud environments as stores other modules can connect to, in every organization
 // the account belongs to. Refs are `cloud:<org>/<environment key>`.
@@ -31,8 +31,8 @@ const list = Effect.gen(function* () {
   const organizations = yield* listOrganizations;
 
   const environments = yield* Effect.forEach(organizations, (org) =>
-    Effect.map(listEnvironments(org.slug), (envs) =>
-      envs.map((env): Instance => describeEnvironment(org.slug, env))
+    Effect.map(listCloudEnvironments(org.slug), (envs) =>
+      envs.map((env): Store => describeEnvironment(org.slug, env))
     )
   );
 
@@ -57,14 +57,14 @@ const find = (id: string) =>
     const parsed = parse(id);
 
     if (Option.isNone(parsed)) {
-      return Option.none<Instance>();
+      return Option.none<Store>();
     }
 
     const { environment, organization } = parsed.value;
 
     return Option.map(
-      yield* findEnvironment(organization, environment),
-      (env): Instance => describeEnvironment(organization, env)
+      yield* findCloudEnvironment(organization, environment),
+      (env): Store => describeEnvironment(organization, env)
     );
   });
 
@@ -81,7 +81,7 @@ const remove = (id: string, { timeout }: { readonly timeout: number }) =>
     }
 
     const { environment, organization } = parsed.value;
-    const found = yield* findEnvironment(organization, environment);
+    const found = yield* findCloudEnvironment(organization, environment);
 
     if (Option.isNone(found)) {
       return absent({
@@ -120,7 +120,7 @@ const remove = (id: string, { timeout }: { readonly timeout: number }) =>
   });
 
 // Restores the environment from Saleor Cloud's populated template, then waits for it.
-const populate = (environment: Instance) =>
+const populate = (environment: Store) =>
   Effect.gen(function* () {
     const [organization = "", key = ""] = environment.ref
       .slice("cloud:".length)
@@ -143,17 +143,17 @@ const populate = (environment: Instance) =>
     }
   });
 
-export const cloudInstances = {
-  access: cloudAccess,
-  staffAccess: cloudLogin,
+export const cloudStores = {
   find,
   kind: "cloud",
   label: "Saleor Cloud",
   list,
-  populate,
-  remove,
-  signIn: Effect.gen(function* () {
+  login: Effect.gen(function* () {
     yield* deviceLogin(true);
     yield* notice(`✓ Logged in as ${(yield* currentUser).email}.`);
   }),
-} satisfies InstanceSource<unknown>;
+  populate,
+  remove,
+  staffToken: cloudLoginToken,
+  token: cloudAppToken,
+} satisfies StoreSource<unknown>;

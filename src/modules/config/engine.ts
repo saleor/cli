@@ -7,10 +7,11 @@ import type {
 } from "@saleor/configurator";
 import { Effect } from "effect";
 import { existsSync } from "node:fs";
-import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 import { isDocument, isJsonArray, type Json } from "./document.ts";
+import type { StoreClient } from "../../core/store-api.ts";
+import { shown } from "../../core/output.ts";
 
 // Configurator's public library, run in-process and loaded on first use. Commands
 // that do not touch configuration pay nothing for it at startup.
@@ -19,8 +20,6 @@ const engineModule = Effect.promise(
 );
 
 export const DEFAULT_CONFIG = "config.yml";
-
-export const shown = (file: string) => path.relative(process.cwd(), file);
 
 // The engine's own suggestions name the standalone tool's flags (--token), so each
 // code gets the CLI's suggestion instead.
@@ -91,14 +90,16 @@ export const validateFile = (file: string) =>
 export const serialize = (config: SaleorConfig) =>
   Effect.map(engineModule, (engine) => engine.serialize(config));
 
-export interface Store {
-  readonly token: string;
-  readonly url: string;
-}
+// What the engine connects with: the store's API and a token for it.
+const connection = (client: StoreClient) => ({
+  token: client.token,
+  url: client.store.graphqlUrl,
+});
 
-export const pull = (store: Store) =>
+export const pull = (client: StoreClient) =>
   attempt(
-    async (engine) => await engine.createConfigurator(store).introspect()
+    async (engine) =>
+      await engine.createConfigurator(connection(client)).introspect()
   );
 
 // The engine's comparators report differences that are not changes: a field the file
@@ -163,18 +164,23 @@ export const meaningful = (summary: DiffSummary): DiffSummary => {
   };
 };
 
-export const diff = (store: Store, file: string) =>
+export const diff = (client: StoreClient, file: string) =>
   Effect.map(
     attempt(
-      async (engine) => await engine.createConfigurator(store).diff(file)
+      async (engine) =>
+        await engine.createConfigurator(connection(client)).diff(file)
     ),
     meaningful
   );
 
-export const deploy = (store: Store, file: string, summary: DiffSummary) =>
+export const deploy = (
+  client: StoreClient,
+  file: string,
+  summary: DiffSummary
+) =>
   attempt(
     async (engine) =>
-      await engine.createConfigurator(store).deploy(file, summary)
+      await engine.createConfigurator(connection(client)).deploy(file, summary)
   );
 
 export const supportedSaleor = Effect.map(

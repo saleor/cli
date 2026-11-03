@@ -13,7 +13,7 @@ import { ActionContext, type ActionKind, recordAnswer } from "./invocation.ts";
 import { detectAgent } from "./output.ts";
 
 // Every resource a command acts on (an organization, a project, an environment, a
-// local instance) is a target, and every target is resolved the same way:
+// local store) is a target, and every target is resolved the same way:
 //
 //   1. the flag or argument, if given;
 //   2. its environment variable, except in `remove` actions, which never act on

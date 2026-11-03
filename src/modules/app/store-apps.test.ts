@@ -3,7 +3,7 @@ import { FetchHttpClient } from "effect/http";
 import { createServer, type Server } from "node:http";
 import { text } from "node:stream/consumers";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { instance } from "../../core/instance.ts";
+import { storeFrom } from "../../core/store.ts";
 import { Prompts } from "../../core/interaction.ts";
 import { ActionContext, type Answer } from "../../core/invocation.ts";
 import { OutputFlag } from "../../core/output.ts";
@@ -185,8 +185,8 @@ const scenario = async (ticked: readonly string[], apply = false) => {
   const multiselect = vi.fn(async () => ticked);
   const answers: Answer[] = [];
 
-  const store = {
-    instance: instance({
+  const client = {
+    store: storeFrom({
       dashboardUrl: "https://example.test/dashboard/",
       graphqlUrl: `http://127.0.0.1:${port}/graphql/`,
       kind: "cloud",
@@ -200,7 +200,12 @@ const scenario = async (ticked: readonly string[], apply = false) => {
 
   const outcome = await Effect.runPromise(
     Effect.gen(function* () {
-      const planned = yield* planStoreApps(store, Option.none(), deadlineIn(5));
+      const planned = yield* planStoreApps(
+        client,
+        Option.none(),
+        deadlineIn(5)
+      );
+
       const done = apply ? yield* planned.apply : undefined;
 
       return { done, planned };

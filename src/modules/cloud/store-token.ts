@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
 import { cliAppToken } from "../../core/cli-app.ts";
-import type { Instance } from "../../core/instance.ts";
+import type { Store } from "../../core/store.ts";
 import { Session } from "./auth/session.ts";
 
 // A token for a Cloud store's own API, made with the Cloud login, as the previous
@@ -20,7 +20,7 @@ const loginToken = Effect.gen(function* () {
   );
 });
 
-export const cloudAccess = (instance: Instance) =>
+export const cloudAppToken = (store: Store) =>
   Effect.gen(function* () {
     const login = yield* loginToken;
 
@@ -29,7 +29,7 @@ export const cloudAccess = (instance: Instance) =>
       return Option.none<string>();
     }
 
-    return yield* cliAppToken(instance, {
+    return yield* cliAppToken(store, {
       headers: { "Authorization-Bearer": login.value },
       label: "your Saleor Cloud login",
       otherwise: "it needs a token",
@@ -40,4 +40,4 @@ export const cloudAccess = (instance: Instance) =>
 // staff user for the account, and Saleor reads it the same way in `Authorization` as
 // in `Authorization-Bearer`. Used only where an app token cannot do (installing and
 // creating apps), since it lasts less than the app's token.
-export const cloudLogin = (_instance: Instance) => loginToken;
+export const cloudLoginToken = () => loginToken;

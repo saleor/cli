@@ -13,21 +13,22 @@ import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 import { configDir, SecretStore } from "../../core/secret-store.ts";
-import { envWord } from "../../core/workspace.ts";
+import { envWord } from "../../core/env-word.ts";
 import {
   composeTemplate,
   type LocalConfig,
   SALEOR_VERSION,
 } from "./compose.ts";
+import { localRef } from "../../core/ref.ts";
 
 const NAME_PATTERN = /^[a-z][a-z0-9-]{0,39}$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
-// The command that starts a local instance, for hints.
+// The command that starts a local store, for hints.
 export const startCommand = (name: string, ...extra: readonly string[]) =>
-  command("env", "start", envWord(`local:${name}`), ...extra);
+  command("env", "start", envWord(localRef(name)), ...extra);
 
-// Why a local instance name is not allowed, if it is not. Names become Docker project
+// Why a local store name is not allowed, if it is not. Names become Docker project
 // names and directory names, so they are restricted before anything else runs.
 export const nameProblem = (name: string) =>
   NAME_PATTERN.test(name)
@@ -80,7 +81,7 @@ export const readConfig = (name: string) =>
     catch: () =>
       fail(
         "LOCAL_STATE_ERROR",
-        `Local instance "${name}" has an unreadable configuration.`,
+        `Local store "${name}" has an unreadable configuration.`,
         {
           suggestion: `Check or remove ${path.join(instanceDir(name), "instance.json")}.`,
         }
@@ -101,7 +102,7 @@ export const saveConfig = (config: LocalConfig) =>
     catch: () =>
       fail(
         "LOCAL_STATE_ERROR",
-        "Could not save the local instance configuration."
+        "Could not save the local store configuration."
       ),
     try: () => {
       const dir = instanceDir(config.name);
@@ -170,10 +171,10 @@ export const requireCompatible = (
     ? Effect.fail(
         fail(
           "NAME_CONFLICT",
-          `Local instance "${existing.name}" already exists but its Saleor version is "${existing.saleorVersion}", not "${version}".`,
+          `Local store "${existing.name}" already exists but its Saleor version is "${existing.saleorVersion}", not "${version}".`,
           {
             details: { saleorVersion: existing.saleorVersion, wanted: version },
-            suggestion: `Leave out --saleor-version to use it as it is, or create another instance: ${command("init", "--local", "--name", `${existing.name}-${version.replaceAll(".", "-")}`, "--saleor-version", version)}`,
+            suggestion: `Leave out --saleor-version to use it as it is, or create another store: ${command("init", "--local", "--name", `${existing.name}-${version.replaceAll(".", "-")}`, "--saleor-version", version)}`,
           }
         )
       )
@@ -289,7 +290,7 @@ export const portInUse = (port: number) =>
       })
   );
 
-// Every local instance with saved state, by name.
+// Every local store with saved state, by name.
 export const listInstanceNames = () =>
   Effect.sync(() => {
     const dir = localsDir();

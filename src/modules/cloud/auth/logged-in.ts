@@ -10,7 +10,7 @@ export const sessionLayer = SessionLive.pipe(
 
 // Whether Cloud credentials exist, by a saved login or SALEOR_CLOUD_TOKEN. Reads local
 // storage only: an expired login still counts, so menus never wait on the network.
-export const signedIn = Effect.gen(function* () {
+export const loggedIn = Effect.gen(function* () {
   const session = yield* Session;
 
   return (yield* session.status).source !== "none";

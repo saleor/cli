@@ -22,7 +22,7 @@ const dockerFailure = (
   if (PORT_CONFLICT.test(stderr)) {
     return fail(
       "PORT_IN_USE",
-      "A port assigned to this local instance is already in use.",
+      "A port assigned to this local store is already in use.",
       {
         suggestion:
           "Stop the process using the port, then run the same command again.",
@@ -37,7 +37,7 @@ const dockerFailure = (
     `Docker ${pulling ? "could not download the images" : "command failed"}: ${stderr.trim() || `exit ${code}`}`,
     {
       details: { args, stderr },
-      suggestion: `Check Docker and retry the same command. List instances and their state with: ${command("env", "list")}`,
+      suggestion: `Check Docker and retry the same command. List stores and their state with: ${command("env", "list")}`,
     }
   );
 };

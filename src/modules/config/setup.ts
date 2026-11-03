@@ -2,11 +2,11 @@ import { Effect, Option, Predicate } from "effect";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { option } from "../../core/inputs.ts";
-import { resolveInstance } from "../../core/instances.ts";
+import { resolveStore } from "../../core/stores.ts";
 import { askSelect, isInteractive } from "../../core/interaction.ts";
 import { command, recordAnswer } from "../../core/invocation.ts";
-import { notice } from "../../core/output.ts";
-import { lastInSync, recordInSync } from "../../core/deployments.ts";
+import { notice, shown } from "../../core/output.ts";
+import { recordDeploy } from "../../core/deploy-record.ts";
 import { configuresOnCreate } from "../../core/manifest.ts";
 import {
   configPath,
@@ -15,26 +15,31 @@ import {
   rememberEnvironment,
 } from "../../core/project.ts";
 import { defineSetupExtension, type SetupResult } from "../../core/setup.ts";
-import { storeAccess } from "../../core/store-access.ts";
-import { WorkspaceConfiguration } from "../../core/workspace-configuration.ts";
+import {
+  applyConfiguration,
+  configurationPending,
+  hasConfiguration,
+} from "../../core/project-configuration.ts";
 import { fromAnswers } from "./blocks.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { review } from "./describe.ts";
 import { type Document, parseYamlDocument } from "./document.ts";
+import { askAnswers, chooseAgent, describeAsked, draftWith } from "./draft.ts";
 import {
-  askAnswers,
-  type Author,
-  chooseAuthor,
-  describeAsked,
-  draftWith,
-  installedAuthors,
-  type Session,
-} from "./draft.ts";
-import { pull, shown, type Store } from "./engine.ts";
+  type AgentRun,
+  type HeadlessAgent,
+  installedHeadlessAgents,
+} from "../../core/agent-run.ts";
+import { pull } from "./engine.ts";
 import { reviewText, writeConfig } from "./file-output.ts";
 import { mergeConfig, NEW_STORE } from "./merge.ts";
 import { sampleConfiguration } from "./sample.ts";
-import { connectMade, environmentName } from "./store.ts";
+import { environmentName } from "./store.ts";
+import {
+  connectStore,
+  connectTo,
+  type StoreClient,
+} from "../../core/store-api.ts";
 
 type Config = Document;
 
@@ -45,7 +50,7 @@ type Source =
       readonly by: string;
       readonly config: Config;
       // The coding agent's run, when one drafted it.
-      readonly session: Session | undefined;
+      readonly session: AgentRun | undefined;
     }
   | { readonly kind: "copy"; readonly ref: string }
   // Saleor's sample data, loaded into the store; the file is pulled from it.
@@ -55,16 +60,16 @@ type Source =
   | {
       readonly kind: "later";
       readonly description: string;
-      readonly who: Option.Option<Author>;
+      readonly who: Option.Option<HeadlessAgent>;
     };
 
 type Drafted = Extract<Source, { readonly kind: "drafted" }>;
 
-const drafted = (author: Author, description: string) =>
+const drafted = (agent: HeadlessAgent, description: string) =>
   Effect.map(
-    draftWith(author, { base: NEW_STORE, description, kind: "new" }),
+    draftWith(agent, { base: NEW_STORE, description, kind: "new" }),
     ({ config, session }): Drafted => ({
-      by: `drafted by ${author.label} from “${description}”`,
+      by: `drafted by ${agent.label} from “${description}”`,
       config,
       kind: "drafted",
       session,
@@ -73,12 +78,12 @@ const drafted = (author: Author, description: string) =>
 
 // Drafts (or, without a coding agent, asks a few questions), shows the review, and
 // lets the person accept it or try again. Returns the accepted configuration.
-const draftInteractively = (author: Option.Option<Author>) =>
+const draftInteractively = (agent: Option.Option<HeadlessAgent>) =>
   Effect.gen(function* () {
     for (;;) {
-      const source: Drafted = Option.isSome(author)
+      const source: Drafted = Option.isSome(agent)
         ? yield* drafted(
-            author.value,
+            agent.value,
             yield* describeAsked(
               "Describe the store: what it sells, where, and how"
             )
@@ -103,7 +108,7 @@ const draftInteractively = (author: Option.Option<Author>) =>
         choices: [
           { label: "Use this configuration", value: "use" },
           {
-            label: Option.isSome(author)
+            label: Option.isSome(agent)
               ? "Describe it differently"
               : "Answer again",
             value: "again",
@@ -131,13 +136,13 @@ const chooseSource = (input: {
 
     if (Option.isSome(input.describe)) {
       const description = input.describe.value;
-      const author = yield* chooseAuthor(input.with);
+      const agent = yield* chooseAgent(input.with);
 
-      if (Option.isNone(author) || input.dryRun) {
-        return Option.some<Source>({ description, kind: "later", who: author });
+      if (Option.isNone(agent) || input.dryRun) {
+        return Option.some<Source>({ description, kind: "later", who: agent });
       }
 
-      return Option.some(yield* drafted(author.value, description));
+      return Option.some(yield* drafted(agent.value, description));
     }
 
     if (input.dryRun || !(yield* isInteractive)) {
@@ -146,13 +151,13 @@ const chooseSource = (input: {
 
     // With a coding agent, a description; without one, a few questions instead.
     // Which agent drafts is asked only once a description is wanted.
-    const authors = installedAuthors();
+    const agents = installedHeadlessAgents();
 
     const choice = yield* askSelect({
       choices: [
-        authors.length > 0
+        agents.length > 0
           ? {
-              hint: `drafted by ${authors.map((each) => each.label).join(" or ")}`,
+              hint: `drafted by ${agents.map((each) => each.label).join(" or ")}`,
               label: "Describe it in plain words",
               value: "describe",
             }
@@ -173,18 +178,18 @@ const chooseSource = (input: {
 
     if (choice === "copy") {
       // Any store, not the project's own environment, which is what is being set up.
-      const { instance } = yield* resolveInstance(Option.none(), {
+      const { store } = yield* resolveStore(Option.none(), {
         anyStore: true,
       });
 
-      yield* recordAnswer({ option: ["--copy-from", instance.ref] });
+      yield* recordAnswer({ option: ["--copy-from", store.ref] });
 
-      return Option.some<Source>({ kind: "copy", ref: instance.ref });
+      return Option.some<Source>({ kind: "copy", ref: store.ref });
     }
 
     return Option.some<Source>(
       yield* draftInteractively(
-        choice === "describe" ? yield* chooseAuthor(input.with) : Option.none()
+        choice === "describe" ? yield* chooseAgent(input.with) : Option.none()
       )
     );
   });
@@ -203,8 +208,8 @@ const describeSource = (source: Source) => {
       return Option.match(source.who, {
         onNone: () =>
           `“${source.description}”, written by the agent running this CLI`,
-        onSome: (author) =>
-          `drafted by ${author.label} from “${source.description}”`,
+        onSome: (agent) =>
+          `drafted by ${agent.label} from “${source.description}”`,
       });
     }
 
@@ -232,7 +237,7 @@ const startForAgent = ({
 }: {
   readonly finishing: Finishing;
   readonly description: string;
-  readonly target: Store;
+  readonly target: StoreClient;
   readonly kept: Option.Option<Document>;
 }) =>
   Effect.gen(function* () {
@@ -240,7 +245,7 @@ const startForAgent = ({
 
     if (Option.isNone(kept)) {
       yield* writeConfig(file, yield* pull(target));
-      yield* recordInSync(file, made.ref);
+      yield* recordDeploy(file, made.ref);
     }
 
     return {
@@ -256,15 +261,7 @@ const startForAgent = ({
   });
 
 const copied = (ref: string) =>
-  Effect.gen(function* () {
-    const resolved = yield* resolveInstance(Option.some(ref));
-    const access = yield* storeAccess(resolved);
-
-    return yield* pull({
-      token: access.token,
-      url: resolved.instance.graphqlUrl,
-    });
-  });
+  Effect.flatMap(connectStore(Option.some(ref)), pull);
 
 // Writes the drafted (or copied) configuration over the store's own, deploys it,
 // and says what the store now has.
@@ -276,7 +273,7 @@ const deployDraft = ({
 }: {
   readonly finishing: Finishing;
   readonly draft: Document;
-  readonly target: Store;
+  readonly target: StoreClient;
   readonly kept: Option.Option<Document>;
 }) =>
   Effect.gen(function* () {
@@ -293,12 +290,7 @@ const deployDraft = ({
 
     const plan = yield* planDeploy(target, file);
 
-    const outcome = yield* applyDeploy({
-      instance: made,
-      store: target,
-      file,
-      plan,
-    });
+    const outcome = yield* applyDeploy({ client: target, file, plan });
 
     const words = deployedText(made, file, outcome);
 
@@ -349,7 +341,7 @@ const contents = ({
 }: {
   readonly finishing: Finishing;
   readonly chosen: Exclude<Source, { readonly kind: "sample" }>;
-  readonly target: Store;
+  readonly target: StoreClient;
   readonly kept: Option.Option<Document>;
 }) =>
   Effect.gen(function* () {
@@ -403,7 +395,7 @@ const finish = (finishing: Finishing) =>
       };
     }
 
-    const target = yield* connectMade(made);
+    const target = yield* connectTo(made);
 
     // Running `init` again keeps the project's file: drafts are added to it. The
     // empty file `init` itself starts the project with is not worth keeping: the
@@ -442,12 +434,14 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
       return { data: {}, text: "" };
     }
 
-    const alias = project.value.environments.find(
+    const environment = project.value.environments.find(
       ([, ref]) => ref === made.ref
     )?.[0];
 
     const definition =
-      alias === undefined ? undefined : project.value.definitions?.[alias];
+      environment === undefined
+        ? undefined
+        : project.value.definitions?.[environment];
 
     if (
       definition === undefined ||
@@ -459,12 +453,9 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
 
     const file = configPath(project.value);
 
-    if (!made.created && Option.isSome(lastInSync(file, made.ref))) {
-      return { data: {}, text: "" };
-    }
-
-    if (readFileSync(file, "utf-8").trim() === "{}") {
-      yield* recordInSync(file, made.ref);
+    if (!hasConfiguration(file)) {
+      // Nothing to apply; the store matches the file as it is.
+      yield* recordDeploy(file, made.ref);
 
       return {
         data: { file },
@@ -472,8 +463,11 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
       };
     }
 
-    const target = yield* connectMade(made);
-    yield* (yield* WorkspaceConfiguration).apply(made, target.token, file);
+    if (!configurationPending(file, made.ref, made.created)) {
+      return { data: {}, text: "" };
+    }
+
+    yield* applyConfiguration(yield* connectTo(made), file);
 
     return { data: { file }, text: "Project configuration applied." };
   });

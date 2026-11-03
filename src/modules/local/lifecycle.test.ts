@@ -164,7 +164,7 @@ it("rejects unsafe names before invoking Docker", async () => {
   expect(calls).toStrictEqual([]);
 });
 
-it("does nothing when the instance is already running and ready", async () => {
+it("does nothing when the store is already running and ready", async () => {
   await runLocal(up(options));
   const count = calls.length;
   const again = await runLocal(up(options));
@@ -175,7 +175,7 @@ it("does nothing when the instance is already running and ready", async () => {
   expect(calls.slice(count).some((args) => args.includes("up"))).toBe(false);
 });
 
-it("lets a run fix the options of an instance whose first setup failed", async () => {
+it("lets a run fix the options of a store whose first setup failed", async () => {
   failing = "pull";
   await runLocal(up({ ...options, saleorVersion: "9.9.9" }).pipe(Effect.flip));
   expect((await runLocal(readConfig("test")))?.saleorVersion).toBe("9.9.9");
@@ -184,7 +184,7 @@ it("lets a run fix the options of an instance whose first setup failed", async (
   expect(fixed.saleorVersion).toBe("3.23.41");
 });
 
-it("names the differing option of an existing instance", async () => {
+it("names the differing option of an existing store", async () => {
   await runLocal(up(options));
 
   const failure = await runLocal(
@@ -197,7 +197,7 @@ it("names the differing option of an existing instance", async () => {
   );
 });
 
-it("adds sample data to an existing instance", async () => {
+it("adds sample data to an existing store", async () => {
   await runLocal(up(options));
   await runLocal(up({ ...options, sampleData: true }));
   expect((await runLocal(readConfig("test")))?.sampleData).toBe(true);
@@ -231,7 +231,7 @@ it("names a published port that another program took", async () => {
   }
 });
 
-it("plans nothing for a missing instance, without Docker", async () => {
+it("plans nothing for a missing store, without Docker", async () => {
   expect(await runLocal(planDown("missing"))).toBeUndefined();
   expect(calls).toStrictEqual([]);
 });
@@ -265,7 +265,7 @@ it("plans up: create, finish, reuse or add sample data", async () => {
   ).toBe("NAME_CONFLICT");
 });
 
-it("lists instances with their state", async () => {
+it("lists stores with their state", async () => {
   await runLocal(up(options));
   await runLocal(up({ ...options, name: "other" }));
   const instances = await runLocal(list);
@@ -276,7 +276,7 @@ it("lists instances with their state", async () => {
   expect(instances[0]?.state).toBe("ready");
 });
 
-it("prints the shared instance fields and login again for a running instance", async () => {
+it("prints the shared store fields and login again for a running store", async () => {
   await runLocal(up(options));
   const shown = await runLocal(up(options));
   expect(shown).toMatchObject({

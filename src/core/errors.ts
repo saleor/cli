@@ -96,7 +96,7 @@ export const ERRORS = {
   ORGANIZATION_REQUIRED: failed(
     "The account does not belong to any organization."
   ),
-  PORT_IN_USE: failed("A port the local instance needs is taken."),
+  PORT_IN_USE: failed("A port the local store needs is taken."),
   PRODUCTION_DELETE_REFUSED: failed(
     "Only sandboxes can be deleted from the CLI."
   ),

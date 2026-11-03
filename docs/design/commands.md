@@ -2,6 +2,27 @@
 
 The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), see the stores there are and start, stop, add or remove one (`env`), keep a store's configuration as code (`config`), connect a storefront to one (`storefront`), talk to its API (`api`) and receive its webhooks while building an app (`webhook`). Login is a step within Cloud actions when required; explicit `login` and `logout` remain available outside the exploratory menu. Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
 
+## Words
+
+The code, the help text and the docs use the same words, with one meaning each:
+
+| Word | Means | Not |
+| --- | --- | --- |
+| **store** | A running Saleor (its GraphQL API and Dashboard), wherever it runs. `Store` in code. | instance, stack |
+| **ref** | A store's stable name: `local:<name>` or `cloud:<org>/<environment key>` (`src/core/ref.ts`). | id, key |
+| **project** | A folder with `saleor.yml`, found by walking up from where a command runs. | workspace |
+| **environment** | A name in `saleor.yml` for one of the project's stores: a ref, or a local definition. | alias |
+| **local definition** | An environment every checkout creates its own local store from; this checkout's store is its **binding**. | recipe |
+| **component** | Something in the project that connects to its stores: a storefront, an app. | |
+| **store source** | A module's adapter behind `env`: how to list, find, start, stop and remove its stores. | instance source |
+| **login** | Being logged in to Saleor Cloud (`saleor login`). A local store's admin also logs in. | sign in |
+| **store token** | A token for a store's own API: an app token, or a staff token where Saleor needs a person. | access |
+| **deploy record** | What this computer last deployed to a store, per configuration file. | sync note |
+| **Cloud project**, **Cloud environment** | Saleor Cloud's own resources, only inside the Cloud module (`CloudProject`, `CloudEnvironment`). | project, environment |
+| **catalog** | What a store sells, as the configuration building blocks describe it. | kind |
+
+`kind` is kept for an action's kind, a store's kind (`cloud`, `local`) and a component's kind.
+
 ## Grammar
 
 A command reads as a short sentence: `saleor <noun> <verb> [<env>] [flags]`.
@@ -19,12 +40,12 @@ saleor api call [<env>]             saleor webhook listen    [<env>]
 
 - **Six nouns.** `env` (the stores a project works with), `config` (their configuration), `storefront`, `api` (a store's own GraphQL API), `app` (the apps installed on a store) and `webhook` (its webhooks, received here). Top-level verbs (`init`, `login`, `logout`, `onboard`, `commands`) are about the CLI or a new project, not a resource.
 - **One way to name a store.** The word after the verb, `<env>`: a name from `saleor.yml` (`local`, `staging`) or a store ref (`local:<name>`, `cloud:<org>/<env key>`) for any store, inside a project or not. No command but `init` names a store with a flag. `<env>` defaults to `SALEOR_ENV`, then the project's only environment, then a question.
-- **Where a store runs is configuration, not a command.** Local and Cloud stores answer the same commands. Each module that runs stores is an adapter behind `env` (an instance source, below), as a database adapter is behind Rails' `db:migrate`. A source that cannot do something (stop a Cloud environment) is refused with a usage error, not given its own command.
+- **Where a store runs is configuration, not a command.** Local and Cloud stores answer the same commands. Each module that runs stores is an adapter behind `env` (a store source, below), as a database adapter is behind Rails' `db:migrate`. A source that cannot do something (stop a Cloud environment) is refused with a usage error, not given its own command.
 - **A closed set of verbs, in pairs.** Each kind has its verbs, and a verb means the same change everywhere: `add`/`remove`, `start`/`stop`, `pull`/`deploy`. A new verb is a decision made in `src/core/conventions.test.ts`, not in passing. `reinstall` (`app reinstall`) is the one unpaired change verb: Saleor apps cannot be updated in place, so it names a delete and a new install as one step.
 
 Every command is an action of one **kind**. The kind is the policy: which flags exist, how targets are found, when it asks for confirmation, what `--dry-run` does, how its result is shaped and what the catalog says about its safety. A command declares its kind and supplies only what is specific to it. It does not implement any of the rules below itself.
 
-The rules live in `src/core/action.ts` (kinds), `src/core/target.ts` (targets), `src/core/instances.ts` and `src/core/workspace.ts` (`<env>`), `src/core/errors.ts` (error codes) and `src/core/invocation.ts` (hints). `src/core/conventions.test.ts` checks every registered command against them, grammar included.
+The rules live in `src/core/action.ts` (kinds), `src/core/target.ts` (targets), `src/core/stores.ts`, `src/core/env-word.ts` and `src/core/ref.ts` (`<env>`), `src/core/errors.ts` (error codes) and `src/core/invocation.ts` (hints). `src/core/conventions.test.ts` checks every registered command against them, grammar included.
 
 ## Kinds
 
@@ -39,7 +60,7 @@ A module gets its definers from `defineActions(policy)`. A policy applies to eve
 
 ## Targets
 
-A target is anything a command acts on: a store (`<env>`), or, in `init`, an organization, project or new instance. Every target is declared once with `target()` and resolved the same way:
+A target is anything a command acts on: a store (`<env>`), or, in `init`, an organization, project or new store. Every target is declared once with `target()` and resolved the same way:
 
 1. The flag or argument, if given.
 2. Its environment variable (`SALEOR_ENV`; `SALEOR_ORG` and `SALEOR_PROJECT` in `init`). **`remove` actions never read these**: a stop or deletion acts only on what the command line or a person named.
@@ -107,8 +128,8 @@ Modules that build on a store contribute a **setup extension** (`defineModule({ 
 
 ## Environments and sources
 
-`env` is core, like `init`: modules never own it. A module that runs stores contributes an **instance source** (`defineModule({ instances })`, `src/core/instance.ts`): how to list and find its stores, and the lifecycle steps it can carry out (`start`, `stop`, `remove`), each returning a plan like any other action. `env` resolves `<env>` to a ref, picks the source by the ref's kind and hands it the step; `src/core/environments.ts` holds the commands and knows no provider. Today the local source starts, stops and removes; the Cloud source removes sandboxes.
+`env` is core, like `init`: modules never own it. A module that runs stores contributes a **store source** (`defineModule({ stores })`, `src/core/store.ts`): how to list and find its stores, and the lifecycle steps it can carry out (`start`, `stop`, `remove`), each returning a plan like any other action. `env` resolves `<env>` to a ref, picks the source by the ref's kind and hands it the step; `src/core/environments.ts` holds the commands and knows no provider. Today the local source starts, stops and removes; the Cloud source removes sandboxes.
 
 A source that needs a login shows a "Log in to …" row in the picker instead of failing it (a **detour** in `target.ts`: a row that does something and then asks again), and an explicit ref that needs one offers it at a terminal. Modules never import each other.
 
-`env add <name>` sets up a store with the same **setup providers** as `init` (each says how a project's environment names its store: a Cloud environment of the same name, a local instance named after the project), then names it in `saleor.yml`: a Cloud store by its ref, a local one as a definition every checkout creates its own instance from. `env remove` deletes the store and, for a ref, its name; a local definition stays, so `env start` creates it again.
+`env add <name>` sets up a store with the same **setup providers** as `init` (each says how a project's environment names its store: a Cloud environment of the same name, a local store named after the project), then names it in `saleor.yml`: a Cloud store by its ref, a local one as a definition every checkout creates its own store from. `env remove` deletes the store and, for a ref, its name; a local definition stays, so `env start` creates it again.

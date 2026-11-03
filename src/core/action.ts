@@ -8,7 +8,7 @@ import {
   type InputValue,
   option,
 } from "./inputs.ts";
-import type { InstanceState } from "./instance.ts";
+import type { StoreState } from "./store.ts";
 import { askConfirm, isInteractive, openBrowser } from "./interaction.ts";
 import { ActionContext, type ActionKind, rerunCommand } from "./invocation.ts";
 import { columns, notice } from "./output.ts";
@@ -52,7 +52,7 @@ export type PlanAction =
   | "stop"
   | "none";
 
-export type ResourceState = InstanceState | "absent" | "exists";
+export type ResourceState = StoreState | "absent" | "exists";
 
 export interface TargetRef {
   // The short unique identifier (environment key, project slug), when it exists.
@@ -116,7 +116,7 @@ export const describeTarget = (target: TargetRef) => {
 
   const scope = Object.values(target.scope);
 
-  // Types are tokens ("local-instance"); a person reads them as words.
+  // Types are tokens ("local-store"); a person reads them as words.
   return `${target.type.replaceAll("-", " ")} "${target.name}"${id}${scope.length > 0 ? ` in ${scope.join(" / ")}` : ""}`;
 };
 

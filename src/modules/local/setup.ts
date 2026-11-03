@@ -3,12 +3,14 @@ import type { Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { hasBinding, projectLocal, slugify } from "../../core/project.ts";
+import { hasBinding } from "../../core/bindings.ts";
+import { slugify } from "../../core/names.ts";
+import { projectLocal } from "../../core/project.ts";
 import { defineSetup } from "../../core/setup.ts";
 import { SALEOR_VERSION } from "./compose.ts";
 import { type LocalUpOptions, localTarget, planUp, up } from "./lifecycle.ts";
 import { readConfig } from "./state.ts";
-import { instance } from "./targets.ts";
+import { localStoreName } from "./targets.ts";
 
 export const connection = (data: {
   readonly graphqlUrl: string;
@@ -24,9 +26,9 @@ export const connection = (data: {
     data.admin.password === null ? "" : `  Password:    ${data.admin.password}`,
   ].filter(Boolean);
 
-const newInstance = instance.input({ creates: true });
+const newStore = localStoreName.input({ creates: true });
 
-// Create a local store; an explicitly named instance can resume an earlier setup.
+// Create a local store; an explicitly named store can resume an earlier setup.
 export const localSetup = defineSetup({
   example: {
     command: "saleor init --local",
@@ -35,28 +37,34 @@ export const localSetup = defineSetup({
   flag: "local",
   hint: "Docker on this computer, no login needed",
   inputs: {
-    name: newInstance,
+    name: newStore,
     newPorts: option.boolean(
       "new-ports",
-      "Move a local instance to new free ports, for when another program took one. Its URLs change; data is kept."
+      "Move a local store to new free ports, for when another program took one. Its URLs change; data is kept."
     ),
     saleorVersion: option.string("saleor-version", {
-      description: "Saleor API version for a new local instance.",
+      description: "Saleor API version for a new local store.",
       metavar: "version",
     }),
     sampleData: option.boolean(
       "sample-data",
-      "Load sample products and orders into a local instance. Can be added to an existing one; never removed."
+      "Load sample products and orders into a local store. Can be added to an existing one; never removed."
     ),
   },
   label: "Docker",
   name: "local",
   // Local names are shared by every project on this computer, so an environment's
-  // instance is named after its project too.
+  // store is named after its project too.
+  onboarding: {
+    hint: "Docker or self-hosted. No login needed",
+    label: "Local / self-hosted",
+    store:
+      "Run a store in Docker on this computer, with a project folder for its configuration and storefront.",
+  },
   naming: {
     input: "name",
-    name: (project, alias) => {
-      const slug = slugify(`${project}-${alias}`);
+    name: (project, environment) => {
+      const slug = slugify(`${project}-${environment}`);
 
       return (/^[a-z]/.test(slug) ? slug : `saleor-${slug}`)
         .slice(0, 40)
@@ -69,27 +77,27 @@ export const localSetup = defineSetup({
         ? projectLocal()
         : Option.none();
 
-      const name = yield* newInstance.resolve(
+      const name = yield* newStore.resolve(
         Option.orElse(input.name, () =>
           Option.map(context, (value) => value.name)
         ),
         {
           choices: Effect.succeed([]),
           create: {
-            label: "Create a new instance",
-            prompt: "New local instance name",
+            label: "Create a new store",
+            prompt: "New local store name",
           },
         }
       );
 
       if (
         Option.isSome(context) &&
-        !hasBinding(context.value.project.root, context.value.alias) &&
+        !hasBinding(context.value.project.root, context.value.environment) &&
         (yield* readConfig(name)) !== undefined
       ) {
         return yield* fail(
           "LOCAL_STATE_ERROR",
-          `An instance already occupies this checkout's generated name. Attach it explicitly with saleor init --local --name ${name}`
+          `A store already occupies this checkout's generated name. Attach it explicitly with saleor init --local --name ${name}`
         );
       }
 

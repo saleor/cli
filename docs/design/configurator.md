@@ -2,7 +2,7 @@
 
 Status: working CLI prototype. The library integration below supersedes the original monorepo proposal; the remaining migration and release work is still a plan.
 
-The CLI knows **where** Saleor stores run: Cloud environments and local Docker instances, addressed by ref. [Saleor Configurator](https://github.com/saleor/configurator) knows **what** a store contains: product types, attributes, channels, warehouses and more, declared in `config.yml`. Today they are two CLIs with two auth models, two output contracts and no shared idea of a store. This plan makes Configurator a module of the CLI, keeps every existing Configurator user and pipeline working, and treats the move as a migration with an oracle, not as a rewrite.
+The CLI knows **where** Saleor stores run: Cloud environments and local stores in Docker, addressed by ref. [Saleor Configurator](https://github.com/saleor/configurator) knows **what** a store contains: product types, attributes, channels, warehouses and more, declared in `config.yml`. Today they are two CLIs with two auth models, two output contracts and no shared idea of a store. This plan makes Configurator a module of the CLI, keeps every existing Configurator user and pipeline working, and treats the move as a migration with an oracle, not as a rewrite.
 
 ## Decisions
 
@@ -17,7 +17,7 @@ Decided on 2026-10-28:
 
 ## Starting point
 
-**The CLI** (`@saleor/cli` 2.0.0-poc, Effect). Modules declare commands, a service layer, and optional contributions: an instance source (`cloud:<org>/<key>`, `local:<name>`), a setup provider for `init`, a setup extension (the storefront module). Every command is an action of one kind (`list`, `ensure`, `remove`, `session`) with plan → preview → confirm → apply. Output is `{ok, data}` / `{ok: false, error: {code, …}}`, exit codes are `0/1/2/75/130`, `--agent` means `--json --no-input`, and `saleor commands --json` describes everything. Gaps that matter here: the CLI cannot get credentials for a Cloud store's API, there are no URL targets for self-hosted stores, and the project folder `init` makes has no manifest.
+**The CLI** (`@saleor/cli` 2.0.0-poc, Effect). Modules declare commands, a service layer, and optional contributions: a store source (`cloud:<org>/<key>`, `local:<name>`), a setup provider for `init`, a setup extension (the storefront module). Every command is an action of one kind (`list`, `ensure`, `remove`, `session`) with plan → preview → confirm → apply. Output is `{ok, data}` / `{ok: false, error: {code, …}}`, exit codes are `0/1/2/75/130`, `--agent` means `--json --no-input`, and `saleor commands --json` describes everything. Gaps that matter here: the CLI cannot get credentials for a Cloud store's API, there are no URL targets for self-hosted stores, and the project folder `init` makes has no manifest.
 
 **Configurator** (`@saleor/configurator` 3.23.2, Commander + zod + urql). About 35k lines of source and 34k of tests. Commands: `start`, `introspect`, `diff`, `deploy`, `validate`, `schema`, `recipe list|show|apply|export`. Inputs: `--url`, `--token`, `--config` (or `SALEOR_URL`, `SALEOR_TOKEN`, `SALEOR_CONFIG`, auto-loaded from `.env.local`). Exit codes `0–7`, where `diff` exits 1 when there are changes and 2 means an auth error. Its JSON envelope is `{command, version, exitCode, result, logs, errors}`, and reports are written to `.configurator/reports/`. Around it: a GitHub Action that installs `@saleor/configurator@latest`, nine agent skills, a Claude Code plugin, recipes, and `schema.json` for editors. Its version follows the Saleor minor (3.23.x targets Saleor 3.23).
 
@@ -85,7 +85,7 @@ Credentials are resolved like targets:
 
 1. `SALEOR_TOKEN`, if set. This is how CI keeps working: the same secret it holds today, under the name the CLI uses.
 2. The token saved for this ref in the secret store.
-3. For local instances, the admin login the CLI generated: `tokenCreate`, silently, because the CLI made that store. It is not swapped for a lasting app token as Cloud's login is: Saleor lets only a staff user install or create apps, so `app add` and `webhook listen` need the sign-in itself. The sign-in lasts 5 minutes; `webhook listen` signs in again to delete its app. For Cloud stores, an app token made with the Cloud login, as described above. This works through an optional `access(id)` capability in core, so the config module does not import the local module.
+3. For local stores, the admin login the CLI generated: `tokenCreate`, silently, because the CLI made that store. It is not swapped for a lasting app token as Cloud's login is: Saleor lets only a staff user install or create apps, so `app add` and `webhook listen` need the sign-in itself. The sign-in lasts 5 minutes; `webhook listen` signs in again to delete its app. For Cloud stores, an app token made with the Cloud login, as described above. This works through an optional `access(id)` capability in core, so the config module does not import the local module.
 4. Interactively, a hidden prompt for the token, which says where to create one in the Dashboard (**Apps → Create app**, with the permissions the configuration needs). The CLI offers to save it under the ref.
 5. Otherwise `STORE_AUTH_REQUIRED`, whose suggestion names `SALEOR_TOKEN` and the prompt.
 
@@ -133,7 +133,7 @@ environments:
   dev: local:demo
   staging: cloud:acme/abc123
   production:
-    instance: cloud:acme/def456
+    store: cloud:acme/def456
     protected: true   # deploy always shows its plan and asks, even without deletions
 ```
 
@@ -227,7 +227,7 @@ The method is a strangler. The engine's interface stays where it is, and its ins
 
 `npm deprecate` waits for hard deprecation: it warns on every install, including the Action's. Hard deprecation and end of life come at a declared Saleor line, announced at least one line ahead. (Open question 4.)
 
-**Saleor versions.** Configurator pins one CLI install to one Saleor minor. A workbench talks to many stores, and local instances can run any `--saleor-version`. The CLI already knows each instance's `saleorVersion`, so before any network operation the config commands compare it with `engine.supportedSaleor`. Outside the supported range, they fail with `UNSUPPORTED_SALEOR_VERSION` and suggest `npx @saleor/configurator@<minor>`. Later, the engine can support N and N-1, or the CLI can load a version-matched engine on demand. The engine interface should be designed now so that this is possible.
+**Saleor versions.** Configurator pins one CLI install to one Saleor minor. A workbench talks to many stores, and local stores can run any `--saleor-version`. The CLI already knows each store's `saleorVersion`, so before any network operation the config commands compare it with `engine.supportedSaleor`. Outside the supported range, they fail with `UNSUPPORTED_SALEOR_VERSION` and suggest `npx @saleor/configurator@<minor>`. Later, the engine can support N and N-1, or the CLI can load a version-matched engine on demand. The engine interface should be designed now so that this is possible.
 
 ### Mapping for people migrating
 
@@ -275,7 +275,7 @@ Reset stores from a database snapshot (template database or volume snapshot), no
 
 **V4. Native conformance.** The config commands pass `conventions.test.ts` (kinds, targets, confirmation, dry runs). End-to-end tests in `src/main.test.ts` style cover mock Saleor plus mock Cloud. The credential matrix covers:
 - `SALEOR_TOKEN`, a saved token, the prompt and its offer to save;
-- local sign-in with the admin login, including a staff token that expires mid-deploy;
+- local login with the admin account, including a staff token that expires mid-deploy;
 - agent mode, which fails with `STORE_AUTH_REQUIRED` and never prompts;
 - the existing rule that the Cloud token never reaches a store.
 
@@ -330,7 +330,7 @@ Each phase ends at a gate. A gate is evidence, not a date.
 Uncommitted, on `t3/configurator-workbench-migration`. It shows that the engine runs in-process behind the CLI's conventions; it is not the Phase 1 extraction.
 
 - **Engine.** `packages/configurator` is Configurator 3.23.2's source (copied from the tag, without history), as a workspace package. Three small changes keep the legacy CLI's behavior and let a host stay silent: `dotenv` loads in `src/cli/main.ts` instead of at import time; the deploy pipeline takes a progress reporter. The new entry `src/engine.ts` (`validate`, `serialize`, `createEngine → pull, diff, deploy`, `classifyError`) prints, prompts and exits nothing. It builds with `pnpm build:engine` (tsup) to `dist/engine.js`. Its types are written by hand in `engine.d.ts`, because generated declarations cannot name the zod-derived config types.
-- **CLI.** `src/modules/config` adds `config validate|pull|diff|deploy`, with the alias `configurator`, offered in the menu only beside a `config.yml`. The engine is loaded with `import()` on first use: the bundled build puts it in its own 800 KB chunk, and startup is unchanged. In core: the store token resolution from section 2 (`store-access.ts`), an optional `access` on instance sources (local signs in as its admin), masked prompts, and `risk` on `ensure` so a deploy that deletes takes `--force`. New codes: `CONFIG_INVALID`, `DEPLOY_PARTIAL`, `STORE_AUTH_INVALID`, `STORE_AUTH_REQUIRED`, `STORE_ERROR`, `UNSUPPORTED_SALEOR_VERSION`.
+- **CLI.** `src/modules/config` adds `config validate|pull|diff|deploy`, with the alias `configurator`, offered in the menu only beside a `config.yml`. The engine is loaded with `import()` on first use: the bundled build puts it in its own 800 KB chunk, and startup is unchanged. In core: the store token resolution from section 2 (`store-access.ts`), an optional `token` on store sources (local signs in as its admin), masked prompts, and `risk` on `ensure` so a deploy that deletes takes `--force`. New codes: `CONFIG_INVALID`, `DEPLOY_PARTIAL`, `STORE_AUTH_INVALID`, `STORE_AUTH_REQUIRED`, `STORE_ERROR`, `UNSUPPORTED_SALEOR_VERSION`.
 - **Checked** against a disposable `local:cfgproto` (Saleor 3.23.41): pull, then diff with no differences; create an attribute, a product type and a category; a second deploy that does nothing; a deletion refused without `--force`; a pull refused when it would overwrite edits; a bad token (`STORE_AUTH_INVALID`), a missing file, an invalid file, an unknown store; the bundled `dist/saleor.mjs`. Lint, typecheck and the 237 existing tests pass. No new tests yet.
 
 What it found, for the plan:
@@ -367,7 +367,7 @@ saleor                               # menu headline: "Project coffee · local �
 
 Drafts for a new store are merged onto what the store already has (by slug or name, never removing), so the first deploy never wants to delete anything. Edits keep the file's key and entry order, so their git diff is only the change (checked: three lines for "add a Gloves subcategory and put the tee in the winter collection").
 
-**Sample data.** "Use Saleor's sample data" loads Saleor's demo catalog, orders and customers into the new store through an optional `populate` capability on instance sources. Local stores run the same bootstrap as `init --local --sample-data`. Cloud stores call the Cloud API's `populate-database` action and wait for its task. The project's `config.yml` is then pulled from the store, so it starts in sync.
+**Sample data.** "Use Saleor's sample data" loads Saleor's demo catalog, orders and customers into the new store through an optional `populate` capability on store sources. Local stores run the same bootstrap as `init --local --sample-data`. Cloud stores call the Cloud API's `populate-database` action and wait for its task. The project's `config.yml` is then pulled from the store, so it starts in sync.
 
 **What the agent did is visible.** Every drafting round prints one line, for example `Claude Code · claude-opus-5-5 · 33 s · $0.18 · session ad7f5869…7d62`, then the command that opens the conversation (`claude --resume <id>`, `codex resume <id>`). The details come from Claude Code's `--output-format json` (session, per-model usage, cost) and Codex's `--json` events (thread, tokens); Codex's model comes from its `config.toml`. Fix-up rounds continue the same session, so one session holds the whole draft. Results carry the same details as `session` in JSON.
 

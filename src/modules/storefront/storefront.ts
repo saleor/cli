@@ -1,5 +1,4 @@
 import { Duration, Effect, Option, Schema } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { TargetRef } from "../../core/action.ts";
@@ -11,20 +10,19 @@ import {
   setEnv,
 } from "../../core/env-file.ts";
 import { fail } from "../../core/errors.ts";
-import type { Instance, InstanceSource } from "../../core/instance.ts";
+import type { Store, StoreSource } from "../../core/store.ts";
 import { command } from "../../core/invocation.ts";
-import { columns } from "../../core/output.ts";
+import { columns, shown } from "../../core/output.ts";
 import { recordComponent } from "../../core/components.ts";
 import {
   type Downloaded,
   directoryState,
   downloadTemplate,
-  initRepository,
-  installDependencies,
+  finishCopy,
   template,
-  templateSource,
 } from "../../core/scaffold.ts";
-import { envWord } from "../../core/workspace.ts";
+import { envWord } from "../../core/env-word.ts";
+import { storeRequest } from "../../core/store-api.ts";
 
 // A storefront is the saleor/storefront template, downloaded as it is on `main`, with
 // its `.env` pointing at one store: the store's GraphQL API and a channel. The `.env`
@@ -89,9 +87,6 @@ export const inspect = (dir: string) =>
     };
   });
 
-// How a directory is named in output: relative to where the command ran.
-export const shown = (dir: string) => path.relative(process.cwd(), dir) || ".";
-
 export const storefrontTarget = (dir: string): TargetRef => ({
   id: null,
   name: shown(dir),
@@ -121,50 +116,39 @@ export const connectedElsewhere = (dir: string, ref: string, wanted: string) =>
 
 // ── Applying ─────────────────────────────────────────────────────────────
 
-const ChannelAnswer = Schema.Struct({
-  data: Schema.optionalKey(
-    Schema.NullOr(
-      Schema.Struct({
-        channel: Schema.optionalKey(
-          Schema.NullOr(Schema.Struct({ slug: Schema.String }))
-        ),
-      })
-    )
+const ChannelData = Schema.Struct({
+  channel: Schema.optionalKey(
+    Schema.NullOr(Schema.Struct({ slug: Schema.String }))
   ),
 });
 
 // Asks the store whether the channel exists. Unknown when it does not answer or does
 // not say (a store that only shows channels to staff).
 const channelExists = (graphqlUrl: string, slug: string) =>
-  Effect.gen(function* () {
-    const http = yield* HttpClient.HttpClient;
-
-    const request = HttpClientRequest.post(graphqlUrl).pipe(
-      HttpClientRequest.bodyJsonUnsafe({
-        query: "query ($slug: String!) { channel(slug: $slug) { slug } }",
-        variables: { slug },
-      })
-    );
-
-    const answer = yield* http.execute(request).pipe(
-      Effect.flatMap((response) => response.json),
-      Effect.flatMap(Schema.decodeUnknownEffect(ChannelAnswer)),
-      Effect.timeout(Duration.seconds(10)),
-      Effect.option
-    );
-
-    return Option.flatMap(answer, (body) =>
-      body.data?.channel === undefined
-        ? Option.none()
-        : Option.some(body.data.channel !== null)
-    );
-  });
+  storeRequest({
+    query: "query ($slug: String!) { channel(slug: $slug) { slug } }",
+    url: graphqlUrl,
+    variables: { slug },
+  }).pipe(
+    Effect.flatMap((answer) =>
+      Schema.decodeUnknownEffect(ChannelData)(answer.data)
+    ),
+    Effect.timeout(Duration.seconds(10)),
+    Effect.option,
+    Effect.map((answer) =>
+      Option.flatMap(answer, (data) =>
+        data.channel === undefined
+          ? Option.none()
+          : Option.some(data.channel !== null)
+      )
+    )
+  );
 
 const STARTED = new Set(["ready", "running"]);
 
 const storeWarnings = (
-  store: Instance,
-  source: InstanceSource<never> | undefined,
+  store: Store,
+  source: StoreSource<never> | undefined,
   channel: string
 ) =>
   Effect.gen(function* () {
@@ -196,7 +180,7 @@ const storeWarnings = (
 
 // Points the storefront's `.env` at the store: the file itself if there is one, else a
 // copy of the template's `.env.example`, so its documented defaults stay.
-const writeEnv = (dir: string, store: Instance, channel: string) =>
+const writeEnv = (dir: string, store: Store, channel: string) =>
   Effect.try({
     catch: (error) =>
       fail(
@@ -247,8 +231,8 @@ export interface Finish {
   readonly record: boolean;
   // Where to make a repository, if the storefront was just downloaded.
   readonly repository: string | undefined;
-  readonly source: InstanceSource<never> | undefined;
-  readonly store: Instance;
+  readonly source: StoreSource<never> | undefined;
+  readonly store: Store;
 }
 
 // Lists the storefront in the project it sits in. None outside a project.
@@ -271,40 +255,21 @@ export const finish = (spec: Finish) =>
     // Before the repository is made, so its first commit has saleor.yml as it ends up.
     const component = yield* record(spec);
 
-    // Where the files came from: the commit when the download said, else the branch.
-    // Kept in the first commit's message and the result, not in saleor.yml.
-    const source = templateSource(
-      TEMPLATE,
-      spec.downloaded ?? { commit: undefined }
-    );
-
-    const repository =
-      spec.repository === undefined
-        ? undefined
-        : yield* initRepository(spec.repository, `Start from ${source}`);
-
-    const installed = spec.install
-      ? yield* installDependencies(spec.dir)
-      : undefined;
+    const copy = yield* finishCopy({
+      dir: spec.dir,
+      downloaded: spec.downloaded,
+      install: spec.install,
+      repository: spec.repository,
+      template: TEMPLATE,
+    });
 
     const warnings = [
       ...env.warnings,
       ...(yield* storeWarnings(spec.store, spec.source, spec.channel)),
-      ...[repository?.warning, installed?.warning].filter(
-        (warning): warning is string => warning !== undefined
-      ),
+      ...copy.warnings,
     ];
 
-    const dependenciesInstalled =
-      installed?.installed ?? existsSync(path.join(spec.dir, "node_modules"));
-
-    const cd = shown(spec.dir);
-
-    const next = [
-      ...(cd === "." ? [] : [`cd ${cd}`]),
-      ...(dependenciesInstalled ? [] : ["pnpm install"]),
-      "pnpm dev",
-    ];
+    const { next } = copy;
 
     const content = Option.isSome(component)
       ? existsSync(path.join(spec.dir, CONTENT_CONFIG))
@@ -315,10 +280,10 @@ export const finish = (spec: Finish) =>
       component: Option.getOrNull(component),
       created: spec.created,
       env: env.values,
-      installed: dependenciesInstalled,
+      installed: copy.installed,
       next,
       path: spec.dir,
-      repository: repository?.repository ?? null,
+      repository: copy.repository,
       store: {
         graphqlUrl: spec.store.graphqlUrl,
         kind: spec.store.kind,
@@ -326,17 +291,13 @@ export const finish = (spec: Finish) =>
         ref: spec.store.ref,
         state: spec.store.state,
       },
-      template: {
-        commit: spec.downloaded?.commit ?? null,
-        ref: TEMPLATE.ref,
-        repository: TEMPLATE.repository,
-      },
+      template: copy.template,
       warnings,
     };
 
     const text = [
       columns([
-        ["  Directory:", cd],
+        ["  Directory:", shown(spec.dir)],
         ["  Store:", `${spec.store.ref} (${spec.store.graphqlUrl})`],
         ["  Channel:", spec.channel],
       ]),

@@ -1,30 +1,20 @@
 import { Effect } from "effect";
-import { reviewText, writeConfig } from "./file-output.ts";
-
+import { recordDeploy } from "../../core/deploy-record.ts";
 import { fail } from "../../core/errors.ts";
-
-import { InstanceSources } from "../../core/instance.ts";
-
 import { command } from "../../core/invocation.ts";
-
-import { notice } from "../../core/output.ts";
-
-import { recordInSync } from "../../core/deployments.ts";
-
+import { notice, shown } from "../../core/output.ts";
 import type { SetupResult } from "../../core/setup.ts";
-
-import { pull, shown } from "./engine.ts";
-
-import { connectMade } from "./store.ts";
+import { connectTo } from "../../core/store-api.ts";
+import { sourceFor } from "../../core/stores.ts";
+import { pull } from "./engine.ts";
+import { reviewText, writeConfig } from "./file-output.ts";
 
 export const prepareSampleData = (made: SetupResult) =>
   Effect.gen(function* () {
     if (!made.sampleDataReady) {
-      const source = (yield* InstanceSources).find(
-        (each) => each.kind === made.kind
-      );
+      const source = yield* sourceFor(made.ref);
 
-      if (source?.populate === undefined) {
+      if (source.populate === undefined) {
         return yield* fail(
           "UNAVAILABLE",
           `${made.ref} cannot load Saleor's sample data from the CLI.`
@@ -55,10 +45,9 @@ export const sampleConfiguration = (
       };
     }
 
-    const target = yield* connectMade(made);
-    const config = yield* pull(target);
+    const config = yield* pull(yield* connectTo(made));
     yield* writeConfig(file, config);
-    yield* recordInSync(file, made.ref);
+    yield* recordDeploy(file, made.ref);
 
     return {
       config: file,

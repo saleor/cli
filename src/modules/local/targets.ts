@@ -1,12 +1,12 @@
 import { target } from "../../core/target.ts";
 import { nameProblem } from "./state.ts";
 
-// The name `init --local --name` gives a new instance. A local instance has no
+// The name `init --local --name` gives a new local store. A local store has no
 // environment variable: there is no ambient local context.
-export const instance = target({
+export const localStoreName = target({
   check: nameProblem,
   identifiedBy: "name",
   metavar: "name",
   name: "name",
-  noun: "local instance",
+  noun: "local store",
 });

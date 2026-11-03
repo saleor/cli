@@ -5,7 +5,7 @@ import packageJson from "../package.json" with { type: "json" };
 import { catalogCommand } from "./core/catalog.ts";
 import { environmentCommand } from "./core/environments.ts";
 import { GLOBAL_INPUTS } from "./core/globals.ts";
-import { InstanceSources } from "./core/instance.ts";
+import { StoreSources } from "./core/store.ts";
 import { NoInputFlag } from "./core/interaction.ts";
 import { HideFromMenu, MenuStatus } from "./core/menu.ts";
 import { collectCommands } from "./core/module.ts";
@@ -15,10 +15,8 @@ import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { setupCommand } from "./core/setup.ts";
 import { apiModule } from "./modules/api/index.ts";
 import { appModule } from "./modules/app/index.ts";
-import { cloudAccount, cloudModule } from "./modules/cloud/index.ts";
-import { projectStatus } from "./modules/config/commands.ts";
+import { cloudModule } from "./modules/cloud/index.ts";
 import { configModule } from "./modules/config/index.ts";
-import { workspaceConfigurationLive } from "./modules/config/workspace.ts";
 import { localModule } from "./modules/local/index.ts";
 import { storefrontModule } from "./modules/storefront/index.ts";
 import { webhookModule } from "./modules/webhook/index.ts";
@@ -63,23 +61,26 @@ export const root = Command.make("saleor").pipe(
   Command.withGlobalFlags([OutputFlag, NoInputFlag, AgentFlag]),
   Command.annotate(
     MenuStatus,
-    Effect.map(Effect.all([projectStatus, cloudAccount]), (lines) => {
-      const shown = lines.filter((line) => line !== undefined);
+    Effect.map(
+      Effect.all(modules.flatMap((module) => module.status ?? [])),
+      (lines) => {
+        const shown = lines.filter((line) => line !== undefined);
 
-      return shown.length > 0 ? shown.join("\n") : undefined;
-    })
+        return shown.length > 0 ? shown.join("\n") : undefined;
+      }
+    )
   )
 );
 
 const runCli = createCliRuntime(root, {
-  onboard,
+  onboard: (execute, force) => onboard(execute, force, providers),
   services: Layer.mergeAll(
-    workspaceConfigurationLive,
     NodeServices.layer,
     Layer.succeed(
-      InstanceSources,
-      modules.flatMap((module) => module.instances ?? [])
+      StoreSources,
+      modules.flatMap((module) => module.stores ?? [])
     ),
+    ...modules.flatMap((module) => module.provides ?? []),
     ...modules.map((module) => module.layer)
   ),
   version: packageJson.version,

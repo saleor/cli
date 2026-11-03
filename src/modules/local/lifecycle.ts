@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { rmSync } from "node:fs";
 import type { TargetRef } from "../../core/action.ts";
 import { type CliFailure, fail } from "../../core/errors.ts";
-import { type InstanceState, instance } from "../../core/instance.ts";
+import { type StoreState, storeFrom } from "../../core/store.ts";
 import { command } from "../../core/invocation.ts";
 import { withLock } from "../../core/lock.ts";
 import { notice, withProgress } from "../../core/output.ts";
@@ -12,9 +12,10 @@ import {
   isPast,
   notReady,
   POLL,
-  probeGraphql,
 } from "../../core/readiness.ts";
+import { storeAnswers } from "../../core/store-api.ts";
 import { SecretStore } from "../../core/secret-store.ts";
+import { localRef } from "../../core/ref.ts";
 import type { LocalConfig } from "./compose.ts";
 import { checkDocker, Docker } from "./docker.ts";
 import {
@@ -45,7 +46,7 @@ const withInstanceLock = <A, R>(
   withLock({
     dir: localsDir(),
     name,
-    busyMessage: `Another command is updating local instance "${name}".`,
+    busyMessage: `Another command is updating local store "${name}".`,
     effect,
   });
 
@@ -53,7 +54,7 @@ export const localTarget = (name: string): TargetRef => ({
   id: null,
   name,
   scope: {},
-  type: "local-instance",
+  type: "local-store",
 });
 
 const bootstrap = (sampleData: boolean) => `
@@ -80,13 +81,13 @@ const graphqlUrlOf = (config: LocalConfig) =>
   `http://localhost:${config.apiPort}/graphql/`;
 
 // The shared instance fields (see core/target.ts) plus the local mail inbox.
-export const localInstance = (config: LocalConfig, state: InstanceState) => ({
-  ...instance({
+export const localStore = (config: LocalConfig, state: StoreState) => ({
+  ...storeFrom({
     dashboardUrl: `http://localhost:${config.dashboardPort}/`,
     graphqlUrl: graphqlUrlOf(config),
     kind: "local",
     name: config.name,
-    ref: `local:${config.name}`,
+    ref: localRef(config.name),
     saleorVersion: config.saleorVersion,
     state,
   }),
@@ -167,10 +168,10 @@ const requireFreePorts = (
       ) {
         return yield* fail(
           "PORT_IN_USE",
-          `Port ${port}, used by the ${label} of local instance "${config.name}", is taken by another program.`,
+          `Port ${port}, used by the ${label} of local store "${config.name}", is taken by another program.`,
           {
             details: { port, service },
-            suggestion: `Stop that program (see it with: lsof -nP -iTCP:${port} -sTCP:LISTEN), or move the instance to new ports: ${startCommand(config.name, "--new-ports")}`,
+            suggestion: `Stop that program (see it with: lsof -nP -iTCP:${port} -sTCP:LISTEN), or move the store to new ports: ${startCommand(config.name, "--new-ports")}`,
           }
         );
       }
@@ -316,7 +317,7 @@ export const up = (options: LocalUpOptions) =>
         const secrets = yield* prepareSecrets(config);
 
         const outcome = () => ({
-          ...localInstance(config, "ready"),
+          ...localStore(config, "ready"),
           admin: { email: adminEmail, password: secrets.password },
           created,
         });
@@ -326,7 +327,7 @@ export const up = (options: LocalUpOptions) =>
           config.initialized &&
           !changed &&
           isRunning(containers, "api") &&
-          (yield* probeGraphql(graphqlUrlOf(config)))
+          (yield* storeAnswers(graphqlUrlOf(config)))
         ) {
           return outcome();
         }
@@ -346,11 +347,11 @@ export const up = (options: LocalUpOptions) =>
 
         const beat = heartbeat();
 
-        while (!(yield* probeGraphql(graphqlUrl))) {
+        while (!(yield* storeAnswers(graphqlUrl))) {
           if (isPast(deadline)) {
             return yield* notReady(
               "the local GraphQL API is not responding yet.",
-              { instance: localInstance(config, "starting") },
+              { store: localStore(config, "starting") },
               "Docker"
             );
           }
@@ -368,9 +369,9 @@ const describeInstance = (config: LocalConfig) =>
   Effect.gen(function* () {
     const containers = yield* containersOf(config.name);
     const apiRunning = isRunning(containers, "api");
-    const answers = apiRunning && (yield* probeGraphql(graphqlUrlOf(config)));
+    const answers = apiRunning && (yield* storeAnswers(graphqlUrlOf(config)));
 
-    let state: InstanceState = "stopped";
+    let state: StoreState = "stopped";
 
     if (!config.initialized) {
       state = "incomplete";
@@ -380,7 +381,7 @@ const describeInstance = (config: LocalConfig) =>
       state = "starting";
     }
 
-    return { ...localInstance(config, state), containers };
+    return { ...localStore(config, state), containers };
   });
 
 export const list = Effect.gen(function* () {
@@ -398,11 +399,11 @@ export const list = Effect.gen(function* () {
       (error) =>
         error.code === "DOCKER_NOT_RUNNING" || error.code === "DOCKER_MISSING",
       (error) =>
-        Effect.as(notice(`${error.message} Every instance is stopped.`), false)
+        Effect.as(notice(`${error.message} Every store is stopped.`), false)
     )
   );
 
-  const instances = yield* Effect.forEach(names, (name) =>
+  const stores = yield* Effect.forEach(names, (name) =>
     Effect.gen(function* () {
       const config = yield* readConfig(name);
 
@@ -411,7 +412,7 @@ export const list = Effect.gen(function* () {
       }
 
       if (!engine) {
-        return [localInstance(config, "stopped")];
+        return [localStore(config, "stopped")];
       }
 
       const { containers: _, ...shown } = yield* describeInstance(config);
@@ -420,7 +421,7 @@ export const list = Effect.gen(function* () {
     })
   );
 
-  return instances.flat();
+  return stores.flat();
 });
 
 // Read-only: what `up` would do with these options.

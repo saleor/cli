@@ -2,26 +2,21 @@ import { Effect, Option } from "effect";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fail } from "../../core/errors.ts";
-import type { Instance } from "../../core/instance.ts";
+import type { Store } from "../../core/store.ts";
 import { command } from "../../core/invocation.ts";
-import { storefrontPath } from "../../core/components.ts";
-import { recordInSync } from "../../core/deployments.ts";
+import { componentPath } from "../../core/components.ts";
+import { recordDeploy } from "../../core/deploy-record.ts";
 import { findProject } from "../../core/project.ts";
-import { envWord } from "../../core/workspace.ts";
+import { envWord } from "../../core/env-word.ts";
 import { applies, sentence, why } from "./describe.ts";
-import {
-  type Change,
-  change,
-  deploy,
-  diff,
-  shown,
-  type Store,
-} from "./engine.ts";
+import { type Change, change, deploy, diff } from "./engine.ts";
+import type { StoreClient } from "../../core/store-api.ts";
+import { shown } from "../../core/output.ts";
 
 // A deploy plan: the differences, split into what a deploy changes and what it
 // leaves as it is, so a plan never promises what the engine will not do.
-export const planDeploy = (store: Store, file: string) =>
-  Effect.map(diff(store, file), (summary) => {
+export const planDeploy = (client: StoreClient, file: string) =>
+  Effect.map(diff(client, file), (summary) => {
     const changes = summary.results.map(change);
 
     return {
@@ -67,19 +62,17 @@ const key = (each: Change) => `${each.operation}\0${each.entity}\0${each.name}`;
 // Applies the plan, then compares again: the engine reports success for changes it
 // skips, so what happened is measured, not assumed.
 export const applyDeploy = ({
-  instance,
-  store,
+  client,
   file,
   plan,
 }: {
-  readonly instance: Instance;
-  readonly store: Store;
+  readonly client: StoreClient;
   readonly file: string;
   readonly plan: DeployPlan;
 }) =>
   Effect.gen(function* () {
     if (plan.deployable.length === 0) {
-      yield* recordInSync(file, instance.ref);
+      yield* recordDeploy(file, client.store.ref);
 
       return { applied: [], durationMs: 0, missed: [], skipped: plan.skipped };
     }
@@ -87,7 +80,7 @@ export const applyDeploy = ({
     const pass = (summary: DeployPlan["summary"]) =>
       Effect.gen(function* () {
         const { exitCode, result: outcome } = yield* deploy(
-          store,
+          client,
           file,
           summary
         );
@@ -100,7 +93,7 @@ export const applyDeploy = ({
           return yield* fail(
             "DEPLOY_PARTIAL",
             [
-              `The deploy to ${instance.ref} ${outcome.overallStatus === "partial" ? "partly failed" : "failed"}.`,
+              `The deploy to ${client.store.ref} ${outcome.overallStatus === "partial" ? "partly failed" : "failed"}.`,
               ...failed.map(
                 (stage) => `  ${stage.name}: ${stage.error ?? stage.status}`
               ),
@@ -111,7 +104,7 @@ export const applyDeploy = ({
                 stages: outcome.stages,
                 summary: outcome.summary,
               },
-              suggestion: `Fix the cause, then deploy again; it retries what is left. See what is left with: saleor config diff ${instance.ref}`,
+              suggestion: `Fix the cause, then deploy again; it retries what is left. See what is left with: saleor config diff ${client.store.ref}`,
             }
           );
         }
@@ -120,21 +113,21 @@ export const applyDeploy = ({
       });
 
     let durationMs = yield* pass(plan.summary);
-    let again = yield* planDeploy(store, file);
+    let again = yield* planDeploy(client, file);
 
     // The engine runs its stages in a fixed order, so a change can depend on one made
     // later in the same run (a collection is created before its products). One more
     // pass picks those up; what is still left after it, the engine does not do.
     if (again.deployable.length > 0) {
       durationMs += yield* pass(again.summary);
-      again = yield* planDeploy(store, file);
+      again = yield* planDeploy(client, file);
     }
 
     const left = new Set(again.changes.map(key));
     const applied = plan.deployable.filter((each) => !left.has(key(each)));
 
     if (again.deployable.length === 0) {
-      yield* recordInSync(file, instance.ref);
+      yield* recordDeploy(file, client.store.ref);
     }
 
     return {
@@ -149,15 +142,11 @@ export type Deployed = Effect.Success<ReturnType<typeof applyDeploy>>;
 
 // A deploy's result in words, with a hint when a storefront in the project may
 // want a channel the deploy created.
-export const deployedText = (
-  instance: Instance,
-  file: string,
-  outcome: Deployed
-) => {
+export const deployedText = (store: Store, file: string, outcome: Deployed) => {
   // The project's storefront, wherever saleor.yml puts it, when it is connected.
   const storefront = Option.filter(
     Option.map(findProject(path.dirname(file)), (project) =>
-      path.resolve(project.root, storefrontPath(project))
+      path.resolve(project.root, componentPath(project, "storefront"))
     ),
     (dir) => existsSync(path.join(dir, ".env"))
   );
@@ -169,8 +158,8 @@ export const deployedText = (
   return {
     headline:
       outcome.applied.length === 0 && outcome.missed.length === 0
-        ? `${instance.ref} already matches ${shown(file)}; nothing to deploy.`
-        : `Deployed ${shown(file)} to ${instance.ref}: ${counted(outcome.applied, true)}.`,
+        ? `${store.ref} already matches ${shown(file)}; nothing to deploy.`
+        : `Deployed ${shown(file)} to ${store.ref}: ${counted(outcome.applied, true)}.`,
     text: [
       ...outcome.applied.map((each) => `  • ${sentence(each)}`),
       ...(outcome.missed.length > 0
@@ -186,7 +175,7 @@ export const deployedText = (
         : []),
       ...(Option.isSome(storefront) && channels.length > 0
         ? [
-            `New channel${channels.length > 1 ? "s" : ""}: ${channels.map((each) => each.name).join(", ")}. To show it in the storefront: ${command("storefront", "use", envWord(instance.ref), "--dir", path.relative(process.cwd(), storefront.value) || ".", "--channel", channels[0]?.name ?? "")}`,
+            `New channel${channels.length > 1 ? "s" : ""}: ${channels.map((each) => each.name).join(", ")}. To show it in the storefront: ${command("storefront", "use", envWord(store.ref), "--dir", path.relative(process.cwd(), storefront.value) || ".", "--channel", channels[0]?.name ?? "")}`,
           ]
         : []),
     ].join("\n"),

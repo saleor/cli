@@ -10,7 +10,7 @@ export const organization = target({
   noun: "organization",
 });
 
-export const project = target({
+export const cloudProject = target({
   env: "SALEOR_PROJECT",
   identifiedBy: "slug or name",
   metavar: "project",
@@ -19,8 +19,8 @@ export const project = target({
 });
 
 // The name of a new Cloud environment in `init`. SALEOR_ENV is not read here: it names
-// the environment a command acts on (see core/workspace.ts), not one to create.
-export const environment = target({
+// the environment a command acts on (see core/env-word.ts), not one to create.
+export const cloudEnvironment = target({
   identifiedBy: "name or key",
   metavar: "env",
   name: "env",

@@ -4,11 +4,11 @@ import { defineActions, defineGroup, type Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { envInput, resolveInstance } from "../../core/instances.ts";
+import { envInput, resolveStore } from "../../core/stores.ts";
 import { isInteractive } from "../../core/interaction.ts";
 import { MenuAvailable } from "../../core/menu.ts";
-import { notice } from "../../core/output.ts";
-import { storefrontFolder } from "../../core/components.ts";
+import { notice, shown } from "../../core/output.ts";
+import { storefrontFolder } from "./project.ts";
 import {
   connectedElsewhere,
   create,
@@ -16,7 +16,6 @@ import {
   finish,
   inspect,
   notStorefront,
-  shown,
   storefrontTarget,
   TEMPLATE,
 } from "./storefront.ts";
@@ -85,7 +84,7 @@ const createCommand = storefront.ensure({
         return yield* notStorefront(dir);
       }
 
-      const { instance: store, source } = yield* resolveInstance(input.env);
+      const { source, store } = yield* resolveStore(input.env);
 
       if (
         found.kind === "storefront" &&
@@ -201,7 +200,7 @@ const useCommand = storefront
           );
         }
 
-        const { instance: store, source } = yield* resolveInstance(input.env);
+        const { source, store } = yield* resolveStore(input.env);
 
         const channel = Option.getOrElse(
           input.channel,

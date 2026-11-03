@@ -2,7 +2,8 @@ import { Effect, Option, Schema } from "effect";
 import { HttpClient, HttpClientResponse } from "effect/http";
 import { describe, expect, it } from "vitest";
 import { OutputFlag } from "../../core/output.ts";
-import { deadlineIn, probeGraphql } from "../../core/readiness.ts";
+import { deadlineIn } from "../../core/readiness.ts";
+import { storeAnswers } from "../../core/store-api.ts";
 import { CloudApi, type CloudApiService } from "./api/client.ts";
 import { ListProjectResponse } from "./api/contract.ts";
 import samples from "./api/fixtures/cloud-samples.json" with { type: "json" };
@@ -50,7 +51,7 @@ it.each([
 ])("checks a real GraphQL payload (HTTP %i)", async (status, body, ready) => {
   expect(
     await Effect.runPromise(
-      probeGraphql("https://test.saleor.cloud/graphql/").pipe(
+      storeAnswers("https://test.saleor.cloud/graphql/").pipe(
         Effect.provideService(HttpClient.HttpClient, http(body, status))
       )
     )

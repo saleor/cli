@@ -16,12 +16,13 @@ import {
   type InputValues,
   option,
 } from "./inputs.ts";
-import type { Instance } from "./instance.ts";
+import type { Store } from "./store.ts";
 import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
 import { askThen } from "./navigation.ts";
 import { notice } from "./output.ts";
-import { initializeProject, projectFolder } from "./project.ts";
+import { projectFolder } from "./project.ts";
+import { initializeProject } from "./project-init.ts";
 
 // `saleor init` is the one journey every provider shares: create a new store.
 // Each module that can run a store contributes a setup provider; this file composes
@@ -30,8 +31,8 @@ import { initializeProject, projectFolder } from "./project.ts";
 
 type Inputs = Readonly<Record<string, Input<InputValue>>>;
 
-// Every provider sets up a store, so its result is one: an instance (see instance.ts).
-export interface SetupResult extends Instance {
+// Every provider sets up a store, so its result is one: a store (see store.ts).
+export interface SetupResult extends Store {
   readonly created: boolean;
   readonly sampleDataReady?: boolean | undefined;
 }
@@ -47,17 +48,38 @@ export interface SetupProvider<R> {
   readonly name: string;
   // How `env add <name>` names the store it sets up for a project's environment.
   readonly naming: Naming;
+  // How first-run onboarding offers this place to run stores.
+  readonly onboarding: OnboardingPath | undefined;
   readonly plan: (
     input: InputValues & KindValues
   ) => Effect.Effect<Planned<Ensured<SetupResult>, R>, CliFailure, R>;
   readonly requirement: Requirement<R> | undefined;
 }
 
+// What onboarding says about a place to run stores, and what it does when picked.
+export interface OnboardingPath {
+  // Something a coding agent can get on this path besides skills, such as Saleor MCP.
+  readonly agentTool?: AgentTool | undefined;
+  // A command run first, such as `login`; onboarding stops when it fails.
+  readonly first?: readonly string[] | undefined;
+  readonly hint: string;
+  readonly label: string;
+  // What the store onboarding offers to set up will be.
+  readonly store: string;
+}
+
+export interface AgentTool {
+  readonly install: (agent: string) => Effect.Effect<void>;
+  // Said before the question.
+  readonly offer: string;
+  readonly question: string;
+}
+
 export interface Naming {
   // The input that takes the store's name, which `env add` fills in instead.
   readonly input: string;
-  // The store's name for environment `alias` of project `project`.
-  readonly name: (project: string, alias: string) => string;
+  // The store's name for environment `environment` of project `project`.
+  readonly name: (project: string, environment: string) => string;
 }
 
 // Something a provider needs before it can set up a store, such as a Cloud login.
@@ -84,6 +106,7 @@ export const defineSetup = <
   readonly label: string;
   readonly name: string;
   readonly naming: Naming & { readonly input: keyof I & string };
+  readonly onboarding?: OnboardingPath;
   readonly plan: (
     input: Values<I> & KindValues
   ) => Effect.Effect<Planned<Ensured<A>, RA>, CliFailure, R>;
@@ -97,6 +120,7 @@ export const defineSetup = <
   label: provider.label,
   name: provider.name,
   naming: provider.naming,
+  onboarding: provider.onboarding,
   plan: (input) =>
     // SAFETY: `init` declares every provider's inputs on one command and passes the parsed record, so the keys of `I` hold the values its inputs parse to.
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The combined command parses these exact provider inputs before invoking this adapter.
@@ -226,8 +250,9 @@ const isSet = (value: InputValue | undefined) =>
 
 // The flag that names a provider on the command line: its own (`--local`), or its
 // name for the default one (`--cloud`), which is used without it outside a terminal.
-const selectorOf = <R>(provider: SetupProvider<R>) =>
-  provider.flag ?? provider.name;
+export const selectorOf = (
+  provider: Pick<SetupProvider<unknown>, "flag" | "name">
+) => provider.flag ?? provider.name;
 
 // Which provider sets up a store, shared by `init` and `env add`: the default one,
 // a flag for each provider (`--cloud`, `--local`), and the rules below for choosing.

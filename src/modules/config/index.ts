@@ -5,8 +5,9 @@ import { MenuAvailable } from "../../core/menu.ts";
 import { defineModule } from "../../core/module.ts";
 import { findProject } from "../../core/project.ts";
 import { SecretStoreLive } from "../../core/secret-store.ts";
-import { configCommand } from "./commands.ts";
+import { configCommand, projectStatus } from "./commands.ts";
 import { DEFAULT_CONFIG } from "./engine.ts";
+import { projectConfigurationLive } from "./project-configuration.ts";
 import { configSetup } from "./setup.ts";
 
 // `configurator` is an alias, so the word people know from the standalone tool works.
@@ -28,5 +29,7 @@ export const configModule = defineModule({
     "Store configuration as code (Saleor Configurator), for any store the CLI can reach.",
   layer: SecretStoreLive,
   name: "config",
+  provides: projectConfigurationLive,
   setupExtension: configSetup,
+  status: projectStatus,
 });

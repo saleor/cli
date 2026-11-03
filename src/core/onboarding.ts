@@ -15,6 +15,11 @@ import {
 } from "./onboarding-presentation.ts";
 import { notice } from "./output.ts";
 import { findProject } from "./project.ts";
+import {
+  type OnboardingPath,
+  selectorOf,
+  type SetupProvider,
+} from "./setup.ts";
 import { directoryState } from "./scaffold.ts";
 import { configDir } from "./secret-store.ts";
 
@@ -43,22 +48,16 @@ const here = () => {
     : cwd;
 };
 
-// The last step: set up a store now, where the first step said it should run (Cloud
-// or Docker). Not offered inside a project, which has its stores. `init` makes the
-// project here when this folder is empty, else a folder in it.
-const offerStore = (cloud: boolean) =>
+// The last step: set up a store now, where the first step said it should run. Not
+// offered inside a project, which has its stores. `init` makes the project here when
+// this folder is empty, else a folder in it.
+const offerStore = (path: Path) =>
   Effect.gen(function* () {
     if (Option.isSome(findProject())) {
       return false;
     }
 
-    yield* onboardingSection(
-      "03",
-      "Your store",
-      cloud
-        ? "Create a sandbox in Saleor Cloud, with a project folder for its configuration and storefront."
-        : "Run a store in Docker on this computer, with a project folder for its configuration and storefront."
-    );
+    yield* onboardingSection("03", "Your store", path.store);
 
     const where =
       directoryState(process.cwd()) === "used"
@@ -70,13 +69,43 @@ const offerStore = (cloud: boolean) =>
     );
   });
 
-// Store a completion marker only. Choosing local here does not change the target
-// of later commands, and signing out does not restart onboarding.
+// A place to run stores, as onboarding offers it: what its setup provider says, and
+// the `init` that sets up a store there.
+type Path = OnboardingPath & {
+  readonly init: readonly string[];
+  readonly value: string;
+};
+
+// What onboarding reads of a setup provider.
+type Offered = Pick<SetupProvider<unknown>, "flag" | "name" | "onboarding">;
+
+const pathsOf = (providers: readonly Offered[]): readonly Path[] =>
+  providers.flatMap((provider) =>
+    provider.onboarding === undefined
+      ? []
+      : [
+          {
+            ...provider.onboarding,
+            init: ["init", `--${selectorOf(provider)}`],
+            value: provider.name,
+          },
+        ]
+  );
+
+const SKIP = "skip";
+
+const failed = () => process.exitCode !== undefined && process.exitCode !== 0;
+
+// Store a completion marker only. The place picked here does not change the target
+// of later commands, and logging out does not restart onboarding.
 export const onboard = (
   execute: (argv: readonly string[]) => Effect.Effect<void>,
-  force: boolean
+  force: boolean,
+  providers: readonly Offered[]
 ) =>
   Effect.gen(function* () {
+    const paths = pathsOf(providers);
+
     if (!force && (yield* Effect.sync(completed))) {
       return true;
     }
@@ -85,52 +114,48 @@ export const onboard = (
     yield* onboardingSection(
       "01",
       "Your workspace",
-      "Connect to Saleor Cloud or continue without an account."
+      "Choose where your stores run."
     );
 
     // Escape in any later step returns to this first question.
-    const { choice, finished, store } = yield* askThen(
+    const { finished, path, store } = yield* askThen(
       askSelect({
         choices: [
-          {
-            hint: "Log in to your Saleor Cloud account",
-            label: "Use Saleor Cloud",
-            value: "cloud",
-          },
-          {
-            hint: "Docker or self-hosted. No login needed",
-            label: "Local / self-hosted",
-            value: "local",
-          },
+          ...paths.map((each) => ({
+            hint: each.hint,
+            label: each.label,
+            value: each.value,
+          })),
           {
             hint: "Skip login and agent setup",
             label: "Browse commands",
-            value: "skip",
+            value: SKIP,
           },
         ],
         message: "Where would you like to start?",
       }),
       (picked) =>
         Effect.gen(function* () {
-          if (picked === "cloud") {
-            yield* execute(["login"]);
+          const chosen = paths.find((each) => each.value === picked);
 
-            if (process.exitCode !== undefined && process.exitCode !== 0) {
-              return { choice: picked, finished: false, store: false };
+          if (chosen === undefined) {
+            return { finished: true, path: undefined, store: false };
+          }
+
+          if (chosen.first !== undefined) {
+            yield* execute(chosen.first);
+
+            if (failed()) {
+              return { finished: false, path: chosen, store: false };
             }
           }
 
-          const finished =
-            picked === "skip" || (yield* setupCodingAgent(picked === "cloud"));
+          const finished = yield* setupCodingAgent(chosen.agentTool);
 
           return {
-            choice: picked,
             finished,
-            // Not after "Browse commands", which skips setting anything up.
-            store:
-              finished &&
-              picked !== "skip" &&
-              (yield* offerStore(picked === "cloud")),
+            path: chosen,
+            store: finished && (yield* offerStore(chosen)),
           };
         })
     );
@@ -152,15 +177,13 @@ export const onboard = (
 
     // Onboarding is done either way: a store that fails to set up is retried with
     // `saleor init`, not by onboarding again. Its result ends the run, as from the menu.
-    if (store) {
-      yield* execute(
-        choice === "local" ? ["init", "--local"] : ["init", "--cloud"]
-      );
+    if (store && path !== undefined) {
+      yield* execute(path.init);
 
       return false;
     }
 
-    yield* onboardingReady(choice === "skip");
+    yield* onboardingReady(path === undefined);
 
     return true;
   });
@@ -173,7 +196,8 @@ export const Onboarding = Context.Reference<Effect.Effect<void>>(
 );
 
 export const onboardCommand = defineActions().session({
-  description: "Revisit the interactive welcome and Cloud login setup.",
+  description:
+    "Revisit the interactive welcome: where your stores run, and coding agent setup.",
   inputs: {},
   name: "onboard",
   run: () =>

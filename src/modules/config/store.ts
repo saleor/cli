@@ -3,25 +3,23 @@ import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
 import { command } from "../../core/invocation.ts";
-import { InstanceSources, type Instance } from "../../core/instance.ts";
-import { resolveInstance } from "../../core/instances.ts";
+import type { Store } from "../../core/store.ts";
+import type { StoreClient } from "../../core/store-api.ts";
+import { resolveStore } from "../../core/stores.ts";
 import { type ConfigFile, configFiles } from "../../core/components.ts";
 import {
   configPath,
   findProject,
   rememberEnvironment,
 } from "../../core/project.ts";
-import {
-  storeAccess,
-  type StoreAccessOptions,
-} from "../../core/store-access.ts";
+import { storeToken, type StoreTokenOptions } from "../../core/store-token.ts";
 import {
   DEFAULT_CONFIG,
   existingConfig,
-  shown,
   supportedSaleor,
   validateFile,
 } from "./engine.ts";
+import { shown } from "../../core/output.ts";
 
 // The configuration file: --config, else the project's, else ./config.yml.
 export const configFile = (input: Option.Option<string>) =>
@@ -66,75 +64,58 @@ export const checkedFiles = (input: Option.Option<string>) =>
 export const filesShown = (files: readonly { readonly file: string }[]) =>
   files.map(({ file }) => shown(file)).join(" and ");
 
-const checkVersion = (instance: Instance) =>
+const checkVersion = (store: Store) =>
   Effect.gen(function* () {
     const supported = yield* supportedSaleor;
 
     if (
-      instance.saleorVersion !== null &&
-      !instance.saleorVersion.startsWith(`${supported}.`)
+      store.saleorVersion !== null &&
+      !store.saleorVersion.startsWith(`${supported}.`)
     ) {
       return yield* fail(
         "UNSUPPORTED_SALEOR_VERSION",
-        `${instance.ref} runs Saleor ${instance.saleorVersion}; this CLI's configuration support is for Saleor ${supported}.`,
+        `${store.ref} runs Saleor ${store.saleorVersion}; this CLI's configuration support is for Saleor ${supported}.`,
         {
-          suggestion: `Use the Configurator release for that Saleor version: npx @saleor/configurator@${instance.saleorVersion.split(".").slice(0, 2).join(".")}`,
+          suggestion: `Use the Configurator release for that Saleor version: npx @saleor/configurator@${store.saleorVersion.split(".").slice(0, 2).join(".")}`,
         }
       );
     }
   });
 
-// The store named by `<env>` (or the project's, or a pick), and a token for its API.
+// The store named by `<env>` (or the project's, or a pick), and a token for its API,
+// once its Saleor version is one the engine supports.
 export const connect = (
   env: Option.Option<string>,
-  options?: StoreAccessOptions
+  options?: StoreTokenOptions
 ) =>
   Effect.gen(function* () {
-    const resolved = yield* resolveInstance(env);
+    const resolved = yield* resolveStore(env);
 
-    yield* checkVersion(resolved.instance);
+    yield* checkVersion(resolved.store);
 
-    const access = yield* storeAccess(resolved, options);
+    const { token } = yield* storeToken(resolved, options);
 
-    return {
-      instance: resolved.instance,
-      store: { token: access.token, url: resolved.instance.graphqlUrl },
-    };
-  });
-
-// The same for a store `init` just made, which needs no resolving.
-export const connectMade = (made: Instance) =>
-  Effect.gen(function* () {
-    const sources = yield* InstanceSources;
-    const source = sources.find((each) => each.kind === made.kind);
-
-    if (source === undefined) {
-      return yield* fail("NOT_FOUND", `No source for ${made.ref}.`);
-    }
-
-    const access = yield* storeAccess({ instance: made, source });
-
-    return { token: access.token, url: made.graphqlUrl };
+    return { store: resolved.store, token } satisfies StoreClient;
   });
 
 // An environment's name for a store: "local" for the first local one, else its name.
-export const environmentName = (instance: Instance) =>
-  instance.kind === "local" ? "local" : instance.name;
+export const environmentName = (store: Store) =>
+  store.kind === "local" ? "local" : store.name;
 
 // After a pull or deploy, the project remembers the store it used, so the next run
 // needs no ref. Returns a line saying so, when one was added.
-export const remember = (file: string, instance: Instance) =>
+export const remember = (file: string, store: Store) =>
   Effect.map(
     rememberEnvironment({
       root: Option.match(findProject(path.dirname(file)), {
         onNone: () => path.dirname(file),
         onSome: (project) => project.root,
       }),
-      wanted: environmentName(instance),
-      ref: instance.ref,
+      wanted: environmentName(store),
+      ref: store.ref,
     }),
     ({ added, name }) =>
       added
-        ? `Remembered ${instance.ref} as environment "${name}" in saleor.yml; next time, run: ${command("config", "deploy", name)}`
+        ? `Remembered ${store.ref} as environment "${name}" in saleor.yml; next time, run: ${command("config", "deploy", name)}`
         : undefined
   );

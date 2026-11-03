@@ -7,7 +7,7 @@ import {
 } from "./regions.ts";
 
 // Building blocks for a first configuration, for people without a coding agent:
-// a few questions pick a region and a kind of store, and the blocks add up to a
+// a few questions pick a region and what the store sells (its catalog), and the blocks add up to a
 // configuration the engine accepts (a test deploys every combination's checks). They
 // replace Configurator's recipes, which no longer pass its own checks.
 
@@ -42,7 +42,7 @@ interface Sample {
   }[];
 }
 
-interface Kind {
+interface Catalog {
   readonly attributes: readonly {
     readonly name: string;
     readonly values: readonly string[];
@@ -61,7 +61,7 @@ interface Kind {
   }[];
 }
 
-export const KINDS = {
+export const CATALOGS = {
   apparel: {
     attributes: [
       { name: "Brand", values: ["Northwind", "Summit"] },
@@ -265,9 +265,9 @@ export const KINDS = {
     shipping: true,
     types: [{ name: "Product", product: ["Brand"], variant: ["Option"] }],
   },
-} as const satisfies Record<string, Kind>;
+} as const satisfies Record<string, Catalog>;
 
-export type KindKey = keyof typeof KINDS;
+export type CatalogKey = keyof typeof CATALOGS;
 
 const slug = (text: string) =>
   text
@@ -275,13 +275,13 @@ const slug = (text: string) =>
     .replaceAll(/[^a-z0-9]+/g, "-")
     .replaceAll(/^-+|-+$/g, "");
 
-const kindFragment = (
-  kind: Kind,
+const catalogFragment = (
+  catalog: Catalog,
   channels: readonly string[],
   samples: boolean
 ): Fragment => {
   const products = samples
-    ? kind.samples.map((sample) => ({
+    ? catalog.samples.map((sample) => ({
         attributes: { ...sample.attributes },
         category: slug(sample.category),
         channelListings: channels.map((channel) => ({
@@ -307,7 +307,7 @@ const kindFragment = (
     : [];
 
   return {
-    categories: kind.categories.map((category) => {
+    categories: catalog.categories.map((category) => {
       const entry = { name: category.name, slug: slug(category.name) };
 
       return category.children === undefined
@@ -337,7 +337,7 @@ const kindFragment = (
     menus: [
       {
         // The storefront template's navigation reads the "navbar" menu.
-        items: kind.categories.map((category) => ({
+        items: catalog.categories.map((category) => ({
           category: slug(category.name),
           name: category.name,
         })),
@@ -345,14 +345,14 @@ const kindFragment = (
         slug: "navbar",
       },
     ],
-    productAttributes: kind.attributes.map((attribute) => ({
+    productAttributes: catalog.attributes.map((attribute) => ({
       inputType: "DROPDOWN",
       name: attribute.name,
       values: attribute.values.map((value) => ({ name: value })),
     })),
     products,
-    productTypes: kind.types.map((type) => ({
-      isShippingRequired: kind.shipping,
+    productTypes: catalog.types.map((type) => ({
+      isShippingRequired: catalog.shipping,
       name: type.name,
       productAttributes: type.product.map((attribute) => ({ attribute })),
       variantAttributes: type.variant.map((attribute) => ({ attribute })),
@@ -361,7 +361,7 @@ const kindFragment = (
 };
 
 export interface Answers {
-  readonly kind: KindKey;
+  readonly catalog: CatalogKey;
   readonly region: RegionKey;
   readonly samples: boolean;
   readonly shopName?: string | undefined;
@@ -370,16 +370,16 @@ export interface Answers {
 // The configuration the answers describe: only what they add, to be merged onto
 // the store's own (see merge.ts).
 export const fromAnswers = (answers: Answers): Document => {
-  const kind = KINDS[answers.kind];
+  const catalog = CATALOGS[answers.catalog];
 
   const markets: readonly Market[] = REGIONS[answers.region].markets.map(
     (key) => MARKETS[key]
   );
 
   const parts = [
-    ...markets.map((market) => marketFragment(market, kind.shipping)),
-    kindFragment(
-      kind,
+    ...markets.map((market) => marketFragment(market, catalog.shipping)),
+    catalogFragment(
+      catalog,
       markets.map((market) => market.slug),
       answers.samples
     ),

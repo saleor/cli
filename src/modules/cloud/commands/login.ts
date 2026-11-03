@@ -9,7 +9,7 @@ import { currentUser } from "../auth/current-user.ts";
 import { DEVICE_CLIENT_ID } from "../auth/device-grant.ts";
 import { deviceLogin } from "../auth/device-login.ts";
 import { Session } from "../auth/session.ts";
-import { signedIn } from "../auth/signed-in.ts";
+import { loggedIn } from "../auth/logged-in.ts";
 
 export const login = defineActions()
   .session({
@@ -66,6 +66,6 @@ export const login = defineActions()
   .pipe(
     Command.annotate(
       MenuAvailable,
-      Effect.map(signedIn, (yes) => !yes)
+      Effect.map(loggedIn, (yes) => !yes)
     )
   );

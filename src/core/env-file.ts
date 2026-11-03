@@ -1,9 +1,10 @@
 // Editing a project's dotenv file without taking it over: the CLI sets the keys it
 // owns where they already are (or where the template has them commented out), leaves
 // every other line as the person wrote it, and records which store the file points at
-// in one header line, `# saleor: instance=<ref>`.
+// in one header line, `# saleor: store=<ref>`. Files written before it was called a
+// store say `instance=`, which is still read.
 
-const HEADER = /^# saleor: instance=(\S+)/;
+const HEADER = /^# saleor: (?:store|instance)=(\S+)/;
 const ASSIGNMENT = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/;
 const UNSAFE = /[\s#"'`$\\]/;
 const TRAILING_COMMENT = /\s+#.*$/;
@@ -93,7 +94,7 @@ export const setEnv = ({
   const body = lines.join("\n").replace(TRAILING_NEWLINES, "\n");
 
   return [
-    `# saleor: instance=${ref} (${note})`,
+    `# saleor: store=${ref} (${note})`,
     `${body}${appended.join("\n")}${appended.length > 0 ? "\n" : ""}`,
   ].join("\n");
 };

@@ -1,5 +1,5 @@
-import { Option, Predicate, Schema } from "effect";
-import { parse } from "yaml";
+import { type Option, Predicate, Schema } from "effect";
+import { decodeYaml } from "../../core/yaml.ts";
 
 // A config.yml as the CLI handles it: JSON-shaped data whose meaning (Configurator's
 // schema) is the engine's to check. YAML becomes a document here, at the boundary;
@@ -23,16 +23,9 @@ export const documentsIn = (value: Json | undefined): readonly Document[] =>
 export const textOf = (value: Json | undefined) =>
   Predicate.isString(value) ? value : undefined;
 
-const decodeDocument = Schema.decodeUnknownOption(Schema.JsonObject);
-
 // YAML text as a document; none when it is not YAML or not a mapping.
-export const parseYamlDocument = (text: string): Option.Option<Document> => {
-  try {
-    return decodeDocument(parse(text));
-  } catch {
-    return Option.none();
-  }
-};
+export const parseYamlDocument = (text: string): Option.Option<Document> =>
+  decodeYaml(Schema.JsonObject, text);
 
 // How Configurator identifies an entry: its slug, else its name.
 export const identity = (entry: Document) => {

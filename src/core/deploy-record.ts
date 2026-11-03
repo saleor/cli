@@ -38,7 +38,7 @@ export const fileHash = (file: string) =>
     : null;
 
 // Records that the store `ref` matched `file` as it is now.
-export const recordInSync = (file: string, ref: string) =>
+export const recordDeploy = (file: string, ref: string) =>
   Effect.sync(() => {
     const hash = fileHash(file);
 
@@ -58,16 +58,16 @@ export const recordInSync = (file: string, ref: string) =>
     writeFileSync(stateFile(), `${JSON.stringify(next, null, 2)}\n`);
   });
 
-export interface SyncNote {
+export interface DeployRecord {
   readonly at: Date;
   readonly edited: boolean;
 }
 
 // Whether `file` changed since `ref` last matched it, by this computer's records.
-export const lastInSync = (
+export const lastDeploy = (
   file: string,
   ref: string
-): Option.Option<SyncNote> => {
+): Option.Option<DeployRecord> => {
   const entry = readState()[path.resolve(file)]?.[ref];
 
   return entry === undefined
@@ -76,20 +76,4 @@ export const lastInSync = (
         at: new Date(entry.at),
         edited: fileHash(file) !== entry.hash,
       });
-};
-
-export const ago = (date: Date, now = Date.now()) => {
-  const minutes = Math.round((now - date.getTime()) / 60_000);
-
-  if (minutes < 1) {
-    return "just now";
-  }
-
-  if (minutes < 60) {
-    return `${minutes} min ago`;
-  }
-
-  const hours = Math.round(minutes / 60);
-
-  return hours < 48 ? `${hours} h ago` : `${Math.round(hours / 24)} days ago`;
 };

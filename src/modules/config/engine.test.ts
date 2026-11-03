@@ -3,11 +3,22 @@ import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { instance } from "../../core/instance.ts";
+import { storeFrom } from "../../core/store.ts";
 import { applyDeploy, planDeploy } from "./deploying.ts";
 import { deploy, diff, pull, serialize, validateFile } from "./engine.ts";
 
-const store = { token: "store-secret", url: "https://store.test/graphql/" };
+const client = {
+  store: storeFrom({
+    dashboardUrl: "https://store.test/dashboard/",
+    graphqlUrl: "https://store.test/graphql/",
+    kind: "local",
+    name: "test",
+    ref: "local:test",
+    saleorVersion: "3.23.41",
+    state: "ready",
+  }),
+  token: "store-secret",
+};
 
 describe("Configurator library adapter", () => {
   let directory: string;
@@ -27,9 +38,11 @@ describe("Configurator library adapter", () => {
     // Exercise the installed library's real services, diff and deployment pipeline.
     // Only the Saleor transport is replaced.
     vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
-      expect(url instanceof Request ? url.url : String(url)).toBe(store.url);
+      expect(url instanceof Request ? url.url : String(url)).toBe(
+        client.store.graphqlUrl
+      );
       expect(new Headers(init?.headers).get("authorization")).toBe(
-        `Bearer ${store.token}`
+        `Bearer ${client.token}`
       );
 
       const body = JSON.parse(
@@ -86,22 +99,22 @@ describe("Configurator library adapter", () => {
   it("pulls, serializes, diffs and deploys through the public library without extra files or output", async () => {
     const stdout = vi.spyOn(process.stdout, "write");
     const stderr = vi.spyOn(process.stderr, "write");
-    const pulled = await Effect.runPromise(pull(store));
+    const pulled = await Effect.runPromise(pull(client));
     expect(pulled.shop).toStrictEqual({ defaultMailSenderName: "Old store" });
     expect(await Effect.runPromise(serialize(pulled))).toContain("Old store");
 
-    const summary = await Effect.runPromise(diff(store, file));
+    const summary = await Effect.runPromise(diff(client, file));
     expect(summary).toMatchObject({ totalChanges: 1, updates: 1 });
     expect(summary.results[0]).toMatchObject({
       entityType: "Shop Settings",
       operation: "UPDATE",
     });
 
-    const outcome = await Effect.runPromise(deploy(store, file, summary));
+    const outcome = await Effect.runPromise(deploy(client, file, summary));
     expect(outcome.exitCode).toBe(0);
     expect(outcome.result.overallStatus).toBe("success");
     expect(mutations).toStrictEqual([{ defaultMailSenderName: "New store" }]);
-    expect(await Effect.runPromise(diff(store, file))).toMatchObject({
+    expect(await Effect.runPromise(diff(client, file))).toMatchObject({
       totalChanges: 0,
     });
     expect(readdirSync(directory)).toStrictEqual(["config.yml"]);
@@ -119,20 +132,10 @@ describe("Configurator library adapter", () => {
 
   it("reports returned deployment failures rather than marking the project in sync", async () => {
     rejectUpdate = true;
-    const plan = await Effect.runPromise(planDeploy(store, file));
-
-    const target = instance({
-      dashboardUrl: "https://store.test/dashboard/",
-      graphqlUrl: store.url,
-      kind: "local",
-      name: "test",
-      ref: "local:test",
-      saleorVersion: "3.23.41",
-      state: "ready",
-    });
+    const plan = await Effect.runPromise(planDeploy(client, file));
 
     const failure = await Effect.runPromise(
-      Effect.flip(applyDeploy({ instance: target, store, file, plan }))
+      Effect.flip(applyDeploy({ client, file, plan }))
     );
 
     expect(failure).toMatchObject({ code: "DEPLOY_PARTIAL", retry: false });

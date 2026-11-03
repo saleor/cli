@@ -37,13 +37,13 @@ Install and start Docker with Compose, then run:
 pnpm saleor init --local
 ```
 
-`init` asks for a new instance name. Passing an existing name explicitly lets you retry setup safely.
+`init` asks for a name for the new local store. Passing an existing name explicitly lets you retry setup safely.
 
 No Cloud account is needed. The first setup can take several minutes. When ready, the CLI shows your dashboard, API address, and admin login.
 
 ## Manage environments
 
-Local instances and Cloud environments answer the same commands:
+Local stores and Cloud environments answer the same commands:
 
 ```sh
 pnpm saleor env list              # every store, local and Cloud, with its state

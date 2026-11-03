@@ -11,9 +11,9 @@ import {
 } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { envInput } from "../../core/instances.ts";
+import { envInput } from "../../core/stores.ts";
 import { deadlineIn } from "../../core/readiness.ts";
-import { connectStore } from "../../core/store-api.ts";
+import { connectStore, type StoreClient } from "../../core/store-api.ts";
 import {
   appsOn,
   canReadManifest,
@@ -22,10 +22,9 @@ import {
   type InstalledApp,
   installed,
   installFrom,
-  type Store,
-  uninstall,
   writeMetadata,
 } from "./store.ts";
+import { deleteApp } from "../../core/store-apps.ts";
 import { catalogUrls, sourceOf, storeApps } from "./catalog.ts";
 import { reachableManifest } from "./docker-host.ts";
 import { createCommand } from "./create-command.ts";
@@ -41,24 +40,17 @@ const connect = (
   env: Option.Option<string>,
   needs: string,
   { staff = false }: { readonly staff?: boolean } = {}
-) =>
-  Effect.map(
-    connectStore(env, { needs, staff }),
-    ({ instance, token }): Store => ({
-      instance,
-      token: Option.getOrElse(token, () => ""),
-    })
-  );
+) => connectStore(env, { needs, staff });
 
-const appTarget = (store: Store, name: string, id: string | null) =>
+const appTarget = (client: StoreClient, name: string, id: string | null) =>
   ({
     id,
     name,
-    scope: { store: store.instance.ref },
+    scope: { store: client.store.ref },
     type: "app",
   }) satisfies TargetRef;
 
-const shown = (each: InstalledApp) => ({
+const appData = (each: InstalledApp) => ({
   active: each.isActive ?? false,
   id: each.id,
   identifier: each.identifier,
@@ -124,9 +116,9 @@ const listCommand = app.list({
         return yield* catalogRows;
       }
 
-      const store = yield* connect(input.env, "the MANAGE_APPS permission");
-      const { apps, installations } = yield* appsOn(store);
-      const fromStore = yield* catalogUrls(store.instance);
+      const client = yield* connect(input.env, "the MANAGE_APPS permission");
+      const { apps, installations } = yield* appsOn(client);
+      const fromStore = yield* catalogUrls(client.store);
 
       const items: Row[] = [
         ...apps.map((each) => ({
@@ -156,24 +148,24 @@ const listCommand = app.list({
           ["ID", (item) => item.id],
           ["MANIFEST", (item) => item.manifestUrl],
         ],
-        `No apps on ${store.instance.ref}.`
+        `No apps on ${client.store.ref}.`
       );
     }),
   summary: "See the apps installed on a store.",
 });
 
 interface Added {
-  readonly app: ReturnType<typeof shown>;
+  readonly app: ReturnType<typeof appData>;
   readonly created: boolean;
   readonly store: string;
 }
 
-const done = (store: Store, each: InstalledApp, created: boolean) =>
+const done = (client: StoreClient, each: InstalledApp, created: boolean) =>
   ({
-    data: { app: shown(each), created, store: store.instance.ref },
+    data: { app: appData(each), created, store: client.store.ref },
     headline: created
-      ? `Installed the app "${each.name ?? each.id}" on ${store.instance.ref}.`
-      : `The app "${each.name ?? each.id}" is already installed on ${store.instance.ref}.`,
+      ? `Installed the app "${each.name ?? each.id}" on ${client.store.ref}.`
+      : `The app "${each.name ?? each.id}" is already installed on ${client.store.ref}.`,
     text: "",
   }) satisfies Ensured<Added>;
 
@@ -222,7 +214,7 @@ const addCommand = app.ensure({
         );
       }
 
-      const store = yield* connect(
+      const client = yield* connect(
         input.env,
         "MANAGE_APPS and the permissions the apps ask for",
         { staff: true }
@@ -233,7 +225,7 @@ const addCommand = app.ensure({
       if (Option.isNone(input.manifest)) {
         return addPlan(
           yield* planStoreApps(
-            store,
+            client,
             Option.map(input.storeApp, (list) =>
               list
                 .split(",")
@@ -246,22 +238,22 @@ const addCommand = app.ensure({
       }
 
       const reach = yield* reachableManifest(
-        store.instance,
+        client.store,
         input.manifest.value
       );
 
       const { manifestUrl } = reach;
-      const { apps, installations } = yield* appsOn(store);
+      const { apps, installations } = yield* appsOn(client);
       const existing = apps.find((each) => each.manifestUrl === manifestUrl);
 
       if (existing !== undefined) {
         return addPlan({
           action: "reuse",
-          apply: Effect.succeed(done(store, existing, false)),
-          details: { app: shown(existing) },
+          apply: Effect.succeed(done(client, existing, false)),
+          details: { app: appData(existing) },
           risk: null,
           state: "exists",
-          target: appTarget(store, existing.name ?? existing.id, existing.id),
+          target: appTarget(client, existing.name ?? existing.id, existing.id),
         });
       }
 
@@ -275,20 +267,20 @@ const addCommand = app.ensure({
           action: "reuse",
           apply: Effect.map(
             installed(
-              store,
+              client,
               { installationId: earlier.id, manifestUrl },
               deadline
             ),
-            (made) => done(store, made, true)
+            (made) => done(client, made, true)
           ),
           details: { installation: earlier },
           risk: null,
           state: "starting",
-          target: appTarget(store, earlier.appName, null),
+          target: appTarget(client, earlier.appName, null),
         });
       }
 
-      const manifest = yield* fetchManifest(store, manifestUrl);
+      const manifest = yield* fetchManifest(client, manifestUrl);
       const permissions = manifest.permissions.join(", ") || "none";
 
       return addPlan({
@@ -297,12 +289,12 @@ const addCommand = app.ensure({
           Effect.andThen(
             reach.prepare,
             installFrom(
-              store,
+              client,
               { failed: earlier, manifest, manifestUrl },
               deadline
             )
           ),
-          (made) => done(store, made, true)
+          (made) => done(client, made, true)
         ),
         details: {
           env: reach.env,
@@ -311,7 +303,7 @@ const addCommand = app.ensure({
           permissions: manifest.permissions,
           retry: earlier !== undefined,
         },
-        notice: `It gets these permissions on ${store.instance.ref}: ${permissions}.`,
+        notice: `It gets these permissions on ${client.store.ref}: ${permissions}.`,
         risk: null,
         state: "absent",
         summary: [
@@ -319,7 +311,7 @@ const addCommand = app.ensure({
           ["Permissions", permissions],
           ...reach.summary,
         ],
-        target: appTarget(store, manifest.name, null),
+        target: appTarget(client, manifest.name, null),
       });
     }),
   risk: "In the App Store list, unticking an installed app uninstalls it, deleting its webhooks, tokens and settings on the store.",
@@ -346,7 +338,7 @@ const findApp = (apps: readonly InstalledApp[], wanted: string) =>
         "USAGE_ERROR",
         `${named.length} apps are named "${wanted}".`,
         {
-          details: { apps: named.map(shown) },
+          details: { apps: named.map(appData) },
           suggestion: `Name one by its id: ${named.map((each) => each.id).join(", ")}`,
         }
       );
@@ -380,24 +372,27 @@ const removeCommand = app.remove({
         });
       }
 
-      const store = yield* connect(input.env, "the MANAGE_APPS permission");
-      const { apps } = yield* appsOn(store);
+      const client = yield* connect(input.env, "the MANAGE_APPS permission");
+      const { apps } = yield* appsOn(client);
       const found = yield* findApp(apps, input.app.value);
 
       if (Option.isNone(found)) {
-        return absent(appTarget(store, input.app.value, null));
+        return absent(appTarget(client, input.app.value, null));
       }
 
       const each = found.value;
 
       return {
         action: "delete",
-        apply: Effect.as(uninstall(store, each.id), { app: shown(each) }),
-        details: { app: shown(each) },
+        apply: Effect.as(deleteApp(client, each.id), { app: appData(each) }),
+        details: { app: appData(each) },
         risk: "Its webhooks, tokens and settings on the store are deleted.",
         state: "exists",
-        target: appTarget(store, each.name ?? each.id, each.id),
-      } satisfies Planned<{ readonly app: ReturnType<typeof shown> }, unknown>;
+        target: appTarget(client, each.name ?? each.id, each.id),
+      } satisfies Planned<
+        { readonly app: ReturnType<typeof appData> },
+        unknown
+      >;
     }),
   risk: "Uninstalling deletes the app's webhooks, tokens and settings on the store.",
   summary: "Uninstall an app from a store.",
@@ -437,19 +432,19 @@ const reinstallCommand = app.ensure({
         });
       }
 
-      const store = yield* connect(
+      const client = yield* connect(
         input.env,
         "MANAGE_APPS and the permissions the app asks for",
         { staff: true }
       );
 
-      const { apps } = yield* appsOn(store);
+      const { apps } = yield* appsOn(client);
       const found = yield* findApp(apps, input.app.value);
 
       if (Option.isNone(found)) {
         return yield* fail(
           "NOT_FOUND",
-          `No app "${input.app.value}" on ${store.instance.ref}.`,
+          `No app "${input.app.value}" on ${client.store.ref}.`,
           {
             suggestion:
               "See the apps with: saleor app list. To install one, run: saleor app add --manifest <url>",
@@ -467,11 +462,11 @@ const reinstallCommand = app.ensure({
         );
       }
 
-      yield* canReadManifest(store, manifestUrl);
+      yield* canReadManifest(client, manifestUrl);
       const deadline = deadlineIn(input.timeout);
 
       const { copying, keys, metadata } = yield* metadataToCopy(
-        store,
+        client,
         each.id,
         input.copyMetadata
       );
@@ -479,32 +474,32 @@ const reinstallCommand = app.ensure({
       return {
         action: "update",
         apply: Effect.gen(function* () {
-          yield* uninstall(store, each.id);
+          yield* deleteApp(client, each.id);
 
           // Read again now that the app is gone, for the permissions it asks for.
-          const manifest = yield* fetchManifest(store, manifestUrl);
+          const manifest = yield* fetchManifest(client, manifestUrl);
 
-          const installation = yield* install(store, {
+          const installation = yield* install(client, {
             ...manifest,
             manifestUrl,
           });
 
           const made = yield* installed(
-            store,
+            client,
             { installationId: installation, manifestUrl },
             deadline
           );
 
           if (copying) {
-            yield* writeMetadata(store, made.id, metadata);
+            yield* writeMetadata(client, made.id, metadata);
           }
 
           return {
-            ...done(store, made, true),
-            headline: `Reinstalled the app "${made.name ?? made.id}" on ${store.instance.ref}${copying ? ", with its metadata" : ""}.`,
+            ...done(client, made, true),
+            headline: `Reinstalled the app "${made.name ?? made.id}" on ${client.store.ref}${copying ? ", with its metadata" : ""}.`,
           };
         }),
-        details: { app: shown(each), copyMetadata: copying },
+        details: { app: appData(each), copyMetadata: copying },
         risk: copying
           ? "Saleor has no reinstall: the app is uninstalled and installed again as a new app. Its metadata is copied over, but anything it keeps elsewhere for the old installation may not carry over."
           : "Saleor has no reinstall: the app is uninstalled and installed again as a new app. Its metadata is deleted, and anything it keeps elsewhere for the old installation may not carry over.",
@@ -522,7 +517,7 @@ const reinstallCommand = app.ensure({
               : `${keys} ${keys === 1 ? "key" : "keys"}, ${copying ? "copied to the new app" : "not copied"}`,
           ],
         ],
-        target: appTarget(store, each.name ?? each.id, each.id),
+        target: appTarget(client, each.name ?? each.id, each.id),
       } satisfies Planned<Ensured<Added>, unknown>;
     }),
   risk: "Saleor has no reinstall: the app is uninstalled and installed again as a new app, with a new id. Its webhooks, tokens and, unless copied, metadata are deleted; settings the app keeps elsewhere may not carry over.",

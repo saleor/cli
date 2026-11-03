@@ -1,8 +1,8 @@
-import { Effect, Option } from "effect";
+import { Effect } from "effect";
 import { defineActions, defineGroup } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { option } from "../../core/inputs.ts";
-import { envInput } from "../../core/instances.ts";
+import { envInput, resolveStore } from "../../core/stores.ts";
 import {
   connectStore,
   storeFailure,
@@ -14,7 +14,7 @@ const api = defineActions();
 
 const callCommand = api.session({
   description:
-    "Send one GraphQL request to a store's API and print the data it answers with. The document comes from --query, or a file with --file (--file - reads stdin); queries and mutations are sent as given, without asking. The token is the store's (SALEOR_TOKEN, a saved one, a local instance's own, or a prompt); --anonymous sends none, for what anyone may query. An answer with GraphQL errors fails, with the errors and any partial data in error.details.",
+    "Send one GraphQL request to a store's API and print the data it answers with. The document comes from --query, or a file with --file (--file - reads stdin); queries and mutations are sent as given, without asking. The token is the store's (SALEOR_TOKEN, a saved one, a local store's own, or a prompt); --anonymous sends none, for what anyone may query. An answer with GraphQL errors fails, with the errors and any partial data in error.details.",
   examples: [
     {
       command: "saleor api call local --query '{ shop { name } }'",
@@ -58,20 +58,21 @@ const callCommand = api.session({
       const query = yield* documentFrom(input);
       const variables = yield* variablesFrom(input.variables);
 
-      const { instance, token } = yield* connectStore(input.env, {
-        anonymous: input.anonymous,
-        needs: "the permissions the request needs",
-      });
+      const { store, token } = input.anonymous
+        ? { store: (yield* resolveStore(input.env)).store, token: undefined }
+        : yield* connectStore(input.env, {
+            needs: "the permissions the request needs",
+          });
 
       const answer = yield* storeRequest({
         query,
-        token: Option.getOrUndefined(token),
-        url: instance.graphqlUrl,
+        token,
+        url: store.graphqlUrl,
         variables,
       });
 
       if (answer.errors.length > 0) {
-        return yield* storeFailure(instance, answer);
+        return yield* storeFailure(store, answer);
       }
 
       return result(answer.data, JSON.stringify(answer.data, null, 2));

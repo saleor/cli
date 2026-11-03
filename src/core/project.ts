@@ -1,15 +1,14 @@
-import { Effect, Option, Predicate, Schema } from "effect";
-import { createHash } from "node:crypto";
+import { Effect, Option, Predicate } from "effect";
 import {
   existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
-  realpathSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { parseDocument } from "yaml";
+import { type Document, parseDocument } from "yaml";
+import { bindingName, saveBinding } from "./bindings.ts";
 import { fail } from "./errors.ts";
 import {
   type Component,
@@ -17,12 +16,13 @@ import {
   decodeManifest,
   type LocalDefinition,
   MANIFEST,
-  warnOnce,
 } from "./manifest.ts";
-import { configDir } from "./secret-store.ts";
+import { freeName, slugify } from "./names.ts";
+import { localRef } from "./ref.ts";
+import type { Store } from "./store.ts";
 
 // A project is a folder holding what a store is made of: `saleor.yml` (see
-// manifest.ts) names the stores it works with ("environments"), the store's
+// manifest.ts) names the stores it works with (its environments), the store's
 // configuration, and the components that connect to those stores, such as a
 // storefront. Commands run anywhere inside it find it by walking up, like git does.
 
@@ -33,37 +33,30 @@ export type { Component, LocalDefinition } from "./manifest.ts";
 export interface Project {
   readonly components: readonly Component[];
   readonly config: string;
-  readonly definitions?: Readonly<Record<string, string | LocalDefinition>>;
-  // The environments in the order they were added. None is a default: a command
-  // takes the only one without asking, and otherwise asks or needs one named.
+  // What saleor.yml says for each environment: a ref, or a local definition.
+  readonly definitions: Readonly<Record<string, string | LocalDefinition>>;
+  // Each environment's name and the ref of its store, in the order they were added.
+  // None is a default: a command takes the only one without asking, and otherwise
+  // asks or needs one named.
   readonly environments: readonly (readonly [name: string, ref: string])[];
   readonly name: string;
   readonly root: string;
 }
 
-const UNSAFE = /[^a-z0-9-]+/g;
-
-export const slugify = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(UNSAFE, "-")
-    .replaceAll(/^-+|-+$/g, "") || "saleor";
-
 const read = (root: string): Project => {
   const file = path.join(root, MANIFEST);
   const fields = decodeManifest(file, readFileSync(file, "utf-8"));
+  const definitions = fields.environments ?? {};
 
   return {
     components: componentsOf(fields),
     config: fields.config ?? "config.yml",
-    definitions: fields.environments ?? {},
-    environments: Object.entries(fields.environments ?? {}).map(
+    definitions,
+    environments: Object.entries(definitions).map(
       ([name, value]) =>
         [
           name,
-          Predicate.isString(value)
-            ? value
-            : `local:${bindingName(root, name)}`,
+          Predicate.isString(value) ? value : localRef(bindingName(root, name)),
         ] as const
     ),
     name: fields.name ?? path.basename(root),
@@ -98,33 +91,68 @@ export const projectAt = (root: string): Option.Option<Project> =>
 export const configPath = (project: Project) =>
   path.join(project.root, project.config);
 
-const write = (project: Project) => {
-  const file = path.join(project.root, MANIFEST);
+// Changes saleor.yml in place, keeping its comments and order; creates it when
+// `create` gives its first content.
+export const editManifest = (
+  root: string,
+  edit: (document: Document) => void,
+  create?: { readonly name: string }
+) =>
+  Effect.try({
+    catch: () =>
+      fail(
+        "LOCAL_STATE_ERROR",
+        `Could not write ${path.join(root, MANIFEST)}.`
+      ),
+    try: () => {
+      const file = path.join(root, MANIFEST);
+      const exists = existsSync(file);
+      const document = parseDocument(exists ? readFileSync(file, "utf-8") : "");
 
-  const document = parseDocument(
-    existsSync(file) ? readFileSync(file, "utf-8") : ""
-  );
+      if (!exists) {
+        if (create === undefined) {
+          throw new Error(`No ${MANIFEST} in ${root}`);
+        }
 
-  document.set("name", project.name);
+        mkdirSync(root, { recursive: true });
+        document.set("name", create.name);
+      }
 
-  if (project.config !== "config.yml") {
-    document.set("config", project.config);
-  }
+      edit(document);
+      writeFileSync(file, document.toString());
+    },
+  });
 
-  const environments = {
-    ...Object.fromEntries(project.environments),
-    ...project.definitions,
+type NewStore = Pick<Store, "kind" | "name" | "ref" | "saleorVersion">;
+
+// Whether a store is named in saleor.yml as a local definition, which every
+// checkout creates its own store from, rather than by its ref.
+const isLocalDefinition = (
+  store: NewStore
+): store is NewStore & { readonly saleorVersion: string } =>
+  store.kind === "local" && store.saleorVersion !== null;
+
+// Names `store` as `environment` in saleor.yml: a local store as a definition with
+// this checkout's store bound to it, any other by its ref.
+const nameStore =
+  (root: string, environment: string, store: NewStore) =>
+  (document: Document) => {
+    if (isLocalDefinition(store)) {
+      saveBinding(root, environment, store.name);
+      document.setIn(["environments", environment], {
+        kind: "local",
+        saleor: store.saleorVersion,
+      });
+
+      return;
+    }
+
+    document.setIn(["environments", environment], store.ref);
   };
 
-  for (const [alias, value] of Object.entries(environments)) {
-    document.setIn(["environments", alias], value);
-  }
-
-  writeFileSync(file, document.toString());
-};
-
-// Creates the manifest, or adds an environment to it. A store already listed keeps
-// its name; a taken name gets a suffix. Returns the name the store is known by.
+// Creates the manifest, or adds an environment to it for a store it does not name
+// yet. A store already listed keeps its name; a taken name gets a suffix. Returns
+// the name the store is known by.
 export const rememberEnvironment = ({
   root,
   wanted,
@@ -136,46 +164,32 @@ export const rememberEnvironment = ({
   readonly ref: string;
   readonly defaults?: { readonly name?: string };
 }) =>
-  Effect.try({
-    catch: () =>
-      fail(
-        "LOCAL_STATE_ERROR",
-        `Could not write ${path.join(root, MANIFEST)}.`
-      ),
-    try: () => {
-      mkdirSync(root, { recursive: true });
+  Effect.gen(function* () {
+    const environments = Option.match(projectAt(root), {
+      onNone: () => [],
+      onSome: (project) => project.environments,
+    });
 
-      const fresh: Project = {
-        components: [],
-        config: "config.yml",
-        environments: [],
-        name: defaults.name ?? path.basename(root),
-        root,
-      };
+    const known = environments.find(([, each]) => each === ref);
 
-      const project = Option.getOrElse(projectAt(root), () => fresh);
+    if (known !== undefined) {
+      return { added: false, name: known[0] };
+    }
 
-      const known = project.environments.find(([, each]) => each === ref);
+    const name = freeName(
+      environments.map(([each]) => each),
+      wanted
+    );
 
-      if (known !== undefined) {
-        return { added: false, name: known[0] };
-      }
+    yield* editManifest(
+      root,
+      (document) => {
+        document.setIn(["environments", name], ref);
+      },
+      { name: defaults.name ?? path.basename(root) }
+    );
 
-      const taken = new Set(project.environments.map(([each]) => each));
-      const base = slugify(wanted);
-      let name = base;
-
-      for (let n = 2; taken.has(name); n += 1) {
-        name = `${base}-${n}`;
-      }
-
-      write({
-        ...project,
-        environments: [...project.environments, [name, ref]],
-      });
-
-      return { added: true, name };
-    },
+    return { added: true, name };
   });
 
 // The folder `init` makes a project in: here when here is empty or already a
@@ -207,61 +221,21 @@ export const projectFolder = (name: string) => {
   return used ? named : here;
 };
 
-// Bindings live under the user's CLI state, keyed by the canonical checkout path.
-const bindingFile = (root: string, alias: string) =>
-  path.join(
-    configDir(),
-    "workspaces",
-    createHash("sha256").update(realpathSync(root)).digest("hex"),
-    `${encodeURIComponent(alias)}.json`
-  );
-
-const decodeBinding = Schema.decodeUnknownOption(
-  Schema.fromJsonString(Schema.Struct({ name: Schema.String }))
-);
-
-export const bindingName = (root: string, alias: string): string => {
-  const file = bindingFile(root, alias);
-
-  if (existsSync(file)) {
-    const binding = decodeBinding(readFileSync(file, "utf-8"));
-
-    if (Option.isSome(binding)) {
-      return binding.value.name;
-    }
-
-    // A damaged binding must not break every command in the project: fall back to
-    // the default name and say so, since it may point at a different local store.
-    warnOnce(
-      file,
-      `Ignoring unreadable file ${file}; the "${alias}" environment uses the default local store name. Delete the file to stop this warning.`
-    );
-  }
-
-  return `project-${createHash("sha256")
-    .update(`${realpathSync(root)}\0${alias}`)
-    .digest("hex")
-    .slice(0, 20)}`;
-};
-
-export const saveBinding = (root: string, alias: string, name: string) => {
-  const file = bindingFile(root, alias);
-  mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify({ name }));
-};
-
-type LocalEntry = readonly [alias: string, definition: LocalDefinition];
+type LocalEntry = readonly [environment: string, definition: LocalDefinition];
 
 const localEntries = (project: Project): readonly LocalEntry[] =>
-  Object.entries(project.definitions ?? {}).filter(
+  Object.entries(project.definitions).filter(
     (candidate): candidate is [string, LocalDefinition] =>
       !Predicate.isString(candidate[1])
   );
 
-const localContext = (project: Project, [alias, definition]: LocalEntry) => ({
-  alias,
+const localContext = (
+  project: Project,
+  [environment, definition]: LocalEntry
+) => ({
   definition,
-  name: bindingName(project.root, alias),
+  environment,
+  name: bindingName(project.root, environment),
   project,
 });
 
@@ -280,12 +254,12 @@ export const projectLocal = () =>
       : Option.some(localContext(project, entry));
   });
 
-// The local environment saleor.yml defines for this instance, if any: what `env start`
-// creates it from.
+// The local environment saleor.yml defines for this local store, if any: what
+// `env start` creates it from.
 export const projectLocalOf = (name: string) =>
   Option.flatMap(findProject(), (project) => {
     const entry = localEntries(project).find(
-      ([alias]) => bindingName(project.root, alias) === name
+      ([environment]) => bindingName(project.root, environment) === name
     );
 
     return entry === undefined
@@ -293,59 +267,21 @@ export const projectLocalOf = (name: string) =>
       : Option.some(localContext(project, entry));
   });
 
-export const editManifest = (
-  root: string,
-  edit: (document: ReturnType<typeof parseDocument>) => void
-) =>
-  Effect.try({
-    catch: () =>
-      fail(
-        "LOCAL_STATE_ERROR",
-        `Could not write ${path.join(root, MANIFEST)}.`
-      ),
-    try: () => {
-      const file = path.join(root, MANIFEST);
-      const document = parseDocument(readFileSync(file, "utf-8"));
-      edit(document);
-      writeFileSync(file, document.toString());
-    },
-  });
-
-// `env add`: names a store in saleor.yml. A Cloud store is named by its ref; a local
-// one by a definition every checkout creates its own instance from, with this
-// checkout's instance bound to it.
+// `env add`: names a store in saleor.yml.
 export const addEnvironment = (
   root: string,
-  alias: string,
-  store: {
-    readonly kind: string;
-    readonly name: string;
-    readonly ref: string;
-    readonly saleorVersion: string | null;
-  }
-) =>
-  editManifest(root, (document) => {
-    if (store.kind === "local" && store.saleorVersion !== null) {
-      saveBinding(root, alias, store.name);
-      document.setIn(["environments", alias], {
-        kind: "local",
-        saleor: store.saleorVersion,
-      });
-
-      return;
-    }
-
-    document.setIn(["environments", alias], store.ref);
-  });
+  environment: string,
+  store: NewStore
+) => editManifest(root, nameStore(root, environment, store));
 
 // After `env remove`: a name for a store that no longer exists goes too. A local
-// definition stays, since it is a recipe every checkout creates its own instance
+// definition stays, since it is a recipe every checkout creates its own store
 // from, not one store. Returns whether saleor.yml changed.
-export const forgetEnvironment = (root: string, alias: string) =>
+export const forgetEnvironment = (root: string, environment: string) =>
   Effect.gen(function* () {
     const value = Option.match(projectAt(root), {
       onNone: () => undefined,
-      onSome: (project) => project.definitions?.[alias],
+      onSome: (project) => project.definitions[environment],
     });
 
     if (!Predicate.isString(value)) {
@@ -353,96 +289,35 @@ export const forgetEnvironment = (root: string, alias: string) =>
     }
 
     yield* editManifest(root, (document) => {
-      document.deleteIn(["environments", alias]);
+      document.deleteIn(["environments", environment]);
     });
 
     return true;
   });
 
-export const initializeProject = (
-  root: string,
-  name: string,
-  store: {
-    kind: string;
-    ref: string;
-    name: string;
-    saleorVersion: string | null;
-  }
-) =>
+// After `init` made a store for a project: names it, unless saleor.yml already does.
+// A local store is named "local" (or by the environment that already has its ref)
+// and saved as a definition, unless one is there already.
+export const nameFirstStore = (root: string, name: string, store: NewStore) =>
   Effect.gen(function* () {
-    yield* rememberEnvironment({
+    const { name: environment } = yield* rememberEnvironment({
+      defaults: { name },
+      ref: store.ref,
       root,
       wanted: store.kind === "local" ? "local" : store.name,
-      ref: store.ref,
-      defaults: { name },
     });
-    yield* Effect.try({
-      catch: () =>
-        fail("LOCAL_STATE_ERROR", `Could not initialize project at ${root}.`),
-      try: () => {
-        const projectConfig = configPath(read(root));
 
-        if (!existsSync(projectConfig)) {
-          mkdirSync(path.dirname(projectConfig), { recursive: true });
-          writeFileSync(projectConfig, "{}\n");
-        }
-
-        const file = path.join(root, MANIFEST);
-        const document = parseDocument(readFileSync(file, "utf-8"));
-
-        if (store.kind === "local" && store.saleorVersion !== null) {
-          const project = read(root);
-
-          const alias =
-            project.environments.find(([, ref]) => ref === store.ref)?.[0] ??
-            "local";
-
-          saveBinding(root, alias, store.name);
-
-          if (!Predicate.isObject(project.definitions?.[alias])) {
-            document.setIn(["environments", alias], {
-              kind: "local",
-              saleor: store.saleorVersion,
-            });
-          }
-
-          writeFileSync(file, document.toString());
-        }
-
-        writeProjectGuides(root);
-      },
-    });
-  });
-
-const writeProjectGuides = (root: string) => {
-  const guides = {
-    "AGENTS.md":
-      "# Saleor project\n\nsaleor.yml defines environments and lists the project's components (a storefront, apps) with their paths; config.yml describes store configuration.\nEach component keeps its own packages, scripts and lockfile.\nCommands name an environment as the word after the command: saleor env start local, saleor config deploy staging.\nRun saleor env list to see every environment and its state.\nBefore changing a store, inspect saleor config diff <env>.\nKeep credentials in the CLI secret store or ignored environment files.\nUse saleor --help for workflows and follow component-specific instructions when editing a component.\n",
-    "CLAUDE.md": "@AGENTS.md\n",
-  };
-
-  for (const [filename, content] of Object.entries(guides)) {
-    const destination = path.join(root, filename);
-
-    if (!existsSync(destination)) {
-      writeFileSync(destination, content);
+    if (!isLocalDefinition(store)) {
+      return;
     }
-  }
 
-  const ignore = path.join(root, ".gitignore");
-  const current = existsSync(ignore) ? readFileSync(ignore, "utf-8") : "";
+    const project = read(root);
 
-  const missing = [".env", ".env.local", "node_modules/"].filter(
-    (line) => !current.split("\n").includes(line)
-  );
+    if (Predicate.isObject(project.definitions[environment])) {
+      saveBinding(root, environment, store.name);
 
-  if (missing.length) {
-    writeFileSync(
-      ignore,
-      `${current}${current.endsWith("\n") || !current ? "" : "\n"}${missing.join("\n")}\n`
-    );
-  }
-};
+      return;
+    }
 
-export const hasBinding = (root: string, alias: string) =>
-  existsSync(bindingFile(root, alias));
+    yield* editManifest(root, nameStore(root, environment, store));
+  });

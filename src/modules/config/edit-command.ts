@@ -12,12 +12,12 @@ import {
   isInteractive,
 } from "../../core/interaction.ts";
 import { command } from "../../core/invocation.ts";
-import { notice } from "../../core/output.ts";
+import { notice, shown } from "../../core/output.ts";
 import { findProject } from "../../core/project.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
 import { fileChanges, sentence } from "./describe.ts";
-import { chooseAuthor, draftWith } from "./draft.ts";
-import { existingConfig, shown, validateFile } from "./engine.ts";
+import { chooseAgent, draftWith } from "./draft.ts";
+import { existingConfig, validateFile } from "./engine.ts";
 import { writeConfig } from "./file-output.ts";
 import { configFile, connect } from "./store.ts";
 
@@ -61,37 +61,37 @@ const offerDeploy = (file: string) =>
 
     // The same store `config deploy` would pick: the only environment, or a choice
     // among several, with the same version check.
-    const { instance, store } = yield* connect(Option.none());
-    const plan = yield* planDeploy(store, file);
+    const client = yield* connect(Option.none());
+    const plan = yield* planDeploy(client, file);
 
     if (plan.deployable.length === 0) {
-      return [`${instance.ref} already has all of it.`];
+      return [`${client.store.ref} already has all of it.`];
     }
 
     yield* notice(
       [
-        `Deploying to ${instance.ref} would:`,
+        `Deploying to ${client.store.ref} would:`,
         ...plan.deployable.map((each) => `  • ${sentence(each)}`),
       ].join("\n")
     );
 
-    if (!(yield* askConfirm(`Deploy to ${instance.ref} now?`, true))) {
+    if (!(yield* askConfirm(`Deploy to ${client.store.ref} now?`, true))) {
       return [`Deploy it later with: ${command("config", "deploy")}`];
     }
 
-    const outcome = yield* applyDeploy({ instance, store, file, plan });
-    const words = deployedText(instance, file, outcome);
+    const outcome = yield* applyDeploy({ client, file, plan });
+    const words = deployedText(client.store, file, outcome);
 
     return [`✓ ${words.headline}`, words.text].filter(Boolean);
   });
 
-const confirmEdit = (file: string, author: string, lines: readonly string[]) =>
+const confirmEdit = (file: string, agent: string, lines: readonly string[]) =>
   Effect.gen(function* () {
     if (yield* isInteractive) {
       yield* notice(
         [
           "",
-          `${author} suggests:`,
+          `${agent} suggests:`,
           ...(lines.length > 0
             ? lines.map((line) => `  • ${line}`)
             : ["  (no changes)"]),
@@ -134,9 +134,9 @@ export const editCommand = config.ensure({
       const file = yield* existingConfig(configFile(input.config));
       const current = yield* validateFile(file);
       const interactive = yield* isInteractive;
-      const author = yield* chooseAuthor(input.with);
+      const agent = yield* chooseAgent(input.with);
 
-      if (Option.isNone(author)) {
+      if (Option.isNone(agent)) {
         return yield* fail(
           "CONTEXT_MISSING",
           interactive
@@ -161,7 +161,7 @@ export const editCommand = config.ensure({
           action: "update",
           apply: Effect.die("dry run"),
           details: {
-            author: author.value.id,
+            agent: agent.value.id,
             config: shown(file),
             description,
           },
@@ -169,14 +169,14 @@ export const editCommand = config.ensure({
           state: "exists",
           summary: [
             ["File", shown(file)],
-            ["Drafted by", author.value.label],
+            ["Drafted by", agent.value.label],
             ["Change", description],
           ],
           target: fileTarget(file),
         } satisfies Planned<never, unknown>;
       }
 
-      const { config: next, session } = yield* draftWith(author.value, {
+      const { config: next, session } = yield* draftWith(agent.value, {
         current,
         description,
         kind: "edit",
@@ -184,7 +184,7 @@ export const editCommand = config.ensure({
 
       const lines = fileChanges(current, next);
 
-      yield* confirmEdit(file, author.value.label, lines);
+      yield* confirmEdit(file, agent.value.label, lines);
 
       return {
         action: lines.length === 0 ? "reuse" : "update",
