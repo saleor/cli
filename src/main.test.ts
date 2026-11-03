@@ -38,7 +38,7 @@ const ENV_VARIABLE = /\b(SALEOR_[A-Z_]+)\b/;
 const PROMISED_DEFAULT = /\(default |Defaults to "/;
 const NOT_FROM_ENV = /never use/;
 const DRY_RUN_TEXT = /^Dry run: would (delete|create)/;
-const DEMO_HEADER = /^# saleor: instance=local:demo /;
+const DEMO_HEADER = /^# saleor: store=local:demo /;
 
 // SALEOR_CLI_BIN runs the same tests against another entry, such as the build output.
 const executable = path.resolve(process.env.SALEOR_CLI_BIN ?? "bin/saleor.mjs");
@@ -619,7 +619,7 @@ describe("real CLI process", () => {
     expect(added.data.data).toMatchObject({
       action: "create",
       details: { environment: "review" },
-      target: { name: "shared-review", type: "local-instance" },
+      target: { name: "shared-review", type: "local-store" },
     });
     expect(readFileSync(path.join(cwd, "saleor.yml"), "utf-8")).not.toContain(
       "review"
@@ -1148,7 +1148,7 @@ if (process.argv.includes("ps")) console.log(JSON.stringify({Service:"api", Stat
     expect(requests.every((request) => request.method === "GET")).toBe(true);
   });
 
-  it("stops a local instance that does not exist without failing", async () => {
+  it("stops a local store that does not exist without failing", async () => {
     const out = await cli(["env", "stop", "local:missing"]);
     expect(out.code).toBe(0);
     expect(out.data.data).toMatchObject({ action: "none", existed: false });
@@ -1190,7 +1190,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       ]);
 
       if (!engine) {
-        expect(listed.stderr).toContain("Every instance is stopped.");
+        expect(listed.stderr).toContain("Every store is stopped.");
 
         return;
       }
@@ -1202,7 +1202,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       expect(stopped.data.data).toMatchObject({
         action: "none",
         existed: true,
-        target: { type: "local-instance" },
+        target: { type: "local-store" },
       });
 
       const text = await cli(
@@ -1211,7 +1211,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       );
 
       expect(text.stdout).toBe(
-        '✓ Local instance "demo" is already stopped; nothing to do.\n'
+        '✓ Local store "demo" is already stopped; nothing to do.\n'
       );
       expect(
         readFileSync(path.join(cwd, "docker-calls.jsonl"), "utf-8")
@@ -2869,7 +2869,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
         store: { ref: "local:other" },
       });
       const switchedEnv = readFileSync(path.join(dir, ".env"), "utf-8");
-      expect(switchedEnv).toContain("instance=local:other");
+      expect(switchedEnv).toContain("store=local:other");
       expect(switchedEnv).toContain("CONTENT_PROVIDER=saleor");
 
       const same = await storefront(

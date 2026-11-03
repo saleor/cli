@@ -14,7 +14,7 @@ const api = defineActions();
 
 const callCommand = api.session({
   description:
-    "Send one GraphQL request to a store's API and print the data it answers with. The document comes from --query, or a file with --file (--file - reads stdin); queries and mutations are sent as given, without asking. The token is the store's (SALEOR_TOKEN, a saved one, a local instance's own, or a prompt); --anonymous sends none, for what anyone may query. An answer with GraphQL errors fails, with the errors and any partial data in error.details.",
+    "Send one GraphQL request to a store's API and print the data it answers with. The document comes from --query, or a file with --file (--file - reads stdin); queries and mutations are sent as given, without asking. The token is the store's (SALEOR_TOKEN, a saved one, a local store's own, or a prompt); --anonymous sends none, for what anyone may query. An answer with GraphQL errors fails, with the errors and any partial data in error.details.",
   examples: [
     {
       command: "saleor api call local --query '{ shop { name } }'",

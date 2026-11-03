@@ -18,7 +18,7 @@ export const localModule = defineModule<
   Layer.Success<typeof localLayer> | CoreServices
 >({
   commands: [],
-  description: "Local Saleor instances running in Docker.",
+  description: "Local Saleor stores running in Docker.",
   stores: localStores,
   layer: localLayer,
   name: "local",

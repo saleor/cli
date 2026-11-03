@@ -12,8 +12,8 @@ import {
   installed,
   installFrom,
   type Manifest,
-  uninstall,
 } from "./store.ts";
+import { deleteApp } from "../../core/store-apps.ts";
 import type { StoreClient } from "../../core/store-api.ts";
 
 // App Store apps on one store: install the ones named, or, in a terminal, tick them in
@@ -169,7 +169,7 @@ const applyChanges = (
 ) =>
   Effect.gen(function* () {
     for (const each of changes.toRemove) {
-      yield* uninstall(client, each.id);
+      yield* deleteApp(client, each.id);
     }
 
     for (const { each, manifest } of changes.manifests) {

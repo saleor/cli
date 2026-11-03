@@ -1,26 +1,24 @@
 import { Effect, Option, Schema } from "effect";
 import os from "node:os";
-import { fail } from "./errors.ts";
 import type { Store } from "./store.ts";
 import { notice } from "./output.ts";
 import { SecretStore } from "./secret-store.ts";
-import { storeRequest } from "./store-api.ts";
+import {
+  MutationErrors,
+  PermissionCodes,
+  storeRequest,
+  unexpectedAnswer,
+} from "./store-api.ts";
 import { storeTokenKey } from "./store-token.ts";
 
 // A lasting token for a store's own API, made with a login that may manage its apps.
 // The CLI makes an app named "Saleor CLI" on the store with every permission the login
 // has, or reuses that app, and saves the app's token for the store, so this runs once
 // per store on each computer. App tokens do not expire, unlike the logins that make
-// them: a Cloud login (modules/cloud/store-access.ts) or a local store's admin sign-in
-// (modules/local/access.ts), which lasts minutes.
+// them: a Cloud login (modules/cloud/store-token.ts) or a local store's admin login
+// (modules/local/staff-token.ts), which lasts minutes.
 
 export const APP_NAME = "Saleor CLI";
-
-const Codes = Schema.Array(Schema.Struct({ code: Schema.String }));
-
-const MutationErrors = Schema.Array(
-  Schema.Struct({ message: Schema.NullOr(Schema.String) })
-);
 
 const Requester = Schema.Struct({
   apps: Schema.NullOr(
@@ -32,7 +30,7 @@ const Requester = Schema.Struct({
       ),
     })
   ),
-  me: Schema.NullOr(Schema.Struct({ userPermissions: Codes })),
+  me: Schema.NullOr(Schema.Struct({ userPermissions: PermissionCodes })),
 });
 
 const Issued = Schema.Struct({
@@ -66,7 +64,7 @@ export interface Login {
 }
 
 // None when the store does not let the login make the app; it says why first.
-export const cliAppToken = (instance: Store, login: Login) =>
+export const cliAppToken = (store: Store, login: Login) =>
   Effect.gen(function* () {
     const ask = <S extends Schema.Top>(
       schema: S,
@@ -76,7 +74,7 @@ export const cliAppToken = (instance: Store, login: Login) =>
       storeRequest({
         headers: login.headers,
         query,
-        url: instance.graphqlUrl,
+        url: store.graphqlUrl,
         variables,
       }).pipe(
         Effect.flatMap((answer) =>
@@ -84,12 +82,7 @@ export const cliAppToken = (instance: Store, login: Login) =>
             ? Effect.succeed(Option.none<S["Type"]>())
             : Schema.decodeUnknownEffect(schema)(answer.data).pipe(
                 Effect.asSome,
-                Effect.mapError(() =>
-                  fail(
-                    "STORE_ERROR",
-                    `${instance.ref} answered in a shape this CLI does not know.`
-                  )
-                )
+                Effect.mapError(() => unexpectedAnswer(store))
               )
         )
       );
@@ -103,7 +96,7 @@ export const cliAppToken = (instance: Store, login: Login) =>
       requester.value.apps === null
     ) {
       yield* notice(
-        `${login.label.charAt(0).toUpperCase()}${login.label.slice(1)} cannot create an app on ${instance.ref}, so ${login.otherwise}.`
+        `${login.label.charAt(0).toUpperCase()}${login.label.slice(1)} cannot create an app on ${store.ref}, so ${login.otherwise}.`
       );
 
       return Option.none<string>();
@@ -136,18 +129,18 @@ export const cliAppToken = (instance: Store, login: Login) =>
       });
 
       yield* notice(
-        `Could not make a token for ${instance.ref} with ${login.label} (${reasons}), so ${login.otherwise}.`
+        `Could not make a token for ${store.ref} with ${login.label} (${reasons}), so ${login.otherwise}.`
       );
 
       return Option.none<string>();
     }
 
     const token = issued.value.authToken;
-    yield* (yield* SecretStore).set(storeTokenKey(instance.ref), token);
+    yield* (yield* SecretStore).set(storeTokenKey(store.ref), token);
     yield* notice(
       existing === undefined
-        ? `Created the app "${APP_NAME}" on ${instance.ref} and saved its token on this computer.`
-        : `Made a token for the app "${APP_NAME}" on ${instance.ref} and saved it on this computer.`
+        ? `Created the app "${APP_NAME}" on ${store.ref} and saved its token on this computer.`
+        : `Made a token for the app "${APP_NAME}" on ${store.ref} and saved it on this computer.`
     );
 
     return Option.some(token);

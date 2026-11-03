@@ -22,7 +22,7 @@ it("sets owned keys in place, uncommenting them, and keeps every other line", ()
   });
 
   expect(written.split("\n")).toStrictEqual([
-    "# saleor: instance=local:demo (set by a test)",
+    "# saleor: store=local:demo (set by a test)",
     "# Your store's API",
     "NEXT_PUBLIC_SALEOR_API_URL=http://localhost:8000/graphql/",
     "",
@@ -49,7 +49,7 @@ it("replaces its own header and appends keys the file does not mention", () => {
     note: "note",
   });
 
-  expect(second).toBe("# saleor: instance=cloud:acme/env1 (note)\nA=1\nB=2\n");
+  expect(second).toBe("# saleor: store=cloud:acme/env1 (note)\nA=1\nB=2\n");
   expect(parseEnv(first).get("B")).toBe("two words");
   expect(connectedRef("A=1\n")).toBeUndefined();
 });
@@ -59,4 +59,13 @@ it("tells declared keys, assigned or commented out, from absent ones", () => {
   expect(declares(EXAMPLE, "NEXT_PUBLIC_SALEOR_API_URL")).toBe(true);
   expect(declares(EXAMPLE, "NEXT_PUBLIC")).toBe(false);
   expect(parseEnv(EXAMPLE).has("NEXT_PUBLIC_DEFAULT_CHANNEL")).toBe(false);
+});
+
+it("reads the header older versions wrote, and replaces it", () => {
+  const old = "# saleor: instance=local:demo (old)\nA=1\n";
+
+  expect(connectedRef(old)).toBe("local:demo");
+  expect(
+    setEnv({ text: old, values: {}, ref: "local:demo", note: "new" })
+  ).toBe("# saleor: store=local:demo (new)\nA=1\n");
 });

@@ -77,19 +77,3 @@ export const lastDeploy = (
         edited: fileHash(file) !== entry.hash,
       });
 };
-
-export const ago = (date: Date, now = Date.now()) => {
-  const minutes = Math.round((now - date.getTime()) / 60_000);
-
-  if (minutes < 1) {
-    return "just now";
-  }
-
-  if (minutes < 60) {
-    return `${minutes} min ago`;
-  }
-
-  const hours = Math.round(minutes / 60);
-
-  return hours < 48 ? `${hours} h ago` : `${Math.round(hours / 24)} days ago`;
-};

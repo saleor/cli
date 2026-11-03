@@ -7,8 +7,8 @@ import {
   isPast,
   notReady,
   POLL,
-  probeGraphql,
 } from "../../core/readiness.ts";
+import { storeAnswers } from "../../core/store-api.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
 import {
   listEnvironmentTaskLists,
@@ -31,6 +31,12 @@ const taskFailed = (
       details: { statusMessage: task.status_message ?? null, taskId },
     }
   );
+
+// Cloud work carries on in Saleor Cloud after the CLI stops waiting.
+export const cloudNotReady = (
+  message: string,
+  details: Parameters<typeof notReady>[1]
+) => notReady(message, details, "Saleor Cloud");
 
 // `beat` is shared by a caller that waits for several tasks in turn, so progress keeps
 // showing, and counting, across all of them.
@@ -73,10 +79,13 @@ export const waitForTask = ({
       }
 
       if (isPast(deadline)) {
-        return yield* notReady(`${label.toLowerCase()} is still in progress.`, {
-          status: task.status,
-          taskId,
-        });
+        return yield* cloudNotReady(
+          `${label.toLowerCase()} is still in progress.`,
+          {
+            status: task.status,
+            taskId,
+          }
+        );
       }
 
       yield* beat(`waiting for ${label.toLowerCase()}`);
@@ -163,13 +172,13 @@ export const waitUntilReady = ({
 
       if (
         !(env.blocking_tasks_in_progress || env.maintenance_mode) &&
-        (yield* probeGraphql(graphqlUrl))
+        (yield* storeAnswers(graphqlUrl))
       ) {
         return env;
       }
 
       if (isPast(deadline)) {
-        return yield* notReady(
+        return yield* cloudNotReady(
           "the environment is set up, but its GraphQL API is not responding yet.",
           {
             environment: envKey,
@@ -200,7 +209,7 @@ export const waitUntilGone = (
       yield* beat("deleting");
 
       if (isPast(deadline)) {
-        return yield* notReady("the environment is still being deleted.", {
+        return yield* cloudNotReady("the environment is still being deleted.", {
           environment: envKey,
         });
       }

@@ -7,7 +7,6 @@ import {
   type Deadline,
   heartbeat,
   isPast,
-  notReady,
   POLL,
 } from "../../core/readiness.ts";
 import {
@@ -36,7 +35,12 @@ import {
   type Project,
   serviceTypeLabel,
 } from "./lookup.ts";
-import { waitForTask, waitUntilGone, waitUntilReady } from "./readiness.ts";
+import {
+  cloudNotReady,
+  waitForTask,
+  waitUntilGone,
+  waitUntilReady,
+} from "./readiness.ts";
 
 export const DEFAULT_REGION = "us-east-1";
 
@@ -101,7 +105,7 @@ const busyRejection = (
   details: Readonly<Record<string, string>>
 ): Effect.Effect<never, ApiStatusError | CliFailure> =>
   error.status === 400 && BUSY_ERROR.test(flattenMessages(error.body))
-    ? notReady(what, { ...details, reason: flattenMessages(error.body) })
+    ? cloudNotReady(what, { ...details, reason: flattenMessages(error.body) })
     : Effect.fail(error);
 
 // ── Projects ─────────────────────────────────────────────────────────────

@@ -38,15 +38,15 @@ export const localSetup = defineSetup({
     name: newInstance,
     newPorts: option.boolean(
       "new-ports",
-      "Move a local instance to new free ports, for when another program took one. Its URLs change; data is kept."
+      "Move a local store to new free ports, for when another program took one. Its URLs change; data is kept."
     ),
     saleorVersion: option.string("saleor-version", {
-      description: "Saleor API version for a new local instance.",
+      description: "Saleor API version for a new local store.",
       metavar: "version",
     }),
     sampleData: option.boolean(
       "sample-data",
-      "Load sample products and orders into a local instance. Can be added to an existing one; never removed."
+      "Load sample products and orders into a local store. Can be added to an existing one; never removed."
     ),
   },
   label: "Docker",
@@ -76,8 +76,8 @@ export const localSetup = defineSetup({
         {
           choices: Effect.succeed([]),
           create: {
-            label: "Create a new instance",
-            prompt: "New local instance name",
+            label: "Create a new store",
+            prompt: "New local store name",
           },
         }
       );
@@ -89,7 +89,7 @@ export const localSetup = defineSetup({
       ) {
         return yield* fail(
           "LOCAL_STATE_ERROR",
-          `An instance already occupies this checkout's generated name. Attach it explicitly with saleor init --local --name ${name}`
+          `A store already occupies this checkout's generated name. Attach it explicitly with saleor init --local --name ${name}`
         );
       }
 

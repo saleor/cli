@@ -61,10 +61,6 @@ const Started = Schema.Struct({
   }),
 });
 
-const Deleted = Schema.Struct({
-  appDelete: Schema.Struct({ errors: MutationErrors }),
-});
-
 const Entries = Schema.Array(
   Schema.Struct({ key: Schema.String, value: Schema.String })
 );
@@ -97,10 +93,6 @@ const INSTALL = `mutation($input: AppInstallInput!) {
 
 const RETRY = `mutation($id: ID!) {
   started: appRetryInstall(id: $id) { appInstallation { id } errors { field message } }
-}`;
-
-const DELETE = `mutation($id: ID!) {
-  appDelete(id: $id) { errors { field message } }
 }`;
 
 const METADATA = `query($id: ID!) {
@@ -234,22 +226,6 @@ export const installed = (
       }
 
       yield* Effect.sleep(POLL);
-    }
-  });
-
-export const uninstall = (client: StoreClient, id: string) =>
-  Effect.gen(function* () {
-    const { appDelete } = yield* storeData(client, Deleted, {
-      query: DELETE,
-      variables: { id },
-    });
-
-    if (appDelete.errors.length > 0) {
-      return yield* mutationRejected(
-        client.store,
-        "delete the app",
-        appDelete.errors
-      );
     }
   });
 

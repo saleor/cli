@@ -66,7 +66,7 @@ const projectNames = (project: Option.Option<Project>) =>
 
 const listCommand = env.list({
   description:
-    "List every store the CLI can reach, with its state and URLs: local instances in Docker and Saleor Cloud environments. Inside a project, its environments come first, with their names from saleor.yml. Cloud environments need a login; without one they are left out, with a note saying so.",
+    "List every store the CLI can reach, with its state and URLs: local stores in Docker and Saleor Cloud environments. Inside a project, its environments come first, with their names from saleor.yml. Cloud environments need a login; without one they are left out, with a note saying so.",
   examples: [
     { command: "saleor env list", description: "See every store" },
     {
@@ -136,7 +136,7 @@ const startCommand = env.ensure({
     },
     {
       command: "saleor env start local:demo",
-      description: "Start a local instance by its ref",
+      description: "Start a local store by its ref",
     },
   ],
   inputs: {
@@ -391,7 +391,7 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
   merged.set("environment", nameInput);
 
   return env.ensure({
-    description: `Add an environment to the project: set up a store for it and name it in saleor.yml. Uses ${fallback.label} by default${others.map((p) => `; pass --${p.flag} for ${p.label}`).join("")}. A local environment is saved as a definition each checkout creates its own instance from; a Cloud one by its ref. The project's configuration is applied to a new local store; for a Cloud one, the result says how to deploy it. Adding a name saleor.yml already has makes sure its store is there.`,
+    description: `Add an environment to the project: set up a store for it and name it in saleor.yml. Uses ${fallback.label} by default${others.map((p) => `; pass --${p.flag} for ${p.label}`).join("")}. A local environment is saved as a definition each checkout creates its own store from; a Cloud one by its ref. The project's configuration is applied to a new local store; for a Cloud one, the result says how to deploy it. Adding a name saleor.yml already has makes sure its store is there.`,
     examples: [
       {
         command: "saleor env add staging --org acme --project my-store",
@@ -494,7 +494,7 @@ export const environmentCommand = <R>(providers: readonly SetupProvider<R>[]) =>
       removeCommand,
     ],
     description:
-      "Environments are the stores a project works with, wherever they run: local instances in Docker and Saleor Cloud environments. Every command names one with the word after it: a name from saleor.yml (local, staging) or a store ref (local:<name>, cloud:<org>/<env key>), as env list prints them. The first environment comes from saleor init.",
+      "Environments are the stores a project works with, wherever they run: local stores in Docker and Saleor Cloud environments. Every command names one with the word after it: a name from saleor.yml (local, staging) or a store ref (local:<name>, cloud:<org>/<env key>), as env list prints them. The first environment comes from saleor init.",
     name: "env",
     summary: "Run and manage stores in your project.",
   });

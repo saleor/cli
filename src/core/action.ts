@@ -116,7 +116,7 @@ export const describeTarget = (target: TargetRef) => {
 
   const scope = Object.values(target.scope);
 
-  // Types are tokens ("local-instance"); a person reads them as words.
+  // Types are tokens ("local-store"); a person reads them as words.
   return `${target.type.replaceAll("-", " ")} "${target.name}"${id}${scope.length > 0 ? ` in ${scope.join(" / ")}` : ""}`;
 };
 

@@ -14,7 +14,8 @@ import { command } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
 import type { StoreClient } from "../../core/store-api.ts";
 import { storeToken } from "../../core/store-token.ts";
-import { createApp, deleteApp, subscribe } from "./app.ts";
+import { deleteApp } from "../../core/store-apps.ts";
+import { createApp, subscribe } from "./app.ts";
 import { listen } from "./listener.ts";
 import { receiveUntil, showDelivery, untilCtrlC } from "./stream.ts";
 

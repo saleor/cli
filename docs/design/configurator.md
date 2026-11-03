@@ -85,7 +85,7 @@ Credentials are resolved like targets:
 
 1. `SALEOR_TOKEN`, if set. This is how CI keeps working: the same secret it holds today, under the name the CLI uses.
 2. The token saved for this ref in the secret store.
-3. For local instances, the admin login the CLI generated: `tokenCreate`, silently, because the CLI made that store. It is not swapped for a lasting app token as Cloud's login is: Saleor lets only a staff user install or create apps, so `app add` and `webhook listen` need the sign-in itself. The sign-in lasts 5 minutes; `webhook listen` signs in again to delete its app. For Cloud stores, an app token made with the Cloud login, as described above. This works through an optional `access(id)` capability in core, so the config module does not import the local module.
+3. For local stores, the admin login the CLI generated: `tokenCreate`, silently, because the CLI made that store. It is not swapped for a lasting app token as Cloud's login is: Saleor lets only a staff user install or create apps, so `app add` and `webhook listen` need the sign-in itself. The sign-in lasts 5 minutes; `webhook listen` signs in again to delete its app. For Cloud stores, an app token made with the Cloud login, as described above. This works through an optional `access(id)` capability in core, so the config module does not import the local module.
 4. Interactively, a hidden prompt for the token, which says where to create one in the Dashboard (**Apps → Create app**, with the permissions the configuration needs). The CLI offers to save it under the ref.
 5. Otherwise `STORE_AUTH_REQUIRED`, whose suggestion names `SALEOR_TOKEN` and the prompt.
 
@@ -227,7 +227,7 @@ The method is a strangler. The engine's interface stays where it is, and its ins
 
 `npm deprecate` waits for hard deprecation: it warns on every install, including the Action's. Hard deprecation and end of life come at a declared Saleor line, announced at least one line ahead. (Open question 4.)
 
-**Saleor versions.** Configurator pins one CLI install to one Saleor minor. A workbench talks to many stores, and local instances can run any `--saleor-version`. The CLI already knows each instance's `saleorVersion`, so before any network operation the config commands compare it with `engine.supportedSaleor`. Outside the supported range, they fail with `UNSUPPORTED_SALEOR_VERSION` and suggest `npx @saleor/configurator@<minor>`. Later, the engine can support N and N-1, or the CLI can load a version-matched engine on demand. The engine interface should be designed now so that this is possible.
+**Saleor versions.** Configurator pins one CLI install to one Saleor minor. A workbench talks to many stores, and local stores can run any `--saleor-version`. The CLI already knows each instance's `saleorVersion`, so before any network operation the config commands compare it with `engine.supportedSaleor`. Outside the supported range, they fail with `UNSUPPORTED_SALEOR_VERSION` and suggest `npx @saleor/configurator@<minor>`. Later, the engine can support N and N-1, or the CLI can load a version-matched engine on demand. The engine interface should be designed now so that this is possible.
 
 ### Mapping for people migrating
 

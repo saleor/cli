@@ -43,7 +43,7 @@ No Cloud account is needed. The first setup can take several minutes. When ready
 
 ## Manage environments
 
-Local instances and Cloud environments answer the same commands:
+Local stores and Cloud environments answer the same commands:
 
 ```sh
 pnpm saleor env list              # every store, local and Cloud, with its state

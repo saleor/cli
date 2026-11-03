@@ -33,7 +33,7 @@ import { connection } from "./setup.ts";
 import { localName } from "./state.ts";
 
 const noInstance = (name: string) =>
-  fail("NOT_FOUND", `There is no local instance named ${name}.`, {
+  fail("NOT_FOUND", `There is no local store named ${name}.`, {
     suggestion: `Create one with: ${command("init", "--local", "--name", name)}`,
   });
 
@@ -71,7 +71,7 @@ const start = (name: string, input: StartOptions) =>
     ) {
       return yield* fail(
         "LOCAL_STATE_ERROR",
-        `An instance already occupies this checkout's generated name. Attach it explicitly with: ${command("init", "--local", "--name", name)}`
+        `A store already occupies this checkout's generated name. Attach it explicitly with: ${command("init", "--local", "--name", name)}`
       );
     }
 

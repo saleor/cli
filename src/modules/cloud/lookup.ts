@@ -11,6 +11,7 @@ import {
   listListProjects,
   listOrganizations as listOrganizationsOperation,
 } from "./api/contract.ts";
+import { cloudRef } from "../../core/ref.ts";
 
 export type Project = ListProjectResponse;
 
@@ -58,7 +59,7 @@ export const describeEnvironment = (
     graphqlUrl: graphqlUrlOf(env),
     kind: "cloud",
     name: env.name,
-    ref: `cloud:${organization}/${env.key}`,
+    ref: cloudRef(organization, env.key),
     saleorVersion: env.service.version ?? null,
     state: stateOf(env, apiAnswered),
   }),

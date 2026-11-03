@@ -1,6 +1,6 @@
 # CLI reference
 
-Detailed output formats, automation conventions, and local instance options.
+Detailed output formats, automation conventions, and local store options.
 
 ## Conventions
 
@@ -29,7 +29,7 @@ Commands read as `saleor <noun> <verb> [<env>]`:
 | `env list` | Lists every store the CLI can reach, local and Cloud, with its state and URLs; a project's environments first, with their names. |
 | `env add <name>` | Sets up a store for a new project environment (Cloud by default, `--local` for Docker) and names it in `saleor.yml`. |
 | `env start`, `env stop` | Starts a local store (creating it from `saleor.yml` when needed) or stops it, keeping its data. |
-| `env remove` | Deletes a store and its data: a local instance, or a Cloud sandbox. |
+| `env remove` | Deletes a store and its data: a local store, or a Cloud sandbox. |
 | `config status`, `diff`, `deploy`, `pull`, `edit`, `validate` | Keeps a store's configuration as code in `config.yml`. |
 | `storefront create`, `storefront use` | Creates a storefront from the Saleor template connected to a store, or points an existing one at another store. |
 | `api call` | Sends one GraphQL request to a store's API, with its token, and prints the data. |
@@ -82,7 +82,7 @@ pnpm saleor env remove local:demo --dry-run
 
 See `pnpm saleor --help` for more commands and [known limitations](limitations.md).
 
-## Local instances
+## Local stores
 
 `init` creates a store, with an optional storefront. Cloud is the default for existing scripts; `--local` selects Docker, and `--cloud` selects Cloud without the question a terminal otherwise asks:
 
@@ -110,8 +110,8 @@ pnpm saleor storefront create local:demo
 pnpm saleor storefront create cloud:acme/env1 --dir shop --channel eu
 ```
 
-- **Stores** are given as `<env>`: a name from `saleor.yml`, or a ref as `env list` prints it: `cloud:<org>/<environment key>` or `local:<name>`. In a terminal, a person picks from every Cloud environment and local instance; Cloud offers a login first when needed.
-- **`.env`.** The CLI creates `.env` from the template's `.env.example`, as the template's README says, so its documented defaults stay. It sets `NEXT_PUBLIC_SALEOR_API_URL` and `NEXT_PUBLIC_DEFAULT_CHANNEL` (default `default-channel`), and writes the store it is connected to in a header line: `# saleor: instance=<ref>`. The template's `.gitignore` keeps `.env` out of git.
+- **Stores** are given as `<env>`: a name from `saleor.yml`, or a ref as `env list` prints it: `cloud:<org>/<environment key>` or `local:<name>`. In a terminal, a person picks from every Cloud environment and local store; Cloud offers a login first when needed.
+- **`.env`.** The CLI creates `.env` from the template's `.env.example`, as the template's README says, so its documented defaults stay. It sets `NEXT_PUBLIC_SALEOR_API_URL` and `NEXT_PUBLIC_DEFAULT_CHANNEL` (default `default-channel`), and writes the store it is connected to in a header line: `# saleor: store=<ref>`. The template's `.gitignore` keeps `.env` out of git.
 - **Checks.** The channel is checked against the store when it answers. A store that is stopped, a channel that does not exist, a template that no longer mentions a key the CLI sets, a missing git or a failed install are warnings in `data.warnings`, never failures: the files are written either way.
 - **Git and packages.** A new storefront becomes a git repository with the template committed, unless it is inside one already. Dependencies are installed automatically with pnpm, through Corepack if pnpm itself is missing. Existing dependencies are kept on retries; a failed install can be retried.
 - **Running it again** on the same directory and store reuses the files and retries dependency installation. A directory with other files is refused (`NAME_CONFLICT`), and so is a storefront connected to another store; use `storefront use` to switch its backend, or choose another directory with `--dir`.
@@ -123,11 +123,11 @@ pnpm saleor storefront create cloud:acme/env1 --dir shop --channel eu
 
 ## Store API and webhooks
 
-`api call` and `webhook listen` use the store's own API. Its token comes from `SALEOR_TOKEN` (only for commands that reach one store), then a token saved for the store, then the store's own sign-in (local instances sign in as the admin the CLI created), then a prompt in a terminal that offers to save it. Without a terminal and without a token, they fail with `STORE_AUTH_REQUIRED`, saying which permissions to give the token. Saleor Cloud does not issue store tokens to the CLI yet: create an app token in the store's Dashboard.
+`api call` and `webhook listen` use the store's own API. Its token comes from `SALEOR_TOKEN` (only for commands that reach one store), then a token saved for the store, then the store's own sign-in (local stores sign in as the admin the CLI created), then a prompt in a terminal that offers to save it. Without a terminal and without a token, they fail with `STORE_AUTH_REQUIRED`, saying which permissions to give the token. Saleor Cloud does not issue store tokens to the CLI yet: create an app token in the store's Dashboard.
 
 - **`api call`.** The document comes from `--query`, or `--file <path>` (`--file -` reads stdin); `--variables` takes a JSON object. Queries and mutations are sent as given, without asking. `data` is the GraphQL answer's data. An answer with errors fails: `STORE_AUTH_INVALID` when the token lacks a permission (Saleor's message names it), `STORE_ERROR` otherwise; both carry `{data, errors}` in `error.details`. `--anonymous` sends no token.
 - **`webhook listen`.** It needs `--events` (comma-separated; `order_created`, `ORDER_CREATED` and `order.created` are the same) or `--subscription <file>`, whose events are used when `--events` is left out. It makes an app named `Saleor CLI listener <id>` with every permission the token's owner may grant, adds a webhook to a local HTTP listener on a random path, and deletes the app on Ctrl+C, SIGTERM or after `--count` deliveries; Ctrl+C exits 130. Each delivery shows Saleor's event, its payload and, with `--forward-to <url>`, your app's answer; the store gets that answer, so retries behave as they would for your app. In json mode, each delivery is a JSON line on stderr (`{"event": "webhook", "delivery": {event, receivedAt, headers, payload, forwarded}}`), and the result lists the deliveries with the app and webhook.
-- **Reaching this computer.** A local store delivers to `host.docker.internal`; local instances allow it (`HTTP_IP_FILTER_ENABLED=False`). On Linux the listener accepts connections from the Docker bridge, so it listens on every interface; the random path keeps others out. Any other store needs a tunnel: `--port <n>` for the local port, `--public-url <url>` for the tunnel's address.
+- **Reaching this computer.** A local store delivers to `host.docker.internal`; local stores allow it (`HTTP_IP_FILTER_ENABLED=False`). On Linux the listener accepts connections from the Docker bridge, so it listens on every interface; the random path keeps others out. Any other store needs a tunnel: `--port <n>` for the local port, `--public-url <url>` for the tunnel's address.
 
 ## Project context
 
@@ -181,7 +181,7 @@ complete; failures can be retried with the same command. Subsequent starts prese
 explicitly with `config deploy local`. A version mismatch requires an explicit
 recreation or migration; starting does not silently upgrade the database.
 
-The environment definition is committed. Its binding to a local instance lives
+The environment definition is committed. Its binding to a local store lives
 in the user's CLI state, keyed by checkout path. Separate clones get separate
 instances. To adopt an existing named instance, run `init --local --name <name>`
 inside the project. Legacy string references remain supported.

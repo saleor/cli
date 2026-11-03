@@ -22,9 +22,9 @@ import {
   type InstalledApp,
   installed,
   installFrom,
-  uninstall,
   writeMetadata,
 } from "./store.ts";
+import { deleteApp } from "../../core/store-apps.ts";
 import { catalogUrls, sourceOf, storeApps } from "./catalog.ts";
 import { reachableManifest } from "./docker-host.ts";
 import { createCommand } from "./create-command.ts";
@@ -384,7 +384,7 @@ const removeCommand = app.remove({
 
       return {
         action: "delete",
-        apply: Effect.as(uninstall(client, each.id), { app: shown(each) }),
+        apply: Effect.as(deleteApp(client, each.id), { app: shown(each) }),
         details: { app: shown(each) },
         risk: "Its webhooks, tokens and settings on the store are deleted.",
         state: "exists",
@@ -471,7 +471,7 @@ const reinstallCommand = app.ensure({
       return {
         action: "update",
         apply: Effect.gen(function* () {
-          yield* uninstall(client, each.id);
+          yield* deleteApp(client, each.id);
 
           // Read again now that the app is gone, for the permissions it asks for.
           const manifest = yield* fetchManifest(client, manifestUrl);

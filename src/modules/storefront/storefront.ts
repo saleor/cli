@@ -1,5 +1,4 @@
 import { Duration, Effect, Option, Schema } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { TargetRef } from "../../core/action.ts";
@@ -25,6 +24,7 @@ import {
   templateSource,
 } from "../../core/scaffold.ts";
 import { envWord } from "../../core/env-word.ts";
+import { storeRequest } from "../../core/store-api.ts";
 
 // A storefront is the saleor/storefront template, downloaded as it is on `main`, with
 // its `.env` pointing at one store: the store's GraphQL API and a channel. The `.env`
@@ -121,44 +121,33 @@ export const connectedElsewhere = (dir: string, ref: string, wanted: string) =>
 
 // ── Applying ─────────────────────────────────────────────────────────────
 
-const ChannelAnswer = Schema.Struct({
-  data: Schema.optionalKey(
-    Schema.NullOr(
-      Schema.Struct({
-        channel: Schema.optionalKey(
-          Schema.NullOr(Schema.Struct({ slug: Schema.String }))
-        ),
-      })
-    )
+const ChannelData = Schema.Struct({
+  channel: Schema.optionalKey(
+    Schema.NullOr(Schema.Struct({ slug: Schema.String }))
   ),
 });
 
 // Asks the store whether the channel exists. Unknown when it does not answer or does
 // not say (a store that only shows channels to staff).
 const channelExists = (graphqlUrl: string, slug: string) =>
-  Effect.gen(function* () {
-    const http = yield* HttpClient.HttpClient;
-
-    const request = HttpClientRequest.post(graphqlUrl).pipe(
-      HttpClientRequest.bodyJsonUnsafe({
-        query: "query ($slug: String!) { channel(slug: $slug) { slug } }",
-        variables: { slug },
-      })
-    );
-
-    const answer = yield* http.execute(request).pipe(
-      Effect.flatMap((response) => response.json),
-      Effect.flatMap(Schema.decodeUnknownEffect(ChannelAnswer)),
-      Effect.timeout(Duration.seconds(10)),
-      Effect.option
-    );
-
-    return Option.flatMap(answer, (body) =>
-      body.data?.channel === undefined
-        ? Option.none()
-        : Option.some(body.data.channel !== null)
-    );
-  });
+  storeRequest({
+    query: "query ($slug: String!) { channel(slug: $slug) { slug } }",
+    url: graphqlUrl,
+    variables: { slug },
+  }).pipe(
+    Effect.flatMap((answer) =>
+      Schema.decodeUnknownEffect(ChannelData)(answer.data)
+    ),
+    Effect.timeout(Duration.seconds(10)),
+    Effect.option,
+    Effect.map((answer) =>
+      Option.flatMap(answer, (data) =>
+        data.channel === undefined
+          ? Option.none()
+          : Option.some(data.channel !== null)
+      )
+    )
+  );
 
 const STARTED = new Set(["ready", "running"]);
 

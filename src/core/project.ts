@@ -20,6 +20,7 @@ import {
   warnOnce,
 } from "./manifest.ts";
 import { configDir } from "./secret-store.ts";
+import { localRef } from "./ref.ts";
 
 // A project is a folder holding what a store is made of: `saleor.yml` (see
 // manifest.ts) names the stores it works with ("environments"), the store's
@@ -61,9 +62,7 @@ const read = (root: string): Project => {
       ([name, value]) =>
         [
           name,
-          Predicate.isString(value)
-            ? value
-            : `local:${bindingName(root, name)}`,
+          Predicate.isString(value) ? value : localRef(bindingName(root, name)),
         ] as const
     ),
     name: fields.name ?? path.basename(root),
@@ -312,7 +311,7 @@ export const editManifest = (
   });
 
 // `env add`: names a store in saleor.yml. A Cloud store is named by its ref; a local
-// one by a definition every checkout creates its own instance from, with this
+// one by a definition every checkout creates its own store from, with this
 // checkout's instance bound to it.
 export const addEnvironment = (
   root: string,

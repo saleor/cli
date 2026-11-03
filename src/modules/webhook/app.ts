@@ -6,22 +6,14 @@ import {
   PermissionCodes,
   type StoreClient,
   storeData,
-  storeQuery,
 } from "../../core/store-api.ts";
+import { grantablePermissions } from "../../core/store-apps.ts";
 
 // The temporary app a listener subscribes through. Saleor delivers webhooks to apps,
 // so `webhook listen` makes one, gives it what the token's owner may grant, and
 // deletes it when it stops. Deleting an app deletes its webhooks.
 
 export const APP_NAME_PREFIX = "Saleor CLI listener";
-
-const Requester = Schema.Struct({
-  me: Schema.NullOr(Schema.Struct({ userPermissions: PermissionCodes })),
-});
-
-const RequestingApp = Schema.Struct({
-  app: Schema.NullOr(Schema.Struct({ permissions: PermissionCodes })),
-});
 
 const AppCreated = Schema.Struct({
   appCreate: Schema.Struct({
@@ -45,24 +37,6 @@ const WebhookCreated = Schema.Struct({
   }),
 });
 
-// What the token may grant: a staff member's permissions, or an app's own.
-const grantable = (client: StoreClient) =>
-  Effect.gen(function* () {
-    const user = yield* storeData(client, Requester, {
-      query: "query { me { userPermissions { code } } }",
-    });
-
-    if (user.me !== null) {
-      return user.me.userPermissions.map((each) => each.code);
-    }
-
-    const app = yield* storeData(client, RequestingApp, {
-      query: "query { app { permissions { code } } }",
-    });
-
-    return app.app?.permissions.map((each) => each.code) ?? [];
-  });
-
 export interface Listener {
   readonly app: { readonly id: string; readonly name: string };
   readonly webhook: {
@@ -74,7 +48,7 @@ export interface Listener {
 
 export const createApp = (client: StoreClient) =>
   Effect.gen(function* () {
-    const permissions = yield* grantable(client);
+    const permissions = yield* grantablePermissions(client);
     const name = `${APP_NAME_PREFIX} ${randomBytes(3).toString("hex")}`;
 
     const created = yield* storeData(client, AppCreated, {
@@ -94,13 +68,6 @@ export const createApp = (client: StoreClient) =>
     }
 
     return app;
-  });
-
-export const deleteApp = (client: StoreClient, id: string) =>
-  storeQuery(client.store, {
-    query: "mutation($id: ID!) { appDelete(id: $id) { errors { message } } }",
-    token: client.token,
-    variables: { id },
   });
 
 export const subscribe = (
