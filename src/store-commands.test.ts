@@ -520,6 +520,13 @@ describe("app", () => {
     status: string;
   }[];
 
+  type Entries = { key: string; value: string }[];
+
+  const metadataByAppId = new Map<
+    string,
+    { metadata: Entries; privateMetadata: Entries }
+  >();
+
   const appStore = (body: any) => {
     const query: string = body.query;
 
@@ -565,6 +572,34 @@ describe("app", () => {
       };
     }
 
+    if (query.includes("privateMetadata {")) {
+      return {
+        data: {
+          app: metadataByAppId.get(body.variables.id) ?? {
+            metadata: [],
+            privateMetadata: [],
+          },
+        },
+      };
+    }
+
+    const updated = /(updateMetadata|updatePrivateMetadata)\(/.exec(query)?.[1];
+
+    if (updated !== undefined) {
+      const kind =
+        updated === "updateMetadata" ? "metadata" : "privateMetadata";
+
+      const entries = metadataByAppId.get(body.variables.id) ?? {
+        metadata: [],
+        privateMetadata: [],
+      };
+
+      entries[kind] = [...entries[kind], ...body.variables.input];
+      metadataByAppId.set(body.variables.id, entries);
+
+      return { data: { updated: { errors: [] } } };
+    }
+
     if (query.includes("appDelete")) {
       apps = apps.filter((each) => each.id !== body.variables.id);
 
@@ -578,11 +613,14 @@ describe("app", () => {
     store
       .map((each): string => each.body.query)
       .filter((query) => query.trimStart().startsWith("mutation"))
-      .map((query) => /(app[A-Za-z]+)\(/.exec(query)?.[1]);
+      .map(
+        (query) => /(app[A-Za-z]+|update[A-Za-z]*Metadata)\(/.exec(query)?.[1]
+      );
 
   beforeEach(() => {
     apps = [];
     installing = [];
+    metadataByAppId.clear();
     answer = appStore;
   });
 
@@ -759,6 +797,59 @@ describe("app", () => {
         .variables
     ).toStrictEqual({ id: "a1" });
     expect(apps.map((each) => each.id)).toStrictEqual(["QXBwOjk="]);
+  });
+
+  it("copies the old app's metadata to the new one only when asked", async () => {
+    const env = { SALEOR_POLL_INTERVAL_SECONDS: "0.001" };
+
+    const reinstall = [
+      "app",
+      "reinstall",
+      "local:demo",
+      "--app",
+      "a1",
+      "--force",
+    ];
+
+    const old = {
+      metadata: [{ key: "channel", value: "default" }],
+      privateMetadata: [{ key: "settings", value: "encrypted" }],
+    };
+
+    const installedApp = {
+      id: "a1",
+      identifier: "example.app",
+      manifestUrl: MANIFEST,
+      name: "Example",
+    };
+
+    apps = [installedApp];
+    metadataByAppId.set("a1", old);
+
+    const plain = await cli(reinstall, env);
+    expect(plain.code, plain.stdout + plain.stderr).toBe(0);
+    expect(plain.data.data.app.id).toBe("QXBwOjk=");
+    expect(mutations()).toStrictEqual([
+      "appFetchManifest",
+      "appDelete",
+      "appInstall",
+    ]);
+    expect(metadataByAppId.has("QXBwOjk=")).toBe(false);
+
+    store = [];
+    apps = [installedApp];
+    metadataByAppId.set("a1", old);
+
+    const copied = await cli([...reinstall, "--copy-metadata"], env);
+    expect(copied.code, copied.stdout + copied.stderr).toBe(0);
+    expect(mutations()).toStrictEqual([
+      "appFetchManifest",
+      "appDelete",
+      "appInstall",
+      "updateMetadata",
+      "updatePrivateMetadata",
+    ]);
+    expect(metadataByAppId.get("QXBwOjk=")).toStrictEqual(old);
   });
 
   it("keeps the app when the store cannot read its manifest", async () => {
