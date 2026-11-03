@@ -1,6 +1,7 @@
 import { Option, Predicate, Schema } from "effect";
-import { parseDocument } from "yaml";
 import { fail } from "./errors.ts";
+import { warnOnce } from "./output.ts";
+import { parseYaml } from "./yaml.ts";
 
 // The format of `saleor.yml`, the committed file that makes a folder a project:
 //
@@ -87,26 +88,10 @@ const strict = Schema.toStandardSchemaV1(ManifestSchema, {
   parseOptions: { errors: "all", onExcessProperty: "error" },
 });
 
-// Warnings already given, so a command that reads the project twice warns once.
-const warned = new Set<string>();
-
-export const warnOnce = (key: string, message: string) => {
-  if (!warned.has(key)) {
-    warned.add(key);
-    process.stderr.write(`${message}\n`);
-  }
-};
-
 // The manifest in `file`, whose text is `text`. Fails on a manifest that is not one,
 // or is newer than this CLI; warns about keys it does not know.
 export const decodeManifest = (file: string, text: string): ManifestFields => {
-  let raw: unknown;
-
-  try {
-    raw = parseDocument(text).toJS();
-  } catch {
-    raw = undefined;
-  }
+  const raw = Option.getOrUndefined(parseYaml(text));
 
   const fields = Option.getOrElse(
     Schema.decodeUnknownOption(ManifestSchema)(raw),

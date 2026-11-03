@@ -12,13 +12,9 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { parse } from "yaml";
-import {
-  bindingName,
-  initializeProject,
-  projectAt,
-  rememberEnvironment,
-  saveBinding,
-} from "./project.ts";
+import { projectAt, rememberEnvironment } from "./project.ts";
+import { bindingName, saveBinding } from "./bindings.ts";
+import { initializeProject } from "./project-init.ts";
 
 const roots: string[] = [];
 
@@ -52,7 +48,7 @@ it("creates a portable definition and private binding while preserving existing 
     name: "developer-one",
     ref: "local:developer-one",
     saleorVersion: "3.23.41",
-  };
+  } as const;
 
   await Effect.runPromise(initializeProject(root, "shop", store));
   await Effect.runPromise(initializeProject(root, "shop", store));

@@ -4,7 +4,7 @@ import path from "node:path";
 import { fail } from "../../core/errors.ts";
 import type { Store } from "../../core/store.ts";
 import { command } from "../../core/invocation.ts";
-import { storefrontPath } from "../../core/components.ts";
+import { componentPath } from "../../core/components.ts";
 import { recordDeploy } from "../../core/deploy-record.ts";
 import { findProject } from "../../core/project.ts";
 import { envWord } from "../../core/env-word.ts";
@@ -145,7 +145,7 @@ export const deployedText = (store: Store, file: string, outcome: Deployed) => {
   // The project's storefront, wherever saleor.yml puts it, when it is connected.
   const storefront = Option.filter(
     Option.map(findProject(path.dirname(file)), (project) =>
-      path.resolve(project.root, storefrontPath(project))
+      path.resolve(project.root, componentPath(project, "storefront"))
     ),
     (dir) => existsSync(path.join(dir, ".env"))
   );

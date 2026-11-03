@@ -3,7 +3,9 @@ import type { Planned } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { hasBinding, projectLocal, slugify } from "../../core/project.ts";
+import { hasBinding } from "../../core/bindings.ts";
+import { slugify } from "../../core/names.ts";
+import { projectLocal } from "../../core/project.ts";
 import { defineSetup } from "../../core/setup.ts";
 import { SALEOR_VERSION } from "./compose.ts";
 import { type LocalUpOptions, localTarget, planUp, up } from "./lifecycle.ts";
@@ -84,7 +86,7 @@ export const localSetup = defineSetup({
 
       if (
         Option.isSome(context) &&
-        !hasBinding(context.value.project.root, context.value.alias) &&
+        !hasBinding(context.value.project.root, context.value.environment) &&
         (yield* readConfig(name)) !== undefined
       ) {
         return yield* fail(

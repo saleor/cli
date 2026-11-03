@@ -4,7 +4,7 @@ import { describeTarget } from "../../core/action.ts";
 import { option } from "../../core/inputs.ts";
 import { askConfirm, isInteractive } from "../../core/interaction.ts";
 import { recordAnswer } from "../../core/invocation.ts";
-import { projectChannel, storefrontPath } from "../../core/components.ts";
+import { projectChannel, storefrontPath } from "./project.ts";
 import { projectAt, projectFolder } from "../../core/project.ts";
 import { type Downloaded, downloadTemplate } from "../../core/scaffold.ts";
 import { defineSetupExtension } from "../../core/setup.ts";

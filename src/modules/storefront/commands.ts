@@ -8,7 +8,7 @@ import { envInput, resolveStore } from "../../core/stores.ts";
 import { isInteractive } from "../../core/interaction.ts";
 import { MenuAvailable } from "../../core/menu.ts";
 import { notice } from "../../core/output.ts";
-import { storefrontFolder } from "../../core/components.ts";
+import { storefrontFolder } from "./project.ts";
 import {
   connectedElsewhere,
   create,

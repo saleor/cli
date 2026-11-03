@@ -21,7 +21,8 @@ import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
 import { askThen } from "./navigation.ts";
 import { notice } from "./output.ts";
-import { initializeProject, projectFolder } from "./project.ts";
+import { projectFolder } from "./project.ts";
+import { initializeProject } from "./project-init.ts";
 
 // `saleor init` is the one journey every provider shares: create a new store.
 // Each module that can run a store contributes a setup provider; this file composes

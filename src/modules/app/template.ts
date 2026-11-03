@@ -10,7 +10,8 @@ import { result } from "../../core/command.ts";
 import { recordComponent } from "../../core/components.ts";
 import { fail } from "../../core/errors.ts";
 import { columns } from "../../core/output.ts";
-import { findProject, slugify } from "../../core/project.ts";
+import { slugify } from "../../core/names.ts";
+import { findProject } from "../../core/project.ts";
 import {
   type Downloaded,
   directoryState,

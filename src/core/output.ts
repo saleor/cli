@@ -210,6 +210,18 @@ export const notice = (
     )
   );
 
+// Warnings already given, so a command that reads the same file twice warns once.
+const warned = new Set<string>();
+
+// A warning from code that reads files outside an effect (saleor.yml, bindings),
+// given once per run like any other notice.
+export const warnOnce = (key: string, message: string) => {
+  if (!warned.has(key)) {
+    warned.add(key);
+    Effect.runSync(notice(message));
+  }
+};
+
 export const withProgress = <A, E, R>(
   message: string,
   completed: string,

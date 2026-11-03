@@ -15,12 +15,8 @@ import type {
 } from "../../core/store.ts";
 import { command } from "../../core/invocation.ts";
 import { configuresOnCreate } from "../../core/manifest.ts";
-import {
-  configPath,
-  hasBinding,
-  projectLocalOf,
-  saveBinding,
-} from "../../core/project.ts";
+import { configPath, projectLocalOf } from "../../core/project.ts";
+import { hasBinding, saveBinding } from "../../core/bindings.ts";
 import {
   applyConfiguration,
   configurationPending,
@@ -67,7 +63,7 @@ const start = (name: string, input: StartOptions) =>
     if (
       existing !== undefined &&
       Option.isSome(context) &&
-      !hasBinding(context.value.project.root, context.value.alias)
+      !hasBinding(context.value.project.root, context.value.environment)
     ) {
       return yield* fail(
         "LOCAL_STATE_ERROR",
@@ -107,7 +103,11 @@ const start = (name: string, input: StartOptions) =>
       apply: Effect.gen(function* () {
         if (Option.isSome(context)) {
           yield* Effect.sync(() => {
-            saveBinding(context.value.project.root, context.value.alias, name);
+            saveBinding(
+              context.value.project.root,
+              context.value.environment,
+              name
+            );
           });
         }
 

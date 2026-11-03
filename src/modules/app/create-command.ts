@@ -5,7 +5,7 @@ import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
 import { askText, isInteractive, required } from "../../core/interaction.ts";
 import { recordAnswer } from "../../core/invocation.ts";
-import { slugify } from "../../core/project.ts";
+import { slugify } from "../../core/names.ts";
 import {
   appFolder,
   appIdentifier,
