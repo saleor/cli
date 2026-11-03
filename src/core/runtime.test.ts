@@ -1,5 +1,5 @@
 import { CANCEL_SYMBOL } from "@clack/prompts";
-import { Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,6 +7,7 @@ import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { root as saleorRoot } from "../main.ts";
 import { NoInputFlag, Prompts } from "./interaction.ts";
+import { HideFromMenu } from "./menu.ts";
 import { BACK } from "./navigation.ts";
 import { onboardCommand } from "./onboarding.ts";
 import { OutputFlag } from "./output.ts";
@@ -240,6 +241,7 @@ it.each(
           (entry) =>
             !(
               entry.unlisted ||
+              Context.get(entry.annotations, HideFromMenu) ||
               (group.name === "storefront" && entry.name === "use")
             )
         )
