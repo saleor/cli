@@ -29,6 +29,7 @@ import {
   requireSandboxCapacity,
 } from "./provision.ts";
 import { environment, organizationOf, orgInput, project } from "./targets.ts";
+import { saleorMcp } from "./mcp.ts";
 
 const stateText: Record<StoreState, string> = {
   busy: "busy: Saleor Cloud is running a task on it (setup, upgrade or deletion)",
@@ -173,7 +174,15 @@ export const cloudSetup = defineSetup({
   label: "Saleor Cloud",
   name: "cloud",
   // An environment of a project is a Cloud environment of the same name.
-  naming: { input: "env", name: (_project, alias) => alias },
+  naming: { input: "env", name: (_project, environment) => environment },
+  onboarding: {
+    agentTool: saleorMcp,
+    first: ["login"],
+    hint: "Log in to your Saleor Cloud account",
+    label: "Use Saleor Cloud",
+    store:
+      "Create a sandbox in Saleor Cloud, with a project folder for its configuration and storefront.",
+  },
   plan: (input) =>
     Effect.gen(function* () {
       const organization = yield* organizationOf(input.org);

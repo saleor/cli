@@ -15,10 +15,8 @@ import { builtIns, createCliRuntime } from "./core/runtime.ts";
 import { setupCommand } from "./core/setup.ts";
 import { apiModule } from "./modules/api/index.ts";
 import { appModule } from "./modules/app/index.ts";
-import { cloudAccount, cloudModule } from "./modules/cloud/index.ts";
-import { projectStatus } from "./modules/config/commands.ts";
+import { cloudModule } from "./modules/cloud/index.ts";
 import { configModule } from "./modules/config/index.ts";
-import { projectConfigurationLive } from "./modules/config/project-configuration.ts";
 import { localModule } from "./modules/local/index.ts";
 import { storefrontModule } from "./modules/storefront/index.ts";
 import { webhookModule } from "./modules/webhook/index.ts";
@@ -63,23 +61,26 @@ export const root = Command.make("saleor").pipe(
   Command.withGlobalFlags([OutputFlag, NoInputFlag, AgentFlag]),
   Command.annotate(
     MenuStatus,
-    Effect.map(Effect.all([projectStatus, cloudAccount]), (lines) => {
-      const shown = lines.filter((line) => line !== undefined);
+    Effect.map(
+      Effect.all(modules.flatMap((module) => module.status ?? [])),
+      (lines) => {
+        const shown = lines.filter((line) => line !== undefined);
 
-      return shown.length > 0 ? shown.join("\n") : undefined;
-    })
+        return shown.length > 0 ? shown.join("\n") : undefined;
+      }
+    )
   )
 );
 
 const runCli = createCliRuntime(root, {
-  onboard,
+  onboard: (execute, force) => onboard(execute, force, providers),
   services: Layer.mergeAll(
-    projectConfigurationLive,
     NodeServices.layer,
     Layer.succeed(
       StoreSources,
       modules.flatMap((module) => module.stores ?? [])
     ),
+    ...modules.flatMap((module) => module.provides ?? []),
     ...modules.map((module) => module.layer)
   ),
   version: packageJson.version,

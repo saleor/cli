@@ -15,10 +15,48 @@ import { SkillInstaller, type SkillsInstalled } from "./agent-skills.ts";
 import { CodingAgents } from "./agents.ts";
 import { type CliFailure, fail } from "./errors.ts";
 import { Prompts } from "./interaction.ts";
+import { option } from "./inputs.ts";
 import { onboard } from "./onboarding.ts";
+import { notice } from "./output.ts";
+import { type AgentTool, defineSetup, type OnboardingPath } from "./setup.ts";
 
 const dirs: string[] = [];
-const UNRELEASED_MCP_COPY = /preview|coming soon|when released/i;
+
+// Places to run stores as the Cloud and local modules describe them; core knows
+// neither, so these stand in for them.
+const tool: AgentTool = {
+  install: (agent) => notice(`Installed the agent tool for ${agent}.`),
+  offer: "The agent tool connects your coding agent to your store.",
+  question: "Install the agent tool in your coding agent?",
+};
+
+const provider = (name: string, onboarding: OnboardingPath) =>
+  defineSetup({
+    example: { command: "", description: "" },
+    flag: name,
+    hint: "",
+    inputs: { name: option.boolean("name", "") },
+    label: name,
+    name,
+    naming: { input: "name", name: () => "" },
+    onboarding,
+    plan: () => Effect.die("not used by onboarding"),
+  });
+
+const PROVIDERS = [
+  provider("cloud", {
+    agentTool: tool,
+    first: ["login"],
+    hint: "Log in to your Saleor Cloud account",
+    label: "Use Saleor Cloud",
+    store: "Create a sandbox in Saleor Cloud.",
+  }),
+  provider("local", {
+    hint: "Docker or self-hosted. No login needed",
+    label: "Local / self-hosted",
+    store: "Run a store in Docker on this computer.",
+  }),
+];
 
 afterEach(() => {
   for (const dir of dirs.splice(0)) {
@@ -51,7 +89,7 @@ const setup = (answer: string | symbol) => {
 
   const run = async (force = false) =>
     await Effect.runPromise(
-      onboard(execute, force).pipe(
+      onboard(execute, force, PROVIDERS).pipe(
         Effect.provideService(CodingAgents, [
           {
             detected: true,
@@ -127,7 +165,7 @@ it("leaves cancelled onboarding retryable", async () => {
   expect(select).toHaveBeenCalledTimes(2);
 });
 
-it("installs skills for local users without offering Cloud MCP", async () => {
+it("installs skills for local users without offering the Cloud path's agent tool", async () => {
   const { run, select, confirm, install, dir } = setup("local");
   confirm.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
   select
@@ -144,7 +182,7 @@ it("installs skills for local users without offering Cloud MCP", async () => {
   expect(install).toHaveBeenCalledWith(path.join(dir, "project", "skills"));
 });
 
-it("offers Cloud MCP installation independently of skills with a mocked backend", async () => {
+it("offers the path's agent tool independently of skills", async () => {
   const { run, select, confirm, install, execute, dir } = setup("cloud");
   confirm.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
   select.mockResolvedValueOnce("cloud").mockResolvedValueOnce("codex");
@@ -152,26 +190,17 @@ it("offers Cloud MCP installation independently of skills with a mocked backend"
   expect(execute).toHaveBeenCalledExactlyOnceWith(["login"]);
   expect(install).not.toHaveBeenCalled();
   expect(confirm).toHaveBeenCalledWith(
-    expect.objectContaining({
-      message: "Install Saleor MCP in your coding agent?",
-    })
+    expect.objectContaining({ message: tool.question })
   );
   expect(vi.mocked(process.stderr.write)).toHaveBeenCalledWith(
-    expect.stringContaining("Installing Saleor MCP for Codex")
+    expect.stringContaining(tool.offer)
   );
   expect(vi.mocked(process.stderr.write)).toHaveBeenCalledWith(
-    expect.stringContaining("Saleor MCP is configured for Codex.")
+    expect.stringContaining("Installed the agent tool for Codex.")
   );
-
-  const output = vi
-    .mocked(process.stderr.write)
-    .mock.calls.map(([chunk]) => String(chunk))
-    .join("");
-
-  expect(output).not.toMatch(UNRELEASED_MCP_COPY);
   expect(
     readFileSync(path.join(dir, "onboarding.json"), "utf-8")
-  ).not.toContain("mcp");
+  ).toStrictEqual('{"version":1}\n');
 });
 
 it("does not mark onboarding complete when skills installation fails", async () => {

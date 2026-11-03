@@ -55,10 +55,16 @@ export const localSetup = defineSetup({
   name: "local",
   // Local names are shared by every project on this computer, so an environment's
   // instance is named after its project too.
+  onboarding: {
+    hint: "Docker or self-hosted. No login needed",
+    label: "Local / self-hosted",
+    store:
+      "Run a store in Docker on this computer, with a project folder for its configuration and storefront.",
+  },
   naming: {
     input: "name",
-    name: (project, alias) => {
-      const slug = slugify(`${project}-${alias}`);
+    name: (project, environment) => {
+      const slug = slugify(`${project}-${environment}`);
 
       return (/^[a-z]/.test(slug) ? slug : `saleor-${slug}`)
         .slice(0, 40)
