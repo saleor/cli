@@ -12,35 +12,43 @@ import {
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
 import { envInput } from "../../core/instances.ts";
-import { askConfirm, isInteractive } from "../../core/interaction.ts";
-import { recordAnswer } from "../../core/invocation.ts";
 import { deadlineIn } from "../../core/readiness.ts";
 import { connectStore } from "../../core/store-api.ts";
 import {
   appsOn,
+  canReadManifest,
   fetchManifest,
   install,
   type InstalledApp,
   installed,
   installFrom,
-  metadataOf,
   type Store,
   uninstall,
   writeMetadata,
 } from "./store.ts";
-import { storeApps } from "./catalog.ts";
+import { catalogUrls, sourceOf, storeApps } from "./catalog.ts";
+import { reachableManifest } from "./docker-host.ts";
 import { createCommand } from "./create-command.ts";
+import { metadataToCopy } from "./metadata-copy.ts";
 import { planStoreApps, type StoreAppsResult } from "./store-apps.ts";
 
 const app = defineActions();
 
 // Managing apps takes MANAGE_APPS, and Saleor only lets a token grant permissions its
-// owner has.
-const connect = (env: Option.Option<string>, needs: string) =>
-  Effect.map(connectStore(env, { needs }), ({ instance, token }): Store => ({
-    instance,
-    token: Option.getOrElse(token, () => ""),
-  }));
+// owner has. Installing takes a staff user's token besides: Saleor refuses appInstall
+// to an app token.
+const connect = (
+  env: Option.Option<string>,
+  needs: string,
+  { staff = false }: { readonly staff?: boolean } = {}
+) =>
+  Effect.map(
+    connectStore(env, { needs, staff }),
+    ({ instance, token }): Store => ({
+      instance,
+      token: Option.getOrElse(token, () => ""),
+    })
+  );
 
 const appTarget = (store: Store, name: string, id: string | null) =>
   ({
@@ -89,31 +97,6 @@ const catalogRows = Effect.map(storeApps, (catalog) =>
   )
 );
 
-// App Store apps only run on Cloud stores, so a local store's apps are not looked up.
-const catalogUrls = (store: Store) =>
-  store.instance.kind === "local"
-    ? Effect.succeed(new Set<string>())
-    : storeApps.pipe(
-        Effect.map(
-          (catalog) => new Set(catalog.map((each) => each.manifestUrl))
-        ),
-        Effect.orElseSucceed(() => undefined)
-      );
-
-// Unknown when the App Store could not be read.
-const sourceOf = (
-  fromStore: ReadonlySet<string> | undefined,
-  manifestUrl: string | null
-): Row["source"] => {
-  if (fromStore === undefined) {
-    return null;
-  }
-
-  return manifestUrl !== null && fromStore.has(manifestUrl)
-    ? "app-store"
-    : "other";
-};
-
 const listCommand = app.list({
   description:
     "The apps installed on a store, with where they come from (the Saleor App Store or elsewhere), and installations that are still running or have failed. Needs a store token with MANAGE_APPS. With --store-apps, the apps the Saleor App Store offers instead, with the ids --store-app takes; that needs no store.",
@@ -143,7 +126,7 @@ const listCommand = app.list({
 
       const store = yield* connect(input.env, "the MANAGE_APPS permission");
       const { apps, installations } = yield* appsOn(store);
-      const fromStore = yield* catalogUrls(store);
+      const fromStore = yield* catalogUrls(store.instance);
 
       const items: Row[] = [
         ...apps.map((each) => ({
@@ -201,7 +184,7 @@ const addPlan = (plan: AddPlan) => plan;
 
 const addCommand = app.ensure({
   description:
-    "Install apps on a store, with the permissions their manifests ask for, and wait until they are installed. Name an app by its manifest URL with --manifest (the store fetches it, so it must be reachable from the store), or Saleor App Store apps with --store-app (Saleor Cloud stores only; see them with app list --store-apps). With neither, in a terminal on a Cloud store, it lists the App Store's apps to tick, with the installed ones ticked: unticking one uninstalls it, after confirmation. An app already installed is reused; an installation that failed is retried. Needs a store token with MANAGE_APPS and every permission the apps ask for.",
+    "Install apps on a store, with the permissions their manifests ask for, and wait until they are installed. Name an app by its manifest URL with --manifest (the store fetches it, so it must be reachable from the store; for a local store in Docker, a localhost URL is given to the store as host.docker.internal, and a project app's .env gets APP_API_BASE_URL and APP_IFRAME_BASE_URL so its manifest sends the store there too), or Saleor App Store apps with --store-app (Saleor Cloud stores only; see them with app list --store-apps). With neither, in a terminal on a Cloud store, it lists the App Store's apps to tick, with the installed ones ticked: unticking one uninstalls it, after confirmation. An app already installed is reused; an installation that failed is retried. Needs a store token with MANAGE_APPS and every permission the apps ask for.",
   examples: [
     {
       command:
@@ -241,7 +224,8 @@ const addCommand = app.ensure({
 
       const store = yield* connect(
         input.env,
-        "MANAGE_APPS and the permissions the apps ask for"
+        "MANAGE_APPS and the permissions the apps ask for",
+        { staff: true }
       );
 
       const deadline = deadlineIn(input.timeout);
@@ -261,7 +245,12 @@ const addCommand = app.ensure({
         );
       }
 
-      const manifestUrl = input.manifest.value;
+      const reach = yield* reachableManifest(
+        store.instance,
+        input.manifest.value
+      );
+
+      const { manifestUrl } = reach;
       const { apps, installations } = yield* appsOn(store);
       const existing = apps.find((each) => each.manifestUrl === manifestUrl);
 
@@ -305,14 +294,18 @@ const addCommand = app.ensure({
       return addPlan({
         action: "create",
         apply: Effect.map(
-          installFrom(
-            store,
-            { failed: earlier, manifest, manifestUrl },
-            deadline
+          Effect.andThen(
+            reach.prepare,
+            installFrom(
+              store,
+              { failed: earlier, manifest, manifestUrl },
+              deadline
+            )
           ),
           (made) => done(store, made, true)
         ),
         details: {
+          env: reach.env,
           identifier: manifest.identifier,
           manifestUrl,
           permissions: manifest.permissions,
@@ -324,6 +317,7 @@ const addCommand = app.ensure({
         summary: [
           ["Manifest", manifestUrl],
           ["Permissions", permissions],
+          ...reach.summary,
         ],
         target: appTarget(store, manifest.name, null),
       });
@@ -445,7 +439,8 @@ const reinstallCommand = app.ensure({
 
       const store = yield* connect(
         input.env,
-        "MANAGE_APPS and the permissions the app asks for"
+        "MANAGE_APPS and the permissions the app asks for",
+        { staff: true }
       );
 
       const { apps } = yield* appsOn(store);
@@ -472,30 +467,22 @@ const reinstallCommand = app.ensure({
         );
       }
 
-      const manifest = yield* fetchManifest(store, manifestUrl);
-      const permissions = manifest.permissions.join(", ") || "none";
+      yield* canReadManifest(store, manifestUrl);
       const deadline = deadlineIn(input.timeout);
-      const metadata = yield* metadataOf(store, each.id);
-      const keys = metadata.metadata.length + metadata.privateMetadata.length;
-      const asked = !input.copyMetadata && keys > 0 && (yield* isInteractive);
 
-      const copying =
-        keys > 0 &&
-        (input.copyMetadata ||
-          (asked &&
-            (yield* askConfirm(
-              `Copy the app's metadata (${keys} ${keys === 1 ? "key" : "keys"}) to the new install? Apps often keep their settings there.`,
-              true
-            ))));
-
-      if (asked && copying) {
-        yield* recordAnswer({ flag: "--copy-metadata" });
-      }
+      const { copying, keys, metadata } = yield* metadataToCopy(
+        store,
+        each.id,
+        input.copyMetadata
+      );
 
       return {
         action: "update",
         apply: Effect.gen(function* () {
           yield* uninstall(store, each.id);
+
+          // Read again now that the app is gone, for the permissions it asks for.
+          const manifest = yield* fetchManifest(store, manifestUrl);
 
           const installation = yield* install(store, {
             ...manifest,
@@ -517,18 +504,17 @@ const reinstallCommand = app.ensure({
             headline: `Reinstalled the app "${made.name ?? made.id}" on ${store.instance.ref}${copying ? ", with its metadata" : ""}.`,
           };
         }),
-        details: {
-          app: shown(each),
-          copyMetadata: copying,
-          permissions: manifest.permissions,
-        },
+        details: { app: shown(each), copyMetadata: copying },
         risk: copying
           ? "Saleor has no reinstall: the app is uninstalled and installed again as a new app. Its metadata is copied over, but anything it keeps elsewhere for the old installation may not carry over."
           : "Saleor has no reinstall: the app is uninstalled and installed again as a new app. Its metadata is deleted, and anything it keeps elsewhere for the old installation may not carry over.",
         state: "exists",
         summary: [
           ["Manifest", manifestUrl],
-          ["Permissions", permissions],
+          [
+            "Permissions",
+            "what its manifest asks for, read after uninstalling",
+          ],
           [
             "Metadata",
             keys === 0

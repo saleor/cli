@@ -381,6 +381,10 @@ export const prepareSecrets = (config: LocalConfig) =>
             "DEFAULT_FROM_EMAIL=noreply@example.com",
             "ALLOWED_HOSTS=localhost,127.0.0.1,api",
             `DASHBOARD_URL=http://localhost:${config.dashboardPort}/`,
+            // The store's own address as this computer reaches it, for the URLs it
+            // hands out (an app being installed, media); otherwise localhost:8000,
+            // the port inside its container.
+            `PUBLIC_URL=http://localhost:${config.apiPort}/`,
             "DEFAULT_CHANNEL_SLUG=default-channel",
             "HTTP_IP_FILTER_ALLOW_LOOPBACK_IPS=True",
             // Webhooks to this computer (`webhook listen`, an app in development)

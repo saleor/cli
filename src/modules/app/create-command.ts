@@ -47,7 +47,7 @@ interface AppCreated {
 }
 
 export const createCommand = app.ensure({
-  description: `Start an app of your own from the Saleor app template (${TEMPLATE.repository}, as it is on ${TEMPLATE.ref}). Inside a project it goes in apps/<name> and is listed in saleor.yml as a component, so a project can have several apps; elsewhere in ./<name>. Its manifest gets an id of its own (<project>.<name>), since a store has one app per id. The directory becomes a git repository unless it is inside one, and dependencies are installed. Running it again on the same directory reuses the files and retries the install. Then start it with pnpm dev and install it on a store with app add, from its folder.`,
+  description: `Start an app of your own from the Saleor app template (${TEMPLATE.repository}, as it is on ${TEMPLATE.ref}). Inside a project it goes in apps/<name> and is listed in saleor.yml as a component, so a project can have several apps; elsewhere in ./<name>. Its manifest gets an id of its own (<project>.<name>), since a store has one app per id. The directory becomes a git repository unless it is inside one, and dependencies are installed. Running it again on the same directory reuses the files and retries the install. Then start it with pnpm dev and install it on a store with app add --manifest <url>/api/manifest, where <url> is http://localhost:3000 for a local store and a tunnel to port 3000 for a Saleor Cloud store.`,
   examples: [
     {
       command: "saleor app create --app loyalty",

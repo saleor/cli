@@ -20,6 +20,8 @@ import { envInput, resolveStore, withSignIn } from "./instances.ts";
 import { command } from "./invocation.ts";
 import { notice } from "./output.ts";
 import { recordInSync } from "./deployments.ts";
+import { SecretStore } from "./secret-store.ts";
+import { storeTokenKey } from "./store-access.ts";
 import {
   addEnvironment,
   configPath,
@@ -238,6 +240,7 @@ const removeCommand = env.remove({
       });
 
       const remove = yield* step(source, "remove");
+      const secrets = yield* SecretStore;
 
       const planned = yield* withSignIn(
         source,
@@ -248,6 +251,9 @@ const removeCommand = env.remove({
         ...planned,
         apply: Effect.gen(function* () {
           const extra = yield* planned.apply;
+          // The token saved for the store dies with it; a local store made again
+          // under the same name would refuse it.
+          yield* secrets.remove(storeTokenKey(ref));
           const project = findProject();
           const environment = projectNames(project).get(ref) ?? null;
 

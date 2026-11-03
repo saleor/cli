@@ -171,6 +171,7 @@ const removal = (name: string, deleteData: boolean) =>
 // Local instances as stores the CLI's commands work with. Refs are `local:<name>`.
 export const localInstances = {
   access: localAccess,
+  staffAccess: localAccess,
   find: (name: string) =>
     Effect.map(list, (instances) =>
       Option.fromUndefinedOr(instances.find((found) => found.name === name))

@@ -14,8 +14,10 @@ const TokenCreate = Schema.Struct({
 });
 
 // A staff token for the admin the CLI created, so commands that need the store's own
-// API work on local instances without asking. None for an instance without a saved
-// password.
+// API work on local instances without asking. It is made again for each command: it
+// lasts 5 minutes, and an app token would not do instead, since installing and
+// creating apps takes a staff user (appInstall, appCreate). None for an instance
+// without a saved password.
 export const localAccess = (instance: Instance) =>
   Effect.gen(function* () {
     const password = yield* savedAdminPassword(instance.name);

@@ -1,6 +1,7 @@
 import { Duration, Effect, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { fail } from "../../core/errors.ts";
+import type { Instance } from "../../core/instance.ts";
 
 // The Saleor App Store: the list the Dashboard shows under Extensions, from
 // apps.saleor.io (the Dashboard's EXTENSIONS_API_URL). Only apps with a manifest URL
@@ -162,3 +163,28 @@ export const resolveStoreApps = (
       )
     );
   });
+
+// App Store apps only run on Cloud stores, so a local store's apps are not looked up.
+export const catalogUrls = (instance: Instance) =>
+  instance.kind === "local"
+    ? Effect.succeed(new Set<string>())
+    : storeApps.pipe(
+        Effect.map(
+          (catalog) => new Set(catalog.map((each) => each.manifestUrl))
+        ),
+        Effect.orElseSucceed(() => undefined)
+      );
+
+// Unknown when the App Store could not be read.
+export const sourceOf = (
+  fromStore: ReadonlySet<string> | undefined,
+  manifestUrl: string | null
+): "app-store" | "other" | null => {
+  if (fromStore === undefined) {
+    return null;
+  }
+
+  return manifestUrl !== null && fromStore.has(manifestUrl)
+    ? "app-store"
+    : "other";
+};
