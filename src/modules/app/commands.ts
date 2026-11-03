@@ -12,6 +12,8 @@ import {
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
 import { envInput } from "../../core/instances.ts";
+import { askConfirm, isInteractive } from "../../core/interaction.ts";
+import { recordAnswer } from "../../core/invocation.ts";
 import { deadlineIn } from "../../core/readiness.ts";
 import { connectStore } from "../../core/store-api.ts";
 import {
@@ -21,8 +23,10 @@ import {
   type InstalledApp,
   installed,
   installFrom,
+  metadataOf,
   type Store,
   uninstall,
+  writeMetadata,
 } from "./store.ts";
 import { storeApps } from "./catalog.ts";
 import { createCommand } from "./create-command.ts";
@@ -410,11 +414,12 @@ const removeCommand = app.remove({
 // store cannot reach stays installed.
 const reinstallCommand = app.ensure({
   description:
-    "Uninstall an app and install it again from its manifest URL, with the permissions its manifest asks for now, then wait until it is installed. Named by its name, id, identifier or manifest URL. Its webhooks, tokens and settings on the store are deleted, and the app sets them up again as on a first install. Needs a store token with MANAGE_APPS and every permission the app asks for.",
+    "Uninstall an app and install it again from its manifest URL, so the store applies what the manifest asks for now (permissions, webhooks), then wait until it is installed. Saleor has no reinstall, so this is an uninstall followed by a new install: the new app has a new id, and its tokens and webhooks are created again. The CLI cannot know where the app keeps its settings or data. With --copy-metadata (asked in a terminal), the old app's metadata and private metadata, where apps often keep their configuration, are copied to the new one. Anything the app keeps in its own storage for the old installation may not carry over. Named by its name, id, identifier or manifest URL. Needs a store token with MANAGE_APPS and every permission the app asks for.",
   examples: [
     {
-      command: "saleor app reinstall staging --app 'My app' --force",
-      description: "Reinstall an app without asking",
+      command:
+        "saleor app reinstall staging --app 'My app' --copy-metadata --force",
+      description: "Reinstall an app, keeping its metadata, without asking",
     },
   ],
   inputs: {
@@ -422,6 +427,10 @@ const reinstallCommand = app.ensure({
       description: "The app: its name, id, identifier or manifest URL.",
       metavar: "app",
     }),
+    copyMetadata: option.boolean(
+      "copy-metadata",
+      "Copy the old app's metadata and private metadata to the new one. Asked in a terminal."
+    ),
     env: envInput,
   },
   name: "reinstall",
@@ -466,6 +475,22 @@ const reinstallCommand = app.ensure({
       const manifest = yield* fetchManifest(store, manifestUrl);
       const permissions = manifest.permissions.join(", ") || "none";
       const deadline = deadlineIn(input.timeout);
+      const metadata = yield* metadataOf(store, each.id);
+      const keys = metadata.metadata.length + metadata.privateMetadata.length;
+      const asked = !input.copyMetadata && keys > 0 && (yield* isInteractive);
+
+      const copying =
+        keys > 0 &&
+        (input.copyMetadata ||
+          (asked &&
+            (yield* askConfirm(
+              `Copy the app's metadata (${keys} ${keys === 1 ? "key" : "keys"}) to the new install? Apps often keep their settings there.`,
+              true
+            ))));
+
+      if (asked && copying) {
+        yield* recordAnswer({ flag: "--copy-metadata" });
+      }
 
       return {
         action: "update",
@@ -483,22 +508,38 @@ const reinstallCommand = app.ensure({
             deadline
           );
 
+          if (copying) {
+            yield* writeMetadata(store, made.id, metadata);
+          }
+
           return {
             ...done(store, made, true),
-            headline: `Reinstalled the app "${made.name ?? made.id}" on ${store.instance.ref}.`,
+            headline: `Reinstalled the app "${made.name ?? made.id}" on ${store.instance.ref}${copying ? ", with its metadata" : ""}.`,
           };
         }),
-        details: { app: shown(each), permissions: manifest.permissions },
-        risk: "Its webhooks, tokens and settings on the store are deleted before it is installed again.",
+        details: {
+          app: shown(each),
+          copyMetadata: copying,
+          permissions: manifest.permissions,
+        },
+        risk: copying
+          ? "Saleor has no reinstall: the app is uninstalled and installed again as a new app. Its metadata is copied over, but anything it keeps elsewhere for the old installation may not carry over."
+          : "Saleor has no reinstall: the app is uninstalled and installed again as a new app. Its metadata is deleted, and anything it keeps elsewhere for the old installation may not carry over.",
         state: "exists",
         summary: [
           ["Manifest", manifestUrl],
           ["Permissions", permissions],
+          [
+            "Metadata",
+            keys === 0
+              ? "none"
+              : `${keys} ${keys === 1 ? "key" : "keys"}, ${copying ? "copied to the new app" : "not copied"}`,
+          ],
         ],
         target: appTarget(store, each.name ?? each.id, each.id),
       } satisfies Planned<Ensured<Added>, unknown>;
     }),
-  risk: "Reinstalling deletes the app's webhooks, tokens and settings on the store before installing it again.",
+  risk: "Saleor has no reinstall: the app is uninstalled and installed again as a new app, with a new id. Its webhooks, tokens and, unless copied, metadata are deleted; settings the app keeps elsewhere may not carry over.",
   summary: "Reinstall an app to apply its manifest changes.",
   waits: true,
 });

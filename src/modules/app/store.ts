@@ -74,6 +74,20 @@ const Deleted = Schema.Struct({
   appDelete: Schema.Struct({ errors: MutationErrors }),
 });
 
+const Entries = Schema.Array(
+  Schema.Struct({ key: Schema.String, value: Schema.String })
+);
+
+const AppMetadata = Schema.Struct({
+  app: Schema.NullOr(
+    Schema.Struct({ metadata: Entries, privateMetadata: Entries })
+  ),
+});
+
+const MetadataUpdated = Schema.Struct({
+  updated: Schema.Struct({ errors: MutationErrors }),
+});
+
 const APPS = `query {
   apps(first: 100) { edges { node { id name identifier manifestUrl isActive type } } }
   appsInstallations { id appName manifestUrl status message }
@@ -96,6 +110,18 @@ const RETRY = `mutation($id: ID!) {
 
 const DELETE = `mutation($id: ID!) {
   appDelete(id: $id) { errors { field message } }
+}`;
+
+const METADATA = `query($id: ID!) {
+  app(id: $id) { metadata { key value } privateMetadata { key value } }
+}`;
+
+const UPDATE_METADATA = `mutation($id: ID!, $input: [MetadataInput!]!) {
+  updated: updateMetadata(id: $id, input: $input) { errors { field message } }
+}`;
+
+const UPDATE_PRIVATE_METADATA = `mutation($id: ID!, $input: [MetadataInput!]!) {
+  updated: updatePrivateMetadata(id: $id, input: $input) { errors { field message } }
 }`;
 
 const query = <S extends Schema.Top>(
@@ -282,3 +308,45 @@ export const installFrom = (
       deadline
     );
   });
+
+export type Metadata = typeof Entries.Type;
+
+export const metadataOf = (store: Store, id: string) =>
+  Effect.map(
+    query(store, AppMetadata, { query: METADATA, variables: { id } }),
+    (data) => ({
+      metadata: data.app?.metadata ?? [],
+      privateMetadata: data.app?.privateMetadata ?? [],
+    })
+  );
+
+export const writeMetadata = (
+  store: Store,
+  id: string,
+  {
+    metadata,
+    privateMetadata,
+  }: { readonly metadata: Metadata; readonly privateMetadata: Metadata }
+) =>
+  Effect.forEach(
+    [
+      [UPDATE_METADATA, metadata],
+      [UPDATE_PRIVATE_METADATA, privateMetadata],
+    ] as const,
+    ([mutation, entries]) =>
+      entries.length === 0
+        ? Effect.void
+        : Effect.flatMap(
+            query(store, MetadataUpdated, {
+              query: mutation,
+              variables: { id, input: entries.map((each) => ({ ...each })) },
+            }),
+            ({ updated }) =>
+              updated.errors.length > 0
+                ? Effect.fail(
+                    rejected(store, "copy the app's metadata", updated.errors)
+                  )
+                : Effect.void
+          ),
+    { discard: true }
+  );
