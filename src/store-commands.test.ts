@@ -676,6 +676,22 @@ describe("app", () => {
     expect(out.data.error.message).toContain("Manifest unreachable");
   });
 
+  it("refuses App Store apps on a local store before contacting it", async () => {
+    const out = await cli([
+      "app",
+      "add",
+      "local:demo",
+      "--store-app",
+      "avatax",
+    ]);
+
+    expect(out.code).toBe(2);
+    expect(out.data.error.message).toContain(
+      "cannot reach a store on this computer"
+    );
+    expect(store).toStrictEqual([]);
+  });
+
   it("lists apps and installations", async () => {
     apps = [
       {

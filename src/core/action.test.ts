@@ -160,6 +160,7 @@ const run = async (
   return await Effect.runPromise(
     execute(argv).pipe(
       Effect.provideService(Prompts, {
+        multiselect: async () => [],
         confirm,
         select: async () => answers.select ?? "\0new",
         text: async () => answers.text ?? "fresh",

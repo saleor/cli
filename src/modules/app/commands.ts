@@ -1,4 +1,5 @@
 import { Effect, Option } from "effect";
+import type { HttpClient } from "effect/http";
 import {
   absent,
   defineActions,
@@ -17,12 +18,14 @@ import {
   appsOn,
   fetchManifest,
   install,
-  installed,
   type InstalledApp,
-  retryInstall,
+  installed,
+  installFrom,
   type Store,
   uninstall,
 } from "./store.ts";
+import { storeApps } from "./catalog.ts";
+import { planStoreApps, type StoreAppsResult } from "./store-apps.ts";
 
 const app = defineActions();
 
@@ -51,35 +54,108 @@ const shown = (each: InstalledApp) => ({
   type: each.type,
 });
 
+interface Row {
+  readonly category: string | null;
+  readonly id: string;
+  readonly manifestUrl: string | null;
+  readonly name: string;
+  // Where an installed app comes from: the App Store, or anywhere else.
+  readonly source: "app-store" | "other" | null;
+  readonly state: string | null;
+}
+
+// The App Store's apps, for choosing what to pass to --store-app.
+const catalogRows = Effect.map(storeApps, (catalog) =>
+  listing<Row>(
+    catalog.map((each) => ({
+      category: each.category,
+      id: each.id,
+      manifestUrl: each.manifestUrl,
+      name: each.name,
+      source: "app-store",
+      state: null,
+    })),
+    [
+      ["ID", (item) => item.id],
+      ["NAME", (item) => item.name],
+      ["CATEGORY", (item) => item.category],
+    ],
+    "The Saleor App Store lists no apps that can be installed."
+  )
+);
+
+// App Store apps only run on Cloud stores, so a local store's apps are not looked up.
+const catalogUrls = (store: Store) =>
+  store.instance.kind === "local"
+    ? Effect.succeed(new Set<string>())
+    : storeApps.pipe(
+        Effect.map(
+          (catalog) => new Set(catalog.map((each) => each.manifestUrl))
+        ),
+        Effect.orElseSucceed(() => undefined)
+      );
+
+// Unknown when the App Store could not be read.
+const sourceOf = (
+  fromStore: ReadonlySet<string> | undefined,
+  manifestUrl: string | null
+): Row["source"] => {
+  if (fromStore === undefined) {
+    return null;
+  }
+
+  return manifestUrl !== null && fromStore.has(manifestUrl)
+    ? "app-store"
+    : "other";
+};
+
 const listCommand = app.list({
   description:
-    "The apps installed on a store, and installations that are still running or have failed. Needs a store token with MANAGE_APPS.",
+    "The apps installed on a store, with where they come from (the Saleor App Store or elsewhere), and installations that are still running or have failed. Needs a store token with MANAGE_APPS. With --store-apps, the apps the Saleor App Store offers instead, with the ids --store-app takes; that needs no store.",
   examples: [
     {
       command: "saleor app list local",
       description: "Apps on the local store",
     },
+    {
+      command: "saleor app list --store-apps",
+      description: "Apps in the Saleor App Store",
+    },
   ],
-  inputs: { env: envInput },
+  inputs: {
+    env: envInput,
+    storeApps: option.boolean(
+      "store-apps",
+      "List the Saleor App Store's apps instead of a store's."
+    ),
+  },
   name: "list",
   run: (input) =>
     Effect.gen(function* () {
+      if (input.storeApps) {
+        return yield* catalogRows;
+      }
+
       const store = yield* connect(input.env, "the MANAGE_APPS permission");
       const { apps, installations } = yield* appsOn(store);
+      const fromStore = yield* catalogUrls(store);
 
-      const items = [
+      const items: Row[] = [
         ...apps.map((each) => ({
-          ...shown(each),
+          category: null,
+          id: each.id,
+          manifestUrl: each.manifestUrl,
+          name: each.name ?? each.id,
+          source: sourceOf(fromStore, each.manifestUrl),
           state: each.isActive === false ? "inactive" : "installed",
         })),
         ...installations.map((each) => ({
-          active: false,
+          category: null,
           id: each.id,
-          identifier: null,
           manifestUrl: each.manifestUrl,
           name: each.appName,
+          source: null,
           state: each.status === "FAILED" ? "failed" : "installing",
-          type: null,
         })),
       ];
 
@@ -88,13 +164,14 @@ const listCommand = app.list({
         [
           ["NAME", (item) => item.name],
           ["STATE", (item) => item.state],
+          ["SOURCE", (item) => item.source?.replace("-", " ") ?? null],
           ["ID", (item) => item.id],
           ["MANIFEST", (item) => item.manifestUrl],
         ],
         `No apps on ${store.instance.ref}.`
       );
     }),
-  summary: "List the apps on a store.",
+  summary: "List the apps on a store, or in the App Store.",
 });
 
 interface Added {
@@ -112,14 +189,27 @@ const done = (store: Store, each: InstalledApp, created: boolean) =>
     text: "",
   }) satisfies Ensured<Added>;
 
+// `add` plans one app by its manifest URL, or App Store apps.
+type AddPlan = Planned<Ensured<Added | StoreAppsResult>, HttpClient.HttpClient>;
+
+const addPlan = (plan: AddPlan) => plan;
+
 const addCommand = app.ensure({
   description:
-    "Install an app on a store from its manifest URL, with the permissions its manifest asks for, and wait until it is installed. An app with the same manifest URL is reused; an installation of it that failed is retried. The store fetches the manifest itself, so the URL must be reachable from the store. Needs a store token with MANAGE_APPS and every permission the app asks for.",
+    "Install apps on a store, with the permissions their manifests ask for, and wait until they are installed. Name an app by its manifest URL with --manifest (the store fetches it, so it must be reachable from the store), or Saleor App Store apps with --store-app (Saleor Cloud stores only; see them with app list --store-apps). With neither, in a terminal on a Cloud store, it lists the App Store's apps to tick, with the installed ones ticked: unticking one uninstalls it, after confirmation. An app already installed is reused; an installation that failed is retried. Needs a store token with MANAGE_APPS and every permission the apps ask for.",
   examples: [
     {
       command:
         "saleor app add staging --manifest https://my-app.example.com/api/manifest",
       description: "Install an app on the staging store",
+    },
+    {
+      command: "saleor app add staging --store-app avatax,klaviyo",
+      description: "Install App Store apps",
+    },
+    {
+      command: "saleor app add staging",
+      description: "Choose App Store apps in a list",
     },
   ],
   inputs: {
@@ -128,36 +218,57 @@ const addCommand = app.ensure({
       description: "The app's manifest URL.",
       metavar: "url",
     }),
+    storeApp: option.string("store-app", {
+      description:
+        "Saleor App Store apps, by id or name, separated by commas: avatax,klaviyo.",
+      metavar: "apps",
+    }),
   },
   name: "add",
   plan: (input) =>
     Effect.gen(function* () {
-      if (Option.isNone(input.manifest)) {
-        return yield* fail("USAGE_ERROR", "Name the app to install.", {
-          suggestion: "Pass its manifest URL with --manifest <url>.",
-        });
+      if (Option.isSome(input.manifest) && Option.isSome(input.storeApp)) {
+        return yield* fail(
+          "USAGE_ERROR",
+          "Pass --manifest or --store-app, not both."
+        );
       }
-
-      const manifestUrl = input.manifest.value;
 
       const store = yield* connect(
         input.env,
-        "MANAGE_APPS and the permissions the app asks for"
+        "MANAGE_APPS and the permissions the apps ask for"
       );
 
       const deadline = deadlineIn(input.timeout);
+
+      if (Option.isNone(input.manifest)) {
+        return addPlan(
+          yield* planStoreApps(
+            store,
+            Option.map(input.storeApp, (list) =>
+              list
+                .split(",")
+                .map((word) => word.trim())
+                .filter((word) => word !== "")
+            ),
+            deadline
+          )
+        );
+      }
+
+      const manifestUrl = input.manifest.value;
       const { apps, installations } = yield* appsOn(store);
       const existing = apps.find((each) => each.manifestUrl === manifestUrl);
 
       if (existing !== undefined) {
-        return {
+        return addPlan({
           action: "reuse",
           apply: Effect.succeed(done(store, existing, false)),
           details: { app: shown(existing) },
           risk: null,
           state: "exists",
           target: appTarget(store, existing.name ?? existing.id, existing.id),
-        } satisfies Planned<Ensured<Added>, unknown>;
+        });
       }
 
       const earlier = installations.find(
@@ -166,7 +277,7 @@ const addCommand = app.ensure({
 
       // Already installing: wait for it rather than start a second installation.
       if (earlier !== undefined && earlier.status !== "FAILED") {
-        return {
+        return addPlan({
           action: "reuse",
           apply: Effect.map(
             installed(
@@ -180,30 +291,22 @@ const addCommand = app.ensure({
           risk: null,
           state: "starting",
           target: appTarget(store, earlier.appName, null),
-        } satisfies Planned<Ensured<Added>, unknown>;
+        });
       }
 
       const manifest = yield* fetchManifest(store, manifestUrl);
       const permissions = manifest.permissions.join(", ") || "none";
 
-      return {
+      return addPlan({
         action: "create",
-        apply: Effect.gen(function* () {
-          const installation =
-            earlier === undefined
-              ? yield* install(store, { ...manifest, manifestUrl })
-              : yield* retryInstall(store, earlier.id);
-
-          return done(
+        apply: Effect.map(
+          installFrom(
             store,
-            yield* installed(
-              store,
-              { installationId: installation, manifestUrl },
-              deadline
-            ),
-            true
-          );
-        }),
+            { failed: earlier, manifest, manifestUrl },
+            deadline
+          ),
+          (made) => done(store, made, true)
+        ),
         details: {
           identifier: manifest.identifier,
           manifestUrl,
@@ -218,9 +321,10 @@ const addCommand = app.ensure({
           ["Permissions", permissions],
         ],
         target: appTarget(store, manifest.name, null),
-      } satisfies Planned<Ensured<Added>, unknown>;
+      });
     }),
-  summary: "Install an app on a store.",
+  risk: "In the App Store list, unticking an installed app uninstalls it, deleting its webhooks, tokens and settings on the store.",
+  summary: "Install apps on a store.",
   waits: true,
 });
 
