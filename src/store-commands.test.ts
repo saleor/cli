@@ -608,7 +608,7 @@ describe("webhook listen", () => {
     const out = await cli(["webhook", "listen", "local:demo"]);
 
     expect(out.code).toBe(2);
-    expect(out.data.error.code).toBe("USAGE_ERROR");
+    expect(out.data.error.code).toBe("CONTEXT_MISSING");
     expect(store).toStrictEqual([]);
   });
 

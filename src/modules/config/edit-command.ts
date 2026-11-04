@@ -9,9 +9,11 @@ import { argument, option } from "../../core/inputs.ts";
 import {
   askConfirm,
   askSelect,
+  askText,
   isInteractive,
+  required,
 } from "../../core/interaction.ts";
-import { command } from "../../core/invocation.ts";
+import { command, recordAnswer } from "../../core/invocation.ts";
 import { notice, shown } from "../../core/output.ts";
 import { findProject } from "../../core/project.ts";
 import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
@@ -113,6 +115,30 @@ const confirmEdit = (file: string, agent: string, lines: readonly string[]) =>
     }
   });
 
+// What to change: the words after the command, else asked in a terminal.
+const describeChange = (given: Option.Option<string>, interactive: boolean) =>
+  Effect.gen(function* () {
+    if (Option.isSome(given)) {
+      return given.value;
+    }
+
+    if (!interactive) {
+      return yield* fail("CONTEXT_MISSING", "Say what to change.", {
+        suggestion: `For example: ${command("config", "edit")} "add a winter collection"`,
+      });
+    }
+
+    const description = yield* askText({
+      message: "What should change?",
+      placeholder: "add a winter collection with jackets and boots",
+      validate: required("A description"),
+    });
+
+    yield* recordAnswer({ positional: description });
+
+    return description;
+  });
+
 export const editCommand = config.ensure({
   description:
     "Change the configuration file from a description in plain words. A coding agent installed on this computer (Claude Code or Codex) drafts the change, without tools and without any token; the CLI checks it, shows what it changes, and writes it once you agree, then offers to deploy. Agents running this CLI edit config.yml themselves instead (see config guide).",
@@ -148,13 +174,7 @@ export const editCommand = config.ensure({
         );
       }
 
-      const description = Option.getOrUndefined(input.description);
-
-      if (description === undefined) {
-        return yield* fail("CONTEXT_MISSING", "Say what to change.", {
-          suggestion: `For example: ${command("config", "edit")} "add a winter collection"`,
-        });
-      }
+      const description = yield* describeChange(input.description, interactive);
 
       if (input.dryRun) {
         return {
