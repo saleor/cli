@@ -4,13 +4,14 @@ import { defineActions, defineGroup } from "../../core/action.ts";
 import { result } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
+import { askText, isInteractive } from "../../core/interaction.ts";
 import type { Store } from "../../core/store.ts";
 import {
   envInput,
   type ResolvedStore,
   resolveStore,
 } from "../../core/stores.ts";
-import { command } from "../../core/invocation.ts";
+import { command, recordAnswer } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
 import type { StoreClient } from "../../core/store-api.ts";
 import { storeToken } from "../../core/store-token.ts";
@@ -110,6 +111,40 @@ const deleteAgain = (
     )
   );
 
+// The events to listen for: --events, else asked in a terminal. A subscription names
+// its own, so then none are needed.
+const eventsFrom = (
+  given: Option.Option<string>,
+  subscription: string | undefined
+) =>
+  Effect.gen(function* () {
+    const events = eventNames(given);
+
+    if (events.length > 0 || subscription !== undefined) {
+      return events;
+    }
+
+    if (!(yield* isInteractive)) {
+      return yield* fail("CONTEXT_MISSING", "Name the events to listen for.", {
+        suggestion:
+          "Pass --events order_created,checkout_updated, or a subscription query with --subscription <path>.",
+      });
+    }
+
+    const answer = yield* askText({
+      message: "Which events? Separate them with commas.",
+      placeholder: "order_created,checkout_updated",
+      validate: (value) =>
+        eventNames(Option.some(value)).length === 0
+          ? "Name at least one event."
+          : undefined,
+    });
+
+    yield* recordAnswer({ option: ["--events", answer] });
+
+    return eventNames(Option.some(answer));
+  });
+
 const listenCommand = webhook.session({
   description:
     "Receive a store's webhooks on this computer and print each one as it arrives, until Ctrl+C or --count deliveries. It creates a temporary app on the store with a webhook for the events (or for a subscription query), and deletes it when it stops. With --forward-to, each delivery is also sent on to your app, headers and signature included, and the store gets your app's answer. Local stores in Docker reach this computer directly; any other store needs a tunnel: pass its address with --public-url and the port it forwards to with --port. The token needs MANAGE_APPS and the permissions the events need. In json mode, each delivery is a JSON line on stderr, and the result lists them all.",
@@ -167,15 +202,8 @@ const listenCommand = webhook.session({
   name: "listen",
   run: (input) =>
     Effect.gen(function* () {
-      const events = eventNames(input.events);
       const subscription = yield* readSubscription(input.subscription);
-
-      if (events.length === 0 && subscription === undefined) {
-        return yield* fail("USAGE_ERROR", "Name the events to listen for.", {
-          suggestion:
-            "Pass --events order_created,checkout_updated, or a subscription query with --subscription <path>.",
-        });
-      }
+      const events = yield* eventsFrom(input.events, subscription);
 
       const resolved = yield* resolveStore(input.env);
       const { store } = resolved;

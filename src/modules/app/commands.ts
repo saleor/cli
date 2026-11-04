@@ -11,6 +11,7 @@ import {
 } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
+import { canAskForApp, pickApp } from "./pick-app.ts";
 import { envInput } from "../../core/stores.ts";
 import { deadlineIn } from "../../core/readiness.ts";
 import { connectStore, type StoreClient } from "../../core/store-api.ts";
@@ -366,18 +367,19 @@ const removeCommand = app.remove({
   name: "remove",
   plan: (input) =>
     Effect.gen(function* () {
-      if (Option.isNone(input.app)) {
-        return yield* fail("USAGE_ERROR", "Name the app to uninstall.", {
-          suggestion: `Pass --app <name or id>; see the apps with: saleor app list`,
-        });
-      }
-
+      yield* canAskForApp(input.app, "uninstall");
       const client = yield* connect(input.env, "the MANAGE_APPS permission");
       const { apps } = yield* appsOn(client);
-      const found = yield* findApp(apps, input.app.value);
+
+      const wanted = yield* Option.match(input.app, {
+        onNone: () => pickApp(client, apps, "uninstall"),
+        onSome: Effect.succeed,
+      });
+
+      const found = yield* findApp(apps, wanted);
 
       if (Option.isNone(found)) {
-        return absent(appTarget(client, input.app.value, null));
+        return absent(appTarget(client, wanted, null));
       }
 
       const each = found.value;
@@ -425,12 +427,7 @@ const reinstallCommand = app.ensure({
   name: "reinstall",
   plan: (input) =>
     Effect.gen(function* () {
-      if (Option.isNone(input.app)) {
-        return yield* fail("USAGE_ERROR", "Name the app to reinstall.", {
-          suggestion:
-            "Pass --app <name or id>; see the apps with: saleor app list",
-        });
-      }
+      yield* canAskForApp(input.app, "reinstall");
 
       const client = yield* connect(
         input.env,
@@ -439,12 +436,24 @@ const reinstallCommand = app.ensure({
       );
 
       const { apps } = yield* appsOn(client);
-      const found = yield* findApp(apps, input.app.value);
+
+      // Only an app installed from a manifest can be installed again.
+      const wanted = yield* Option.match(input.app, {
+        onNone: () =>
+          pickApp(
+            client,
+            apps.filter((each) => each.manifestUrl !== null),
+            "reinstall"
+          ),
+        onSome: Effect.succeed,
+      });
+
+      const found = yield* findApp(apps, wanted);
 
       if (Option.isNone(found)) {
         return yield* fail(
           "NOT_FOUND",
-          `No app "${input.app.value}" on ${client.store.ref}.`,
+          `No app "${wanted}" on ${client.store.ref}.`,
           {
             suggestion:
               "See the apps with: saleor app list. To install one, run: saleor app add --manifest <url>",
