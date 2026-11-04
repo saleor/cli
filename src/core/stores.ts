@@ -9,10 +9,14 @@ import {
 import { askConfirm, type Choice, isInteractive } from "./interaction.ts";
 import { command } from "./invocation.ts";
 import { notice } from "./output.ts";
-import { findProject } from "./project.ts";
-import { target } from "./target.ts";
-import { ENV_VARIABLE, envWord, resolveRef, toRef } from "./env-word.ts";
-import { idOf, kindOf, REF } from "./ref.ts";
+import { type Given, target } from "./target.ts";
+import {
+  ENV_VARIABLE,
+  envWord,
+  projectEnvironment,
+  toRef,
+} from "./env-word.ts";
+import { idOf, kindOf } from "./ref.ts";
 
 // Every command that acts on a store takes it as `<env>`: a name from saleor.yml or a
 // ref, `cloud:<org>/<env key>` or `local:<name>`, the same `ref` every command prints.
@@ -22,14 +26,9 @@ import { idOf, kindOf, REF } from "./ref.ts";
 
 const LOGIN = "\0login:";
 
+// A word that is neither a name in saleor.yml nor a ref fails in `toRef`, which says
+// which names the project has.
 export const envTarget = target({
-  check: (value) =>
-    REF.test(value) ||
-    Option.exists(findProject(), (project) =>
-      project.environments.some(([name]) => name === value)
-    )
-      ? undefined
-      : `"${value}" is neither an environment in saleor.yml nor a store ref. Refs look like cloud:<org>/<env key> or local:<name>, as printed in the REF column of ${command("env", "list")}.`,
   env: ENV_VARIABLE,
   identifiedBy:
     "name in saleor.yml, or a store ref: cloud:<org>/<env key> or local:<name>",
@@ -146,7 +145,7 @@ export interface ResolveOptions {
 // runs it. Does not look the store up, so it can name one that does not exist yet
 // (an environment saleor.yml defines, which `env start` creates).
 export const resolveStoreRef = (
-  supplied: Option.Option<string>,
+  supplied: Given,
   { anyStore = false, can }: ResolveOptions = {}
 ) =>
   Effect.gen(function* () {
@@ -155,13 +154,7 @@ export const resolveStoreRef = (
     const sources =
       can === undefined ? all : all.filter((each) => each[can] !== undefined);
 
-    const contextual = anyStore
-      ? supplied
-      : yield* resolveRef(supplied, {
-          kinds: sources.map((each) => each.kind),
-        });
-
-    const word = yield* envInput.resolve(contextual, {
+    const word = yield* envInput.resolve(supplied, {
       // Stores first; logins after them, so the first row is something to pick.
       choices: Effect.map(Effect.forEach(sources, choicesOf), (lists) => {
         const rows = lists.flat();
@@ -177,6 +170,9 @@ export const resolveStoreRef = (
         )
       ),
       emptyHint: `Create one with: ${command("init")}`,
+      fallback: anyStore
+        ? Effect.succeedNone
+        : projectEnvironment({ kinds: sources.map((each) => each.kind) }),
     });
 
     const ref = yield* toRef(word);
@@ -202,10 +198,7 @@ export const resolveStoreRef = (
   });
 
 // The store a command was given, or picked at a prompt, with the source it came from.
-export const resolveStore = (
-  supplied: Option.Option<string>,
-  options: ResolveOptions = {}
-) =>
+export const resolveStore = (supplied: Given, options: ResolveOptions = {}) =>
   Effect.gen(function* () {
     const { id, ref, source } = yield* resolveStoreRef(supplied, options);
     const found = yield* withLogin(source, source.find(id));

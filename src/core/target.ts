@@ -1,7 +1,7 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Predicate } from "effect";
 import { Argument, Flag } from "effect/cli";
 import { type CliFailure, fail } from "./errors.ts";
-import type { Input } from "./inputs.ts";
+import type { Input, InputValue } from "./inputs.ts";
 import {
   askSelect,
   askText,
@@ -18,11 +18,37 @@ import { detectAgent } from "./output.ts";
 //   1. the flag or argument, if given;
 //   2. its environment variable, except in `remove` actions, which never act on
 //      something the command line does not name;
-//   3. in a terminal, a list of the existing ones to pick from (plus "create a new
+//   3. what the context says, when the command knows (the project's only environment);
+//   4. in a terminal, a list of the existing ones to pick from (plus "create a new
 //      one" in `ensure` actions), never pre-selected, even when there is only one;
-//   4. otherwise CONTEXT_MISSING, listing what could have been passed.
+//   5. otherwise CONTEXT_MISSING, listing what could have been passed.
 //
 // Answers given at a prompt are recorded, so hints about what to run next contain them.
+//
+// A command never reads a target's flag itself: the parsed value is a `Given`, which
+// only `resolve` opens, and `resolve` cannot be called without the choices to offer.
+// So a command that acts on something the CLI can list (a store, an app, a project)
+// asks for it whenever it can, by construction, instead of failing when it is missing.
+
+const TYPED: unique symbol = Symbol("saleor/target");
+
+// What the command line said about a target, not yet its value.
+export interface Given {
+  readonly [TYPED]: Option.Option<string>;
+}
+
+// A value the CLI supplies itself, such as a ref it already knows; without one, nothing
+// was given, and the target is resolved as if nothing had been typed.
+export const given = (value?: string): Given => ({
+  [TYPED]: Option.fromUndefinedOr(value),
+});
+
+export const isGiven = (value: InputValue | undefined): value is Given =>
+  Predicate.hasProperty(value, TYPED);
+
+// Whether the command line named the target, for plans that differ when it did. The
+// value itself still only comes from `resolve`.
+export const named = (value: Given) => Option.isSome(value[TYPED]);
 
 export interface TargetDefinition {
   // Validates a value however it arrived; returns the problem, if any.
@@ -38,8 +64,6 @@ export interface TargetDefinition {
 export interface TargetUsage {
   // Whether the command creates it when it does not exist.
   readonly creates?: boolean;
-  // Only narrows what the command shows: never asked for (see `optional`).
-  readonly filter?: boolean;
   readonly positional?: boolean;
 }
 
@@ -62,6 +86,10 @@ export interface ResolveOptions<R> {
   >;
   // Where to go when there is nothing to choose from.
   readonly emptyHint?: string;
+  // Step 3: the value the context implies when nothing was typed or set, before
+  // anyone is asked. It may ask questions of its own, as a pick among the project's
+  // environments does.
+  readonly fallback?: Effect.Effect<Option.Option<string>, CliFailure, R>;
   // The failure when nothing exists and nothing can be created.
   readonly whenEmpty?: () => CliFailure;
 }
@@ -93,9 +121,7 @@ const describe = (
     `${capitalize(definition.noun)} ${definition.identifiedBy}.`,
     usage.creates ? "Created if it does not exist, reused if it does." : "",
     envNote(definition, kind),
-    usage.filter
-      ? `Narrows the command to one ${definition.noun}.`
-      : "Asked for in a terminal when missing.",
+    "Asked for in a terminal when missing.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -189,7 +215,7 @@ const targetPrompts = (
       options.emptyHint === undefined ? {} : { suggestion: options.emptyHint }
     );
 
-  // Step 3: a person picks one of the existing ones, or names a new one.
+  // Step 4: a person picks one of the existing ones, or names a new one.
   const ask = <R>(
     options: ResolveOptions<R>
   ): Effect.Effect<string, CliFailure, R> =>
@@ -247,25 +273,32 @@ export const target = (definition: TargetDefinition) => {
       ? `<${definition.name}>`
       : `--${definition.name} <${definition.metavar}>`;
 
-    const param: Input<Option.Option<string>> = {
+    const typed = (value: Option.Option<string>): Given => ({
+      [TYPED]: value,
+    });
+
+    const param: Input<Given> = {
       build: (kind) => {
         const description = describe(definition, usage, kind);
+        const env = envAllowed(definition, kind) ? definition.env : undefined;
 
         return {
           info:
-            definition.env !== undefined && envAllowed(definition, kind)
-              ? { env: definition.env }
-              : {},
+            env === undefined
+              ? { target: definition.noun }
+              : { env, target: definition.noun },
           name: definition.name,
           param: usage.positional
             ? Argument.String(definition.name).pipe(
                 Argument.withDescription(description),
-                Argument.optional
+                Argument.optional,
+                Argument.map(typed)
               )
             : Flag.String(definition.name).pipe(
                 Flag.withMetavar(definition.metavar),
                 Flag.withDescription(description),
-                Flag.optional
+                Flag.optional,
+                Flag.map(typed)
               ),
           positional: usage.positional === true,
         };
@@ -285,19 +318,25 @@ export const target = (definition: TargetDefinition) => {
     const { missing, ask } = targetPrompts(definition, usage, spelled);
 
     // The target's value, resolved by the rules above.
-    const resolve = <R>(
-      supplied: Option.Option<string>,
-      options: ResolveOptions<R>
-    ) =>
+    const resolve = <R>(supplied: Given, options: ResolveOptions<R>) =>
       Effect.gen(function* () {
         const { kind } = yield* ActionContext;
 
-        const given = Option.orElse(supplied, () =>
+        const value = Option.orElse(supplied[TYPED], () =>
           fromEnvironment(definition, kind)
         );
 
-        if (Option.isSome(given)) {
-          return yield* validate(given.value);
+        if (Option.isSome(value)) {
+          return yield* validate(value.value);
+        }
+
+        const contextual =
+          options.fallback === undefined
+            ? Option.none<string>()
+            : yield* options.fallback;
+
+        if (Option.isSome(contextual)) {
+          return yield* validate(contextual.value);
         }
 
         if (!(yield* isInteractive)) {
@@ -307,22 +346,7 @@ export const target = (definition: TargetDefinition) => {
         return yield* answered(yield* ask(options));
       });
 
-    // A target that only narrows what a command shows: the flag or the environment
-    // variable, never a question.
-    const optional = (supplied: Option.Option<string>) =>
-      Effect.gen(function* () {
-        const { kind } = yield* ActionContext;
-
-        const given = Option.orElse(supplied, () =>
-          fromEnvironment(definition, kind)
-        );
-
-        return Option.isSome(given)
-          ? Option.some(yield* validate(given.value))
-          : Option.none<string>();
-      });
-
-    return { ...param, optional, resolve };
+    return { ...param, resolve };
   };
 
   return { definition, input };

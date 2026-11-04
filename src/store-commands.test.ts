@@ -637,7 +637,7 @@ describe("app", () => {
   let apps: {
     id: string;
     identifier: string;
-    manifestUrl: string;
+    manifestUrl: string | null;
     name: string;
   }[];
 
@@ -1183,6 +1183,35 @@ describe("app", () => {
 
     const again = await cli([...remove, "--force"]);
     expect(again.data.data).toMatchObject({ action: "none", existed: false });
+  });
+
+  // --app is a target: a terminal is offered the store's apps; anything else is told
+  // which ones it could have named.
+  it("lists the store's apps when no app is named", async () => {
+    apps = [
+      {
+        id: "a1",
+        identifier: "one",
+        manifestUrl: "https://one/m",
+        name: "One",
+      },
+      { id: "a2", identifier: "two", manifestUrl: null, name: "Two" },
+    ];
+
+    const removing = await cli(["app", "remove", "local:demo", "--force"]);
+    expect(removing.code).toBe(2);
+    expect(removing.data.error).toMatchObject({
+      code: "CONTEXT_MISSING",
+      details: { choices: ["a1", "a2"], input: "--app <app>" },
+    });
+    expect(apps).toHaveLength(2);
+
+    // Only an app installed from a manifest can be installed again.
+    const reinstalling = await cli(["app", "reinstall", "local:demo"]);
+    expect(reinstalling.data.error).toMatchObject({
+      code: "CONTEXT_MISSING",
+      details: { choices: ["a1"] },
+    });
   });
 });
 

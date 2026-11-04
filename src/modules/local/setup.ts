@@ -10,6 +10,7 @@ import { defineSetup } from "../../core/setup.ts";
 import { SALEOR_VERSION } from "./compose.ts";
 import { type LocalUpOptions, localTarget, planUp, up } from "./lifecycle.ts";
 import { readConfig } from "./state.ts";
+import { named } from "../../core/target.ts";
 import { localStoreName } from "./targets.ts";
 
 export const connection = (data: {
@@ -73,22 +74,17 @@ export const localSetup = defineSetup({
   },
   plan: (input) =>
     Effect.gen(function* () {
-      const context = Option.isNone(input.name)
-        ? projectLocal()
-        : Option.none();
+      // Inside a project, a store not named is this checkout's own.
+      const context = named(input.name) ? Option.none() : projectLocal();
 
-      const name = yield* newStore.resolve(
-        Option.orElse(input.name, () =>
-          Option.map(context, (value) => value.name)
-        ),
-        {
-          choices: Effect.succeed([]),
-          create: {
-            label: "Create a new store",
-            prompt: "New local store name",
-          },
-        }
-      );
+      const name = yield* newStore.resolve(input.name, {
+        choices: Effect.succeed([]),
+        create: {
+          label: "Create a new store",
+          prompt: "New local store name",
+        },
+        fallback: Effect.succeed(Option.map(context, (value) => value.name)),
+      });
 
       if (
         Option.isSome(context) &&

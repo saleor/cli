@@ -1,5 +1,8 @@
+import { Option } from "effect";
+import type { Command } from "effect/cli";
 import { expect, it } from "vitest";
 import { root } from "../main.ts";
+import { actionMeta } from "./action.ts";
 import { buildCatalog } from "./catalog.ts";
 import type { ActionKind } from "./invocation.ts";
 
@@ -125,6 +128,46 @@ it.each(commands)("$command publishes the flags its kind implies", (entry) => {
   expect(!entry.destructive || changes).toBe(true);
   expect(entry.warning !== null).toBe(entry.destructive);
 });
+
+// ── Targets ──────────────────────────────────────────────────────────────
+// What a command picks from what the CLI can list (a store, an app, a project) is a
+// target, so it is asked for wherever a person can be asked (see core/target.ts). An
+// input spelled like a target but declared as a plain flag would fail instead.
+
+const leaves = (
+  command: Command.Command.Any,
+  path: string
+): readonly (readonly [string, Command.Command.Any])[] => {
+  const children = command.subcommands.flatMap((group) => group.commands);
+
+  return children.length === 0
+    ? [[path, command]]
+    : children.flatMap((child) => leaves(child, `${path} ${child.name}`));
+};
+
+const inputs = root.subcommands
+  .flatMap((group) => group.commands)
+  .flatMap((command) => leaves(command, `saleor ${command.name}`))
+  .flatMap(([path, command]) =>
+    Option.match(actionMeta(command), {
+      onNone: () => [],
+      onSome: (meta) =>
+        [...meta.inputs].map(([spelled, info]) => ({ info, path, spelled })),
+    })
+  );
+
+const targetSpellings = new Set(
+  inputs
+    .filter((input) => input.info.target !== undefined)
+    .map((input) => input.spelled)
+);
+
+it.each(inputs.filter((input) => targetSpellings.has(input.spelled)))(
+  "$spelled of $path is a target",
+  (input) => {
+    expect(input.info.target).toBeDefined();
+  }
+);
 
 it.each(commands.filter((entry) => entry.kind === "remove"))(
   "$command never reads its targets from the environment",

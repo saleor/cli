@@ -1,6 +1,7 @@
 import { type Option, Schema } from "effect";
 import { Argument, Flag } from "effect/cli";
 import type { ActionKind } from "./invocation.ts";
+import type { Given } from "./target.ts";
 
 // Every flag and argument of a command is declared through these builders. An input
 // carries what `saleor commands --json` publishes about it (its default and the
@@ -10,8 +11,9 @@ import type { ActionKind } from "./invocation.ts";
 
 export type InputDefault = string | number | boolean;
 
-// What a parsed input holds: an optional value, or a value with a default.
-export type InputValue = Option.Option<string> | InputDefault;
+// What a parsed input holds: an optional value, a value with a default, or what was
+// given for a target, which only the target resolves (see target.ts).
+export type InputValue = Option.Option<string> | InputDefault | Given;
 
 // Parsed inputs, by key, where the keys are only known at run time (`init` combines
 // every provider's inputs).
@@ -20,6 +22,8 @@ export type InputValues = Readonly<Record<string, InputValue>>;
 export interface InputInfo {
   readonly default?: InputDefault;
   readonly env?: string;
+  // The noun of the target it names, for inputs declared with `target()`.
+  readonly target?: string;
 }
 
 export interface BuiltInput<A> {

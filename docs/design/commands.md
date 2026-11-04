@@ -60,13 +60,15 @@ A module gets its definers from `defineActions(policy)`. A policy applies to eve
 
 ## Targets
 
-A target is anything a command acts on: a store (`<env>`), or, in `init`, an organization, project or new store. Every target is declared once with `target()` and resolved the same way:
+A target is anything a command acts on that the CLI can list or name: a store (`<env>`), an app on a store (`--app`), or, in `init`, an organization, project or new store. Every target is declared once with `target()` and resolved the same way:
 
 1. The flag or argument, if given.
 2. Its environment variable (`SALEOR_ENV`; `SALEOR_ORG` and `SALEOR_PROJECT` in `init`). **`remove` actions never read these**: a stop or deletion acts only on what the command line or a person named.
-3. For `<env>` inside a project: the project's only environment (not for `remove` actions), else a pick among its environments.
+3. What the context implies (`fallback`): for `<env>` inside a project, its only environment (not for `remove` actions), else a pick among its environments.
 4. In a terminal, a list of the existing ones to pick from, plus "create a new one" where the action creates it. Nothing is pre-selected, not even when only one exists.
 5. Otherwise `CONTEXT_MISSING` (exit 2). The error lists the choices in `details.choices` and says how to pass the target.
+
+A command cannot skip these steps. A target's parsed value is a `Given`, which only `resolve` opens, and `resolve` takes the choices to offer. So a command that needs an app has to say where its apps come from, and is then interactive by construction. Targets resolve in the order they depend on each other: `app remove` resolves `<env>` (perhaps asking, perhaps detouring through a login), connects, then offers that store's apps. `conventions.test.ts` rejects a plain flag spelled like a target.
 
 The parser never requires a target. A positional target is optional to the parser so that step 5, not a parser error, reports it. Validation (`check`) applies however a value arrived, typed or answered.
 

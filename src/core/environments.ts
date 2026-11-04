@@ -28,7 +28,7 @@ import {
   type Project,
 } from "./project.ts";
 import { providerChoice, type SetupProvider } from "./setup.ts";
-import { target } from "./target.ts";
+import { given, isGiven, target } from "./target.ts";
 import {
   applyConfiguration,
   configurationPending,
@@ -339,7 +339,7 @@ const configureNew = (project: Project, environment: string, made: Started) =>
 // created, for a local definition) when its source can, else found.
 const existingPlan = (environment: string, ref: string, timeout: number) =>
   Effect.gen(function* () {
-    const { id, source } = yield* resolveStoreRef(Option.some(ref));
+    const { id, source } = yield* resolveStoreRef(given(ref));
 
     if (source.start !== undefined) {
       return yield* withLogin(
@@ -411,7 +411,7 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
         const supplied = input.environment;
 
         const environment = yield* nameInput.resolve(
-          Option.isOption(supplied) ? supplied : Option.none(),
+          isGiven(supplied) ? supplied : given(),
           {
             choices: Effect.succeed([]),
             create: {
@@ -444,7 +444,7 @@ const addCommand = <R>(providers: readonly SetupProvider<R>[]) => {
 
         const store = yield* provider.plan({
           ...input,
-          [provider.naming.input]: Option.some(
+          [provider.naming.input]: given(
             provider.naming.name(project.name, environment)
           ),
         });

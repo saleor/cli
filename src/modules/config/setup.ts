@@ -1,4 +1,5 @@
 import { Effect, Option, Predicate } from "effect";
+import { given } from "../../core/target.ts";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { option } from "../../core/inputs.ts";
@@ -178,7 +179,7 @@ const chooseSource = (input: {
 
     if (choice === "copy") {
       // Any store, not the project's own environment, which is what is being set up.
-      const { store } = yield* resolveStore(Option.none(), {
+      const { store } = yield* resolveStore(given(), {
         anyStore: true,
       });
 
@@ -260,8 +261,7 @@ const startForAgent = ({
     };
   });
 
-const copied = (ref: string) =>
-  Effect.flatMap(connectStore(Option.some(ref)), pull);
+const copied = (ref: string) => Effect.flatMap(connectStore(given(ref)), pull);
 
 // Writes the drafted (or copied) configuration over the store's own, deploys it,
 // and says what the store now has.

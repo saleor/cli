@@ -34,6 +34,7 @@ import {
   organizationOf,
   orgInput,
 } from "./targets.ts";
+import { named } from "../../core/target.ts";
 import { saleorMcp } from "./mcp.ts";
 
 const stateText: Record<StoreState, string> = {
@@ -212,7 +213,7 @@ export const cloudSetup = defineSetup({
 
       // Without a requested environment this journey creates a new sandbox.
       // Check before asking its name or running any configuration extensions.
-      if (parent !== undefined && Option.isNone(input.env)) {
+      if (parent !== undefined && !named(input.env)) {
         yield* requireSandboxCapacity(organization, parent);
       }
 

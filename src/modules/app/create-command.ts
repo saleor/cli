@@ -1,10 +1,8 @@
-import { Effect, Option } from "effect";
+import { Effect } from "effect";
 import { defineActions, type Planned } from "../../core/action.ts";
 import type { CommandResult } from "../../core/command.ts";
 import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { askText, isInteractive, required } from "../../core/interaction.ts";
-import { recordAnswer } from "../../core/invocation.ts";
 import { slugify } from "../../core/names.ts";
 import {
   appFolder,
@@ -15,32 +13,9 @@ import {
   TEMPLATE,
 } from "./template.ts";
 import { shown } from "../../core/output.ts";
+import { newAppInput } from "./targets.ts";
 
 const app = defineActions();
-
-// The app's name: --app, else asked in a terminal.
-const nameFrom = (given: Option.Option<string>) =>
-  Effect.gen(function* () {
-    if (Option.isSome(given)) {
-      return given.value;
-    }
-
-    if (!(yield* isInteractive)) {
-      return yield* fail("USAGE_ERROR", "Name the app to create.", {
-        suggestion: "Pass its name with --app <name>, such as --app loyalty.",
-      });
-    }
-
-    const name = yield* askText({
-      message: "What is the app called?",
-      placeholder: "loyalty",
-      validate: required("A name"),
-    });
-
-    yield* recordAnswer({ option: ["--app", name] });
-
-    return name;
-  });
 
 interface AppCreated {
   readonly created: boolean;
@@ -55,10 +30,7 @@ export const createCommand = app.ensure({
     },
   ],
   inputs: {
-    app: option.string("app", {
-      description: "The app's name; its folder and manifest id come from it.",
-      metavar: "name",
-    }),
+    app: newAppInput,
     dir: option.string("dir", {
       description:
         "Directory to create it in, relative to the current one. Must be new or empty.",
@@ -68,7 +40,15 @@ export const createCommand = app.ensure({
   name: "create",
   plan: (input) =>
     Effect.gen(function* () {
-      const name = yield* nameFrom(input.app);
+      const name = yield* newAppInput.resolve(input.app, {
+        choices: Effect.succeed([]),
+        create: {
+          label: "Create an app",
+          placeholder: "loyalty",
+          prompt: "What is the app called?",
+        },
+      });
+
       const slug = slugify(name);
 
       if (slug === "") {

@@ -10,8 +10,9 @@ import {
   type TargetRef,
 } from "../../core/action.ts";
 import { fail } from "../../core/errors.ts";
+import type { Given } from "../../core/target.ts";
+import { appChoices, appInput } from "./targets.ts";
 import { option } from "../../core/inputs.ts";
-import { canAskForApp, pickApp } from "./pick-app.ts";
 import { envInput } from "../../core/stores.ts";
 import { deadlineIn } from "../../core/readiness.ts";
 import { connectStore, type StoreClient } from "../../core/store-api.ts";
@@ -38,7 +39,7 @@ const app = defineActions();
 // owner has. Installing takes a staff user's token besides: Saleor refuses appInstall
 // to an app token.
 const connect = (
-  env: Option.Option<string>,
+  env: Given,
   needs: string,
   { staff = false }: { readonly staff?: boolean } = {}
 ) => connectStore(env, { needs, staff });
@@ -358,23 +359,19 @@ const removeCommand = app.remove({
     },
   ],
   inputs: {
-    app: option.string("app", {
-      description: "The app: its name, id, identifier or manifest URL.",
-      metavar: "app",
-    }),
+    app: appInput,
     env: envInput,
   },
   name: "remove",
   plan: (input) =>
     Effect.gen(function* () {
-      yield* canAskForApp(input.app, "uninstall");
       const client = yield* connect(input.env, "the MANAGE_APPS permission");
       const { apps } = yield* appsOn(client);
 
-      const wanted = yield* Option.match(input.app, {
-        onNone: () => pickApp(client, apps, "uninstall"),
-        onSome: Effect.succeed,
-      });
+      const wanted = yield* appInput.resolve(
+        input.app,
+        appChoices(client, apps)
+      );
 
       const found = yield* findApp(apps, wanted);
 
@@ -414,10 +411,7 @@ const reinstallCommand = app.ensure({
     },
   ],
   inputs: {
-    app: option.string("app", {
-      description: "The app: its name, id, identifier or manifest URL.",
-      metavar: "app",
-    }),
+    app: appInput,
     copyMetadata: option.boolean(
       "copy-metadata",
       "Copy the old app's metadata and private metadata to the new one. Asked in a terminal."
@@ -427,8 +421,6 @@ const reinstallCommand = app.ensure({
   name: "reinstall",
   plan: (input) =>
     Effect.gen(function* () {
-      yield* canAskForApp(input.app, "reinstall");
-
       const client = yield* connect(
         input.env,
         "MANAGE_APPS and the permissions the app asks for",
@@ -438,15 +430,13 @@ const reinstallCommand = app.ensure({
       const { apps } = yield* appsOn(client);
 
       // Only an app installed from a manifest can be installed again.
-      const wanted = yield* Option.match(input.app, {
-        onNone: () =>
-          pickApp(
-            client,
-            apps.filter((each) => each.manifestUrl !== null),
-            "reinstall"
-          ),
-        onSome: Effect.succeed,
-      });
+      const wanted = yield* appInput.resolve(
+        input.app,
+        appChoices(
+          client,
+          apps.filter((each) => each.manifestUrl !== null)
+        )
+      );
 
       const found = yield* findApp(apps, wanted);
 

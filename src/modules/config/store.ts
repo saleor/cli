@@ -6,6 +6,7 @@ import { command } from "../../core/invocation.ts";
 import type { Store } from "../../core/store.ts";
 import type { StoreClient } from "../../core/store-api.ts";
 import { resolveStore } from "../../core/stores.ts";
+import type { Given } from "../../core/target.ts";
 import { type ConfigFile, configFiles } from "../../core/components.ts";
 import {
   configPath,
@@ -84,10 +85,7 @@ const checkVersion = (store: Store) =>
 
 // The store named by `<env>` (or the project's, or a pick), and a token for its API,
 // once its Saleor version is one the engine supports.
-export const connect = (
-  env: Option.Option<string>,
-  options?: StoreTokenOptions
-) =>
+export const connect = (env: Given, options?: StoreTokenOptions) =>
   Effect.gen(function* () {
     const resolved = yield* resolveStore(env);
 
