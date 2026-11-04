@@ -1,4 +1,5 @@
 import { Effect, Option, type Schema } from "effect";
+import { isGiven, named } from "./target.ts";
 import {
   changes,
   defineActions,
@@ -245,8 +246,13 @@ const extend = <R>(
   };
 };
 
-const isSet = (value: InputValue | undefined) =>
-  Option.isOption(value) ? Option.isSome(value) : value === true;
+const isSet = (value: InputValue | undefined) => {
+  if (isGiven(value)) {
+    return named(value);
+  }
+
+  return Option.isOption(value) ? Option.isSome(value) : value === true;
+};
 
 // The flag that names a provider on the command line: its own (`--local`), or its
 // name for the default one (`--cloud`), which is used without it outside a terminal.

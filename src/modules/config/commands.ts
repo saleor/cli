@@ -1,4 +1,5 @@
 import { Effect, Option, Semaphore } from "effect";
+import { given } from "../../core/target.ts";
 import { Command } from "effect/cli";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import {
@@ -308,7 +309,7 @@ const statusCommand = config.list({
         ([name, ref]) =>
           Effect.gen(function* () {
             const client = yield* prompts.withPermit(
-              connect(Option.some(ref), { envToken })
+              connect(given(ref), { envToken })
             );
 
             const plans = yield* Effect.forEach(files, ({ file }) =>

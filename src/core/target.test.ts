@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Prompts } from "./interaction.ts";
 import { ActionContext, type ActionKind, type Answer } from "./invocation.ts";
 import { OutputFlag } from "./output.ts";
-import { target } from "./target.ts";
+import { type Given, given, target } from "./target.ts";
 
 const AGENT_VARIABLES = [
   "AI_AGENT",
@@ -64,7 +64,7 @@ const org = target({
 }).input();
 
 const resolve = (
-  supplied: Option.Option<string>,
+  supplied: Given,
   options: {
     readonly kind?: ActionKind;
     readonly dryRun?: boolean;
@@ -106,7 +106,7 @@ const resolve = (
 };
 
 it("asks even when there is only one choice, and records the answer", async () => {
-  const { answers, effect, select } = resolve(Option.none());
+  const { answers, effect, select } = resolve(given());
 
   expect(await Effect.runPromise(effect)).toBe("acme");
   expect(select).toHaveBeenCalledOnce();
@@ -115,18 +115,16 @@ it("asks even when there is only one choice, and records the answer", async () =
 
 it("uses the environment variable, except when removing", async () => {
   vi.stubEnv("SALEOR_ORG", "from-env");
-  expect(await Effect.runPromise(resolve(Option.none()).effect)).toBe(
-    "from-env"
-  );
+  expect(await Effect.runPromise(resolve(given()).effect)).toBe("from-env");
 
-  const removing = resolve(Option.none(), { kind: "remove" });
+  const removing = resolve(given(), { kind: "remove" });
   expect(await Effect.runPromise(removing.effect)).toBe("acme");
   expect(removing.select).toHaveBeenCalledOnce();
 });
 
 it("never asks in a dry run, and lists what could be passed", async () => {
   const failure = await Effect.runPromise(
-    Effect.flip(resolve(Option.none(), { dryRun: true }).effect)
+    Effect.flip(resolve(given(), { dryRun: true }).effect)
   );
 
   expect(failure.code).toBe("CONTEXT_MISSING");
@@ -137,7 +135,7 @@ it("never asks in a dry run, and lists what could be passed", async () => {
 it("names each choice by what to pass and what a person calls it", async () => {
   const failure = await Effect.runPromise(
     Effect.flip(
-      resolve(Option.none(), {
+      resolve(given(), {
         choices: ["5qvWV4ls", "acme"],
         dryRun: true,
         labels: { "5qvWV4ls": "blank" },
@@ -153,7 +151,7 @@ it("names each choice by what to pass and what a person calls it", async () => {
 
 it("treats cancellation as an interruption", async () => {
   const outcome = await Effect.runPromiseExit(
-    resolve(Option.none(), { select: async () => CANCEL_SYMBOL }).effect
+    resolve(given(), { select: async () => CANCEL_SYMBOL }).effect
   );
 
   expect(
@@ -182,7 +180,7 @@ it("runs a detour row, asks again, and never lists it as a choice", async () => 
   };
 
   const run = (dryRun: boolean) =>
-    org.resolve(Option.none(), options).pipe(
+    org.resolve(given(), options).pipe(
       Effect.provideService(OutputFlag, Option.some("text")),
       Effect.provideService(ActionContext, {
         answers,

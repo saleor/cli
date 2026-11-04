@@ -1,4 +1,5 @@
 import { Effect, Option } from "effect";
+import { given } from "../../core/target.ts";
 import {
   defineActions,
   type Planned,
@@ -63,7 +64,7 @@ const offerDeploy = (file: string) =>
 
     // The same store `config deploy` would pick: the only environment, or a choice
     // among several, with the same version check.
-    const client = yield* connect(Option.none());
+    const client = yield* connect(given());
     const plan = yield* planDeploy(client, file);
 
     if (plan.deployable.length === 0) {

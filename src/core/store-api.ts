@@ -1,8 +1,9 @@
-import { Duration, Effect, type Option, Predicate, Schema } from "effect";
+import { Duration, Effect, Predicate, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { type CliFailure, fail } from "./errors.ts";
 import type { Store } from "./store.ts";
 import { resolveStore, sourceFor } from "./stores.ts";
+import type { Given } from "./target.ts";
 import { storeToken, type StoreTokenOptions } from "./store-token.ts";
 
 // A store's own GraphQL API, for commands that talk to it directly rather than through
@@ -229,10 +230,7 @@ export const storeAnswers = (graphqlUrl: string) =>
   );
 
 // The store named by `<env>` (or the project's, or a pick), and a token for its API.
-export const connectStore = (
-  env: Option.Option<string>,
-  options: StoreTokenOptions = {}
-) =>
+export const connectStore = (env: Given, options: StoreTokenOptions = {}) =>
   Effect.gen(function* () {
     const resolved = yield* resolveStore(env);
     const { token } = yield* storeToken(resolved, options);

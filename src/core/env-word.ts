@@ -65,29 +65,18 @@ export const toRef = (word: string) =>
       : found[1];
   });
 
-// Which store a command acts on, in order: the `<env>` word; SALEOR_ENV; the project's
-// only environment; a pick among the project's environments. None when there is no
-// project to choose from, and the caller offers every store. Removals (stop, remove)
-// act only on what the command line or a person named: they never read SALEOR_ENV
-// and never take the only environment for granted. `kinds` leaves out environments
-// whose stores cannot do what the command does (Cloud stores cannot be stopped).
-export const resolveRef = (
-  supplied: Option.Option<string>,
-  { kinds }: { readonly kinds?: readonly string[] } = {}
-) =>
+// The store the project implies when `<env>` and SALEOR_ENV name none: its only
+// environment, else a pick among its environments. None when there is no project to
+// choose from, and the caller offers every store. Removals (stop, remove) act only on
+// what the command line or a person named: they never take the only environment for
+// granted. `kinds` leaves out environments whose stores cannot do what the command
+// does (Cloud stores cannot be stopped).
+export const projectEnvironment = ({
+  kinds,
+}: { readonly kinds?: readonly string[] } = {}) =>
   Effect.gen(function* () {
     const removal = (yield* ActionContext).kind === "remove";
     const project = findProject();
-
-    const fromEnv = removal ? undefined : process.env[ENV_VARIABLE]?.trim();
-
-    const explicit = Option.orElse(supplied, () =>
-      Option.filter(Option.fromUndefinedOr(fromEnv), (value) => value !== "")
-    );
-
-    if (Option.isSome(explicit)) {
-      return Option.some(yield* toRef(explicit.value));
-    }
 
     const environments = environmentsOf(project).filter(
       ([, ref]) => kinds === undefined || kinds.includes(kindOf(ref))

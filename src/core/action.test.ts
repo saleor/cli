@@ -1,4 +1,4 @@
-import { Effect, Layer, Option } from "effect";
+import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { absent, defineActions, type TargetRef } from "./action.ts";
@@ -123,21 +123,23 @@ const drop = actions.remove({
   inputs: { name: thing },
   name: "drop",
   plan: (input) =>
-    Effect.succeed(
-      Option.isNone(input.name)
-        ? absent(ref("missing"))
-        : {
-            action: "delete" as const,
-            apply: Effect.sync(() => {
-              applied.push("dropped");
+    Effect.map(
+      thing.resolve(input.name, { choices: Effect.succeed([]) }),
+      (name) =>
+        name === "missing"
+          ? absent(ref(name))
+          : {
+              action: "delete" as const,
+              apply: Effect.sync(() => {
+                applied.push("dropped");
 
-              return {};
-            }),
-            details: {},
-            risk: "It is gone for good.",
-            state: "exists" as const,
-            target: ref(input.name.value),
-          }
+                return {};
+              }),
+              details: {},
+              risk: "It is gone for good.",
+              state: "exists" as const,
+              target: ref(name),
+            }
     ),
   risk: "Drops things.",
   summary: "Drop a thing.",
@@ -248,7 +250,7 @@ it("removes what exists after confirmation, and succeeds on what does not", asyn
   expect(process.exitCode).toBe(1);
 
   stdout = [];
-  const { json } = await run(["drop", "--json"]);
+  const { json } = await run(["drop", "--name", "missing", "--json"]);
 
   expect(json().data).toMatchObject({ action: "none", existed: false });
   expect(process.exitCode).toBe(0);
