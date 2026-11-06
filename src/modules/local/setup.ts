@@ -113,9 +113,20 @@ export const localSetup = defineSetup({
 
       return {
         action: planned.action,
-        apply: Effect.map(up(options), (data) =>
-          result(data, connection(data).join("\n"))
-        ),
+        apply: Effect.map(up(options), (data) => ({
+          ...result(data, connection(data).join("\n")),
+          brief: {
+            rows: [
+              ...(data.mailUrl === null
+                ? []
+                : [["Mail inbox", data.mailUrl] as const]),
+              ["Admin", data.admin.email] as const,
+              ...(data.admin.password === null
+                ? []
+                : [["Password", data.admin.password] as const]),
+            ],
+          },
+        })),
         details: {
           saleorVersion: options.saleorVersion ?? SALEOR_VERSION,
           sampleData: options.sampleData,

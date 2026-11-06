@@ -15,14 +15,18 @@ import {
   projectFolder,
   rememberEnvironment,
 } from "../../core/project.ts";
-import { defineSetupExtension, type SetupResult } from "../../core/setup.ts";
+import {
+  type Brief,
+  defineSetupExtension,
+  type SetupResult,
+} from "../../core/setup.ts";
 import {
   applyConfiguration,
   configurationPending,
   hasConfiguration,
 } from "../../core/project-configuration.ts";
 import { fromAnswers } from "./blocks.ts";
-import { applyDeploy, deployedText, planDeploy } from "./deploying.ts";
+import { applyDeploy, counted, planDeploy } from "./deploying.ts";
 import { review } from "./describe.ts";
 import { type Document, parseYamlDocument } from "./document.ts";
 import { askAnswers, chooseAgent, describeAsked, draftWith } from "./draft.ts";
@@ -41,6 +45,10 @@ import {
   connectTo,
   type StoreClient,
 } from "../../core/store-api.ts";
+
+// A command run in the project folder, from where `init` ran.
+const inProject = (root: string, line: string) =>
+  shown(root) === "." ? line : `cd ${shown(root)} && ${line}`;
 
 type Config = Document;
 
@@ -250,14 +258,23 @@ const startForAgent = ({
     }
 
     return {
+      brief: {
+        next: [
+          `Add what “${description}” needs to ${shown(file)}. The rules: ${command("config", "guide")}`,
+          inProject(
+            root,
+            `${command("config", "validate")} && ${command("config", "deploy")}`
+          ),
+        ],
+        rows: [
+          [
+            "Configuration",
+            `${shown(file)} (${Option.isNone(kept) ? "the new store's defaults" : "kept as it was"})`,
+          ],
+        ],
+      } satisfies Brief,
       config: file,
       description,
-      lines: [
-        `Next: add what “${description}” needs to ${shown(file)} (${Option.isNone(kept) ? "it holds the new store's defaults" : "kept as it was"}).`,
-        `  The rules and an example: ${command("config", "guide")}`,
-        `  Check it: ${command("config", "validate")}`,
-        `  Deploy it: ${command("config", "deploy")} (from ${shown(root) || "."})`,
-      ],
     };
   });
 
@@ -267,17 +284,20 @@ const copied = (ref: string) => Effect.flatMap(connectStore(given(ref)), pull);
 // and says what the store now has.
 const deployDraft = ({
   finishing,
+  environment,
   draft,
   target,
   kept,
 }: {
   readonly finishing: Finishing;
+  // The store's name in saleor.yml, for commands run in the project.
+  readonly environment: string;
   readonly draft: Document;
   readonly target: StoreClient;
   readonly kept: Option.Option<Document>;
 }) =>
   Effect.gen(function* () {
-    const { file, made } = finishing;
+    const { file, root } = finishing;
 
     // Laid over what the store has (or the project's file, when `init` runs again),
     // so nothing it has is deleted.
@@ -292,19 +312,27 @@ const deployDraft = ({
 
     const outcome = yield* applyDeploy({ client: target, file, plan });
 
-    const words = deployedText(made, file, outcome);
+    const { applied, missed } = outcome;
+    const nothing = applied.length === 0 && missed.length === 0;
 
     return {
-      applied: outcome.applied.length,
+      applied: applied.length,
+      brief: {
+        rows: [
+          [
+            "Configuration",
+            `${shown(file)} (${nothing ? "nothing to deploy" : `deployed: ${counted(applied, true)}`})`,
+          ],
+        ],
+        warnings:
+          missed.length === 0
+            ? []
+            : [
+                `${missed.length} planned configuration change${missed.length === 1 ? " was" : "s were"} not applied. See ${missed.length === 1 ? "it" : "them"}: ${inProject(root, command("config", "diff", environment))}`,
+              ],
+      } satisfies Brief,
       config: file,
-      lines: [
-        `✓ ${words.headline}`,
-        ...reviewText(config),
-        ...words.text
-          .split("\n")
-          .filter((line) => line !== "" && !line.startsWith("  • ")),
-      ],
-      missed: outcome.missed.length,
+      missed: missed.length,
     };
   });
 
@@ -335,11 +363,13 @@ const loadSample = ({ file, made }: Finishing) =>
 
 const contents = ({
   finishing,
+  environment,
   chosen,
   target,
   kept,
 }: {
   readonly finishing: Finishing;
+  readonly environment: string;
   readonly chosen: Exclude<Source, { readonly kind: "sample" }>;
   readonly target: StoreClient;
   readonly kept: Option.Option<Document>;
@@ -358,6 +388,7 @@ const contents = ({
       case "copy": {
         return yield* deployDraft({
           finishing,
+          environment,
           draft: yield* copied(chosen.ref),
           target,
           kept,
@@ -367,6 +398,7 @@ const contents = ({
       case "drafted": {
         return yield* deployDraft({
           finishing,
+          environment,
           draft: chosen.config,
           target,
           kept,
@@ -387,12 +419,9 @@ const finish = (finishing: Finishing) =>
     });
 
     if (chosen.kind === "sample") {
-      const { lines, ...data } = yield* loadSample(finishing);
+      const { brief, ...data } = yield* loadSample(finishing);
 
-      return {
-        data: { ...data, environment, session: null },
-        text: lines.join("\n"),
-      };
+      return { brief, data: { ...data, environment, session: null } };
     }
 
     const target = yield* connectTo(made);
@@ -407,22 +436,20 @@ const finish = (finishing: Finishing) =>
         )
       : Option.none();
 
-    const outcome = yield* contents({ finishing, chosen, target, kept });
-    const { lines, ...data } = outcome;
+    const { brief, ...data } = yield* contents({
+      finishing,
+      environment,
+      chosen,
+      target,
+      kept,
+    });
 
     // Which model drafted it, and how to open the conversation, when an agent did.
     const session = chosen.kind === "drafted" ? chosen.session : undefined;
 
     return {
+      brief: brief satisfies Brief,
       data: { ...data, environment, session: session ?? null },
-      text: [
-        ...lines,
-        ...(chosen.kind === "later"
-          ? []
-          : [
-              `Kept in ${shown(file)}, with saleor.yml naming the store "${environment}". Change it with: ${command("config", "edit")} "…"`,
-            ]),
-      ].join("\n"),
     };
   });
 
@@ -431,7 +458,7 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
     const project = projectAt(root);
 
     if (Option.isNone(project) || made.kind !== "local") {
-      return { data: {}, text: "" };
+      return { brief: {} satisfies Brief, data: {} };
     }
 
     const environment = project.value.environments.find(
@@ -448,7 +475,7 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
       Predicate.isString(definition) ||
       !configuresOnCreate(definition)
     ) {
-      return { data: {}, text: "" };
+      return { brief: {} satisfies Brief, data: {} };
     }
 
     const file = configPath(project.value);
@@ -458,18 +485,27 @@ const initializeConfiguration = (root: string, made: SetupResult) =>
       yield* recordDeploy(file, made.ref);
 
       return {
+        brief: {
+          rows: [
+            ["Configuration", `${shown(file)} (empty, ready for editing)`],
+          ],
+        } satisfies Brief,
         data: { file },
-        text: "Project configuration is empty; ready for editing.",
       };
     }
 
     if (!configurationPending(file, made.ref, made.created)) {
-      return { data: {}, text: "" };
+      return { brief: {} satisfies Brief, data: {} };
     }
 
     yield* applyConfiguration(yield* connectTo(made), file);
 
-    return { data: { file }, text: "Project configuration applied." };
+    return {
+      brief: {
+        rows: [["Configuration", `${shown(file)} (applied)`]],
+      } satisfies Brief,
+      data: { file },
+    };
   });
 
 // `saleor init` asks what the store should contain, after where it runs: a

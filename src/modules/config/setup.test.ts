@@ -79,7 +79,7 @@ it("skips the sample export without credentials and preserves the existing file"
     );
 
     expect(outcome.config).toBeNull();
-    expect(outcome.lines.join("\n")).toContain(
+    expect((outcome.brief.next ?? []).join("\n")).toContain(
       "saleor config pull cloud:org/key"
     );
     expect(readFileSync(file, "utf-8")).toBe("shop: {name: Existing}\n");

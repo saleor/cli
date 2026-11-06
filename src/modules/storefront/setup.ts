@@ -1,6 +1,5 @@
 import { Effect, Option } from "effect";
 import path from "node:path";
-import { describeTarget } from "../../core/action.ts";
 import { option } from "../../core/inputs.ts";
 import { askConfirm, isInteractive } from "../../core/interaction.ts";
 import { recordAnswer } from "../../core/invocation.ts";
@@ -14,13 +13,9 @@ import {
   finish,
   inspect,
   notStorefront,
-  storefrontTarget,
   TEMPLATE,
 } from "./storefront.ts";
 import { shown } from "../../core/output.ts";
-
-const capitalize = (text: string) =>
-  `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 
 // `saleor init --storefront`: next to the store, a folder for the project with the
 // storefront in it, connected to the store `init` made. Asked last in a terminal, once
@@ -113,11 +108,17 @@ export const storefrontSetup = defineSetupExtension({
             });
 
             return {
-              ...outcome,
-              text: [
-                `✓ ${capitalize(describeTarget(storefrontTarget(dir)))} is ready (${created ? "created" : "already existed"}).`,
-                outcome.text,
-              ].join("\n"),
+              brief: {
+                next: [outcome.data.next.join(" && ")],
+                rows: [
+                  [
+                    "Storefront",
+                    `${shown(dir)}/ (${created ? "created" : "already existed"}, channel ${outcome.data.channel})`,
+                  ],
+                ],
+                warnings: outcome.data.warnings,
+              },
+              data: outcome.data,
             };
           }),
         changes: true,
