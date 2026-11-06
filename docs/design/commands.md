@@ -1,6 +1,6 @@
 # Command conventions
 
-The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), see the stores there are and start, stop, add or remove one (`env`), keep a store's configuration as code (`config`), connect a storefront to one (`storefront`), talk to its API (`api`) and receive its webhooks while building an app (`webhook`). Login is a step within Cloud actions when required; explicit `login` and `logout` remain available outside the exploratory menu. Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
+The CLI covers the tasks people come to it for, and nothing else: get a store (`init`), see the stores there are and start, stop, add or remove one (`env`), back one up and restore it (`backup`), keep a store's configuration as code (`config`), connect a storefront to one (`storefront`), talk to its API (`api`) and receive its webhooks while building an app (`webhook`). Login is a step within Cloud actions when required; explicit `login` and `logout` remain available outside the exploratory menu. Anything rarer (plans, projects, production environments) is in the Saleor Cloud dashboard. A new command must be a task of that weight, not a second way to do one of these.
 
 ## Words
 
@@ -36,12 +36,14 @@ saleor env stop   [<env>]           saleor config edit     "<description>"
 saleor env remove [<env>]           saleor storefront create [<env>]
 saleor login | logout               saleor storefront use    [<env>]
 saleor api call [<env>]             saleor webhook listen    [<env>]
+saleor backup list [<env>]          saleor backup add     [<env>] --backup <name>
+saleor backup remove [<env>]        saleor backup restore [<env>] --backup <name>
 ```
 
-- **Six nouns.** `env` (the stores a project works with), `config` (their configuration), `storefront`, `api` (a store's own GraphQL API), `app` (the apps installed on a store) and `webhook` (its webhooks, received here). Top-level verbs (`init`, `login`, `logout`, `onboard`, `commands`) are about the CLI or a new project, not a resource.
+- **Seven nouns.** `env` (the stores a project works with), `backup` (copies of their data, kept where they run), `config` (their configuration), `storefront`, `api` (a store's own GraphQL API), `app` (the apps installed on a store) and `webhook` (its webhooks, received here). Top-level verbs (`init`, `login`, `logout`, `onboard`, `commands`) are about the CLI or a new project, not a resource.
 - **One way to name a store.** The word after the verb, `<env>`: a name from `saleor.yml` (`local`, `staging`) or a store ref (`local:<name>`, `cloud:<org>/<env key>`) for any store, inside a project or not. No command but `init` names a store with a flag. `<env>` defaults to `SALEOR_ENV`, then the project's only environment, then a question.
 - **Where a store runs is configuration, not a command.** Local and Cloud stores answer the same commands. Each module that runs stores is an adapter behind `env` (a store source, below), as a database adapter is behind Rails' `db:migrate`. A source that cannot do something (stop a Cloud environment) is refused with a usage error, not given its own command.
-- **A closed set of verbs, in pairs.** Each kind has its verbs, and a verb means the same change everywhere: `add`/`remove`, `start`/`stop`, `pull`/`deploy`. A new verb is a decision made in `src/core/conventions.test.ts`, not in passing. `reinstall` (`app reinstall`) is the one unpaired change verb: Saleor apps cannot be updated in place, so it names a delete and a new install as one step.
+- **A closed set of verbs, in pairs.** Each kind has its verbs, and a verb means the same change everywhere: `add`/`remove`, `start`/`stop`, `pull`/`deploy`. A new verb is a decision made in `src/core/conventions.test.ts`, not in passing. `reinstall` (`app reinstall`) and `restore` (`backup restore`) are the unpaired change verbs: Saleor apps cannot be updated in place, so `reinstall` names a delete and a new install as one step; `restore` replaces a store's data with a backup's, which nothing undoes but another restore.
 
 Every command is an action of one **kind**. The kind is the policy: which flags exist, how targets are found, when it asks for confirmation, what `--dry-run` does, how its result is shaped and what the catalog says about its safety. A command declares its kind and supplies only what is specific to it. It does not implement any of the rules below itself.
 
@@ -130,7 +132,7 @@ Modules that build on a store contribute a **setup extension** (`defineModule({ 
 
 ## Environments and sources
 
-`env` is core, like `init`: modules never own it. A module that runs stores contributes a **store source** (`defineModule({ stores })`, `src/core/store.ts`): how to list and find its stores, and the lifecycle steps it can carry out (`start`, `stop`, `remove`), each returning a plan like any other action. `env` resolves `<env>` to a ref, picks the source by the ref's kind and hands it the step; `src/core/environments.ts` holds the commands and knows no provider. Today the local source starts, stops and removes; the Cloud source removes sandboxes.
+`env` is core, like `init`: modules never own it. A module that runs stores contributes a **store source** (`defineModule({ stores })`, `src/core/store.ts`): how to list and find its stores, and the lifecycle steps it can carry out (`start`, `stop`, `remove`), each returning a plan like any other action. `env` resolves `<env>` to a ref, picks the source by the ref's kind and hands it the step; `src/core/environments.ts` holds the commands and knows no provider. Today the local source starts, stops, removes and keeps backups on this computer; the Cloud source removes sandboxes and keeps backups. `backup` works the same way: a source that keeps backups offers `backups` (list, add, remove, restore), and `backup` refuses the others.
 
 A source that needs a login shows a "Log in to …" row in the picker instead of failing it (a **detour** in `target.ts`: a row that does something and then asks again), and an explicit ref that needs one offers it at a terminal. Modules never import each other.
 

@@ -30,6 +30,7 @@ Commands read as `saleor <noun> <verb> [<env>]`:
 | `env add <name>` | Sets up a store for a new project environment (Cloud by default, `--local` for Docker) and names it in `saleor.yml`. |
 | `env start`, `env stop` | Starts a local store (creating it from `saleor.yml` when needed) or stops it, keeping its data. |
 | `env remove` | Deletes a store and its data: a local store, or a Cloud sandbox. |
+| `backup list`, `add`, `remove`, `restore` | Lists, makes and deletes a Cloud environment's backups, and restores an environment from any backup in its organization. |
 | `config status`, `diff`, `deploy`, `pull`, `edit`, `validate` | Keeps a store's configuration as code in `config.yml`. |
 | `storefront create`, `storefront use` | Creates a storefront from the Saleor template connected to a store, or points an existing one at another store. |
 | `api call` | Sends one GraphQL request to a store's API, with its token, and prints the data. |
@@ -70,6 +71,15 @@ pnpm saleor env remove cloud:my-org/<env key> --force
 
 Deletion is permanent. Production environments cannot be deleted through the CLI. New projects use the free plan. Before creating an environment in a project on another plan, the CLI says that you might be charged, depending on your plan; it does not ask.
 
+Back up a store before a risky change, and put it back afterwards:
+
+```sh
+pnpm saleor backup add staging --backup before-import
+pnpm saleor backup restore staging --backup before-import
+```
+
+`backup restore` replaces all of the environment's data, so it asks for confirmation (`--force` when unattended). It accepts any backup in the organization, including another environment's or a deleted one's, by name or key. Store tokens saved for the environment are forgotten, since the restored data does not have them. Local backups are kept in `~/.config/saleor/backups/local/<store>/<name>/` (a `pg_dump` archive and the media files) and survive `env remove`. Backing up or restoring a local store needs it running; a restore keeps the store's admin login and refuses a backup made with a newer Saleor than the store runs.
+
 Every command that creates, starts, stops or removes something takes `--dry-run`. It resolves the target and validates the request without changing anything or asking questions, then prints the plan in the requested output format. Cloud previews need authentication and make read requests. The JSON is `{dryRun, action, state, target, destructive, warning, notice, details}`; `target` is `{type, name, id, scope}`, and a new resource has no `id` yet.
 
 ```sh
@@ -78,7 +88,7 @@ pnpm saleor init --org acme --project my-store --env preview --dry-run
 pnpm saleor env remove local:demo --dry-run
 ```
 
-`saleor commands --json` publishes `kind`, `destructive` and `warning` for each command. Only commands that can lose data are destructive and take `--force`: `env remove`, and `config pull` when it replaces edits. `env stop` keeps data and asks nothing.
+`saleor commands --json` publishes `kind`, `destructive` and `warning` for each command. Only commands that can lose data are destructive and take `--force`: `env remove`, `backup remove`, `backup restore`, and `config pull` when it replaces edits. `env stop` keeps data and asks nothing.
 
 See `pnpm saleor --help` for more commands and [known limitations](limitations.md).
 

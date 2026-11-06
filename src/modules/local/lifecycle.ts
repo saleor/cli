@@ -39,7 +39,7 @@ import {
 } from "./state.ts";
 
 // Serialize lifecycle writes to one instance, so two commands never race migrations.
-const withInstanceLock = <A, R>(
+export const withInstanceLock = <A, R>(
   name: string,
   effect: Effect.Effect<A, CliFailure, R>
 ) =>
@@ -119,7 +119,7 @@ const parseContainers = (raw: string) => {
   )(JSON.parse(payload));
 };
 
-const containersOf = (name: string) =>
+export const containersOf = (name: string) =>
   Effect.gen(function* () {
     const docker = yield* Docker;
 
@@ -137,7 +137,7 @@ const containersOf = (name: string) =>
     });
   });
 
-const isRunning = (
+export const isRunning = (
   containers: readonly { Service: string; State: string }[],
   service: string
 ) =>

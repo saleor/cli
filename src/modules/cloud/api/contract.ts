@@ -233,3 +233,74 @@ export const populateEnvironmentDatabase = {
   request: undefined,
   response: Schema.Struct({ task_id: Schema.NullOr(Schema.String) }),
 } as const;
+
+const BackupResponse = Schema.Struct({
+  backup_type: Schema.String,
+  created: Schema.String,
+  // The key of the environment it was made from; null once that is deleted.
+  environment: Schema.NullOr(Schema.String),
+  environment_name: Schema.NullOr(Schema.String),
+  key: Schema.String,
+  name: Schema.String,
+  saleor_version: Schema.String,
+});
+
+export type BackupResponse = typeof BackupResponse.Type;
+
+const CreateBackupInput = Schema.Struct({ name: Schema.String });
+
+const CreateBackupResponse = Schema.Struct({
+  ...BackupResponse.fields,
+  task_id: Schema.NullOr(Schema.String),
+});
+
+const RestoreEnvironmentInput = Schema.Struct({ restore_from: Schema.String });
+
+const RestoreEnvironmentResponse = Schema.Struct({
+  task_id: Schema.NullOr(Schema.String),
+});
+
+export const listBackups = {
+  method: "GET",
+  path: "/api/organizations/{organization_slug}/backups/",
+  pathParams: ["organization_slug"],
+  queryParams: [],
+  request: undefined,
+  response: Schema.Array(BackupResponse),
+} as const;
+
+export const destroyBackup = {
+  method: "DELETE",
+  path: "/api/organizations/{organization_slug}/backups/{id}/",
+  pathParams: ["organization_slug", "id"],
+  queryParams: [],
+  request: undefined,
+  response: undefined,
+} as const;
+
+export const listEnvironmentBackups = {
+  method: "GET",
+  path: "/api/organizations/{organization_slug}/environments/{environment_pk}/backups/",
+  pathParams: ["organization_slug", "environment_pk"],
+  queryParams: [],
+  request: undefined,
+  response: Schema.Array(BackupResponse),
+} as const;
+
+export const createEnvironmentBackups = {
+  method: "POST",
+  path: "/api/organizations/{organization_slug}/environments/{environment_pk}/backups/",
+  pathParams: ["organization_slug", "environment_pk"],
+  queryParams: [],
+  request: CreateBackupInput,
+  response: CreateBackupResponse,
+} as const;
+
+export const restoreEnvironmentRestoreEnvironment = {
+  method: "PUT",
+  path: "/api/organizations/{organization_slug}/environments/{id}/restore/",
+  pathParams: ["organization_slug", "id"],
+  queryParams: [],
+  request: RestoreEnvironmentInput,
+  response: RestoreEnvironmentResponse,
+} as const;

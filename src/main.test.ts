@@ -1558,6 +1558,10 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       "saleor env start",
       "saleor env stop",
       "saleor env remove",
+      "saleor backup list",
+      "saleor backup add",
+      "saleor backup remove",
+      "saleor backup restore",
       "saleor config status",
       "saleor config diff",
       "saleor config deploy",
@@ -3030,5 +3034,225 @@ process.exit(1);
 
       expect(preview.data.data.details.storefront).toBeUndefined();
     });
+  });
+});
+
+describe("backup", () => {
+  const backup = (
+    key: string,
+    name: string,
+    created = "2026-11-01T10:00:00Z"
+  ) => ({
+    backup_type: "MANUAL",
+    created,
+    environment: "env1",
+    environment_name: "dev",
+    environment_service_type: "SANDBOX",
+    key,
+    name,
+    project: { is_deleted: false, name: "poc", slug: "poc" },
+    saleor_version: "3.23.41",
+    url: `https://cloud.saleor.io/backups/${key}`,
+  });
+
+  let backups: ReturnType<typeof backup>[];
+
+  beforeEach(() => {
+    backups = [backup("b1", "nightly")];
+    resourceRoutes([environment()]);
+    const fallback = handler;
+    handler = (method, url, body) => {
+      if (url.pathname.endsWith("/environments/env1/backups/")) {
+        if (method === "POST") {
+          const made = backup("b2", body.name, "2026-11-02T10:00:00Z");
+          backups.push(made);
+
+          return [
+            201,
+            { ...made, task_id: "backup-task", task_is_blocking: false },
+          ];
+        }
+
+        return [200, backups];
+      }
+
+      if (url.pathname.endsWith("/acme/backups/")) {
+        return [
+          200,
+          [
+            ...backups,
+            {
+              ...backup("old", "gone"),
+              environment: null,
+              environment_name: null,
+            },
+          ],
+        ];
+      }
+
+      if (url.pathname.includes("/backups/") && method === "DELETE") {
+        backups = backups.filter(
+          (each) => !url.pathname.endsWith(`/${each.key}/`)
+        );
+
+        return [204, undefined];
+      }
+
+      if (url.pathname.endsWith("/environments/env1/restore/")) {
+        return [
+          201,
+          {
+            restore_from: body.restore_from,
+            task_id: "restore-task",
+            task_is_blocking: true,
+          },
+        ];
+      }
+
+      if (url.pathname.includes("/task-status/")) {
+        return [200, task("SUCCEEDED")];
+      }
+
+      return fallback(method, url, body);
+    };
+  });
+
+  it("lists a store's backups", async () => {
+    const out = await cli(["backup", "list", "cloud:acme/env1", "--json"]);
+
+    expect(out.code).toBe(0);
+    expect(out.data.data).toStrictEqual([
+      {
+        createdAt: "2026-11-01T10:00:00Z",
+        environment: "dev",
+        id: "b1",
+        name: "nightly",
+        saleorVersion: "3.23.41",
+        type: "manual",
+      },
+    ]);
+  });
+
+  it("adds a backup, waits for it, then reuses it by name", async () => {
+    const made = await cli([
+      "backup",
+      "add",
+      "cloud:acme/env1",
+      "--backup",
+      "before-import",
+      "--json",
+    ]);
+
+    expect(made.code).toBe(0);
+    expect(made.data.data).toMatchObject({
+      created: true,
+      id: "b2",
+      name: "before-import",
+    });
+    expect(
+      requests.some((req) => req.path.includes("/task-status/backup-task/"))
+    ).toBe(true);
+
+    const again = await cli([
+      "backup",
+      "add",
+      "cloud:acme/env1",
+      "--backup",
+      "before-import",
+      "--json",
+    ]);
+
+    expect(again.data.data).toMatchObject({ created: false, id: "b2" });
+    expect(requests.filter((req) => req.method === "POST")).toHaveLength(1);
+  });
+
+  it("restores only with confirmation, from any of the organization's backups", async () => {
+    const refused = await cli([
+      "backup",
+      "restore",
+      "cloud:acme/env1",
+      "--backup",
+      "gone",
+      "--json",
+    ]);
+
+    expect(refused.data.error.code).toBe("CONFIRMATION_REQUIRED");
+    expect(requests.some((req) => req.method === "PUT")).toBe(false);
+
+    const restored = await cli([
+      "backup",
+      "restore",
+      "cloud:acme/env1",
+      "--backup",
+      "gone",
+      "--force",
+      "--json",
+    ]);
+
+    expect(restored.code).toBe(0);
+    expect(restored.data.data).toMatchObject({
+      backup: { id: "old" },
+      ref: "cloud:acme/env1",
+    });
+    expect(requests.find((req) => req.method === "PUT")?.body).toStrictEqual({
+      restore_from: "old",
+    });
+    expect(
+      requests.some((req) => req.path.includes("/task-status/restore-task/"))
+    ).toBe(true);
+  });
+
+  it("refuses to restore a backup that does not exist", async () => {
+    const out = await cli([
+      "backup",
+      "restore",
+      "cloud:acme/env1",
+      "--backup",
+      "nope",
+      "--force",
+      "--json",
+    ]);
+
+    expect(out.data.error.code).toBe("NOT_FOUND");
+  });
+
+  it("removes a backup with --force, and succeeds when it is gone", async () => {
+    const removed = await cli([
+      "backup",
+      "remove",
+      "cloud:acme/env1",
+      "--backup",
+      "nightly",
+      "--force",
+      "--json",
+    ]);
+
+    expect(removed.code).toBe(0);
+    expect(removed.data.data).toMatchObject({
+      action: "delete",
+      existed: true,
+    });
+    expect(requests.find((req) => req.method === "DELETE")?.path).toContain(
+      "/backups/b1/"
+    );
+
+    const again = await cli([
+      "backup",
+      "remove",
+      "cloud:acme/env1",
+      "--backup",
+      "nightly",
+      "--force",
+      "--json",
+    ]);
+
+    expect(again.data.data).toMatchObject({ action: "none", existed: false });
+  });
+
+  it("asks for the backup when none is named and nobody can answer", async () => {
+    const out = await cli(["backup", "restore", "cloud:acme/env1", "--json"]);
+
+    expect(out.data.error.code).toBe("CONTEXT_MISSING");
+    expect(out.data.error.details.choices).toStrictEqual(["b1", "old"]);
   });
 });

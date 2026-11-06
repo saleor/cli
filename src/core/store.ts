@@ -55,6 +55,57 @@ export interface StartOptions {
 // A store that `env start` made ready, with whether this run created it.
 export type Started = Store & { readonly created: boolean };
 
+// A copy of a store's data, kept by the place the store runs, that the store (or
+// another one there) can be restored from.
+export interface Backup {
+  readonly createdAt: string;
+  // The name of the store it was made from; null once that store is deleted.
+  readonly environment: string | null;
+  // Stable identifier, unique where backups are kept.
+  readonly id: string;
+  readonly name: string;
+  readonly saleorVersion: string;
+  // How it was made: manual, automated…
+  readonly type: string;
+}
+
+// A backup that `backup add` made sure exists, with whether this run made it.
+export type BackupAdded = Backup & { readonly created: boolean };
+
+// A store that `backup restore` replaced the data of, and the backup it came from.
+export type Restored = Store & {
+  readonly backup: Backup;
+  readonly created: false;
+};
+
+// What a source that keeps backups offers. Planning only reads.
+export interface BackupSource<R> {
+  // The backups made from the store.
+  readonly list: (
+    id: string
+  ) => Effect.Effect<readonly Backup[], CliFailure, R>;
+  // Every backup the store can be restored from, or that can be deleted alongside
+  // it: in Saleor Cloud, all of its organization's, including other environments'.
+  readonly available: (
+    id: string
+  ) => Effect.Effect<readonly Backup[], CliFailure, R>;
+  readonly add: (
+    id: string,
+    name: string,
+    options: { readonly timeout: number }
+  ) => Effect.Effect<Planned<Ensured<BackupAdded>, R>, CliFailure, R>;
+  readonly remove: (
+    id: string,
+    backup: Backup
+  ) => Effect.Effect<Planned<object, R>, CliFailure, R>;
+  // Replaces the store's data with the backup's.
+  readonly restore: (
+    id: string,
+    backup: Backup,
+    options: { readonly timeout: number }
+  ) => Effect.Effect<Planned<Ensured<Restored>, R>, CliFailure, R>;
+}
+
 // Where stores of one kind come from: the adapter between the CLI's one set of
 // environment commands and a place stores run. Each module that runs stores
 // contributes one, so `env list`, `env start`, a storefront connecting to a store and
@@ -63,6 +114,8 @@ export type Started = Store & { readonly created: boolean };
 // See core/stores.ts and core/environments.ts.
 export interface StoreSource<R> {
   // The store with this id (the part of its ref after `<kind>:`), if it exists.
+  // Backups of its stores, when the source keeps them.
+  readonly backups?: BackupSource<R>;
   readonly find: (
     id: string
   ) => Effect.Effect<Option.Option<Store>, CliFailure, R>;
@@ -105,6 +158,9 @@ export interface StoreSource<R> {
 
 // The lifecycle steps a source may offer.
 export type Lifecycle = "remove" | "start" | "stop";
+
+// What a command can ask of a source: a lifecycle step, or its backups.
+export type Capability = Lifecycle | "backups";
 
 export class StoreSources extends Context.Service<
   StoreSources,
