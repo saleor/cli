@@ -9,7 +9,7 @@ import {
   type Planned,
   type Values,
 } from "./action.ts";
-import { type CommandResult, result } from "./command.ts";
+import { result } from "./command.ts";
 import { type CliFailure, fail } from "./errors.ts";
 import {
   type Input,
@@ -21,7 +21,7 @@ import type { Store } from "./store.ts";
 import { askSelect, isInteractive } from "./interaction.ts";
 import { command, recordAnswer } from "./invocation.ts";
 import { askThen } from "./navigation.ts";
-import { notice } from "./output.ts";
+import { notice, shown } from "./output.ts";
 import { projectFolder } from "./project.ts";
 import { initializeProject } from "./project-init.ts";
 
@@ -38,6 +38,20 @@ export interface SetupResult extends Store {
   readonly sampleDataReady?: boolean | undefined;
 }
 
+export type Row = readonly [label: string, value: string];
+
+// What one part of `init` adds to its closing summary: facts about what it made,
+// commands to run next, and what went wrong without failing the setup. The summary is
+// for a person; the result's data carries everything for scripts.
+export interface Brief {
+  readonly next?: readonly string[];
+  readonly rows?: readonly Row[];
+  readonly warnings?: readonly string[];
+}
+
+// A provider's store, with what `init`'s summary shows about it beyond its URLs.
+export type SetupEnsured<A> = Ensured<A> & { readonly brief?: Brief };
+
 export interface SetupProvider<R> {
   readonly before: Effect.Effect<void, CliFailure, R>;
   readonly example: { readonly command: string; readonly description: string };
@@ -53,7 +67,7 @@ export interface SetupProvider<R> {
   readonly onboarding: OnboardingPath | undefined;
   readonly plan: (
     input: InputValues & KindValues
-  ) => Effect.Effect<Planned<Ensured<SetupResult>, R>, CliFailure, R>;
+  ) => Effect.Effect<Planned<SetupEnsured<SetupResult>, R>, CliFailure, R>;
   readonly requirement: Requirement<R> | undefined;
 }
 
@@ -110,7 +124,7 @@ export const defineSetup = <
   readonly onboarding?: OnboardingPath;
   readonly plan: (
     input: Values<I> & KindValues
-  ) => Effect.Effect<Planned<Ensured<A>, RA>, CliFailure, R>;
+  ) => Effect.Effect<Planned<SetupEnsured<A>, RA>, CliFailure, R>;
   readonly requirement?: Requirement<R>;
 }): SetupProvider<R | RA> => ({
   before: provider.before ?? Effect.void,
@@ -146,7 +160,11 @@ export interface SetupExtension<R> {
 export interface ExtensionPlan<R> {
   readonly apply: (
     store: SetupResult
-  ) => Effect.Effect<CommandResult<unknown>, CliFailure, R>;
+  ) => Effect.Effect<
+    { readonly brief: Brief; readonly data: unknown },
+    CliFailure,
+    R
+  >;
   // Whether applying it changes anything.
   readonly changes: boolean;
   readonly details: Schema.Json;
@@ -173,10 +191,49 @@ export const defineSetupExtension = <I extends Inputs, R, RA>(extension: {
     extension.plan(input as Values<I> & KindValues, store),
 });
 
+// The store's own lines in the summary: where the project is, what the store is and
+// how to reach it, then what its provider adds (a local store's admin login).
+const storeBrief = (root: string, ensured: SetupEnsured<SetupResult>) => {
+  const { data } = ensured;
+
+  return {
+    ...ensured.brief,
+    rows: [
+      ["Project", `${shown(root)}/`],
+      [
+        "Store",
+        `${data.name} (${[data.ref, data.saleorVersion === null ? undefined : `Saleor ${data.saleorVersion}`].filter(Boolean).join(", ")})`,
+      ],
+      ["Dashboard", data.dashboardUrl],
+      ["GraphQL API", data.graphqlUrl],
+      ...(ensured.brief?.rows ?? []),
+    ],
+  } satisfies Brief;
+};
+
+// `init`'s closing summary: aligned facts, then what to run next, then warnings.
+const summaryText = (briefs: readonly Brief[]) => {
+  const rows = briefs.flatMap((brief) => brief.rows ?? []);
+  const next = briefs.flatMap((brief) => brief.next ?? []);
+  const warnings = briefs.flatMap((brief) => brief.warnings ?? []);
+  const width = Math.max(0, ...rows.map(([label]) => label.length)) + 2;
+
+  return [
+    "",
+    ...rows.map(([label, value]) => `  ${label.padEnd(width)}${value}`),
+    ...(next.length === 0
+      ? []
+      : ["", "Next:", ...next.map((line) => `  ${line}`)]),
+    ...(warnings.length === 0
+      ? []
+      : ["", ...warnings.map((warning) => `! ${warning}`)]),
+  ].join("\n");
+};
+
 // The store's plan with the extensions' work added: the store is set up while they
 // prepare, then each one finishes with the store, and its result sits under its name.
 const extend = <R>(
-  store: Planned<Ensured<SetupResult>, R>,
+  store: Planned<SetupEnsured<SetupResult>, R>,
   extensions: readonly ExtensionPlan<R>[]
 ): Planned<Ensured<SetupResult>, R> => {
   const projectName = Option.getOrElse(
@@ -217,19 +274,24 @@ const extend = <R>(
         }))
       );
 
+      const { created, name } = ensured.data;
+
       return {
         ...result(
           {
             ...ensured.data,
             ...Object.fromEntries(
-              outcomes.map(({ name, outcome }) => [name, outcome.data])
+              outcomes.map(({ name: key, outcome }) => [key, outcome.data])
             ),
           },
-          [
-            ensured.text,
-            ...outcomes.flatMap(({ outcome }) => ["", outcome.text]),
-          ].join("\n")
+          summaryText([
+            storeBrief(root, ensured),
+            ...outcomes.map(({ outcome }) => outcome.brief),
+          ])
         ),
+        headline: created
+          ? `Your new store "${name}" is ready.`
+          : `Your store "${name}" is ready (it already existed).`,
         target: ensured.target,
       };
     }),

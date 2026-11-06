@@ -3,11 +3,11 @@ import { recordDeploy } from "../../core/deploy-record.ts";
 import { fail } from "../../core/errors.ts";
 import { command } from "../../core/invocation.ts";
 import { notice, shown } from "../../core/output.ts";
-import type { SetupResult } from "../../core/setup.ts";
+import type { Brief, SetupResult } from "../../core/setup.ts";
 import { connectTo } from "../../core/store-api.ts";
 import { sourceFor } from "../../core/stores.ts";
 import { pull } from "./engine.ts";
-import { reviewText, writeConfig } from "./file-output.ts";
+import { writeConfig } from "./file-output.ts";
 
 export const prepareSampleData = (made: SetupResult) =>
   Effect.gen(function* () {
@@ -37,11 +37,13 @@ export const sampleConfiguration = (
 
     if (!save) {
       return {
+        brief: {
+          next: [
+            `To keep its configuration: ${command("config", "pull", made.ref)}`,
+          ],
+          rows: [["Configuration", "Saleor's sample data (not saved)"]],
+        } satisfies Brief,
         config: null,
-        lines: [
-          `✓ Saleor's sample data is ready in ${made.ref}.`,
-          `Skipped saving the store configuration locally. Pull it later with: ${command("config", "pull", made.ref)}`,
-        ],
       };
     }
 
@@ -50,10 +52,9 @@ export const sampleConfiguration = (
     yield* recordDeploy(file, made.ref);
 
     return {
+      brief: {
+        rows: [["Configuration", `${shown(file)} (Saleor's sample data)`]],
+      } satisfies Brief,
       config: file,
-      lines: [
-        `✓ Saved the sample configuration in ${shown(file)}.`,
-        ...reviewText(config),
-      ],
     };
   });
