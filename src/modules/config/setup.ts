@@ -558,6 +558,8 @@ export const configSetup = defineSetupExtension({
 
       return Option.some({
         apply: (made) => finish({ chosen, file, made, name, root }),
+        // A configuration is deployed onto an empty store, not Saleor's sample data.
+        blankStore: chosen.kind !== "sample",
         changes: true,
         details: {
           config: file,

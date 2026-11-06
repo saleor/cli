@@ -9,7 +9,7 @@
 - Cloud has no idempotency keys: two simultaneous creates with the same name can both succeed.
 - A create that fails ambiguously (timeout, 5xx) is not retried; re-run the command to find out whether it happened.
 - `--timeout` bounds waiting, not the whole command; API timeouts and retries can add to it.
-- Pre-warmed environments (no `--domain-label`) come with whatever database contents Cloud chose; an empty database is not guaranteed.
+- Pre-warmed environments (no `--domain-label`) come with whatever database contents Cloud chose; an empty database is not guaranteed. `init` with a configuration (`--describe`, `--copy-from`, or the questions) skips the pool and creates an empty sandbox, which takes longer.
 - Cloud readiness checks the public GraphQL payload; Cloud does not return store credentials. Local setup generates an admin login.
 - Concurrent CLI processes writing credentials are last-writer-wins (no file lock).
 - `saleor commands` reads an internal Effect API to list arguments and flags; an Effect upgrade can break it (a test catches this).

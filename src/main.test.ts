@@ -2244,6 +2244,35 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
       });
     }
   );
+  it("creates an empty sandbox, not a pre-warmed one, for a configuration", async () => {
+    resourceRoutes();
+    const fallback = handler;
+    handler = (method, url, body) =>
+      method === "POST" ? [500, {}] : fallback(method, url, body);
+
+    const out = await cli([
+      "init",
+      "--env",
+      "dev",
+      "--org",
+      "acme",
+      "--project",
+      "poc",
+      "--describe",
+      "Merch store",
+      "--agent",
+    ]);
+
+    expect(out.data.error.code).toBe("API_ERROR");
+    const writes = requests.filter((req) => req.method === "POST");
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.path).toBe("/api/organizations/acme/environments/");
+    expect(writes[0]?.body).toMatchObject({
+      database_population: null,
+      domain_label: expect.stringMatching(/^dev-[0-9a-f]{6}$/),
+      name: "dev",
+    });
+  });
   it.each([
     [
       "domain_label",
