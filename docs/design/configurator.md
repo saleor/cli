@@ -120,7 +120,7 @@ New error codes, added to `ERRORS` and never repurposed: `CONFIG_INVALID`, `DEPL
 
 The config module adds a **setup extension**, like the storefront module. Its question comes after the provider's: start from *the store as it is*, *a recipe*, or *a copy of another store's configuration* (`--recipe <name>`, `--from <env|ref>`). Its plan joins `init`'s plan, so `--dry-run` and the review show it. It deploys once the store is ready and writes `config.yml` and the manifest into the project folder. Its result goes under `data.config`.
 
-Pre-warmed Cloud environments come with whatever database Cloud chose (`limitations.md`), and deploy deletes entities in a section that are not in `config.yml`. So deploying into a pre-warmed environment must either request an empty database (`--domain-label`) or merge, never delete silently. Decide this before the extension ships.
+Pre-warmed Cloud environments come with whatever database Cloud chose (`limitations.md`), and deploy deletes entities in a section that are not in `config.yml`. So a configuration is never deployed into a pre-warmed environment: when the extension deploys one (anything but Saleor's sample data), it asks for a blank store (`BlankStore` in `core/setup.ts`), and Cloud creates the sandbox with a domain label of its own (the name plus a random suffix) instead of taking one from the pool. A store that already exists is reused as it is, and the draft is merged onto it.
 
 ### The project manifest
 
@@ -320,7 +320,7 @@ Each phase ends at a gate. A gate is evidence, not a date.
 | A legacy regression reaches every pipeline at once (Action installs `@latest`) | Release legacy only after V1 and V2 pass; publish to a `next` dist-tag first |
 | Mixed teams churn `config.yml` | Byte-identical serialization and cross-reading checks (V2) |
 | A store's Saleor version is outside the engine's range | Preflight with `UNSUPPORTED_SALEOR_VERSION` and the pinned legacy command as the hint |
-| Deploying a recipe into a pre-warmed Cloud environment deletes what Cloud put there | Empty database or merge semantics for the `init` extension, decided before it ships |
+| Deploying a recipe into a pre-warmed Cloud environment deletes what Cloud put there | Decided: new stores for a configuration are created empty; drafts merge onto existing stores |
 | Two output contracts to maintain | The legacy front door is a thin, frozen adapter; the engine is shared; V1 pins both |
 | Startup cost for every command | Engine behind a dynamic `import()` |
 | People migrating CI are surprised that deletions need `--force` | `CONFIRMATION_REQUIRED` says so and names the flag; the mapping guide leads with it |
