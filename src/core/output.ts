@@ -227,6 +227,40 @@ export const warnOnce = (key: string, message: string) => {
   }
 };
 
+// The spinner redraws each frame as separate writes (cursor move, erase, text). The
+// terminal can paint between them, so the line blinks empty. Joining the writes of
+// one frame into a single write lets the terminal swap the line in one step.
+const coalescedStderr = (): NodeJS.WriteStream => {
+  const stream = process.stderr;
+  let pending = "";
+
+  const flush = () => {
+    if (pending !== "") {
+      const chunk = pending;
+      pending = "";
+      stream.write(chunk);
+    }
+  };
+
+  process.once("exit", flush);
+
+  return new Proxy(stream, {
+    get(target, property, receiver) {
+      if (property === "write") {
+        return (chunk: string | Uint8Array) => {
+          if (pending === "") {
+            queueMicrotask(flush);
+          }
+          pending += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
+          return true;
+        };
+      }
+      const value = Reflect.get(target, property, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+};
+
 export const withProgress = <A, E, R>(
   message: string,
   completed: string,
@@ -248,7 +282,7 @@ export const withProgress = <A, E, R>(
       Effect.sync(() => {
         const indicator = spinner({
           indicator: "timer",
-          output: process.stderr,
+          output: coalescedStderr(),
         });
 
         indicator.start(message);
