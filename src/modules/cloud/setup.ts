@@ -6,7 +6,7 @@ import { result } from "../../core/command.ts";
 import { option } from "../../core/inputs.ts";
 import type { StoreState } from "../../core/store.ts";
 import { deadlineIn } from "../../core/readiness.ts";
-import { defineSetup } from "../../core/setup.ts";
+import { BlankStore, defineSetup } from "../../core/setup.ts";
 import { ensureLoggedIn } from "./auth/ensure-login.ts";
 import { account, loggedIn } from "./auth/logged-in.ts";
 import {
@@ -69,6 +69,28 @@ const sandboxName = {
   whenBlank: () => `sandbox-${randomBytes(3).toString("hex")}`,
 };
 
+// A pre-warmed environment comes with Cloud's sample data; only creating one with a
+// domain label gives an empty database. The label is the name's, made unique.
+const blankDomainLabel = (name: string) => {
+  const base = name
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replace(/^[^a-z]+/, "")
+    .slice(0, 30)
+    .replace(/-+$/, "");
+
+  return `${base || "store"}-${randomBytes(3).toString("hex")}`;
+};
+
+// The domain label to create with: the one asked for, or one of its own when the store
+// must start empty (BlankStore) and would otherwise be pre-warmed.
+const domainLabelFor = (input: EnvironmentInput) =>
+  Effect.gen(function* () {
+    return (yield* BlankStore) && Option.isNone(input.domainLabel)
+      ? Option.some(blankDomainLabel(input.name))
+      : input.domainLabel;
+  });
+
 // Ensuring a sandbox: reuse the one with this name or create one, then wait for it.
 const environmentPlan = (
   input: EnvironmentInput,
@@ -79,25 +101,30 @@ const environmentPlan = (
 
   return {
     action: creating ? "create" : "reuse",
-    apply: Effect.map(
-      applyEnvironment(input, planned, deadlineIn(timeout)),
-      // applyEnvironment returns only once the GraphQL API answered.
-      ({ created, environment: ready }) => {
-        const details = describeEnvironment(input.organization, ready, true);
+    apply: Effect.gen(function* () {
+      const domainLabel = yield* domainLabelFor(input);
 
-        return {
-          ...result(
-            {
-              ...details,
-              created,
-              sampleDataReady: created && Option.isNone(input.domainLabel),
-            },
-            environmentLines(details).join("\n")
-          ),
-          target: environmentTarget(input.organization, ready),
-        };
-      }
-    ),
+      // applyEnvironment returns only once the GraphQL API answered.
+      const { created, environment: ready } = yield* applyEnvironment(
+        { ...input, domainLabel },
+        planned,
+        deadlineIn(timeout)
+      );
+
+      const details = describeEnvironment(input.organization, ready, true);
+
+      return {
+        ...result(
+          {
+            ...details,
+            created,
+            sampleDataReady: created && Option.isNone(domainLabel),
+          },
+          environmentLines(details).join("\n")
+        ),
+        target: environmentTarget(input.organization, ready),
+      };
+    }),
     details: {
       domainLabel:
         planned.existing?.domain_label ?? Option.getOrNull(input.domainLabel),

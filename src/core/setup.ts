@@ -1,4 +1,4 @@
-import { Effect, Option, type Schema } from "effect";
+import { Context, Effect, Option, type Schema } from "effect";
 import { isGiven, named } from "./target.ts";
 import {
   changes,
@@ -147,6 +147,9 @@ export interface ExtensionPlan<R> {
   readonly apply: (
     store: SetupResult
   ) => Effect.Effect<CommandResult<unknown>, CliFailure, R>;
+  // Whether a new store must start with an empty database, such as one a configuration
+  // is deployed onto. Providers read it as BlankStore while they set the store up.
+  readonly blankStore?: boolean;
   // Whether applying it changes anything.
   readonly changes: boolean;
   readonly details: Schema.Json;
@@ -173,6 +176,13 @@ export const defineSetupExtension = <I extends Inputs, R, RA>(extension: {
     extension.plan(input as Values<I> & KindValues, store),
 });
 
+// True while a provider sets up a store an extension needs empty: a new store must not
+// come with data the provider would otherwise put there, such as a pre-warmed Cloud
+// environment's sample catalog. A store that exists already is left as it is.
+export const BlankStore = Context.Reference<boolean>("saleor/BlankStore", {
+  defaultValue: () => false,
+});
+
 // The store's plan with the extensions' work added: the store is set up while they
 // prepare, then each one finishes with the store, and its result sits under its name.
 const extend = <R>(
@@ -187,6 +197,7 @@ const extend = <R>(
   const root = projectFolder(projectName);
 
   const extra = extensions.some((extension) => extension.changes);
+  const blank = extensions.some((extension) => extension.blankStore === true);
 
   return {
     ...store,
@@ -197,7 +208,7 @@ const extend = <R>(
       // download is never left half-written; running `init` again picks it up.
       const [ready, ...prepared] = yield* Effect.all(
         [
-          Effect.exit(store.apply),
+          Effect.exit(Effect.provideService(store.apply, BlankStore, blank)),
           ...extensions.map((extension) => Effect.exit(extension.prepare)),
         ],
         { concurrency: "unbounded" }
