@@ -270,6 +270,7 @@ it.each([
     expected: [
       "init",
       "env",
+      "backup",
       "storefront",
       "api",
       "app",
@@ -284,6 +285,7 @@ it.each([
     expected: [
       "init",
       "env",
+      "backup",
       "storefront",
       "api",
       "app",
@@ -297,6 +299,7 @@ it.each([
     expected: [
       "init",
       "env",
+      "backup",
       "storefront",
       "api",
       "app",

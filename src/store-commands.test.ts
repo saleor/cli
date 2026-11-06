@@ -1351,3 +1351,193 @@ require("node:fs").mkdirSync("node_modules", {recursive:true});
     expect(out.data.error.code).toBe("NAME_CONFLICT");
   });
 });
+
+describe("local backups", () => {
+  const calls = () =>
+    existsSync(path.join(cwd, "docker.log"))
+      ? readFileSync(path.join(cwd, "docker.log"), "utf-8")
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line).join(" "))
+      : [];
+
+  const backupDir = (store: string, name: string) =>
+    path.join(cwd, "config/backups/local", store, name);
+
+  // A Docker that records its calls, reports the store running (or stopped), and
+  // copies out of a container by writing the file.
+  const fakeDocker = (state = "running") => {
+    writeFileSync(
+      path.join(cwd, "fake-bin", "docker"),
+      `#!${process.execPath}
+const fs = require("node:fs");
+const args = process.argv.slice(2);
+fs.appendFileSync(${JSON.stringify(path.join(cwd, "docker.log"))}, JSON.stringify(args) + "\\n");
+if (args.includes("ps")) for (const s of ["api", "db", "worker"]) console.log(JSON.stringify({Service: s, State: ${JSON.stringify(state)}}));
+const cp = args.indexOf("cp");
+if (cp !== -1 && args[cp + 2].startsWith("/")) fs.writeFileSync(args[cp + 2], "data");
+`
+    );
+  };
+
+  const saved = (store: string, name: string, saleorVersion = "3.23.41") => {
+    mkdirSync(backupDir(store, name), { recursive: true });
+    writeFileSync(path.join(backupDir(store, name), "db.dump"), "data");
+    writeFileSync(path.join(backupDir(store, name), "media.tgz"), "data");
+    writeFileSync(
+      path.join(backupDir(store, name), "backup.json"),
+      JSON.stringify({
+        createdAt: "2026-11-01T10:00:00.000Z",
+        name,
+        saleorVersion,
+        store,
+      })
+    );
+  };
+
+  beforeEach(() => {
+    fakeDocker();
+  });
+
+  it("dumps the database and media to this computer, then reuses the backup by name", async () => {
+    const made = await cli([
+      "backup",
+      "add",
+      "local:demo",
+      "--backup",
+      "before-import",
+    ]);
+
+    expect(made.code).toBe(0);
+    expect(made.data.data).toMatchObject({
+      created: true,
+      id: "demo/before-import",
+    });
+    expect(calls().some((call) => call.includes("exec -T db pg_dump"))).toBe(
+      true
+    );
+
+    for (const file of ["backup.json", "db.dump", "media.tgz"]) {
+      expect(
+        existsSync(path.join(backupDir("demo", "before-import"), file))
+      ).toBe(true);
+    }
+
+    const before = calls().length;
+
+    const again = await cli([
+      "backup",
+      "add",
+      "local:demo",
+      "--backup",
+      "before-import",
+    ]);
+
+    expect(again.data.data).toMatchObject({ created: false });
+    expect(
+      calls()
+        .slice(before)
+        .some((call) => call.includes("pg_dump"))
+    ).toBe(false);
+
+    const listed = await cli(["backup", "list", "local:demo"]);
+
+    expect(listed.data.data.map((each: any) => each.id)).toStrictEqual([
+      "demo/before-import",
+    ]);
+  });
+
+  it("refuses to back up a stopped store", async () => {
+    fakeDocker("exited");
+    const out = await cli(["backup", "add", "local:demo", "--backup", "x"]);
+
+    expect(out.data.error.code).toBe("USAGE_ERROR");
+    expect(out.data.error.suggestion).toContain("env start");
+  });
+
+  it("restores another store's backup only with confirmation, keeping this store's admin", async () => {
+    saved("other", "snapshot");
+
+    const refused = await cli([
+      "backup",
+      "restore",
+      "local:demo",
+      "--backup",
+      "other/snapshot",
+    ]);
+
+    expect(refused.data.error.code).toBe("CONFIRMATION_REQUIRED");
+    expect(calls().some((call) => call.includes("pg_restore"))).toBe(false);
+
+    const restored = await cli([
+      "backup",
+      "restore",
+      "local:demo",
+      "--backup",
+      "snapshot",
+      "--force",
+    ]);
+
+    expect(restored.code).toBe(0);
+    expect(restored.data.data).toMatchObject({
+      backup: { id: "other/snapshot" },
+      ref: "local:demo",
+    });
+
+    const steps = calls().map((call) =>
+      ["pg_restore", "migrate", "DJANGO_SUPERUSER_PASSWORD", "tar -xzf"].find(
+        (step) => call.includes(step)
+      )
+    );
+
+    expect(steps.filter(Boolean)).toStrictEqual([
+      "pg_restore",
+      "migrate",
+      "DJANGO_SUPERUSER_PASSWORD",
+      "tar -xzf",
+    ]);
+  });
+
+  it("refuses a backup made with a newer Saleor", async () => {
+    saved("demo", "future", "3.99.0");
+
+    const out = await cli([
+      "backup",
+      "restore",
+      "local:demo",
+      "--backup",
+      "future",
+      "--force",
+    ]);
+
+    expect(out.data.error.code).toBe("USAGE_ERROR");
+    expect(out.data.error.message).toContain("Saleor 3.99.0");
+  });
+
+  it("deletes a backup with --force, and succeeds when it is gone", async () => {
+    saved("demo", "old");
+
+    const removed = await cli([
+      "backup",
+      "remove",
+      "local:demo",
+      "--backup",
+      "old",
+      "--force",
+    ]);
+
+    expect(removed.data.data).toMatchObject({ action: "delete" });
+    expect(existsSync(backupDir("demo", "old"))).toBe(false);
+
+    const again = await cli([
+      "backup",
+      "remove",
+      "local:demo",
+      "--backup",
+      "old",
+      "--force",
+    ]);
+
+    expect(again.data.data).toMatchObject({ action: "none", existed: false });
+  });
+});

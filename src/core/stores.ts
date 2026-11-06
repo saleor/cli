@@ -4,7 +4,7 @@ import {
   type Store,
   type StoreSource,
   StoreSources,
-  type Lifecycle,
+  type Capability,
 } from "./store.ts";
 import { askConfirm, type Choice, isInteractive } from "./interaction.ts";
 import { command } from "./invocation.ts";
@@ -39,7 +39,8 @@ export const envTarget = target({
 
 export const envInput = envTarget.input({ positional: true });
 
-const VERBS: Record<Lifecycle, string> = {
+const VERBS: Record<Capability, string> = {
+  backups: "backed up",
   remove: "deleted",
   start: "started",
   stop: "stopped",
@@ -138,7 +139,7 @@ export interface ResolveOptions {
   // one to copy from), so every store is offered.
   readonly anyStore?: boolean;
   // Only stores whose source can do this; the others are refused with a usage error.
-  readonly can?: Lifecycle;
+  readonly can?: Capability;
 }
 
 // The store a command was given, or picked at a prompt, as a ref and the source that

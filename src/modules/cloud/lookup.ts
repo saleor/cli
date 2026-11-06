@@ -186,6 +186,19 @@ export const findCloudEnvironment = (
     })
   );
 
+// A Cloud ref's id is `<org>/<environment key>`; a name is accepted for the key when
+// it is unambiguous in the organization.
+export const parseCloudId = (id: string) => {
+  const separator = id.indexOf("/");
+
+  return separator === -1
+    ? Option.none()
+    : Option.some({
+        environment: id.slice(separator + 1),
+        organization: id.slice(0, separator),
+      });
+};
+
 // ── Targets ──────────────────────────────────────────────────────────────
 
 export const environmentTarget = (

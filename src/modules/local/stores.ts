@@ -23,6 +23,7 @@ import {
   validateConfiguration,
 } from "../../core/project-configuration.ts";
 import { localRef } from "../../core/ref.ts";
+import { localBackups } from "./backups.ts";
 import { localStaffToken } from "./staff-token.ts";
 import { down, list, localTarget, planDown, planUp, up } from "./lifecycle.ts";
 import { connection } from "./setup.ts";
@@ -159,6 +160,7 @@ const removal = (name: string, deleteData: boolean) =>
 
 // Local stores, in Docker on this computer. Refs are `local:<name>`.
 export const localStores = {
+  backups: localBackups,
   find: (name: string) =>
     Effect.map(list, (stores) =>
       Option.fromUndefinedOr(stores.find((found) => found.name === name))

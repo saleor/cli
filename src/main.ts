@@ -2,6 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
 import { Command } from "effect/cli";
 import packageJson from "../package.json" with { type: "json" };
+import { backupCommand } from "./core/backups.ts";
 import { catalogCommand } from "./core/catalog.ts";
 import { environmentCommand } from "./core/environments.ts";
 import { GLOBAL_INPUTS } from "./core/globals.ts";
@@ -43,6 +44,7 @@ const moduleCommands = [
     modules.flatMap((module) => module.setupExtension ?? [])
   ),
   environmentCommand(providers),
+  backupCommand,
   ...collectCommands(modules),
   onboardCommand.pipe(Command.annotate(HideFromMenu, true)),
 ];

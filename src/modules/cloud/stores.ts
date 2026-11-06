@@ -19,8 +19,10 @@ import {
   isSandbox,
   listCloudEnvironments,
   listOrganizations,
+  parseCloudId,
   serviceTypeLabel,
 } from "./lookup.ts";
+import { cloudBackups } from "./backups.ts";
 import { deleteEnvironment } from "./provision.ts";
 import { waitForTask } from "./readiness.ts";
 import { cloudAppToken, cloudLoginToken } from "./store-token.ts";
@@ -39,22 +41,9 @@ const list = Effect.gen(function* () {
   return environments.flat();
 });
 
-// A ref's id is `<org>/<environment key>`; a name is accepted for the key when it is
-// unambiguous in the organization.
-const parse = (id: string) => {
-  const separator = id.indexOf("/");
-
-  return separator === -1
-    ? Option.none()
-    : Option.some({
-        environment: id.slice(separator + 1),
-        organization: id.slice(0, separator),
-      });
-};
-
 const find = (id: string) =>
   Effect.gen(function* () {
-    const parsed = parse(id);
+    const parsed = parseCloudId(id);
 
     if (Option.isNone(parsed)) {
       return Option.none<Store>();
@@ -71,7 +60,7 @@ const find = (id: string) =>
 // Deleting a sandbox. Production environments are only deleted in the dashboard.
 const remove = (id: string, { timeout }: { readonly timeout: number }) =>
   Effect.gen(function* () {
-    const parsed = parse(id);
+    const parsed = parseCloudId(id);
 
     if (Option.isNone(parsed)) {
       return yield* fail(
@@ -144,6 +133,7 @@ const populate = (environment: Store) =>
   });
 
 export const cloudStores = {
+  backups: cloudBackups,
   find,
   kind: "cloud",
   label: "Saleor Cloud",

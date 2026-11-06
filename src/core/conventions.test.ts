@@ -28,6 +28,7 @@ const VERBS: Record<ActionKind, readonly string[]> = {
     "pull",
     "edit",
     "reinstall",
+    "restore",
   ],
   list: ["list", "status", "diff"],
   remove: ["stop", "remove"],

@@ -1,7 +1,7 @@
 # Known limitations
 
 - Not installable yet: `pnpm build` produces a standalone `dist/saleor.mjs`, but the package (`bin`, `files`, `private`) is not set up to publish it, and `pnpm saleor` runs the TypeScript sources on Node 22.18+.
-- Configurator, backups, restores, upgrades and organization creation are not supported.
+- Configurator, upgrades and organization creation are not supported. Backups stay where they were made: a local backup cannot be restored into a Cloud environment, nor the other way around.
 - Login uses Jolly's OAuth client (`jolly`) until device login is enabled for `saleor-cli`.
 - Browser approval and the OS keyring have not been tested end to end against production.
 - New projects use the free plan; choose another plan, and delete projects, in the Saleor Cloud dashboard.
