@@ -2,17 +2,10 @@ import { Effect } from "effect";
 import path from "node:path";
 import type { CliFailure } from "../../core/errors.ts";
 import { withProgress } from "../../core/output.ts";
-import {
-  deadlineIn,
-  heartbeat,
-  isPast,
-  notReady,
-  POLL,
-} from "../../core/readiness.ts";
-import { storeAnswers } from "../../core/store-api.ts";
+import { deadlineIn } from "../../core/readiness.ts";
 import type { LocalConfig } from "./compose.ts";
 import { Docker } from "./docker.ts";
-import { localStore } from "./lifecycle.ts";
+import { untilApiAnswers } from "./lifecycle.ts";
 import { composeArgs } from "./state.ts";
 
 // The Docker steps of local backups: copying a store's database and media files out
@@ -200,21 +193,4 @@ export const replaceData = (config: LocalConfig, folder: string) =>
 
 // Saleor answers again a few seconds after it is started; the restore is done then.
 export const waitForApi = (config: LocalConfig, timeout: number) =>
-  Effect.gen(function* () {
-    const store = localStore(config, "starting");
-    const deadline = deadlineIn(timeout);
-    const beat = heartbeat();
-
-    while (!(yield* storeAnswers(store.graphqlUrl))) {
-      if (isPast(deadline)) {
-        return yield* notReady(
-          "the local GraphQL API is not responding yet.",
-          { store },
-          "Docker"
-        );
-      }
-
-      yield* beat("waiting for the GraphQL API");
-      yield* Effect.sleep(POLL);
-    }
-  });
+  untilApiAnswers(config, deadlineIn(timeout));

@@ -1,18 +1,14 @@
 import { Effect, Schema } from "effect";
+import { converge, done, wait } from "../../core/converge.ts";
 import { rmSync } from "node:fs";
 import type { TargetRef } from "../../core/action.ts";
 import { type CliFailure, fail } from "../../core/errors.ts";
 import { type StoreState, storeFrom } from "../../core/store.ts";
+import { localState } from "./store-state.ts";
 import { command } from "../../core/invocation.ts";
 import { withLock } from "../../core/lock.ts";
 import { notice, withProgress } from "../../core/output.ts";
-import {
-  deadlineIn,
-  heartbeat,
-  isPast,
-  notReady,
-  POLL,
-} from "../../core/readiness.ts";
+import { type Deadline, deadlineIn, notReady } from "../../core/readiness.ts";
 import { storeAnswers } from "../../core/store-api.ts";
 import { SecretStore } from "../../core/secret-store.ts";
 import { localRef } from "../../core/ref.ts";
@@ -279,6 +275,21 @@ const setUp = (
     return ready;
   });
 
+// Waits for the store's GraphQL API to answer, as after starting or restoring it.
+export const untilApiAnswers = (config: LocalConfig, deadline: Deadline) =>
+  converge({
+    deadline,
+    decide: (answers: boolean) =>
+      answers ? done(undefined) : wait("waiting for the GraphQL API"),
+    observe: storeAnswers(graphqlUrlOf(config)),
+    timeout: () =>
+      notReady(
+        "the local GraphQL API is not responding yet.",
+        { store: localStore(config, "starting") },
+        "Docker"
+      ),
+  });
+
 export const up = (options: LocalUpOptions) =>
   Effect.gen(function* () {
     yield* localName(options.name);
@@ -345,20 +356,7 @@ export const up = (options: LocalUpOptions) =>
         const deadline = deadlineIn(options.timeout);
         yield* notice(`Waiting for the GraphQL API at ${graphqlUrl}…`);
 
-        const beat = heartbeat();
-
-        while (!(yield* storeAnswers(graphqlUrl))) {
-          if (isPast(deadline)) {
-            return yield* notReady(
-              "the local GraphQL API is not responding yet.",
-              { store: localStore(config, "starting") },
-              "Docker"
-            );
-          }
-
-          yield* beat("waiting for the GraphQL API");
-          yield* Effect.sleep(POLL);
-        }
+        yield* untilApiAnswers(config, deadline);
 
         return outcome();
       })
@@ -371,15 +369,11 @@ const describeInstance = (config: LocalConfig) =>
     const apiRunning = isRunning(containers, "api");
     const answers = apiRunning && (yield* storeAnswers(graphqlUrlOf(config)));
 
-    let state: StoreState = "stopped";
-
-    if (!config.initialized) {
-      state = "incomplete";
-    } else if (answers) {
-      state = "ready";
-    } else if (apiRunning) {
-      state = "starting";
-    }
+    const state = localState({
+      answers,
+      apiRunning,
+      initialized: config.initialized,
+    });
 
     return { ...localStore(config, state), containers };
   });

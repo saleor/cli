@@ -10,7 +10,7 @@ import {
   setEnv,
 } from "../../core/env-file.ts";
 import { fail } from "../../core/errors.ts";
-import type { Store, StoreSource } from "../../core/store.ts";
+import { isRunning, type Store, type StoreSource } from "../../core/store.ts";
 import { command } from "../../core/invocation.ts";
 import { columns, shown } from "../../core/output.ts";
 import { recordComponent } from "../../core/components.ts";
@@ -144,15 +144,13 @@ const channelExists = (graphqlUrl: string, slug: string) =>
     )
   );
 
-const STARTED = new Set(["ready", "running"]);
-
 const storeWarnings = (
   store: Store,
   source: StoreSource<never> | undefined,
   channel: string
 ) =>
   Effect.gen(function* () {
-    if (!STARTED.has(store.state)) {
+    if (!isRunning(store.state)) {
       const start =
         source?.start === undefined
           ? undefined

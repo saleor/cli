@@ -1,13 +1,8 @@
-import { Effect, Option } from "effect";
-import { fail } from "../../core/errors.ts";
+import { Data, Effect, Option } from "effect";
+import { act, converge, done, failWith, wait } from "../../core/converge.ts";
+import { type CliFailure, fail } from "../../core/errors.ts";
 import { notice } from "../../core/output.ts";
-import {
-  type Deadline,
-  heartbeat,
-  isPast,
-  notReady,
-  POLL,
-} from "../../core/readiness.ts";
+import { type Deadline, heartbeat, notReady } from "../../core/readiness.ts";
 import { storeAnswers } from "../../core/store-api.ts";
 import { CloudApi, orDescribe } from "./api/client.ts";
 import {
@@ -42,6 +37,37 @@ export const cloudNotReady = (
   details: Parameters<typeof notReady>[1]
 ) => notReady(message, details, "Saleor Cloud");
 
+// A Cloud task, as its status reads: still running, done, or failed.
+export type TaskState = Data.TaggedEnum<{
+  Failed: { readonly task: TaskStatus };
+  Running: { readonly task: TaskStatus };
+  Succeeded: { readonly task: TaskStatus };
+}>;
+
+interface TaskStatus {
+  readonly status: string;
+  readonly status_message?: string | null;
+}
+
+export const TaskState = Data.taggedEnum<TaskState>();
+
+export const classifyTask = (task: TaskStatus): TaskState => {
+  if (task.status === "SUCCEEDED") {
+    return TaskState.Succeeded({ task });
+  }
+
+  return isFailedStatus(task.status)
+    ? TaskState.Failed({ task })
+    : TaskState.Running({ task });
+};
+
+export const decideTask = (label: string, taskId: string) =>
+  TaskState.$match({
+    Failed: ({ task }) => failWith(taskFailed(label, task, taskId)),
+    Running: () => wait(`waiting for ${label.toLowerCase()}`),
+    Succeeded: () => done(undefined),
+  });
+
 // `beat` is shared by a caller that waits for several tasks in turn, so progress keeps
 // showing, and counting, across all of them.
 export const waitForTask = ({
@@ -58,43 +84,32 @@ export const waitForTask = ({
   Effect.gen(function* () {
     const api = yield* CloudApi;
 
-    for (;;) {
-      const task = yield* api
-        .call(retrieveTaskStatus, { path: { job_name: taskId } })
-        .pipe(
-          // A task that was just queued may not be visible yet.
-          Effect.catchTag("ApiStatusError", (error) =>
-            error.status === 404
-              ? Effect.succeed({
-                  status: "PENDING" as const,
-                  status_message: null,
-                })
-              : Effect.fail(error)
-          ),
-          orDescribe
-        );
+    const status = api
+      .call(retrieveTaskStatus, { path: { job_name: taskId } })
+      .pipe(
+        // A task that was just queued may not be visible yet.
+        Effect.catchTag("ApiStatusError", (error) =>
+          error.status === 404
+            ? Effect.succeed({
+                status: "PENDING" as const,
+                status_message: null,
+              })
+            : Effect.fail(error)
+        ),
+        orDescribe
+      );
 
-      if (task.status === "SUCCEEDED") {
-        return;
-      }
-
-      if (isFailedStatus(task.status)) {
-        return yield* taskFailed(label, task, taskId);
-      }
-
-      if (isPast(deadline)) {
-        return yield* cloudNotReady(
-          `${label.toLowerCase()} is still in progress.`,
-          {
-            status: task.status,
-            taskId,
-          }
-        );
-      }
-
-      yield* beat(`waiting for ${label.toLowerCase()}`);
-      yield* Effect.sleep(POLL);
-    }
+    return yield* converge({
+      beat,
+      deadline,
+      decide: decideTask(label, taskId),
+      observe: Effect.map(status, classifyTask),
+      timeout: (state) =>
+        cloudNotReady(`${label.toLowerCase()} is still in progress.`, {
+          status: state.task.status,
+          taskId,
+        }),
+    });
   });
 
 // Cloud's `is_blocking` task filter returns the blocking tasks still running on an
@@ -115,18 +130,81 @@ export const blockingTasks = (organization: string, envKey: string) =>
     return page.results;
   });
 
-// Prints each progress message once per run, on stderr.
-const progress = () => {
-  const shown = new Set<string>();
+// How a new environment stands. Blocking tasks come first: a failed one ends the wait,
+// running ones are waited for. Then the environment itself: gone, busy or in
+// maintenance, up with an API that does not answer yet, or ready.
+export type EnvironmentState = Data.TaggedEnum<{
+  Busy: { readonly env: CloudEnvironment };
+  Gone: { readonly envKey: string };
+  Ready: { readonly env: CloudEnvironment };
+  Starting: { readonly env: CloudEnvironment };
+  TaskFailed: { readonly task: BlockingTask };
+  TasksRunning: { readonly tasks: readonly BlockingTask[] };
+}>;
 
-  return (message: string) =>
-    shown.has(message)
-      ? Effect.void
-      : Effect.andThen(
-          Effect.sync(() => shown.add(message)),
-          notice(message)
-        );
+type BlockingTask = Effect.Success<ReturnType<typeof blockingTasks>>[number];
+
+export const EnvironmentState = Data.taggedEnum<EnvironmentState>();
+
+export const classifyEnvironment = ({
+  envKey,
+  tasks,
+  env,
+  answers,
+}: {
+  readonly envKey: string;
+  readonly tasks: readonly BlockingTask[];
+  readonly env: Option.Option<CloudEnvironment>;
+  readonly answers: boolean;
+}): EnvironmentState => {
+  const failed = tasks.find((task) => isFailedStatus(task.status));
+
+  if (failed !== undefined) {
+    return EnvironmentState.TaskFailed({ task: failed });
+  }
+
+  if (tasks.length > 0) {
+    return EnvironmentState.TasksRunning({ tasks });
+  }
+
+  if (Option.isNone(env)) {
+    return EnvironmentState.Gone({ envKey });
+  }
+
+  if (env.value.blocking_tasks_in_progress || env.value.maintenance_mode) {
+    return EnvironmentState.Busy({ env: env.value });
+  }
+
+  return answers
+    ? EnvironmentState.Ready({ env: env.value })
+    : EnvironmentState.Starting({ env: env.value });
 };
+
+const apiWait = (env: CloudEnvironment) =>
+  wait("waiting for the GraphQL API", {
+    say: `Waiting for the GraphQL API to respond at ${graphqlUrlOf(env)}…`,
+  });
+
+export const decideEnvironment = <R>(
+  waitForTasks: (
+    tasks: readonly BlockingTask[]
+  ) => Effect.Effect<void, CliFailure, R>
+) =>
+  EnvironmentState.$match({
+    Busy: ({ env }) => apiWait(env),
+    Gone: ({ envKey }) =>
+      failWith(
+        fail(
+          "NOT_FOUND",
+          `Environment "${envKey}" was deleted while waiting for it to be ready.`
+        )
+      ),
+    Ready: ({ env }) => done(env),
+    Starting: ({ env }) => apiWait(env),
+    TaskFailed: ({ task }) =>
+      failWith(taskFailed("Environment setup", task, task.job_name)),
+    TasksRunning: ({ tasks }) => act(waitForTasks(tasks)),
+  });
 
 export const waitUntilReady = ({
   organization,
@@ -140,61 +218,67 @@ export const waitUntilReady = ({
   readonly beat?: (what: string) => Effect.Effect<void>;
 }) =>
   Effect.gen(function* () {
-    const say = progress();
+    const said = { setup: false };
 
-    for (;;) {
+    const observe = Effect.gen(function* () {
       const tasks = yield* blockingTasks(organization, envKey);
-      const failed = tasks.find((task) => isFailedStatus(task.status));
 
-      if (failed !== undefined) {
-        return yield* taskFailed("Environment setup", failed, failed.job_name);
-      }
-
-      for (const task of tasks) {
-        yield* say(
-          "Waiting for Saleor Cloud to finish setting up the environment…"
-        );
-        yield* waitForTask({
-          taskId: task.job_name,
-          deadline,
-          label: "Environment setup",
-          beat,
+      if (tasks.length > 0) {
+        return classifyEnvironment({
+          answers: false,
+          env: Option.none(),
+          envKey,
+          tasks,
         });
       }
 
-      const found = yield* findCloudEnvironment(organization, envKey);
+      const env = yield* findCloudEnvironment(organization, envKey);
 
-      if (Option.isNone(found)) {
-        return yield* fail(
-          "NOT_FOUND",
-          `Environment "${envKey}" was deleted while waiting for it to be ready.`
-        );
-      }
+      const answers =
+        Option.isSome(env) &&
+        !(env.value.blocking_tasks_in_progress || env.value.maintenance_mode) &&
+        (yield* storeAnswers(graphqlUrlOf(env.value)));
 
-      const env: CloudEnvironment = found.value;
-      const graphqlUrl = graphqlUrlOf(env);
+      return classifyEnvironment({ answers, env, envKey, tasks });
+    });
 
-      if (
-        !(env.blocking_tasks_in_progress || env.maintenance_mode) &&
-        (yield* storeAnswers(graphqlUrl))
-      ) {
-        return env;
-      }
+    const waitForTasks = (tasks: readonly BlockingTask[]) =>
+      Effect.gen(function* () {
+        if (!said.setup) {
+          said.setup = true;
+          yield* notice(
+            "Waiting for Saleor Cloud to finish setting up the environment…"
+          );
+        }
 
-      if (isPast(deadline)) {
-        return yield* cloudNotReady(
+        for (const task of tasks) {
+          yield* waitForTask({
+            taskId: task.job_name,
+            deadline,
+            label: "Environment setup",
+            beat,
+          });
+        }
+      });
+
+    return yield* converge({
+      beat,
+      deadline,
+      decide: decideEnvironment(waitForTasks),
+      observe,
+      timeout: (state) =>
+        cloudNotReady(
           "the environment is set up, but its GraphQL API is not responding yet.",
           {
             environment: envKey,
-            graphqlUrl,
+            graphqlUrl:
+              EnvironmentState.$is("Starting")(state) ||
+              EnvironmentState.$is("Busy")(state)
+                ? graphqlUrlOf(state.env)
+                : null,
           }
-        );
-      }
-
-      yield* say(`Waiting for the GraphQL API to respond at ${graphqlUrl}…`);
-      yield* beat("waiting for the GraphQL API");
-      yield* Effect.sleep(POLL);
-    }
+        ),
+    });
   });
 
 export const waitUntilGone = (
@@ -202,22 +286,13 @@ export const waitUntilGone = (
   envKey: string,
   deadline: Deadline
 ) =>
-  Effect.gen(function* () {
-    const beat = heartbeat();
-
-    for (;;) {
-      if (Option.isNone(yield* findCloudEnvironment(organization, envKey))) {
-        return;
-      }
-
-      yield* beat("deleting");
-
-      if (isPast(deadline)) {
-        return yield* cloudNotReady("the environment is still being deleted.", {
-          environment: envKey,
-        });
-      }
-
-      yield* Effect.sleep(POLL);
-    }
+  converge({
+    deadline,
+    decide: (env: Option.Option<CloudEnvironment>) =>
+      Option.isNone(env) ? done(undefined) : wait("deleting"),
+    observe: findCloudEnvironment(organization, envKey),
+    timeout: () =>
+      cloudNotReady("the environment is still being deleted.", {
+        environment: envKey,
+      }),
   });

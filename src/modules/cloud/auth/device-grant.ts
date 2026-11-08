@@ -1,4 +1,5 @@
-import { Duration, Effect, Schema } from "effect";
+import { Data, Duration, Effect, Match, Option, Schema } from "effect";
+import { converge, done, failWith, wait } from "../../../core/converge.ts";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { fail } from "../../../core/errors.ts";
 import { command } from "../../../core/invocation.ts";
@@ -142,95 +143,111 @@ const toTokens = (parsed: typeof TokenResponse.Type): DeviceTokens => {
     : tokens;
 };
 
+// The login server's answer to one poll of a device grant (RFC 8628, section 3.5).
+export type GrantAnswer = Data.TaggedEnum<{
+  Approved: { readonly tokens: typeof TokenResponse.Type };
+  Denied: { readonly error: string };
+  Expired: { readonly error: string };
+  Pending: { readonly error: string };
+  Rejected: { readonly message: string; readonly body: Schema.JsonObject };
+  SlowDown: { readonly error: string };
+}>;
+
+export const GrantAnswer = Data.taggedEnum<GrantAnswer>();
+
+const unreadable = (body: Schema.JsonObject) =>
+  GrantAnswer.Rejected({
+    body,
+    message:
+      "The Saleor Cloud login server sent a response this version of the CLI does not understand.",
+  });
+
+const rejectedFor = (status: number, body: Schema.JsonObject) => {
+  const error = Schema.is(Schema.String)(body.error) ? body.error : "";
+
+  const description = Schema.is(Schema.String)(body.error_description)
+    ? body.error_description
+    : "";
+
+  return GrantAnswer.Rejected({
+    body,
+    message: `Login failed: ${description || error || `HTTP ${status}`}.`,
+  });
+};
+
+export const classifyGrantAnswer = (
+  status: number,
+  body: Schema.JsonObject
+): GrantAnswer => {
+  if (status === 200) {
+    return Option.match(Schema.decodeUnknownOption(TokenResponse)(body), {
+      onNone: () => unreadable(body),
+      onSome: (tokens) => GrantAnswer.Approved({ tokens }),
+    });
+  }
+
+  const error = Schema.is(Schema.String)(body.error) ? body.error : "";
+
+  return Match.value(error).pipe(
+    Match.when("authorization_pending", () => GrantAnswer.Pending({ error })),
+    Match.when("slow_down", () => GrantAnswer.SlowDown({ error })),
+    Match.when("access_denied", () => GrantAnswer.Denied({ error })),
+    Match.when("expired_token", () => GrantAnswer.Expired({ error })),
+    Match.orElse(() => rejectedFor(status, body))
+  );
+};
+
+const codeExpired = () =>
+  fail(
+    "AUTH_DEVICE_CODE_EXPIRED",
+    "The login link expired before the request was approved.",
+    {
+      retry: true,
+      suggestion: `To get a new link, run: ${command("login")}`,
+    }
+  );
+
+export const decideGrant = GrantAnswer.$match({
+  Approved: ({ tokens }) => done(tokens),
+  Denied: () =>
+    failWith(
+      fail(
+        "AUTH_DEVICE_ACCESS_DENIED",
+        "The login request was denied in the browser.",
+        { suggestion: `To try again, run: ${command("login")}` }
+      )
+    ),
+  Expired: () => failWith(codeExpired()),
+  Pending: () => wait("waiting for approval"),
+  Rejected: ({ body, message }) =>
+    failWith(fail("API_ERROR", message, { details: body })),
+  SlowDown: () =>
+    wait("waiting for approval", { slowDownBy: Duration.seconds(5) }),
+});
+
 // Polls until the person approves, honouring `interval` and `slow_down`, and stops when
 // the code expires.
 export const pollForTokens = (grant: PendingDeviceGrant) =>
-  Effect.gen(function* () {
-    let interval = grant.intervalSeconds;
-
-    for (;;) {
-      if (Date.now() >= grant.expiresAt) {
-        return yield* fail(
-          "AUTH_DEVICE_CODE_EXPIRED",
-          "The login link expired before the request was approved.",
-          {
-            retry: true,
-            suggestion: `To get a new link, run: ${command("login")}`,
-          }
-        );
-      }
-
-      yield* Effect.sleep(Duration.seconds(interval));
-
-      const { status, body } = yield* postForm(
-        `${authRealmUrl()}/protocol/openid-connect/token`,
-        {
+  Effect.map(
+    converge({
+      // The person is acting in the browser; the notice already says it is waiting.
+      beat: () => Effect.void,
+      deadline: { at: grant.expiresAt },
+      decide: decideGrant,
+      interval: Duration.seconds(grant.intervalSeconds),
+      observe: Effect.map(
+        postForm(`${authRealmUrl()}/protocol/openid-connect/token`, {
           client_id: DEVICE_CLIENT_ID,
           device_code: grant.deviceCode,
           grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-        }
-      );
-
-      if (status === 200) {
-        const parsed = yield* Schema.decodeUnknownEffect(TokenResponse)(
-          body
-        ).pipe(
-          Effect.mapError(() =>
-            fail(
-              "API_ERROR",
-              "The Saleor Cloud login server sent a response this version of the CLI does not understand."
-            )
-          )
-        );
-
-        return toTokens(parsed);
-      }
-
-      const error = Schema.is(Schema.String)(body.error) ? body.error : "";
-
-      switch (error) {
-        case "authorization_pending": {
-          continue;
-        }
-
-        case "slow_down": {
-          interval += 5;
-          continue;
-        }
-
-        case "access_denied": {
-          return yield* fail(
-            "AUTH_DEVICE_ACCESS_DENIED",
-            "The login request was denied in the browser.",
-            {
-              suggestion: `To try again, run: ${command("login")}`,
-            }
-          );
-        }
-
-        case "expired_token": {
-          return yield* fail(
-            "AUTH_DEVICE_CODE_EXPIRED",
-            "The login link expired before the request was approved.",
-            {
-              retry: true,
-              suggestion: `To get a new link, run: ${command("login")}`,
-            }
-          );
-        }
-
-        default: {
-          break;
-        }
-      }
-
-      return yield* fail(
-        "API_ERROR",
-        `Login failed: ${(Schema.is(Schema.String)(body.error_description) ? body.error_description : "") || error || `HTTP ${status}`}.`,
-        { details: body }
-      );
-    }
-  });
+        }),
+        ({ body, status }) => classifyGrantAnswer(status, body)
+      ),
+      timeout: () => Effect.fail(codeExpired()),
+      waitFirst: true,
+    }),
+    toTokens
+  );
 
 export const refreshTokens = (tokens: DeviceTokens) =>
   Effect.gen(function* () {

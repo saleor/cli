@@ -22,6 +22,7 @@ import {
   fetchManifest,
   install,
   type InstalledApp,
+  installationFailed,
   installed,
   installFrom,
   writeMetadata,
@@ -137,7 +138,7 @@ const listCommand = app.list({
           manifestUrl: each.manifestUrl,
           name: each.appName,
           source: null,
-          state: each.status === "FAILED" ? "failed" : "installing",
+          state: installationFailed(each) ? "failed" : "installing",
         })),
       ];
 
@@ -264,7 +265,7 @@ const addCommand = app.ensure({
       );
 
       // Already installing: wait for it rather than start a second installation.
-      if (earlier !== undefined && earlier.status !== "FAILED") {
+      if (earlier !== undefined && !installationFailed(earlier)) {
         return addPlan({
           action: "reuse",
           apply: Effect.map(

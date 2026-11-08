@@ -2610,6 +2610,11 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
           ? "AUTH_DEVICE_ACCESS_DENIED"
           : "AUTH_DEVICE_CODE_EXPIRED"
       );
+      // The grant can never be approved now, so the next login asks for a new one.
+      const file = path.join(cwd, "config/credentials.json");
+      expect(existsSync(file) ? readFileSync(file, "utf-8") : "").not.toContain(
+        "pending-device-grant"
+      );
     }
   );
   it("ignores an exported SALEOR_PROJECT when deleting, instead of reporting a false 'nothing to delete'", async () => {

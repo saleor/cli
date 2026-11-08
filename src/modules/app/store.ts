@@ -1,6 +1,7 @@
-import { Effect, Schema } from "effect";
+import { Data, Effect, Schema } from "effect";
+import { converge, done, failWith, wait } from "../../core/converge.ts";
 import { fail } from "../../core/errors.ts";
-import { type Deadline, isPast, notReady, POLL } from "../../core/readiness.ts";
+import { type Deadline, notReady } from "../../core/readiness.ts";
 import {
   mutationRejected,
   MutationErrors,
@@ -176,57 +177,105 @@ export const retryInstall = (client: StoreClient, installationId: string) =>
     (answer) => started(client, answer)
   );
 
-// Waits until the installation is gone and the app with its manifest URL exists.
-export const installed = (
-  client: StoreClient,
-  {
-    installationId,
-    manifestUrl,
-  }: { readonly installationId: string; readonly manifestUrl: string },
-  deadline: Deadline
-) =>
-  Effect.gen(function* () {
-    for (;;) {
-      const { apps, installations } = yield* appsOn(client);
-      const pending = installations.find((each) => each.id === installationId);
+// ── Installation state ───────────────────────────────────────────────────
 
-      if (pending?.status === "FAILED") {
-        return yield* fail(
+// Saleor's status of an installation the CLI started. The only place that reads it.
+export const installationFailed = (installation: Installation) =>
+  installation.status === "FAILED";
+
+// How an installation stands, seen from the store's apps and installations.
+//   Installed   the app with its manifest URL exists
+//   Installing  Saleor is still working on it (or finished and the app is not listed yet)
+//   Failed      Saleor gave up, with a message
+//   Lost        the installation is gone, yet no app has its manifest URL
+export type InstallState = Data.TaggedEnum<{
+  Failed: { readonly installation: Installation };
+  Installed: { readonly app: InstalledApp };
+  Installing: { readonly installation: Installation | undefined };
+  Lost: { readonly manifestUrl: string };
+}>;
+
+export const InstallState = Data.taggedEnum<InstallState>();
+
+export const classifyInstall = (
+  seen: {
+    readonly apps: readonly InstalledApp[];
+    readonly installations: readonly Installation[];
+  },
+  wanted: { readonly installationId: string; readonly manifestUrl: string }
+): InstallState => {
+  const pending = seen.installations.find(
+    (each) => each.id === wanted.installationId
+  );
+
+  if (pending !== undefined && installationFailed(pending)) {
+    return InstallState.Failed({ installation: pending });
+  }
+
+  if (pending === undefined || pending.status === "SUCCESS") {
+    const app = seen.apps.find(
+      (each) => each.manifestUrl === wanted.manifestUrl
+    );
+
+    if (app !== undefined) {
+      return InstallState.Installed({ app });
+    }
+
+    if (pending === undefined) {
+      return InstallState.Lost({ manifestUrl: wanted.manifestUrl });
+    }
+  }
+
+  return InstallState.Installing({ installation: pending });
+};
+
+export const decideInstall = (ref: string) =>
+  InstallState.$match({
+    Failed: ({ installation }) =>
+      failWith(
+        fail(
           "STORE_ERROR",
-          `${client.store.ref} could not install ${pending.appName}: ${pending.message ?? "no reason given"}`,
+          `${ref} could not install ${installation.appName}: ${installation.message ?? "no reason given"}`,
           {
-            details: { installation: pending },
+            details: { installation },
             suggestion:
               "Check that the store can reach the manifest URL and the app's endpoints, then run the same command again to retry.",
           }
-        );
-      }
+        )
+      ),
+    Installed: ({ app }) => done(app),
+    Installing: () => wait("installing the app"),
+    Lost: ({ manifestUrl }) =>
+      failWith(
+        fail(
+          "STORE_ERROR",
+          `${ref} finished installing from ${manifestUrl}, but no app has that manifest URL.`
+        )
+      ),
+  });
 
-      if (pending === undefined || pending.status === "SUCCESS") {
-        const app = apps.find((each) => each.manifestUrl === manifestUrl);
-
-        if (app !== undefined) {
-          return app;
-        }
-
-        if (pending === undefined) {
-          return yield* fail(
-            "STORE_ERROR",
-            `${client.store.ref} finished installing from ${manifestUrl}, but no app has that manifest URL.`
-          );
-        }
-      }
-
-      if (isPast(deadline)) {
-        return yield* notReady(
-          `${client.store.ref} is still installing the app.`,
-          { installation: pending ?? null },
-          "the store"
-        );
-      }
-
-      yield* Effect.sleep(POLL);
-    }
+// Waits until the installation is gone and the app with its manifest URL exists.
+export const installed = (
+  client: StoreClient,
+  wanted: { readonly installationId: string; readonly manifestUrl: string },
+  deadline: Deadline
+) =>
+  converge({
+    deadline,
+    decide: decideInstall(client.store.ref),
+    observe: Effect.map(appsOn(client), (seen) =>
+      classifyInstall(seen, wanted)
+    ),
+    timeout: (state) =>
+      notReady(
+        `${client.store.ref} is still installing the app.`,
+        {
+          installation: InstallState.$is("Installing")(state)
+            ? (state.installation ?? null)
+            : null,
+        },
+        "the store"
+      ),
   });
 
 export type Manifest = Effect.Success<ReturnType<typeof fetchManifest>>;
