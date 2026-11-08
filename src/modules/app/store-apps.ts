@@ -9,6 +9,7 @@ import {
   appsOn,
   fetchManifest,
   type InstalledApp,
+  installationFailed,
   installed,
   installFrom,
   type Manifest,
@@ -179,7 +180,7 @@ const applyChanges = (
         (installation) => installation.manifestUrl === manifestUrl
       );
 
-      yield* pending !== undefined && pending.status !== "FAILED"
+      yield* pending !== undefined && !installationFailed(pending)
         ? installed(
             client,
             { installationId: pending.id, manifestUrl },

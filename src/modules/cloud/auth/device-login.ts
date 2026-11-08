@@ -1,8 +1,15 @@
 import { Effect } from "effect";
+import type { ErrorCode } from "../../../core/errors.ts";
 import { openBrowser } from "../../../core/interaction.ts";
 import { notice } from "../../../core/output.ts";
 import { pollForTokens, requestDeviceCode } from "./device-grant.ts";
 import { Session } from "./session.ts";
+
+const FINISHED_GRANT = new Set<ErrorCode>([
+  "API_ERROR",
+  "AUTH_DEVICE_ACCESS_DENIED",
+  "AUTH_DEVICE_CODE_EXPIRED",
+]);
 
 // Reuses a still-valid pending code, so an agent that was interrupted while the person
 // was approving does not invalidate the link it already showed them.
@@ -39,7 +46,16 @@ export const deviceLogin = (openInBrowser: boolean) =>
       }
     );
 
-    const tokens = yield* pollForTokens(grant);
+    const tokens = yield* pollForTokens(grant).pipe(
+      // A denied, expired or refused grant can never be approved; the next login must
+      // ask for a new one. A network failure or Ctrl+C keeps it for the next run.
+      Effect.tapError((failure) =>
+        FINISHED_GRANT.has(failure.code)
+          ? session.clearPendingGrant
+          : Effect.void
+      )
+    );
+
     yield* session.saveLogin(tokens);
     yield* session.clearPendingGrant;
   });

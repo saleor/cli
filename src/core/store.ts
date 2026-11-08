@@ -27,6 +27,11 @@ export const STORE_STATES = [
 
 export type StoreState = (typeof STORE_STATES)[number];
 
+// Whether the store runs, as far as is known: its API answered, or its provider says
+// it runs and the API was not asked.
+export const isRunning = (state: StoreState) =>
+  state === "ready" || state === "running";
+
 export interface Store {
   readonly dashboardUrl: string;
   readonly graphqlUrl: string;

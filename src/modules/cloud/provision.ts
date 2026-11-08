@@ -1,14 +1,10 @@
-import { Effect, Option } from "effect";
+import { Data, Effect, Option } from "effect";
+import { converge, done, wait } from "../../core/converge.ts";
 import { type CliFailure, fail } from "../../core/errors.ts";
 import { askSelect, isInteractive } from "../../core/interaction.ts";
 import { command, recordAnswer, rerunCommand } from "../../core/invocation.ts";
 import { notice } from "../../core/output.ts";
-import {
-  type Deadline,
-  heartbeat,
-  isPast,
-  POLL,
-} from "../../core/readiness.ts";
+import { type Deadline, heartbeat } from "../../core/readiness.ts";
 import {
   type ApiStatusError,
   CloudApi,
@@ -525,6 +521,22 @@ export const applyEnvironment = (
     return { created: true, environment: ready };
   });
 
+// A request to delete an environment: accepted, refused while another task runs on
+// it (with the NOT_READY failure that explains why), or moot because it is gone.
+export type DeletionState = Data.TaggedEnum<{
+  Accepted: { readonly envKey: string };
+  Busy: { readonly failure: CliFailure };
+  Gone: { readonly envKey: string };
+}>;
+
+export const DeletionState = Data.taggedEnum<DeletionState>();
+
+export const decideDeletion = DeletionState.$match({
+  Accepted: () => done(true),
+  Busy: () => wait("waiting for another Cloud task to finish"),
+  Gone: () => done(false),
+});
+
 // Deletion is asynchronous in Cloud (HTTP 202); this waits until the environment is
 // no longer listed, or returns NOT_READY so a re-run continues the wait. While another
 // task runs (including a deletion an earlier run started), Cloud refuses the request;
@@ -537,44 +549,44 @@ export const deleteEnvironment = (
   Effect.gen(function* () {
     const api = yield* CloudApi;
 
-    for (;;) {
-      const accepted = yield* api
-        .call(destroyEnvironmentTask, {
-          path: { id: env.key, organization_slug: organization },
-        })
-        .pipe(
-          Effect.as(true),
-          Effect.catchTag(
-            "ApiStatusError",
-            (error): Effect.Effect<boolean, ApiStatusError | CliFailure> =>
-              error.status === 404
-                ? Effect.succeed(true)
-                : busyRejection(
-                    error,
-                    "Saleor Cloud is busy with another task on this environment.",
-                    {
-                      environment: env.key,
-                    }
-                  ).pipe(
-                    Effect.catchTag("CliFailure", (busy) =>
-                      busy.code === "NOT_READY" && !isPast(deadline)
-                        ? Effect.succeed(false)
-                        : Effect.fail(busy)
-                    )
-                  )
-          ),
-          orDescribe
-        );
+    const busy = (failure: CliFailure) =>
+      Effect.map(findCloudEnvironment(organization, env.key), (found) =>
+        Option.isNone(found)
+          ? DeletionState.Gone({ envKey: env.key })
+          : DeletionState.Busy({ failure })
+      );
 
-      if (accepted) {
-        break;
-      }
+    const request = api
+      .call(destroyEnvironmentTask, {
+        path: { id: env.key, organization_slug: organization },
+      })
+      .pipe(
+        Effect.as(DeletionState.Accepted({ envKey: env.key })),
+        Effect.catchTag("ApiStatusError", (error) =>
+          error.status === 404
+            ? Effect.succeed(DeletionState.Accepted({ envKey: env.key }))
+            : busyRejection(
+                error,
+                "Saleor Cloud is busy with another task on this environment.",
+                { environment: env.key }
+              )
+        ),
+        orDescribe,
+        Effect.catchIf((failure) => failure.code === "NOT_READY", busy)
+      );
 
-      if (Option.isNone(yield* findCloudEnvironment(organization, env.key))) {
-        return;
-      }
+    const accepted = yield* converge({
+      deadline,
+      decide: decideDeletion,
+      observe: request,
+      timeout: (state) =>
+        DeletionState.$is("Busy")(state)
+          ? Effect.fail(state.failure)
+          : Effect.die("A finished deletion does not time out."),
+    });
 
-      yield* Effect.sleep(POLL);
+    if (!accepted) {
+      return;
     }
 
     yield* notice(`Deleting environment "${env.name}" (${env.key})…`);

@@ -33,7 +33,10 @@ export const graphqlUrlOf = (env: CloudEnvironment) =>
 
 // Without `apiAnswered` only what Cloud reports is known: a task running ("busy"),
 // maintenance, or neither ("running"). With it, the store itself was asked.
-const stateOf = (env: CloudEnvironment, apiAnswered?: boolean): StoreState => {
+export const stateOf = (
+  env: CloudEnvironment,
+  apiAnswered?: boolean
+): StoreState => {
   if (env.maintenance_mode) {
     return "maintenance";
   }
