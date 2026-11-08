@@ -2,6 +2,7 @@ import { spinner } from "@clack/prompts";
 import { Effect, Exit, Option } from "effect";
 import { Flag, GlobalFlag } from "effect/cli";
 import path from "node:path";
+import { Writable } from "node:stream";
 import type { CliFailure } from "./errors.ts";
 
 export type OutputFormat = "text" | "json";
@@ -230,7 +231,7 @@ export const warnOnce = (key: string, message: string) => {
 // The spinner redraws each frame as separate writes (cursor move, erase, text). The
 // terminal can paint between them, so the line blinks empty. Joining the writes of
 // one frame into a single write lets the terminal swap the line in one step.
-const coalescedStderr = (): NodeJS.WriteStream => {
+const coalescedStderr = () => {
   const stream = process.stderr;
   let pending = "";
 
@@ -244,20 +245,22 @@ const coalescedStderr = (): NodeJS.WriteStream => {
 
   process.once("exit", flush);
 
-  return new Proxy(stream, {
-    get(target, property, receiver) {
-      if (property === "write") {
-        return (chunk: string | Uint8Array) => {
-          if (pending === "") {
-            queueMicrotask(flush);
-          }
-          pending += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
-          return true;
-        };
+  const coalesced = new Writable({
+    write(chunk: Buffer, _encoding, done) {
+      if (pending === "") {
+        queueMicrotask(flush);
       }
-      const value = Reflect.get(target, property, receiver);
-      return typeof value === "function" ? value.bind(target) : value;
+
+      pending += chunk.toString();
+      done();
     },
+  });
+
+  // The spinner sizes and styles its line from the terminal it writes to.
+  return Object.assign(coalesced, {
+    columns: stream.columns,
+    isTTY: stream.isTTY,
+    rows: stream.rows,
   });
 };
 
