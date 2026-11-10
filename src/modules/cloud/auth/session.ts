@@ -177,7 +177,12 @@ export const SessionLive = Layer.effect(
 
         const tokens = yield* loadTokens;
 
-        if (tokens === undefined) {
+        // A login whose refresh token has lapsed cannot be used without logging in again.
+        if (
+          tokens === undefined ||
+          (tokens.refreshExpiresAt !== undefined &&
+            tokens.refreshExpiresAt <= Date.now())
+        ) {
           return { source: "none" as const, store: store.backend };
         }
 
