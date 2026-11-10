@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { command } from "../../core/invocation.ts";
 import type { StoreClient } from "../../core/store-api.ts";
-import { target } from "../../core/target.ts";
+import { type Given, target } from "../../core/target.ts";
 import type { InstalledApp } from "./store.ts";
 
 // An app installed on a store. Without --app, a person picks it from the store's
@@ -37,3 +37,14 @@ export const newAppInput = target({
   name: "app",
   noun: "app",
 }).input({ creates: true });
+
+// How `newAppInput` is resolved: there is nothing to pick, so a person names one.
+export const resolveNewApp = (given: Given) =>
+  newAppInput.resolve(given, {
+    choices: Effect.succeed([]),
+    create: {
+      label: "Create an app",
+      placeholder: "loyalty",
+      prompt: "What is the app called?",
+    },
+  });
