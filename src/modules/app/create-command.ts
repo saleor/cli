@@ -1,19 +1,19 @@
 import { Effect } from "effect";
 import { defineActions, type Planned } from "../../core/action.ts";
 import type { CommandResult } from "../../core/command.ts";
-import { fail } from "../../core/errors.ts";
 import { option } from "../../core/inputs.ts";
-import { slugify } from "../../core/names.ts";
 import {
   appFolder,
+  appSlug,
   appIdentifier,
   createApp,
   finishApp,
   inspect,
+  notApp,
   TEMPLATE,
 } from "./template.ts";
 import { shown } from "../../core/output.ts";
-import { newAppInput } from "./targets.ts";
+import { newAppInput, resolveNewApp } from "./targets.ts";
 
 const app = defineActions();
 
@@ -40,35 +40,17 @@ export const createCommand = app.ensure({
   name: "create",
   plan: (input) =>
     Effect.gen(function* () {
-      const name = yield* newAppInput.resolve(input.app, {
-        choices: Effect.succeed([]),
-        create: {
-          label: "Create an app",
-          placeholder: "loyalty",
-          prompt: "What is the app called?",
-        },
-      });
+      const name = yield* resolveNewApp(newAppInput, input.app);
 
-      const slug = slugify(name);
-
-      if (slug === "") {
-        return yield* fail(
-          "USAGE_ERROR",
-          `"${name}" has no letters or digits to name a folder after.`
-        );
-      }
+      const slug = yield* appSlug(name);
 
       const dir = appFolder(input.dir, slug);
       const found = inspect(dir);
 
       if (found.kind === "other") {
-        return yield* fail(
-          "NAME_CONFLICT",
-          `${shown(dir)} is not empty and is not a Saleor app.`,
-          {
-            suggestion:
-              "Choose another name with --app, or an empty or new directory with --dir.",
-          }
+        return yield* notApp(
+          dir,
+          "Choose another name with --app, or an empty or new directory with --dir."
         );
       }
 
@@ -82,6 +64,7 @@ export const createCommand = app.ensure({
         dir,
         identifier,
         name,
+        repository: true,
       };
 
       return {

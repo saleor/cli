@@ -24,6 +24,7 @@ import { askThen } from "./navigation.ts";
 import { notice, shown } from "./output.ts";
 import { projectFolder } from "./project.ts";
 import { initializeProject } from "./project-init.ts";
+import { initRepository } from "./scaffold.ts";
 
 // `saleor init` is the one journey every provider shares: create a new store.
 // Each module that can run a store contributes a setup provider; this file composes
@@ -158,10 +159,13 @@ export interface SetupExtension<R> {
 }
 
 export interface ExtensionPlan<R> {
-  readonly apply: (
-    store: SetupResult
-  ) => Effect.Effect<
-    { readonly brief: Brief; readonly data: unknown },
+  readonly apply: (store: SetupResult) => Effect.Effect<
+    {
+      readonly brief: Brief;
+      readonly data: unknown;
+      // The template it just copied into the project, as the first commit names it.
+      readonly source?: string | undefined;
+    },
     CliFailure,
     R
   >;
@@ -285,12 +289,23 @@ const extend = <R>(
         }))
       );
 
+      // One first commit for everything the extensions copied in, once saleor.yml
+      // lists them all. A project inside a repository already is left to its owner.
+      const sources = outcomes.flatMap(({ outcome }) => outcome.source ?? []);
+
+      const repository =
+        sources.length === 0
+          ? undefined
+          : yield* initRepository(root, `Start from ${sources.join(" and ")}`);
+
       const { created, name } = ensured.data;
 
       return {
         ...result(
           {
             ...ensured.data,
+            // None when nothing was copied in.
+            repository: repository?.repository ?? null,
             ...Object.fromEntries(
               outcomes.map(({ name: key, outcome }) => [key, outcome.data])
             ),
@@ -298,6 +313,7 @@ const extend = <R>(
           summaryText([
             storeBrief(root, ensured),
             ...outcomes.map(({ outcome }) => outcome.brief),
+            { warnings: [repository?.warning ?? []].flat() },
           ])
         ),
         headline: created

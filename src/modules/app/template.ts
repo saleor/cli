@@ -9,6 +9,7 @@ import path from "node:path";
 import { result } from "../../core/command.ts";
 import { recordComponent } from "../../core/components.ts";
 import { fail } from "../../core/errors.ts";
+import { command } from "../../core/invocation.ts";
 import { columns, shown } from "../../core/output.ts";
 import { slugify } from "../../core/names.ts";
 import { findProject } from "../../core/project.ts";
@@ -66,6 +67,26 @@ export const inspect = (dir: string): Found => {
   return { id: ID.exec(manifest)?.[1], kind: "app" };
 };
 
+// The app's folder name, from the name a person gave it.
+export const appSlug = (name: string) => {
+  const slug = slugify(name);
+
+  return slug === ""
+    ? Effect.fail(
+        fail(
+          "USAGE_ERROR",
+          `"${name}" has no letters or digits to name a folder after.`
+        )
+      )
+    : Effect.succeed(slug);
+};
+
+// A folder in the way of a new app.
+export const notApp = (dir: string, suggestion: string) =>
+  fail("NAME_CONFLICT", `${shown(dir)} is not empty and is not a Saleor app.`, {
+    suggestion,
+  });
+
 // apps/<slug> in a project, else ./<slug>; --dir wins.
 export const appFolder = (explicit: Option.Option<string>, slug: string) =>
   Option.match(explicit, {
@@ -78,10 +99,14 @@ export const appFolder = (explicit: Option.Option<string>, slug: string) =>
   });
 
 // Unique per project: <project>.<app>, so apps of two projects can share a store.
-export const appIdentifier = (slug: string) =>
-  `${Option.match(findProject(), {
+// The project is the one around the current folder unless named.
+export const appIdentifier = (
+  slug: string,
+  project = Option.map(findProject(), (found) => found.name)
+) =>
+  `${Option.match(project, {
     onNone: () => "app",
-    onSome: (project) => slugify(project.name),
+    onSome: slugify,
   })}.${slug}`;
 
 const quoted = (text: string) => JSON.stringify(text);
@@ -151,6 +176,10 @@ export interface Made {
   readonly downloaded?: Downloaded | undefined;
   readonly identifier: string;
   readonly name: string;
+  // Whether a new app becomes a git repository; `init` commits the project instead.
+  readonly repository: boolean;
+  // The store it is meant for, named in what to run next.
+  readonly store?: string | undefined;
 }
 
 // Sets up a downloaded copy: id and name (only when just downloaded), the component,
@@ -167,7 +196,7 @@ export const finishApp = (spec: Made) =>
       dir: spec.dir,
       downloaded: spec.downloaded,
       install: true,
-      repository: spec.created ? spec.dir : undefined,
+      repository: spec.created && spec.repository ? spec.dir : undefined,
       template: TEMPLATE,
     });
 
@@ -175,7 +204,8 @@ export const finishApp = (spec: Made) =>
 
     const next = [
       ...copy.next,
-      "saleor app add <env> --manifest <url>/api/manifest",
+      // <url> is a placeholder command() would quote.
+      `${command("app", "add", spec.store ?? "<env>")} --manifest <url>/api/manifest`,
     ];
 
     return result(
