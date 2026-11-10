@@ -30,17 +30,25 @@ export const appChoices = (
   emptyHint: `Install one with: ${command("app", "add", client.store.ref)}`,
 });
 
-// The name of an app `app create` starts from the template.
-export const newAppInput = target({
+// The name of an app of your own, started from the template: required by `app
+// create`, offered by `init`.
+const newApp = target({
   identifiedBy: "name; its folder and manifest id come from it",
   metavar: "name",
   name: "app",
   noun: "app",
-}).input({ creates: true });
+});
 
-// How `newAppInput` is resolved: there is nothing to pick, so a person names one.
-export const resolveNewApp = (given: Given) =>
-  newAppInput.resolve(given, {
+export const newAppInput = newApp.input({ creates: true });
+
+export const optionalNewAppInput = newApp.input({
+  creates: true,
+  optional: true,
+});
+
+// How a new app's name is resolved: there is nothing to pick, so a person names one.
+export const resolveNewApp = (input: typeof newAppInput, given: Given) =>
+  input.resolve(given, {
     choices: Effect.succeed([]),
     create: {
       label: "Create an app",

@@ -40,7 +40,7 @@ export const createCommand = app.ensure({
   name: "create",
   plan: (input) =>
     Effect.gen(function* () {
-      const name = yield* resolveNewApp(input.app);
+      const name = yield* resolveNewApp(newAppInput, input.app);
 
       const slug = yield* appSlug(name);
 

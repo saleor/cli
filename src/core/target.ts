@@ -64,6 +64,8 @@ export interface TargetDefinition {
 export interface TargetUsage {
   // Whether the command creates it when it does not exist.
   readonly creates?: boolean;
+  // Whether the command does without it: a person is asked whether they want one.
+  readonly optional?: boolean;
   readonly positional?: boolean;
 }
 
@@ -121,7 +123,9 @@ const describe = (
     `${capitalize(definition.noun)} ${definition.identifiedBy}.`,
     usage.creates ? "Created if it does not exist, reused if it does." : "",
     envNote(definition, kind),
-    "Asked for in a terminal when missing.",
+    usage.optional
+      ? `Optional; in a terminal, it asks whether you want one.`
+      : "Asked for in a terminal when missing.",
   ]
     .filter(Boolean)
     .join(" ");

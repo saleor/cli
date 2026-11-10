@@ -6,7 +6,7 @@ import { projectAt, projectFolder } from "../../core/project.ts";
 import { type Downloaded, downloadTemplate } from "../../core/scaffold.ts";
 import { defineSetupExtension } from "../../core/setup.ts";
 import { type Given, named } from "../../core/target.ts";
-import { newAppInput, resolveNewApp } from "./targets.ts";
+import { optionalNewAppInput, resolveNewApp } from "./targets.ts";
 import {
   appIdentifier,
   appSlug,
@@ -33,13 +33,13 @@ const wantedName = (given: Given) =>
       return Option.none<string>();
     }
 
-    return Option.some(yield* resolveNewApp(given));
+    return Option.some(yield* resolveNewApp(optionalNewAppInput, given));
   });
 
 export const appSetup = defineSetupExtension({
   description: `With --app <name> (asked in a terminal), it also downloads the Saleor app template (${TEMPLATE.repository}) into <project>/apps/<name>, gives it a manifest id of its own and installs dependencies.`,
   inputs: {
-    app: newAppInput,
+    app: optionalNewAppInput,
   },
   plan: (input, store) =>
     Effect.gen(function* () {
