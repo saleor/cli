@@ -21,7 +21,7 @@ export const ensureLoggedIn = Effect.gen(function* () {
       (failure) => failure.code === "AUTH_REQUIRED",
       (failure) =>
         Effect.gen(function* () {
-          yield* notice("You are not logged in to Saleor Cloud.");
+          yield* notice(failure.message);
 
           if (!(yield* askConfirm("Log in now in your browser?"))) {
             return yield* failure;
