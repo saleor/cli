@@ -2696,6 +2696,7 @@ if (${!engine} && process.argv[2] === "version") process.exit(1);
 
   describe("storefronts", () => {
     let templateUrl: string;
+    let appTemplateUrl: string;
     let closeTemplate: () => Promise<void>;
     let fakeBin: string;
 
@@ -2774,9 +2775,21 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
         },
       ]);
 
-      const server = createServer((_req, res) => {
+      const appArchive = await createTarGzip([
+        {
+          data: '{"name":"saleor-app-template","dependencies":{"@saleor/app-sdk":"1.12.0"}}',
+          name: "t-main/package.json",
+        },
+        {
+          data: 'export default { name: "Saleor App Template", id: "saleor.app" };\n',
+          name: "t-main/src/pages/api/manifest.ts",
+        },
+        { data: ".env\nnode_modules\n", name: "t-main/.gitignore" },
+      ]);
+
+      const server = createServer((req, res) => {
         res.writeHead(200);
-        res.end(Buffer.from(archive));
+        res.end(Buffer.from(req.url === "/app.tar.gz" ? appArchive : archive));
       });
 
       await new Promise<void>((resolve) => {
@@ -2789,6 +2802,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       }
 
       templateUrl = `http://127.0.0.1:${address.port}/storefront.tar.gz`;
+      appTemplateUrl = `http://127.0.0.1:${address.port}/app.tar.gz`;
       closeTemplate = async () => {
         await new Promise<void>((resolve) => {
           server.close(() => {
@@ -2808,6 +2822,7 @@ fs.appendFileSync("node_modules/install-calls", "install\\n");
       GIT_COMMITTER_EMAIL: "test@example.com",
       GIT_COMMITTER_NAME: "Test",
       PATH: fakeBin,
+      SALEOR_APP_TEMPLATE_URL: appTemplateUrl,
       SALEOR_STOREFRONT_TEMPLATE_URL: templateUrl,
     });
 
@@ -3067,6 +3082,61 @@ process.exit(1);
       );
 
       expect(preview.data.data.details.storefront).toBeUndefined();
+    });
+
+    it("creates an app of your own in the project through init", async () => {
+      const out = await cli(
+        [
+          "init",
+          "--local",
+          "--name",
+          "demo",
+          "--storefront",
+          "--app",
+          "Loyalty",
+          "--agent",
+        ],
+        env()
+      );
+
+      expect(out.code, out.stdout + out.stderr).toBe(0);
+
+      const dir = path.join(realpathSync(cwd), "demo/apps/loyalty");
+
+      expect(out.data.data.app).toMatchObject({
+        component: "loyalty",
+        created: true,
+        identifier: "demo.loyalty",
+        installed: true,
+        next: [
+          "cd demo/apps/loyalty",
+          "pnpm dev",
+          "saleor app add local:demo --manifest <url>/api/manifest",
+        ],
+        path: dir,
+        repository: "existing",
+      });
+      expect(
+        readFileSync(path.join(dir, "src/pages/api/manifest.ts"), "utf-8")
+      ).toContain('id: "demo.loyalty"');
+      expect(existsSync(path.join(dir, ".git"))).toBe(false);
+      expect(
+        parse(readFileSync(path.join(cwd, "demo/saleor.yml"), "utf-8"))
+          .components
+      ).toMatchObject({
+        loyalty: { kind: "app", path: "apps/loyalty" },
+        storefront: { kind: "storefront" },
+      });
+
+      const again = await cli(
+        ["init", "--local", "--name", "demo", "--app", "Loyalty", "--agent"],
+        env()
+      );
+
+      expect(again.data.data.app).toMatchObject({
+        created: false,
+        identifier: "demo.loyalty",
+      });
     });
   });
 });
