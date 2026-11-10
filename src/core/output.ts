@@ -153,11 +153,16 @@ export const useColors = (stream: NodeJS.WriteStream = process.stdout) =>
 export const writeTextFailure = (failure: CliFailure) =>
   Effect.sync(() => {
     const colors = useColors(process.stderr);
-    const mark = colors ? "\u001B[31m✗\u001B[0m " : "✗ ";
 
-    const lines = [
-      `${failure.code === "CANCELLED" ? "" : mark}${failure.message}`,
-    ];
+    const cancelled = failure.code === "CANCELLED";
+
+    const message =
+      colors && !cancelled
+        ? `\u001B[1;31m✗ ${failure.message}\u001B[0m`
+        : `${cancelled ? "" : "✗ "}${failure.message}`;
+
+    // In a terminal, a blank line sets the failure apart from the progress above it.
+    const lines = colors ? ["", message] : [message];
 
     if (failure.suggestion) {
       lines.push(...failure.suggestion.split("\n").map((line) => `  ${line}`));
@@ -259,6 +264,7 @@ const coalescedStderr = () => {
   // The spinner sizes and styles its line from the terminal it writes to.
   return Object.assign(coalesced, {
     columns: stream.columns,
+    flush,
     isTTY: stream.isTTY,
     rows: stream.rows,
   });
@@ -283,23 +289,25 @@ export const withProgress = <A, E, R>(
 
     return yield* Effect.acquireUseRelease(
       Effect.sync(() => {
-        const indicator = spinner({
-          indicator: "timer",
-          output: coalescedStderr(),
-        });
+        const output = coalescedStderr();
+        const indicator = spinner({ indicator: "timer", output });
 
         indicator.start(message);
 
-        return indicator;
+        return { indicator, output };
       }),
       () => effect,
-      (indicator, exit) =>
+      ({ indicator, output }, exit) =>
         Effect.sync(() => {
           if (Exit.isSuccess(exit)) {
             indicator.stop(completed);
           } else {
             indicator.clear();
           }
+
+          // Written now, not on the next microtask, so a failure printed right after
+          // lands below the spinner's last line instead of in the middle of it.
+          output.flush();
         })
     );
   });
