@@ -3014,10 +3014,10 @@ process.exit(1);
       expect(out.code, out.stdout + out.stderr).toBe(0);
       expect(out.data.data).toMatchObject({
         ref: "local:demo",
+        repository: "created",
         storefront: {
           created: true,
           path: path.join(realpathSync(cwd), "demo/storefront"),
-          repository: "created",
           store: { ref: "local:demo" },
         },
       });
@@ -3114,8 +3114,22 @@ process.exit(1);
           "saleor app add local:demo --manifest <url>/api/manifest",
         ],
         path: dir,
-        repository: "existing",
       });
+
+      // One first commit has both templates and saleor.yml listing them.
+      const project = path.join(cwd, "demo");
+
+      const git = (...args: string[]) =>
+        execFileSync("git", args, { cwd: project }).toString().trim();
+
+      expect(out.data.data.repository).toBe("created");
+      expect(git("log", "--format=%s")).toBe(
+        "Start from saleor/storefront (main) and saleor/saleor-app-template (main)"
+      );
+      expect(git("status", "--porcelain")).toBe("");
+      expect(git("ls-files", "apps/loyalty")).toContain(
+        "apps/loyalty/src/pages/api/manifest.ts"
+      );
       expect(
         readFileSync(path.join(dir, "src/pages/api/manifest.ts"), "utf-8")
       ).toContain('id: "demo.loyalty"');

@@ -176,9 +176,8 @@ export interface Made {
   readonly downloaded?: Downloaded | undefined;
   readonly identifier: string;
   readonly name: string;
-  // The folder made a git repository when the app is created: the app's own unless
-  // given, such as the project's folder in `init`.
-  readonly repository?: string | undefined;
+  // Whether a new app becomes a git repository; `init` commits the project instead.
+  readonly repository: boolean;
   // The store it is meant for, named in what to run next.
   readonly store?: string | undefined;
 }
@@ -197,7 +196,7 @@ export const finishApp = (spec: Made) =>
       dir: spec.dir,
       downloaded: spec.downloaded,
       install: true,
-      repository: spec.created ? (spec.repository ?? spec.dir) : undefined,
+      repository: spec.created && spec.repository ? spec.dir : undefined,
       template: TEMPLATE,
     });
 

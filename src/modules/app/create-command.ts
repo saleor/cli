@@ -64,6 +64,7 @@ export const createCommand = app.ensure({
         dir,
         identifier,
         name,
+        repository: true,
       };
 
       return {

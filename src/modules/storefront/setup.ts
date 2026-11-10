@@ -5,7 +5,11 @@ import { askConfirm, isInteractive } from "../../core/interaction.ts";
 import { recordAnswer } from "../../core/invocation.ts";
 import { projectChannel, storefrontPath } from "./project.ts";
 import { projectAt, projectFolder } from "../../core/project.ts";
-import { type Downloaded, downloadTemplate } from "../../core/scaffold.ts";
+import {
+  type Downloaded,
+  downloadTemplate,
+  templateSource,
+} from "../../core/scaffold.ts";
 import { defineSetupExtension } from "../../core/setup.ts";
 import {
   connectedElsewhere,
@@ -102,7 +106,8 @@ export const storefrontSetup = defineSetupExtension({
               downloaded: downloads[0],
               install: true,
               record: true,
-              repository: created ? root : undefined,
+              // `init` commits the project once, with everything in it.
+              repository: undefined,
               source: undefined,
               store: made,
             });
@@ -119,6 +124,10 @@ export const storefrontSetup = defineSetupExtension({
                 warnings: outcome.data.warnings,
               },
               data: outcome.data,
+              source:
+                downloads[0] === undefined
+                  ? undefined
+                  : templateSource(TEMPLATE, downloads[0]),
             };
           }),
         changes: true,

@@ -127,7 +127,11 @@ pnpm saleor storefront create cloud:acme/env1 --dir shop --channel eu
 - **Running it again** on the same directory and store reuses the files and retries dependency installation. A directory with other files is refused (`NAME_CONFLICT`), and so is a storefront connected to another store; use `storefront use` to switch its backend, or choose another directory with `--dir`.
 - The result lists the next commands (`next`) and the environment variables a host needs to deploy it.
 
-`init --storefront` (asked last in a terminal) does the same for the store `init` sets up, in a folder for the project: the current directory when it is empty, else `./<project>`, with the storefront in `storefront/` and one git repository for the folder. The template downloads while the store is being set up; if `init` stops waiting for the store, running it again connects the downloaded storefront.
+`init --storefront` (asked last in a terminal) does the same for the store `init` sets up, in a folder for the project: the current directory when it is empty, else `./<project>`, with the storefront in `storefront/`. The template downloads while the store is being set up; if `init` stops waiting for the store, running it again connects the downloaded storefront.
+
+`init --app <name>` (asked in a terminal) does what `app create` does, in the project's `apps/<name>`. It is not installed on the store.
+
+When `init` copies in a storefront or an app, the project folder becomes one git repository, unless it is inside one already. Its first commit is made once everything is in place, with `saleor.yml` listing it all, and names each template commit.
 
 `pnpm saleor storefront use` shows the current backend and asks which store to use. Defaults to the project's storefront, or the current directory outside a project; pass `--dir` when running elsewhere. `storefront use staging` or `storefront use cloud:<org>/<key>` selects the backend explicitly. `--channel` overrides the current channel. `--dry-run` previews the change without writing. Restart the development server afterward. This command only updates the local storefront's `.env`; it does not modify Cloud environments or hosted deployments. Exploratory navigation offers it only inside a storefront directory.
 
