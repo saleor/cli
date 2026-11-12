@@ -17,19 +17,12 @@ import { type CliFailure, fail } from "./errors.ts";
 import { Prompts } from "./interaction.ts";
 import { option } from "./inputs.ts";
 import { onboard } from "./onboarding.ts";
-import { notice } from "./output.ts";
-import { type AgentTool, defineSetup, type OnboardingPath } from "./setup.ts";
+import { defineSetup, type OnboardingPath } from "./setup.ts";
 
 const dirs: string[] = [];
 
 // Places to run stores as the Cloud and local modules describe them; core knows
 // neither, so these stand in for them.
-const tool: AgentTool = {
-  install: (agent) => notice(`Installed the agent tool for ${agent}.`),
-  offer: "The agent tool connects your coding agent to your store.",
-  question: "Install the agent tool in your coding agent?",
-};
-
 const provider = (name: string, onboarding: OnboardingPath) =>
   defineSetup({
     example: { command: "", description: "" },
@@ -45,7 +38,6 @@ const provider = (name: string, onboarding: OnboardingPath) =>
 
 const PROVIDERS = [
   provider("cloud", {
-    agentTool: tool,
     first: ["login"],
     hint: "Log in to your Saleor Cloud account",
     label: "Use Saleor Cloud",
@@ -165,7 +157,7 @@ it("leaves cancelled onboarding retryable", async () => {
   expect(select).toHaveBeenCalledTimes(2);
 });
 
-it("installs skills for local users without offering the Cloud path's agent tool", async () => {
+it("installs skills where the person picks", async () => {
   const { run, select, confirm, install, dir } = setup("local");
   confirm.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
   select
@@ -180,27 +172,6 @@ it("installs skills for local users without offering the Cloud path's agent tool
     })
   );
   expect(install).toHaveBeenCalledWith(path.join(dir, "project", "skills"));
-});
-
-it("offers the path's agent tool independently of skills", async () => {
-  const { run, select, confirm, install, execute, dir } = setup("cloud");
-  confirm.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-  select.mockResolvedValueOnce("cloud").mockResolvedValueOnce("codex");
-  expect(await run()).toBe(true);
-  expect(execute).toHaveBeenCalledExactlyOnceWith(["login"]);
-  expect(install).not.toHaveBeenCalled();
-  expect(confirm).toHaveBeenCalledWith(
-    expect.objectContaining({ message: tool.question })
-  );
-  expect(vi.mocked(process.stderr.write)).toHaveBeenCalledWith(
-    expect.stringContaining(tool.offer)
-  );
-  expect(vi.mocked(process.stderr.write)).toHaveBeenCalledWith(
-    expect.stringContaining("Installed the agent tool for Codex.")
-  );
-  expect(
-    readFileSync(path.join(dir, "onboarding.json"), "utf-8")
-  ).toStrictEqual('{"version":1}\n');
 });
 
 it("does not mark onboarding complete when skills installation fails", async () => {
@@ -252,11 +223,8 @@ it("goes on to set up a store where the first step said, once onboarding is save
 it("sets up a Cloud store after logging in, without asking where again", async () => {
   const { run, confirm, execute, select, cwd } = setup("cloud");
   writeFileSync(path.join(cwd, "notes.txt"), "");
-  // No skills, no MCP; yes to the store.
-  confirm
-    .mockResolvedValueOnce(false)
-    .mockResolvedValueOnce(false)
-    .mockResolvedValueOnce(true);
+  // No skills; yes to the store.
+  confirm.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
   select.mockResolvedValueOnce("cloud");
 
   expect(await run()).toBe(false);

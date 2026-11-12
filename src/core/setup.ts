@@ -74,21 +74,12 @@ export interface SetupProvider<R> {
 
 // What onboarding says about a place to run stores, and what it does when picked.
 export interface OnboardingPath {
-  // Something a coding agent can get on this path besides skills, such as Saleor MCP.
-  readonly agentTool?: AgentTool | undefined;
   // A command run first, such as `login`; onboarding stops when it fails.
   readonly first?: readonly string[] | undefined;
   readonly hint: string;
   readonly label: string;
   // What the store onboarding offers to set up will be.
   readonly store: string;
-}
-
-export interface AgentTool {
-  readonly install: (agent: string) => Effect.Effect<void>;
-  // Said before the question.
-  readonly offer: string;
-  readonly question: string;
 }
 
 export interface Naming {

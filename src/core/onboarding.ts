@@ -150,7 +150,7 @@ export const onboard = (
             }
           }
 
-          const finished = yield* setupCodingAgent(chosen.agentTool);
+          const finished = yield* setupCodingAgent;
 
           return {
             finished,
