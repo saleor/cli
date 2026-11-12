@@ -1,12 +1,22 @@
 {
   "name": "@saleor/cli",
-  "version": "2.0.0-poc.0",
-  "private": true,
-  "description": "Saleor CLI: agent-first command line for Saleor (proof of concept)",
+  "version": "2.0.0-alpha.0",
+  "description": "Set up and manage Saleor stores in Saleor Cloud or locally, for people and coding agents",
+  "homepage": "https://github.com/saleor/saleor-cli#readme",
+  "bugs": "https://github.com/saleor/saleor-cli/issues",
+  "license": "BSD-3-Clause",
+  "author": "Saleor",
+  "repository": "github:saleor/saleor-cli",
   "bin": {
-    "saleor": "./bin/saleor.mjs"
+    "saleor": "./dist/saleor.mjs"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsdown",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
