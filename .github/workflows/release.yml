@@ -1,0 +1,44 @@
+name: Release
+
+# Publishes the version in package.json to npm under the chosen tag, then tags the
+# commit. Bump the version in a pull request first. `latest` stays on 1.x until a
+# stable 2.0 is chosen here.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: npm tag to publish under
+        type: choice
+        options: [alpha]
+        default: alpha
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test:e2e
+      - run: pnpm build
+      - run: npm publish --provenance --tag "$TAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TAG: ${{ inputs.tag }}
+      - name: Tag the release
+        run: |
+          tag="v$(node -p 'require("./package.json").version')"
+          git tag "$tag"
+          git push origin "$tag"
