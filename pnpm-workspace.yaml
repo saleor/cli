@@ -1,3 +1,14 @@
-blockExoticSubdeps: true
-minimumReleaseAge: 1440 # 24h
-trustPolicy: no-downgrade
+minimumReleaseAgeExclude:
+  - '@effect/tsgo-darwin-arm64@0.53.2'
+  - '@effect/tsgo-darwin-x64@0.53.2'
+  - '@effect/tsgo-linux-arm64@0.53.2'
+  - '@effect/tsgo-linux-arm@0.53.2'
+  - '@effect/tsgo-linux-x64@0.53.2'
+  - '@effect/tsgo-win32-arm64@0.53.2'
+  - '@effect/tsgo-win32-x64@0.53.2'
+  - '@effect/tsgo@0.53.2'
+  - '@saleor/configurator@3.23.3'
+
+allowBuilds:
+  esbuild: true
+  msw: false

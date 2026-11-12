@@ -1,59 +1,51 @@
-name: Release 
-on: 
+name: Release
+
+# Publishes the version in package.json to npm as @saleor/cli, saleor and saleor-cli
+# under the chosen tag, then tags the commit. Bump the version in a pull request
+# first. `latest` stays on 1.x until a stable 2.0 is chosen here.
+on:
   workflow_dispatch:
     inputs:
-      version:
+      tag:
+        description: npm tag to publish under
         type: choice
-        description: Which version to release?
-        options: 
-          - major 
-          - minor 
-          - patch
-          - preminor
+        options: [alpha]
+        default: alpha
+
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   publish:
-    runs-on: ubuntu-22.04
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v3
-      - name: Configure a Git to commit & tag back to the remote 
-        run: |
-          git config user.name "${GITHUB_ACTOR}"
-          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-      - uses: actions/setup-node@v4.2.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version-file: ".nvmrc"
+          node-version: '24'
           cache: pnpm
-      - name: Install the dependencies
-        run: pnpm install
-      - name: Setup the NPM Registry
-        run: pnpm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test:e2e
+      - run: pnpm build
+      # The same package goes out under all three names 1.x used.
+      - name: Publish @saleor/cli, saleor and saleor-cli
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Release for `@saleor/cli`
-        run: pnpm release ${{ inputs.version }} --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --dry-run ${{ secrets.DRY_RUN || true }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Change package name to `saleor`
-        run: node -e "let pkg=require('./package.json'); pkg.name='saleor'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
-      - name: Release for `saleor`
-        run: pnpm release --no-increment --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --no-git --dry-run ${{ secrets.DRY_RUN || true }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Change package name to `saleor-cli`
-        run: node -e "let pkg=require('./package.json'); pkg.name='saleor-cli'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
-      - name: Release for `saleor-cli`
-        run: pnpm release --no-increment --ci ${{ startsWith(inputs.version, 'pre') && '--preRelease=rc --npm.tag=next' || '' }} --no-git --dry-run ${{ secrets.DRY_RUN || true }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Revert the name in `package.json`
-        run: node -e "let pkg=require('./package.json'); pkg.name='@saleor/cli'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
-      - name: Create a draft release on GitHub
-        run: pnpm release-it --no-increment --no-git --no-npm --github.release  --github.draft --github.autoGenerate --github.releaseName='v${version}' --ci
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          for name in @saleor/cli saleor saleor-cli; do
+            npm pkg set name="$name"
+            npm publish --provenance --tag "$TAG"
+          done
+          git checkout package.json
+      - name: Tag the release
+        run: |
+          tag="v$(node -p 'require("./package.json").version')"
+          git tag "$tag"
+          git push origin "$tag"

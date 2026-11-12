@@ -1,0 +1,42 @@
+name: Preview package
+
+# Each pull request from this repository gets a tarball of the built CLI on the
+# `preview/<branch>` branch, installable without publishing to npm.
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: preview-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  pack:
+    name: Build an installable tarball
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm pack --out "$RUNNER_TEMP/preview/saleor-cli.tgz"
+      - name: Push the tarball to preview/${{ github.head_ref }}
+        working-directory: ${{ runner.temp }}/preview
+        env:
+          BRANCH: preview/${{ github.head_ref }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q -b "$BRANCH"
+          git add saleor-cli.tgz
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Preview of $SHA"
+          git push -fq "https://x-access-token:$TOKEN@github.com/$GITHUB_REPOSITORY.git" "HEAD:refs/heads/$BRANCH"
+          echo "npm i -g https://github.com/$GITHUB_REPOSITORY/raw/$BRANCH/saleor-cli.tgz" >> "$GITHUB_STEP_SUMMARY"
