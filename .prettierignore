@@ -1,8 +1,0 @@
-.history
-build
-pnpm-lock.yaml
-template/event-subscription.graphql
-dist
-# To be sure that white spaces are not broken
-*.md
-*.yml

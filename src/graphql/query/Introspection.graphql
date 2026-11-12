@@ -1,5 +1,0 @@
-query Introspection {
-  __schema {
-    __typename
-  }
-}

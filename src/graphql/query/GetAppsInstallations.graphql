@@ -1,9 +1,0 @@
-query AppsInstallations {
-  appsInstallations {
-    id
-    manifestUrl
-    appName
-    message
-    status
-  }
-}

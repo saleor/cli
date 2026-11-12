@@ -1,8 +1,0 @@
-query GetWebhookAsyncEventEnum {
-  __type(name: "WebhookEventTypeAsyncEnum") {
-    enumValues {
-      name
-      description
-    }
-  }
-}

@@ -1,0 +1,137 @@
+{
+  "user": {
+    "email": "dev@example.com",
+    "first_name": "Ada",
+    "last_name": "Lovelace"
+  },
+  "organization": {
+    "name": "Acme Org",
+    "slug": "acme"
+  },
+  "project": {
+    "name": "shop",
+    "plan": {
+      "allowance": {
+        "period": "monthly",
+        "sandboxes": {
+          "cap": 5,
+          "included": 5
+        }
+      },
+      "name": "Pro (trial)",
+      "pricing": {
+        "flat_fee": "0.00",
+        "requests": "0.000000",
+        "orders": "0.000000",
+        "staff": "0.000000",
+        "variants": "0.000000",
+        "warehouses": "0.000000",
+        "channels": "0.000000",
+        "sandboxes": "100.000000"
+      },
+      "slug": "pro-trial",
+      "type": "pro"
+    },
+    "region": "eu-west-1",
+    "sandboxes": {
+      "count": 4
+    },
+    "slug": "shop"
+  },
+  "environment": {
+    "blocking_tasks_in_progress": false,
+    "domain": "blank.eu.saleor.cloud",
+    "domain_label": "blank",
+    "key": "5qvWV4ls",
+    "maintenance_mode": false,
+    "name": "blank",
+    "project": {
+      "slug": "shop"
+    },
+    "service": {
+      "maintenance_mode": false,
+      "name": "saleor-v323-sandbox-eu",
+      "region": "eu-west-1",
+      "service_type": "SANDBOX",
+      "version": "3.23.41"
+    }
+  },
+  "plans": [
+    {
+      "allowance": {
+        "period": "monthly",
+        "sandboxes": {
+          "cap": 2,
+          "included": 2
+        }
+      },
+      "name": "Developer",
+      "pricing": {
+        "flat_fee": "0.00",
+        "requests": "0.000000",
+        "orders": "0.000000",
+        "staff": "0.000000",
+        "variants": "0.000000",
+        "warehouses": "0.000000",
+        "channels": "0.000000",
+        "sandboxes": "0.000000"
+      },
+      "slug": "dev",
+      "type": "dev"
+    },
+    {
+      "allowance": {
+        "period": "monthly",
+        "sandboxes": {
+          "cap": 5,
+          "included": 1
+        }
+      },
+      "name": "Pro",
+      "pricing": {
+        "flat_fee": "1599.00",
+        "requests": "0.000070",
+        "orders": "0.150000",
+        "staff": "0.000000",
+        "variants": "0.000000",
+        "warehouses": "0.000000",
+        "channels": "0.000000",
+        "sandboxes": "100.000000"
+      },
+      "slug": "pro",
+      "type": "pro"
+    }
+  ],
+  "services": [
+    {
+      "maintenance_mode": false,
+      "name": "saleor-v323-prod-eu",
+      "region": "eu-west-1",
+      "service_type": "PRODUCTION",
+      "version": "3.23.41"
+    },
+    {
+      "maintenance_mode": false,
+      "name": "saleor-v323-sandbox-eu",
+      "region": "eu-west-1",
+      "service_type": "SANDBOX",
+      "version": "3.23.41"
+    }
+  ],
+  "taskList": {
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "status": "SUCCEEDED",
+        "status_message": null,
+        "job_name": "mpt-blank-75b82d6ae77b429985f38b20bc6fee21"
+      }
+    ]
+  },
+  "taskStatus": {
+    "status": "SUCCEEDED",
+    "status_message": null
+  }
+}

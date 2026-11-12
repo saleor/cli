@@ -1,242 +1,125 @@
+# Saleor CLI
 
-<div align="center">
-  <img width="150" alt="saleor-cli" src="https://user-images.githubusercontent.com/200613/221163557-797cf981-3c65-4a0b-afd3-304b6d7ac537.png">
-</div>
+Set up and manage Saleor stores in Saleor Cloud or locally with Docker, and storefronts connected to them.
 
-<div align="center">
-  <h1>Saleor CLI</h1>
-</div>
+## Get started
 
-<div align="center">
-  <p>Command-Line Interface for Saleor</p>
-</div>
+Requires Node.js 22.18+ and pnpm. From this checkout:
 
-<div align="center">
-  <a href="https://saleor.io/">Website</a>
-  <span> | </span>
-  <a href="https://docs.saleor.io/docs/3.x/cli">Docs</a>
-</div>
-
-> [!TIP]
-> Questions or issues? Check our [discord](https://discord.gg/H52JTZAtSH) channel for help.
-
-**Saleor CLI** is designed to boost your productivity and improve development experience with Saleor and Saleor Cloud. It will take the burden of spawning new storefronts and apps locally, managing and connecting them with Saleor instances, or establishing tunnels for local development in seconds.
-
-To install the latest version of Saleor CLI, run the following command:
-
-```
-npm i -g @saleor/cli
-```
-
-You can also use `npx` to execute the Saleor CLI commands on the spot without installing the package.
-
-```
-npx saleor env list
-```
-
-> If you're using `nvm`, make sure that the `NVM_BIN` path is added to `PATH`
-
-## Getting Started with CLI
-
-### A quick demo
-
-If you're new to Saleor you might want to start by bootstrapping an end-to-end local storefront development environment (and Saleor Cloud sandbox API instance). Since it requires Cloud access, you will be asked to register to a free Saleor Cloud developer account or log in. Then the command will automatically create your new local storefront environment and connect it to a newly created Saleor API instance/sandbox:
-
-```
-saleor storefront create --demo
-```
-
-### Register
-
-If you don't have a (free developer) Saleor Cloud account yet, create one with the following command:
-
-```
-saleor register
-```
-
-### Login
-
-The `saleor` binary requires the Cloud API token that can be obtained via OAuth by running the `login` command:
-
-```
-saleor login
-```
-
-This command will open a browser and ask for your Saleor Cloud credentials. Once logged in, it will store your Cloud API token locally for the CLI to use.
-
-You can now start executing any of the available commands.
-
-Note: in order to log out you can use `saleor logout`.
-
-### Create a storefront
-
-The following command will take you through the process of creating a new [react-storefront](https://github.com/saleor/react-storefront) and configuring it with a chosen Saleor Cloud API instance:
-
-```
-saleor store create my-new-storefront
-```
-
-### Create an API sanbox
-
-You can create new API endpoints by running:
-
-```
-saleor env create
-```
-
-## Saleor Apps management 🦄
-
-Please check out the [Saleor App Template](https://github.com/saleor/saleor-app-template) [docs](https://github.com/saleor/saleor-app-template#readme) for the latest documentation.
-
-## Webhooks management
-
-Coming soon 🔌
-
-## Usage
-
-```
-Usage: saleor <command> [options]
-
-Commands:
-  saleor info                    Hello from Saleor
-  saleor status                  Show the login status for the systems that CLI depends on
-  saleor login                   Log in to the Saleor Cloud
-  saleor logout                  Log out from the Saleor Cloud
-  saleor configure [token]       Configure Saleor CLI
-  saleor register                Create a Saleor Cloud account  [aliases: signup]
-  saleor trigger [event]         This triggers a Saleor event
-  saleor organization [command]  [aliases: org]
-  saleor environment [command]  [aliases: env]
-  saleor backup [command]
-  saleor job [command]
-  saleor project [command]
-  saleor storefront [command]  [aliases: store]
-  saleor webhook [command]  [aliases: hook]
-  saleor app [command]
-  saleor vercel [command]
-  saleor github [command]
-  saleor checkout [command]
-
-Options:
-      --json             Output the data as JSON  [boolean]
-      --short            Output data as text  [boolean] [default: false]
-  -u, --instance, --url  [string]
-  -V, --version          Show version number  [boolean]
-  -h, --help             Show help  [boolean]
-
-for more information, find the documentation at https://saleor.io
-```
-
-## Development
-
-### Install dependencies
-
-This project uses [pnpm](https://pnpm.io) for managing dependencies
-
-```
+```sh
 pnpm install
+pnpm saleor init
 ```
 
-### Run Watch Mode
+Choose where to create your new store. Cloud setup asks you to log in when needed. In Cloud, you can use an existing project as its destination. The CLI offers to open your dashboard when your store is ready.
 
-```
-pnpm watch
-```
+Run `pnpm saleor` for a short first-run welcome: connect to Cloud, continue locally, or browse commands without setup. Browsing skips login and skills installation. Revisit setup with `pnpm saleor onboard`. Onboarding can install Saleor skills for Claude Code, Codex, or Cursor, either in your current project or for all your projects. Unless you browse or are already inside a project, onboarding ends by offering to set up a store where you said it should run (`init --cloud` or `init --local`), saying which folder the project goes in. Later runs open the command menu: the same commands whether you work locally or in Cloud, with login offered until you have one. Every command still works when typed. `init` asks where the new store should run, unless `--cloud` or `--local` says. When you are logged in, it first shows which Cloud account it would use and lists Cloud first; otherwise local comes first. Press Esc at any question to go back a step: to the first onboarding question, to where `init`'s store should run, or to the menu you came from. Press Ctrl+C to exit. After a command finishes, the CLI returns to your shell. Add `--help` to any command for details.
 
-### Run CLI
+Small terminals and `NO_COLOR` use a compact welcome.
 
-```
-node build/cli.js ...
-```
+## How commands read
 
-### Environment variables
+Every command is a short sentence: `saleor <noun> <verb> [<env>]`.
 
-`RUN_FUNCTIONAL_TESTS`
-
-Set to `true` to enable functional tests
-
-
-`DEBUG`
-
-Use it for debugging. Set to `saleor-cli:*` to show debug output for the Saleor CLI only. Set to `*` to show all debug output.
-
-## Releasing CLI
-
-Commands should be executed locally.
-
-### Pre-Release
-
-- pull latest changes from `main`, e.g.
-
-```
-git pull origin main
+```sh
+pnpm saleor env start local
+pnpm saleor config deploy staging
+pnpm saleor storefront use staging
 ```
 
-- check for the type errors with `pnpm tsc`
-- check if the bundling finishes `pnpm bundle`
-- publishing step involves uploading source maps to Sentry, log in with `sentry-cli login` if you intend to upload source maps
+`<env>` names a store the same way everywhere: by its name in the project's `saleor.yml` (`local`, `staging`), or by its ref (`local:demo`, `cloud:acme/abc123`) as `env list` prints it. Inside a project with one environment, you can leave it out.
 
-### Release
+## Run locally
 
-- change to the selected `release-*` branch; all `release-*` branches are protected
+Install and start Docker with Compose, then run:
 
-```
-git checkout release/X.Y
+```sh
+pnpm saleor init --local
 ```
 
-where `X` and `Y` is the selected version
+`init` asks for a name for the new local store. Passing an existing name explicitly lets you retry setup safely.
 
-- compare the commits between latest release on that branch and the current `main`
+No Cloud account is needed. The first setup can take several minutes. When ready, the CLI shows your dashboard, API address, and admin login.
 
-```
-git log --no-merges --cherry-pick --right-only release/X.Y...main
-```
+## Manage environments
 
-- cherry pick commits for the next release following the [Trunk Based Development Approach](https://trunkbaseddevelopment.com); do not include the `merge` commits
+Local stores and Cloud environments answer the same commands:
 
-```
-git cherry-pick SHA1 SHA2 SHA3
-```
-
-where `SHA1`, `SHA2`, `SHA3` are SHAs selected to be included in the upcoming version
-
-- mark the new version in the package.json
-- commit the new release + add the tag
-
-```
-git commit -m 'Release X.Y.0'
-git tag X.Y.Z
+```sh
+pnpm saleor env list              # every store, local and Cloud, with its state
+pnpm saleor env start local       # start it, or print its addresses again
+pnpm saleor env stop local        # stop it and keep its data
+pnpm saleor env remove local      # delete it and its data, after confirmation
+pnpm saleor env add staging       # a new Cloud sandbox, named in saleor.yml
+pnpm saleor env add review --local
 ```
 
-- push the updated release branch to the origin
+Inside a project, `env start local` creates the local environment from `saleor.yml` when this checkout does not have it yet, and applies `config.yml` unless the definition says `configure: never`. Stopping keeps data. Removing deletes the store and its data: a Cloud environment's name leaves `saleor.yml` with it, while a local definition stays so `env start` can create it again. Saleor Cloud runs its environments itself, so they cannot be started or stopped here, and only sandboxes can be removed.
 
-```
-git push origin release/X.Y
-```
+Preview any change with `--dry-run`. Removals ask for confirmation, need `--force` without a terminal, and never read `SALEOR_ENV`: name what to delete.
 
-- push the new tag to the origin
+## Create a storefront
 
-```
-git push origin --tags
+```sh
+pnpm saleor storefront create
 ```
 
-- publish from the release branch; use the `next` tag for the `RC` version
+Pick a store (Cloud or local) and the CLI downloads the [Saleor storefront template](https://github.com/saleor/storefront) into the project's `storefront/` folder (`./storefront` outside a project), points its `.env` at the store's API and channel, and makes it a git repository. Dependencies are installed automatically. Then `cd storefront && pnpm dev`.
 
-```
-pnpm publish
+`pnpm saleor init` also offers a storefront for the store it sets up (`--storefront`), in a folder for the project: `<project>/storefront`.
+
+Run `pnpm saleor storefront use staging` to point the storefront at another environment, or leave out the name to choose interactively; it shows the current backend before asking. Target a directory explicitly with `--dir path/to/storefront`. Restart the storefront development server after switching. This updates local configuration; hosted deployments keep their own settings.
+
+## Talk to a store's API
+
+```sh
+pnpm saleor api call local --query '{ shop { name } }'
+pnpm saleor api call staging --file products.graphql --variables '{"first": 10}'
 ```
 
-or
+`api call` sends one GraphQL request and prints the data. It finds the token for you: `SALEOR_TOKEN`, a token saved for the store, a local store's own admin login, an app token made with your Cloud login for a Cloud store (an app named `Saleor CLI`), or a prompt that offers to save what you paste. Make that token in the store's Dashboard (Apps → Create app). `--anonymous` sends none, for public data.
 
-```
-pnpm publish --tag next
+## Install apps on a store
+
+```sh
+pnpm saleor app create --app loyalty   # your own app, in apps/loyalty
+pnpm saleor app list staging
+pnpm saleor app add staging --manifest https://my-app.example.com/api/manifest
+pnpm saleor app add staging --store-app avatax,klaviyo
+pnpm saleor app add staging              # tick App Store apps in a list
+pnpm saleor app reinstall staging --app "My app"
+pnpm saleor app remove staging --app "My app"
 ```
 
-> [!IMPORTANT]
-> CLI is currently published in an identical form to three packages in npmjs.com:
-> - https://www.npmjs.com/package/@saleor/cli
-> - https://www.npmjs.com/package/saleor-cli
-> - https://www.npmjs.com/package/saleor
->
-> When releasing a new version, modify name in `package.json` to `saleor-cli` and `saleor` respectively and repeat `pnpm publish` step.
-> Do not commit these `package.json` changes.
+`app add` installs an app from its manifest URL with the permissions the manifest asks for, waits until the store has installed it, and reuses an app that is already there (a failed installation is retried). The store fetches the manifest itself, so the URL must be reachable from the store. `app create` downloads the [Saleor app template](https://github.com/saleor/saleor-app-template) (its `main` branch) into `apps/<name>` inside a project, lists it in `saleor.yml` as a component of kind `app`, gives its manifest an id of its own (`<project>.<name>`), keeps its app tokens (`.saleor-app-auth.json`) out of git, and installs dependencies. A project can have several. To install one, run it with `pnpm dev` and pass `--manifest <url>/api/manifest`: `http://localhost:3000` for a local store, a tunnel to port 3000 for a Cloud store. A local store runs in Docker, where `localhost` is its own container, so `app add` gives it `host.docker.internal` instead and sets the app's `APP_API_BASE_URL` and `APP_IFRAME_BASE_URL` in `.env`, as [Saleor's local app guide](https://docs.saleor.io/developer/extending/apps/local-app-development) describes. App Store apps (Saleor Cloud stores only) are named with `--store-app`; `pnpm saleor app list --store-apps` shows their ids. Without either flag, in a terminal, `app add` lists the App Store's apps with the installed ones ticked: tick to install, untick to uninstall (after confirmation). `app reinstall` deletes the app and installs it again from its manifest URL, after confirmation; it reads the manifest first, so an app the store cannot reach stays installed. Saleor has no reinstall, so the result is a new app with a new id, and the CLI cannot know where the app keeps its settings: `--copy-metadata` (asked in a terminal) copies the old app's metadata and private metadata, where apps often keep their configuration, to the new one. `app remove` deletes the app with its webhooks and settings, after confirmation. All three use the store's token, which needs `MANAGE_APPS`; installing (`add`, `reinstall`) also takes a staff user's token, not an app's, so on a Cloud store these use your Cloud login itself, and on a local store its admin login.
+
+## Receive webhooks while you build
+
+```sh
+pnpm saleor webhook listen local --events order_created
+pnpm saleor webhook listen local --subscription order.graphql --forward-to http://localhost:3000/api/webhooks/order
+```
+
+`webhook listen` creates a temporary app on the store, subscribes it to the events (or to a subscription query, which shapes the payload as your app's webhook would), and prints each delivery as it arrives. With `--forward-to`, each delivery also goes to your app, signature included, and the store gets your app's answer. Ctrl+C deletes the app; `--count <n>` stops after that many deliveries. The token needs `MANAGE_APPS` plus the permissions the events need.
+
+Local stores reach your computer through Docker. For a Cloud store, run a tunnel to a local port and pass it: `--port 4141 --public-url https://<tunnel>`. A local store made before this version refuses to deliver to your computer until you run `env stop` and `env start` on it once.
+
+## Cloud stores
+
+```sh
+# Create a project and a sandbox, or reuse them and print their addresses
+pnpm saleor init --org my-org --project my-store --env preview
+
+# Delete a sandbox by its ref
+pnpm saleor env remove cloud:my-org/<env key>
+```
+
+## Scripts and coding agents
+
+Pass `--agent` (shorthand for `--json --no-input`) on agent and script invocations for structured output without prompts; do not rely on automatic agent detection. Discover commands and their inputs with `pnpm saleor commands --agent`. Supply the resource names and options your command needs. For unattended Cloud access, set `SALEOR_CLOUD_TOKEN` to a Cloud API token.
+
+See the [CLI reference](docs/reference.md) for automation and advanced options, or [known limitations](docs/limitations.md).
+
+## Development checks
+
+Run `pnpm check` for lint, types, and tests, or `pnpm test:e2e` to test the built CLI against mock Cloud and Saleor servers. See [testing](docs/testing.md) for CI coverage and its boundaries.
