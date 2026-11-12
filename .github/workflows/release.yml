@@ -1,8 +1,8 @@
 name: Release
 
-# Publishes the version in package.json to npm under the chosen tag, then tags the
-# commit. Bump the version in a pull request first. `latest` stays on 1.x until a
-# stable 2.0 is chosen here.
+# Publishes the version in package.json to npm as @saleor/cli, saleor and saleor-cli
+# under the chosen tag, then tags the commit. Bump the version in a pull request
+# first. `latest` stays on 1.x until a stable 2.0 is chosen here.
 on:
   workflow_dispatch:
     inputs:
@@ -33,10 +33,17 @@ jobs:
       - run: pnpm check
       - run: pnpm test:e2e
       - run: pnpm build
-      - run: npm publish --provenance --tag "$TAG"
+      # The same package goes out under all three names 1.x used.
+      - name: Publish @saleor/cli, saleor and saleor-cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           TAG: ${{ inputs.tag }}
+        run: |
+          for name in @saleor/cli saleor saleor-cli; do
+            npm pkg set name="$name"
+            npm publish --provenance --tag "$TAG"
+          done
+          git checkout package.json
       - name: Tag the release
         run: |
           tag="v$(node -p 'require("./package.json").version')"
